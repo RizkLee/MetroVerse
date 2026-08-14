@@ -259,7 +259,7 @@ D:\Android\AndroidSDK\platform-tools\adb.exe install -r .\app\build\outputs\apk\
 
 `lintFossDebug` 任务可以完成，但现有项目报告仍包含 67 个 error 和 265 个 warning；播客新增文件没有 lint error。HTML 报告位于 `app/build/reports/lint-results-fossDebug.html`。
 
-已验证的调试 APK 是 `app/build/outputs/apk/foss/debug/app-foss-debug.apk`，约 46.5 MiB。
+已验证的调试 APK 是 `app/build/outputs/apk/foss/debug/app-foss-debug.apk`，约 47 MiB。
 
 ## 8. 手工验收清单
 

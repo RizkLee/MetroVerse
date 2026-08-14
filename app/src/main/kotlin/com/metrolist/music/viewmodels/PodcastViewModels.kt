@@ -45,7 +45,7 @@ class PodcastHomeViewModel @Inject constructor(
     val events = _events.asSharedFlow()
 
     init {
-        loadDiscover()
+        refresh()
     }
 
     fun loadDiscover() {

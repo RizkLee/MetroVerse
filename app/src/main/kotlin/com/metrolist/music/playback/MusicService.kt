@@ -2521,6 +2521,14 @@ class MusicService :
         previousEpisodePosition = 0L
 
         val newMetadata = mediaItem?.metadata
+        newMetadata?.mediaUrl?.let { mediaUrl ->
+            directMediaUrlCache[newMetadata.id] = mediaUrl
+            scope.launch(Dispatchers.IO) {
+                database.songEntity(newMetadata.id)?.mediaUrl?.let {
+                    directMediaUrlCache[newMetadata.id] = it
+                }
+            }
+        }
         if (newMetadata?.isEpisode == true) {
             previousEpisodeId = newMetadata.id
             scope.launch {
@@ -4744,6 +4752,12 @@ class MusicService :
         crossfadeMessage?.cancel()
         crossfadeMessage = null
         if (player.currentMediaItem?.metadata?.isEpisode == true) return
+        val crossfadeTargetIndex = if (player.repeatMode == REPEAT_MODE_ONE) {
+            player.currentMediaItemIndex
+        } else {
+            player.nextMediaItemIndex
+        }
+        if (crossfadeTargetIndex != C.INDEX_UNSET && player.getMediaItemAt(crossfadeTargetIndex).metadata?.isEpisode == true) return
 
         val mediaCrossfadeDuration = crossfadeDuration.toLong()
 
