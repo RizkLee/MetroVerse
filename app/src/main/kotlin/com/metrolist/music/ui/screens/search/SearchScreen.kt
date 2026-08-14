@@ -6,6 +6,7 @@
 package com.metrolist.music.ui.screens.search
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -64,7 +65,9 @@ import com.metrolist.music.constants.SearchSource
 import com.metrolist.music.constants.SearchSourceKey
 import com.metrolist.music.db.entities.SearchHistory
 import com.metrolist.music.playback.queues.YouTubeQueue
+import com.metrolist.music.ui.component.ChipsRow
 import com.metrolist.music.ui.component.HideOnScrollFAB
+import com.metrolist.music.ui.screens.podcast.PodcastSearchSuggestions
 import com.metrolist.music.utils.SearchRoutes
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
@@ -131,35 +134,37 @@ fun SearchScreen(
     val pauseSearchHistory by rememberPreference(PauseSearchHistoryKey, defaultValue = false)
 
     fun handleSearch(searchQuery: String) {
-        if (searchQuery.isEmpty()) {
-            return
-        }
+        if (searchQuery.isEmpty()) return
 
         focusManager.clearFocus()
 
-        when (val parsedUrl = YouTubeUrlParser.parse(searchQuery)) {
-            is YouTubeUrlParser.ParsedUrl.Video -> {
-                playerConnection?.playQueue(
-                    YouTubeQueue(
-                        WatchEndpoint(videoId = parsedUrl.id),
-                    ),
-                )
-            }
+        if (searchSource == SearchSource.PODCAST) {
+            navController.navigate(SearchRoutes.podcastResultRoute(searchQuery))
+        } else {
+            when (val parsedUrl = YouTubeUrlParser.parse(searchQuery)) {
+                is YouTubeUrlParser.ParsedUrl.Video -> {
+                    playerConnection?.playQueue(
+                        YouTubeQueue(
+                            WatchEndpoint(videoId = parsedUrl.id),
+                        ),
+                    )
+                }
 
-            is YouTubeUrlParser.ParsedUrl.Playlist -> {
-                navController.navigate("online_playlist/${parsedUrl.id}")
-            }
+                is YouTubeUrlParser.ParsedUrl.Playlist -> {
+                    navController.navigate("online_playlist/${parsedUrl.id}")
+                }
 
-            is YouTubeUrlParser.ParsedUrl.Album -> {
-                navController.navigate("album/MPREb_${parsedUrl.id}")
-            }
+                is YouTubeUrlParser.ParsedUrl.Album -> {
+                    navController.navigate("album/MPREb_${parsedUrl.id}")
+                }
 
-            is YouTubeUrlParser.ParsedUrl.Artist -> {
-                navController.navigate("artist/${parsedUrl.id}")
-            }
+                is YouTubeUrlParser.ParsedUrl.Artist -> {
+                    navController.navigate("artist/${parsedUrl.id}")
+                }
 
-            null -> {
-                navController.navigate(SearchRoutes.resultRoute(searchQuery))
+                null -> {
+                    navController.navigate(SearchRoutes.resultRoute(searchQuery))
+                }
             }
         }
 
@@ -178,7 +183,8 @@ fun SearchScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            Column {
+                TopAppBar(
                 title = {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -206,6 +212,7 @@ fun SearchScreen(
                                                 when (searchSource) {
                                                     SearchSource.LOCAL -> R.string.search_library
                                                     SearchSource.ONLINE -> R.string.search_yt_music
+                                                    SearchSource.PODCAST -> R.string.search_podcasts
                                                 },
                                             ),
                                         style =
@@ -237,28 +244,6 @@ fun SearchScreen(
                                     )
                                 }
                             }
-                            IconButton(
-                                onClick = {
-                                    searchSource =
-                                        if (searchSource == SearchSource.ONLINE) {
-                                            SearchSource.LOCAL
-                                        } else {
-                                            SearchSource.ONLINE
-                                        }
-                                },
-                            ) {
-                                Icon(
-                                    painter =
-                                        painterResource(
-                                            when (searchSource) {
-                                                SearchSource.LOCAL -> R.drawable.library_music
-                                                SearchSource.ONLINE -> R.drawable.language
-                                            },
-                                        ),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                )
-                            }
                         }
                     }
                 },
@@ -275,7 +260,18 @@ fun SearchScreen(
                     TopAppBarDefaults.topAppBarColors(
                         containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
                     ),
-            )
+                )
+                ChipsRow(
+                    chips = listOf(
+                        SearchSource.ONLINE to stringResource(R.string.search_online),
+                        SearchSource.PODCAST to stringResource(R.string.filter_podcasts),
+                        SearchSource.LOCAL to stringResource(R.string.filter_library),
+                    ),
+                    currentValue = searchSource,
+                    onValueUpdate = { searchSource = it },
+                    containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
+                )
+            }
         },
         containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.background,
     ) { paddingValues ->
@@ -303,13 +299,23 @@ fun SearchScreen(
                         pureBlack = pureBlack,
                     )
                 }
+
+                SearchSource.PODCAST -> {
+                    PodcastSearchSuggestions(
+                        query = query.text,
+                        pureBlack = pureBlack,
+                        onSearch = onSearchFromSuggestion,
+                    )
+                }
             }
 
-            HideOnScrollFAB(
-                lazyListState = lazyListState,
-                icon = R.drawable.mic,
-                onClick = { navController.navigate("recognition") },
-            )
+            if (searchSource != SearchSource.PODCAST) {
+                HideOnScrollFAB(
+                    lazyListState = lazyListState,
+                    icon = R.drawable.mic,
+                    onClick = { navController.navigate("recognition") },
+                )
+            }
         }
     }
 

@@ -897,7 +897,25 @@
     <string name="stands_with_palestine">This project stands with Palestine 🇵🇸</string>
 
     <!-- Podcasts -->
+    <string name="podcast">Podcast</string>
     <string name="filter_podcasts">Podcasts</string>
+    <string name="search_podcasts">Search podcasts…</string>
+    <string name="podcast_search_hint">Search Apple Podcasts or paste an RSS feed URL</string>
+    <string name="add_podcast_feed">Add RSS feed</string>
+    <string name="add_action">Add</string>
+    <string name="podcast_feed_url">Podcast feed URL</string>
+    <string name="subscriptions">Subscriptions</string>
+    <string name="continue_listening">Continue listening</string>
+    <string name="discover_podcasts">Discover podcasts</string>
+    <string name="podcast_discovery_attribution">Podcast discovery by Apple Podcasts</string>
+    <string name="no_podcast_subscriptions">Subscribed podcasts will show up here</string>
+    <string name="no_podcast_episodes">No podcast episodes found</string>
+    <string name="no_podcast_results">No podcasts found</string>
+    <string name="podcast_not_found">Podcast not found</string>
+    <string name="podcast_feed_error">Could not load podcast feed: %s</string>
+    <string name="unsubscribe">Unsubscribe</string>
+    <string name="refresh_podcasts">Refresh podcasts</string>
+    <string name="open_rss_feed">Open RSS feed</string>
     <string name="view_podcast">View podcast</string>
     <string name="podcast_channels">Podcast channels</string>
     <string name="latest_episodes">Latest episodes</string>

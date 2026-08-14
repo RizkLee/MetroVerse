@@ -736,6 +736,7 @@ class MainActivity : ComponentActivity() {
                     remember {
                         listOf(
                             Screens.Home.route,
+                            Screens.Podcast.route,
                             Screens.Library.route,
                             Screens.ListenTogether.route,
                             "settings",
@@ -977,6 +978,7 @@ class MainActivity : ComponentActivity() {
                         when (navBackStackEntry?.destination?.route) {
                             Screens.Home.route -> R.string.home
                             Screens.Search.route -> R.string.search
+                            Screens.Podcast.route -> R.string.podcast
                             Screens.Library.route -> R.string.filter_library
                             Screens.ListenTogether.route -> R.string.together
                             else -> null
@@ -1303,8 +1305,9 @@ class MainActivity : ComponentActivity() {
                                     startDestination =
                                         when (tabOpenedFromShortcut ?: defaultOpenTab) {
                                             NavigationTab.HOME -> Screens.Home
+                                            NavigationTab.SEARCH -> Screens.Search
+                                            NavigationTab.PODCAST -> Screens.Podcast
                                             NavigationTab.LIBRARY -> Screens.Library
-                                            else -> Screens.Home
                                         }.route,
                                     enterTransition = {
                                         val currentRouteIndex = routeIndexMap[targetState.destination.route] ?: -1

@@ -38,6 +38,9 @@ import com.metrolist.music.ui.screens.playlist.LocalPlaylistScreen
 import com.metrolist.music.ui.screens.playlist.OnlinePlaylistScreen
 import com.metrolist.music.ui.screens.playlist.TopPlaylistScreen
 import com.metrolist.music.ui.screens.podcast.OnlinePodcastScreen
+import com.metrolist.music.ui.screens.podcast.PodcastScreen
+import com.metrolist.music.ui.screens.podcast.PodcastSearchResultScreen
+import com.metrolist.music.ui.screens.podcast.RssPodcastScreen
 import com.metrolist.music.ui.screens.recognition.RecognitionHistoryScreen
 import com.metrolist.music.ui.screens.recognition.RecognitionScreen
 import com.metrolist.music.ui.screens.search.OnlineSearchResult
@@ -63,6 +66,7 @@ import com.metrolist.music.ui.screens.settings.integrations.LastFMSettings
 import com.metrolist.music.ui.screens.settings.integrations.ListenTogetherSettings
 
 import com.metrolist.music.ui.screens.wrapped.WrappedScreen
+import com.metrolist.music.utils.SearchRoutes
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
 
@@ -98,6 +102,10 @@ fun NavGraphBuilder.navigationBuilder(
 
     composable(Screens.Library.route) {
         LibraryScreen()
+    }
+
+    composable(Screens.Podcast.route) {
+        PodcastScreen(snackbarHostState = snackbarHostState)
     }
 
     composable(Screens.ListenTogether.route) {
@@ -182,6 +190,21 @@ fun NavGraphBuilder.navigationBuilder(
             savedStateHandle = backStackEntry.savedStateHandle
         )
 
+    }
+
+    composable(
+        route = SearchRoutes.PODCAST_ROUTE,
+        arguments =
+            listOf(
+                navArgument("query") {
+                    type = NavType.StringType
+                },
+            ),
+    ) {
+        PodcastSearchResultScreen(
+            navController = navController,
+            snackbarHostState = snackbarHostState,
+        )
     }
 
     composable(
@@ -278,6 +301,18 @@ fun NavGraphBuilder.navigationBuilder(
             ),
     ) {
         OnlinePodcastScreen(navController, scrollBehavior)
+    }
+
+    composable(
+        route = "rss_podcast/{podcastId}",
+        arguments =
+            listOf(
+                navArgument("podcastId") {
+                    type = NavType.StringType
+                },
+            ),
+    ) {
+        RssPodcastScreen(navController)
     }
 
     composable(

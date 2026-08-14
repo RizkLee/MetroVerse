@@ -254,7 +254,15 @@ fun LibraryPodcastsScreen(
                     ) { _, podcast ->
                         PodcastEpisodePlaylistItem(
                             podcast = podcast,
-                            onClick = { navController.navigate("online_podcast/${podcast.id}") },
+                            onClick = {
+                                navController.navigate(
+                                    if (podcast.feedUrl != null) {
+                                        "rss_podcast/${podcast.id}"
+                                    } else {
+                                        "online_podcast/${podcast.id}"
+                                    },
+                                )
+                            },
                             onMenuClick = {
                                 menuState.show {
                                     PodcastEpisodePlaylistMenu(
@@ -647,7 +655,8 @@ private fun PodcastEpisodePlaylistMenu(
     val isPinned by database.speedDialDao.isPinned(podcast.id).collectAsStateWithLifecycle(initialValue = false)
 
     val playlistId = podcast.id.removePrefix("MPSP")
-    val shareUrl = "https://music.youtube.com/playlist?list=$playlistId"
+    val shareUrl = podcast.websiteUrl ?: podcast.feedUrl
+        ?: "https://music.youtube.com/playlist?list=$playlistId"
 
     Spacer(Modifier.height(12.dp))
     Material3MenuGroup(
@@ -667,8 +676,10 @@ private fun PodcastEpisodePlaylistMenu(
                             database.query {
                                 update(podcast.copy(bookmarkedAt = null))
                             }
-                            // Sync with YouTube (unsave podcast only, don't unsubscribe channel)
-                            syncUtils.savePodcast(podcast.id, false)
+                            // RSS subscriptions are local. YouTube podcasts retain account sync.
+                            if (podcast.feedUrl == null) {
+                                syncUtils.savePodcast(podcast.id, false)
+                            }
                         }
                         onDismiss()
                     },

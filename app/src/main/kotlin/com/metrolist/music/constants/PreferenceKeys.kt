@@ -516,15 +516,9 @@ val SleepTimerCustomDaysKey = stringPreferencesKey("sleepTimerCustomDays")
 val SleepTimerDayTimesKey = stringPreferencesKey("sleepTimerDayTimes")
 
 enum class SearchSource {
-    LOCAL,
     ONLINE,
-    ;
-
-    fun toggle() =
-        when (this) {
-            LOCAL -> ONLINE
-            ONLINE -> LOCAL
-        }
+    PODCAST,
+    LOCAL,
 }
 
 val VisitorDataKey = stringPreferencesKey("visitorData")

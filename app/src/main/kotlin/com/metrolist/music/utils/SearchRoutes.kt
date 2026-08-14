@@ -9,6 +9,7 @@ import android.net.Uri
 
 object SearchRoutes {
     const val ROUTE = "search/{query}"
+    const val PODCAST_ROUTE = "podcast_search/{query}"
 
     // Prefix query payloads so a literal "null" search is not confused with
     // an absent or undefined Navigation argument.
@@ -17,6 +18,9 @@ object SearchRoutes {
     // Encode the prefixed query as a route path segment before navigating.
     fun resultRoute(query: String): String =
         "search/${Uri.encode(QUERY_ROUTE_PREFIX + query)}"
+
+    fun podcastResultRoute(query: String): String =
+        "podcast_search/${Uri.encode(QUERY_ROUTE_PREFIX + query)}"
 
     // Navigation already decodes path segments once, so only strip the prefix.
     // Decoding again would turn literal input like "%2F" into "/".
