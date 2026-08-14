@@ -363,6 +363,8 @@ feature/podcast-integration
 14cf578a9 feat(podcast): add RSS discovery and persistence layer
 696f30444 feat(podcast): add navigation discovery and subscription UI
 eb1962b53 feat(podcast): route RSS episodes through shared playback
+fa6aa0945 docs(podcast): add user build and architecture guides
+ee8bb2ba2 fix(podcast): refresh subscriptions and playback sources
 ```
 
 查看提交：
