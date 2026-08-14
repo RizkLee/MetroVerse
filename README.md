@@ -123,6 +123,11 @@
 
 </div>
 
+### Podcast integration documentation
+
+- [播客使用、Android Studio 构建与安装指南](docs/PODCAST_USER_GUIDE_ZH.md)
+- [播客架构、测试、Git 回退与后续开发指南](docs/PODCAST_ARCHITECTURE_ZH.md)
+
 ---
 
 <div align="center">

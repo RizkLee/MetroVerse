@@ -39,6 +39,7 @@ import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -91,6 +92,7 @@ fun RssPodcastScreen(
     val currentMetadata by playerConnection.mediaMetadata.collectAsStateWithLifecycle()
     val isPlaying by playerConnection.isEffectivelyPlaying.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+    val showCollapsedTitle by remember { derivedStateOf { listState.firstVisibleItemIndex > 1 } }
     val refreshState = rememberPullToRefreshState()
     var isSearching by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
@@ -279,7 +281,7 @@ fun RssPodcastScreen(
                             .fillMaxWidth()
                             .focusRequester(focusRequester),
                     )
-                } else if (listState.firstVisibleItemIndex > 1) {
+                } else if (showCollapsedTitle) {
                     Text(podcast?.title.orEmpty(), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             },
