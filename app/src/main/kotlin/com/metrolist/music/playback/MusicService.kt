@@ -494,8 +494,9 @@ class MusicService :
     @Volatile
     private var cachedAutoLoadMore = true
 
-    // URL cache for stream URLs - class-level so it can be invalidated on errors
+    // URL caches are class-level so resolving long podcast files does not hit Room per chunk.
     private val songUrlCache = StreamUrlCache()
+    private val directMediaUrlCache = Collections.synchronizedMap(mutableMapOf<String, String>())
 
     // Tracks mediaIds for which a recoverSong() coroutine is currently in flight.
     //
@@ -799,6 +800,7 @@ class MusicService :
                     Timber.tag(TAG).i("QUALITY CHANGED: $oldQuality -> $newQuality")
 
                     val mediaId = player.currentMediaItem?.mediaId ?: return@collect
+                    if (player.currentMediaItem?.metadata?.mediaUrl != null) return@collect
                     val currentPosition = player.currentPosition
                     val wasPlaying = player.isPlaying
                     val currentIndex = player.currentMediaItemIndex
@@ -866,7 +868,7 @@ class MusicService :
         ) { mediaMetadata, showLyrics ->
             mediaMetadata to showLyrics
         }.collectLatest(scope) { (mediaMetadata, showLyrics) ->
-            if (showLyrics && mediaMetadata != null && database
+            if (showLyrics && mediaMetadata != null && !mediaMetadata.isEpisode && database
                     .lyrics(mediaMetadata.id)
                     .first() == null
             ) {
@@ -1338,8 +1340,8 @@ class MusicService :
                         .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
                         .build(),
                     false,
-                ).setSeekBackIncrementMs(5000)
-                .setSeekForwardIncrementMs(5000)
+                ).setSeekBackIncrementMs(30_000)
+                .setSeekForwardIncrementMs(30_000)
                 .setDeviceVolumeControlEnabled(true)
                 .build()
 
@@ -1577,6 +1579,23 @@ class MusicService :
     }
 
     private fun updateNotification(isLiked: Boolean? = currentSong.value?.song?.let { if (it.isEpisode) it.inLibrary != null else it.liked }) {
+        val isEpisode = player.currentMediaItem?.metadata?.isEpisode == true
+        mediaSession?.setMediaButtonPreferences(
+            listOf(
+                CommandButton
+                    .Builder()
+                    .setDisplayName(getString(if (isEpisode) R.string.rewind_30_seconds else R.string.previous_track))
+                    .setIconResId(if (isEpisode) R.drawable.replay_30 else R.drawable.skip_previous)
+                    .setPlayerCommand(if (isEpisode) Player.COMMAND_SEEK_BACK else Player.COMMAND_SEEK_TO_PREVIOUS)
+                    .build(),
+                CommandButton
+                    .Builder()
+                    .setDisplayName(getString(if (isEpisode) R.string.forward_30_seconds else R.string.next_track))
+                    .setIconResId(if (isEpisode) R.drawable.forward_30 else R.drawable.skip_next)
+                    .setPlayerCommand(if (isEpisode) Player.COMMAND_SEEK_FORWARD else Player.COMMAND_SEEK_TO_NEXT)
+                    .build(),
+            ),
+        )
         mediaSession?.setCustomLayout(
             listOf(
                 CommandButton
@@ -1624,7 +1643,7 @@ class MusicService :
                     .setDisplayName(getString(R.string.start_radio))
                     .setIconResId(R.drawable.radio)
                     .setSessionCommand(CommandToggleStartRadio)
-                    .setEnabled(currentSong.value != null)
+                    .setEnabled(currentSong.value != null && !isEpisode)
                     .build(),
                 CommandButton
                     .Builder()
@@ -2165,7 +2184,7 @@ class MusicService :
                 }
 
                 database.query {
-                    update(it.song.toggleLibrary())
+                    update(it.song.toggleLibrary(syncToYouTube = it.song.mediaUrl == null))
                 }
                 currentMediaMetadata.value = player.currentMetadata
             }
@@ -2256,9 +2275,11 @@ class MusicService :
         }
         currentMediaMetadata.value = player.currentMetadata
 
-        // Sync with YouTube (handles login check internally)
-        val setVideoId = if (isCurrentlySaved) database.getSetVideoId(songEntity.id)?.setVideoId else null
-        syncUtils.saveEpisode(songEntity.id, shouldBeSaved, setVideoId)
+        // Open RSS episodes are local. YouTube episodes retain account synchronization.
+        if (songEntity.mediaUrl == null) {
+            val setVideoId = if (isCurrentlySaved) database.getSetVideoId(songEntity.id)?.setVideoId else null
+            syncUtils.saveEpisode(songEntity.id, shouldBeSaved, setVideoId)
+        }
     }
 
     fun toggleStartRadio() {
@@ -2524,7 +2545,7 @@ class MusicService :
         setupAudioNormalization()
 
         scrobbleManager?.onSongStop()
-        if (player.playWhenReady && player.playbackState == Player.STATE_READY) {
+        if (newMetadata?.isEpisode != true && player.playWhenReady && player.playbackState == Player.STATE_READY) {
             scrobbleManager?.onSongStart(player.currentMetadata, duration = player.duration)
         }
 
@@ -2703,6 +2724,10 @@ class MusicService :
                     mediaId,
                     failedStreamClient ?: "unknown",
                 )
+                if (directMediaUrlCache.containsKey(mediaId)) {
+                    handleGenericIOError(mediaId)
+                    return@launch
+                }
                 performAggressiveCacheClear(mediaId)
                 refreshStreamAndRetry(
                     mediaId = mediaId,
@@ -2992,6 +3017,16 @@ class MusicService :
             return
         }
 
+        val isDirectMedia = mediaId != null && directMediaUrlCache.containsKey(mediaId)
+        if (isDirectMedia && !isAudioRendererError(error)) {
+            if (!isNetworkConnected.value) {
+                waitOnNetworkError()
+            } else {
+                handleGenericIOError(mediaId)
+            }
+            return
+        }
+
         if (mediaId != null) {
             performAggressiveCacheClear(mediaId)
         }
@@ -3077,6 +3112,8 @@ class MusicService :
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "Failed to clear player cache for $mediaId")
         }
+
+        if (directMediaUrlCache.containsKey(mediaId)) return
 
         try {
             YTPlayerUtils.forceRefreshForVideo(mediaId)
@@ -3736,6 +3773,14 @@ class MusicService :
     private fun createDataSourceFactory(): DataSource.Factory {
         return ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
             val mediaId = dataSpec.key ?: error("No media id")
+            val directMediaUrl = directMediaUrlCache[mediaId] ?: runBlocking(Dispatchers.IO) {
+                database.songEntity(mediaId)?.mediaUrl
+            }?.also { directMediaUrlCache[mediaId] = it }
+
+            if (!directMediaUrl.isNullOrBlank()) {
+                currentStreamClient.value = "RSS"
+                return@Factory dataSpec.withUri(directMediaUrl.toUri())
+            }
 
             val shouldBypassCache = bypassCacheForQualityChange.contains(mediaId)
 
@@ -3986,7 +4031,7 @@ class MusicService :
             }
         }
 
-        if (playbackStats.totalPlayTimeMs >= historyDurationMs) {
+        if (playbackStats.totalPlayTimeMs >= historyDurationMs && mediaItem.metadata?.mediaUrl == null) {
             scope.launch(Dispatchers.IO) {
                 val playbackUrl =
                     playbackUrlCache[cacheKey(mediaItem.mediaId)]
@@ -4629,7 +4674,11 @@ class MusicService :
         val shareIntent =
             Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
-                putExtra(Intent.EXTRA_TEXT, "https://music.youtube.com/watch?v=$songId")
+                putExtra(
+                    Intent.EXTRA_TEXT,
+                    songData.song.shareUrl ?: songData.song.mediaUrl
+                        ?: "https://music.youtube.com/watch?v=$songId",
+                )
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
         startActivity(
@@ -4647,6 +4696,7 @@ class MusicService :
         withContext(Dispatchers.IO) {
             try {
                 val song = database.songEntity(mediaId)
+                song?.mediaUrl?.let { return@withContext it }
                 val playbackData =
                     YTPlayerUtils
                         .playerResponseForPlayback(
@@ -4693,7 +4743,8 @@ class MusicService :
     private fun scheduleCrossfade() {
         crossfadeMessage?.cancel()
         crossfadeMessage = null
-        
+        if (player.currentMediaItem?.metadata?.isEpisode == true) return
+
         val mediaCrossfadeDuration = crossfadeDuration.toLong()
 
         if (!crossfadeEnabled || crossfadeDuration <= 0f || player.duration == C.TIME_UNSET || player.duration <= mediaCrossfadeDuration) return

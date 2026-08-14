@@ -398,6 +398,24 @@ class PlayerConnection(
         }
     }
 
+    fun seekBy(deltaMs: Long) {
+        val current = service.castConnectionHandler
+            ?.takeIf { it.isCasting.value }
+            ?.castPosition
+            ?.value
+            ?: player.currentPosition
+        val duration = service.castConnectionHandler
+            ?.takeIf { it.isCasting.value }
+            ?.castDuration
+            ?.value
+            ?.takeIf { it > 0 }
+            ?: player.duration.takeIf { it > 0 }
+        val target = (current + deltaMs).coerceAtLeast(0L).let { position ->
+            duration?.let(position::coerceAtMost) ?: position
+        }
+        seekTo(target)
+    }
+
     fun seekToNext() {
         try {
             // When casting, use Cast skip instead of local player

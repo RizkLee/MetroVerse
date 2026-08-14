@@ -138,6 +138,7 @@ fun PlayerMenu(
     val varispeedMode by rememberPreference(VarispeedKey, defaultValue = false)
 
     val librarySong by database.song(mediaMetadata.id).collectAsStateWithLifecycle(initialValue = null)
+    val isDirectPodcast = mediaMetadata.isEpisode && mediaMetadata.mediaUrl != null
     val coroutineScope = rememberCoroutineScope()
 
     val download by LocalDownloadUtil.current
@@ -175,7 +176,7 @@ fun PlayerMenu(
             database.withTransaction {
                 insert(mediaMetadata)
             }
-            coroutineScope.launch(Dispatchers.IO) {
+            if (!isDirectPodcast) coroutineScope.launch(Dispatchers.IO) {
                 playlist.playlist.browseId?.let { YouTube.addToPlaylist(it, mediaMetadata.id) }
             }
             listOf(mediaMetadata.id)
@@ -322,7 +323,7 @@ fun PlayerMenu(
             NewActionGrid(
                 actions =
                     listOfNotNull(
-                        if (!isListenTogetherGuest) {
+                        if (!isListenTogetherGuest && !isDirectPodcast) {
                             NewAction(
                                 icon = {
                                     Icon(
@@ -372,7 +373,8 @@ fun PlayerMenu(
                                 val clip =
                                     android.content.ClipData.newPlainText(
                                         "Song Link",
-                                        "https://music.youtube.com/watch?v=${mediaMetadata.id}",
+                                        mediaMetadata.shareUrl ?: mediaMetadata.mediaUrl
+                                            ?: "https://music.youtube.com/watch?v=${mediaMetadata.id}",
                                     )
                                 clipboard.setPrimaryClip(clip)
                                 android.widget.Toast
@@ -382,14 +384,13 @@ fun PlayerMenu(
                             },
                         ),
                     ),
-                columns = if (isListenTogetherGuest) 2 else 3,
+                columns = if (isListenTogetherGuest || isDirectPodcast) 2 else 3,
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp),
             )
         }
 
         item {
-            // Check if this is a podcast episode (album ID doesn't start with MPREb_)
-            val isPodcast = mediaMetadata.album?.let { !it.id.startsWith("MPREb_") } ?: false
+            val isPodcast = mediaMetadata.isEpisode
 
             Material3MenuGroup(
                 items =
@@ -444,7 +445,9 @@ fun PlayerMenu(
                                         )
                                     },
                                     onClick = {
-                                        if (isPodcast) {
+                                        if (isDirectPodcast) {
+                                            navController.navigate("rss_podcast/${mediaMetadata.album.id}")
+                                        } else if (isPodcast) {
                                             navController.navigate("online_podcast/${mediaMetadata.album.id}")
                                         } else {
                                             navController.navigate("album/${mediaMetadata.album.id}")
@@ -613,7 +616,7 @@ fun PlayerMenu(
             Material3MenuGroup(
                 items =
                     buildList {
-                        add(
+                        if (!isDirectPodcast) add(
                             Material3MenuItemData(
                                 title = { Text(text = stringResource(R.string.listen_together)) },
                                 icon = {

@@ -1016,7 +1016,12 @@ fun BottomSheetPlayer(
                                                 ?: currentSong?.album?.id
                                                 ?: currentSong?.song?.albumId
                                             if (albumId != null) {
-                                                navController.navigate("album/$albumId")
+                                                val route = when {
+                                                    mediaMetadata.mediaUrl != null -> "rss_podcast/$albumId"
+                                                    mediaMetadata.isEpisode -> "online_podcast/$albumId"
+                                                    else -> "album/$albumId"
+                                                }
+                                                navController.navigate(route)
                                                 state.collapseSoft()
                                             }
                                         },
@@ -1172,7 +1177,8 @@ fun BottomSheetPlayer(
                                                 type = "text/plain"
                                                 putExtra(
                                                     Intent.EXTRA_TEXT,
-                                                    "https://music.youtube.com/watch?v=${mediaMetadata.id}",
+                                                    mediaMetadata.shareUrl ?: mediaMetadata.mediaUrl
+                                                        ?: "https://music.youtube.com/watch?v=${mediaMetadata.id}",
                                                 )
                                             }
                                         context.startActivity(Intent.createChooser(intent, null))
@@ -1294,7 +1300,8 @@ fun BottomSheetPlayer(
                                                     type = "text/plain"
                                                     putExtra(
                                                         Intent.EXTRA_TEXT,
-                                                        "https://music.youtube.com/watch?v=${mediaMetadata.id}",
+                                                        mediaMetadata.shareUrl ?: mediaMetadata.mediaUrl
+                                                            ?: "https://music.youtube.com/watch?v=${mediaMetadata.id}",
                                                     )
                                                 }
                                             context.startActivity(Intent.createChooser(intent, null))
@@ -1586,8 +1593,11 @@ fun BottomSheetPlayer(
                             )
 
                             FilledIconButton(
-                                onClick = playerConnection::seekToPrevious,
-                                enabled = canSkipPrevious && !isListenTogetherGuest,
+                                onClick = {
+                                    if (mediaMetadata.isEpisode) playerConnection.seekBy(-30_000L)
+                                    else playerConnection.seekToPrevious()
+                                },
+                                enabled = (mediaMetadata.isEpisode || canSkipPrevious) && !isListenTogetherGuest,
                                 shape = RoundedCornerShape(50),
                                 interactionSource = backInteractionSource,
                                 colors =
@@ -1601,8 +1611,8 @@ fun BottomSheetPlayer(
                                         .weight(backButtonWeight),
                             ) {
                                 Icon(
-                                    painter = painterResource(R.drawable.skip_previous),
-                                    contentDescription = null,
+                                    painter = painterResource(if (mediaMetadata.isEpisode) R.drawable.replay_30 else R.drawable.skip_previous),
+                                    contentDescription = if (mediaMetadata.isEpisode) stringResource(R.string.rewind_30_seconds) else null,
                                     modifier = Modifier.size(32.dp),
                                 )
                             }
@@ -1678,8 +1688,11 @@ fun BottomSheetPlayer(
                             Spacer(modifier = Modifier.width(8.dp))
 
                             FilledIconButton(
-                                onClick = playerConnection::seekToNext,
-                                enabled = canSkipNext && !isListenTogetherGuest,
+                                onClick = {
+                                    if (mediaMetadata.isEpisode) playerConnection.seekBy(30_000L)
+                                    else playerConnection.seekToNext()
+                                },
+                                enabled = (mediaMetadata.isEpisode || canSkipNext) && !isListenTogetherGuest,
                                 shape = RoundedCornerShape(50),
                                 interactionSource = nextInteractionSource,
                                 colors =
@@ -1693,8 +1706,8 @@ fun BottomSheetPlayer(
                                         .weight(nextButtonWeight),
                             ) {
                                 Icon(
-                                    painter = painterResource(R.drawable.skip_next),
-                                    contentDescription = null,
+                                    painter = painterResource(if (mediaMetadata.isEpisode) R.drawable.forward_30 else R.drawable.skip_next),
+                                    contentDescription = if (mediaMetadata.isEpisode) stringResource(R.string.forward_30_seconds) else null,
                                     modifier = Modifier.size(32.dp),
                                 )
                             }
@@ -1733,15 +1746,18 @@ fun BottomSheetPlayer(
 
                             Box(modifier = Modifier.weight(1f)) {
                                 ResizableIconButton(
-                                    icon = R.drawable.skip_previous,
-                                    enabled = canSkipPrevious && !isListenTogetherGuest,
+                                    icon = if (mediaMetadata.isEpisode) R.drawable.replay_30 else R.drawable.skip_previous,
+                                    enabled = (mediaMetadata.isEpisode || canSkipPrevious) && !isListenTogetherGuest,
                                     color = TextBackgroundColor,
                                     modifier =
                                         Modifier
                                             .size(32.dp)
                                             .align(Alignment.Center)
                                             .alpha(if (isListenTogetherGuest) 0.5f else 1f),
-                                    onClick = playerConnection::seekToPrevious,
+                                    onClick = {
+                                        if (mediaMetadata.isEpisode) playerConnection.seekBy(-30_000L)
+                                        else playerConnection.seekToPrevious()
+                                    },
                                 )
                             }
 
@@ -1801,15 +1817,18 @@ fun BottomSheetPlayer(
 
                             Box(modifier = Modifier.weight(1f)) {
                                 ResizableIconButton(
-                                    icon = R.drawable.skip_next,
-                                    enabled = canSkipNext && !isListenTogetherGuest,
+                                    icon = if (mediaMetadata.isEpisode) R.drawable.forward_30 else R.drawable.skip_next,
+                                    enabled = (mediaMetadata.isEpisode || canSkipNext) && !isListenTogetherGuest,
                                     color = TextBackgroundColor,
                                     modifier =
                                         Modifier
                                             .size(32.dp)
                                             .align(Alignment.Center)
                                             .alpha(if (isListenTogetherGuest) 0.5f else 1f),
-                                    onClick = playerConnection::seekToNext,
+                                    onClick = {
+                                        if (mediaMetadata.isEpisode) playerConnection.seekBy(30_000L)
+                                        else playerConnection.seekToNext()
+                                    },
                                 )
                             }
 

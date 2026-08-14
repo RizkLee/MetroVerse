@@ -90,6 +90,13 @@ constructor(
         ) { dataSpec ->
             val mediaId = dataSpec.key ?: error("No media id")
             val length = if (dataSpec.length >= 0) dataSpec.length else 1
+            val directMediaUrl = runBlocking(Dispatchers.IO) {
+                database.songEntity(mediaId)?.mediaUrl
+            }
+
+            if (!directMediaUrl.isNullOrBlank()) {
+                return@Factory dataSpec.withUri(directMediaUrl.toUri())
+            }
 
             if (playerCache.isCached(mediaId, dataSpec.position, length)) {
                 return@Factory dataSpec

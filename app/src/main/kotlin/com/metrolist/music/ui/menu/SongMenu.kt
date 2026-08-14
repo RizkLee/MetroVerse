@@ -146,6 +146,7 @@ fun SongMenu(
         }
     }
     val isPodcastSubscribed = podcastEntity?.bookmarkedAt != null
+    val isDirectPodcast = song.song.isEpisode && song.song.mediaUrl != null
 
     val orderedArtists by produceState(initialValue = emptyList<ArtistEntity>(), song) {
         withContext(Dispatchers.IO) {
@@ -238,7 +239,7 @@ fun SongMenu(
     AddToPlaylistDialog(
         isVisible = showChoosePlaylistDialog,
         onGetSong = { playlist ->
-            coroutineScope.launch(Dispatchers.IO) {
+            if (!isDirectPodcast) coroutineScope.launch(Dispatchers.IO) {
                 playlist.playlist.browseId?.let { browseId ->
                     YouTube.addToPlaylist(browseId, song.id)
                 }
@@ -443,7 +444,7 @@ fun SongMenu(
                                 ),
                             )
                         }
-                        coroutineScope.launch(Dispatchers.IO) {
+                        if (!isDirectPodcast) coroutineScope.launch(Dispatchers.IO) {
                             if (isCurrentlySaved) {
                                 val setVideoIdEntity = database.getSetVideoId(song.id)
                                 val setVideoId = setVideoIdEntity?.setVideoId
@@ -554,7 +555,11 @@ fun SongMenu(
                                     Intent().apply {
                                         action = Intent.ACTION_SEND
                                         type = "text/plain"
-                                        putExtra(Intent.EXTRA_TEXT, "https://music.youtube.com/watch?v=${song.id}")
+                                        putExtra(
+                                            Intent.EXTRA_TEXT,
+                                            song.song.shareUrl ?: song.song.mediaUrl
+                                                ?: "https://music.youtube.com/watch?v=${song.id}",
+                                        )
                                     }
                                 context.startActivity(Intent.createChooser(intent, null))
                             },
@@ -595,7 +600,7 @@ fun SongMenu(
                         } else {
                             null
                         },
-                        if (!isGuest) {
+                        if (!isGuest && !isDirectPodcast) {
                             Material3MenuItemData(
                                 title = { Text(text = stringResource(R.string.start_radio)) },
                                 description = { Text(text = stringResource(R.string.start_radio_desc)) },
@@ -742,9 +747,10 @@ fun SongMenu(
                                                 )
                                             }
 
-                                            // Sync with YouTube (handles login check internally)
-                                            val setVideoId = if (isEpisodeSaved) database.getSetVideoId(song.id)?.setVideoId else null
-                                            syncUtils.saveEpisode(song.id, shouldBeSaved, setVideoId)
+                                            if (!isDirectPodcast) {
+                                                val setVideoId = if (isEpisodeSaved) database.getSetVideoId(song.id)?.setVideoId else null
+                                                syncUtils.saveEpisode(song.id, shouldBeSaved, setVideoId)
+                                            }
                                         }
                                         onDismiss()
                                     },
@@ -1021,7 +1027,9 @@ fun SongMenu(
                                     },
                                     onClick = {
                                         onDismiss()
-                                        if (isPodcast) {
+                                        if (isDirectPodcast) {
+                                            navController.navigate("rss_podcast/${song.song.albumId}")
+                                        } else if (isPodcast) {
                                             navController.navigate("online_podcast/${song.song.albumId}")
                                         } else {
                                             navController.navigate("album/${song.song.albumId}")
@@ -1070,14 +1078,15 @@ fun SongMenu(
                                             val existingPodcast = podcastEntity
                                             val isCurrentlySaved = existingPodcast?.bookmarkedAt != null
 
-                                            // Call the API to save/unsave on YTM
-                                            YouTube
-                                                .savePodcast(podcastId, !isCurrentlySaved)
-                                                .onSuccess {
-                                                    Timber.d("[PODCAST_LIB] savePodcast API success!")
-                                                }.onFailure { e ->
-                                                    Timber.e(e, "[PODCAST_LIB] savePodcast API failed")
-                                                }
+                                            if (!isDirectPodcast) {
+                                                YouTube
+                                                    .savePodcast(podcastId, !isCurrentlySaved)
+                                                    .onSuccess {
+                                                        Timber.d("[PODCAST_LIB] savePodcast API success!")
+                                                    }.onFailure { e ->
+                                                        Timber.e(e, "[PODCAST_LIB] savePodcast API failed")
+                                                    }
+                                            }
 
                                             // Update local database
                                             if (existingPodcast != null) {
@@ -1104,7 +1113,7 @@ fun SongMenu(
                                 ),
                             )
                         }
-                        add(
+                        if (!isDirectPodcast) add(
                             Material3MenuItemData(
                                 title = { Text(text = stringResource(R.string.refetch)) },
                                 description = { Text(text = stringResource(R.string.refetch_desc)) },

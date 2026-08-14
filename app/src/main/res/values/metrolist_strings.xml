@@ -915,6 +915,10 @@
     <string name="podcast_feed_error">Could not load podcast feed: %s</string>
     <string name="unsubscribe">Unsubscribe</string>
     <string name="refresh_podcasts">Refresh podcasts</string>
+    <string name="rewind_30_seconds">Rewind 30 seconds</string>
+    <string name="forward_30_seconds">Forward 30 seconds</string>
+    <string name="previous_track">Previous track</string>
+    <string name="next_track">Next track</string>
     <string name="open_rss_feed">Open RSS feed</string>
     <string name="view_podcast">View podcast</string>
     <string name="podcast_channels">Podcast channels</string>

@@ -97,6 +97,7 @@ fun QueueMenu(
     val syncUtils = LocalSyncUtils.current
 
     val librarySong by database.song(mediaMetadata.id).collectAsStateWithLifecycle(initialValue = null)
+    val isDirectPodcast = mediaMetadata.isEpisode && mediaMetadata.mediaUrl != null
     val download by LocalDownloadUtil.current.getDownload(mediaMetadata.id)
         .collectAsStateWithLifecycle(initialValue = null)
 
@@ -121,7 +122,7 @@ fun QueueMenu(
             database.withTransaction {
                 insert(mediaMetadata)
             }
-            coroutineScope.launch(Dispatchers.IO) {
+            if (!isDirectPodcast) coroutineScope.launch(Dispatchers.IO) {
                 playlist.playlist.browseId?.let { YouTube.addToPlaylist(it, mediaMetadata.id) }
             }
             listOf(mediaMetadata.id)
@@ -203,7 +204,7 @@ fun QueueMenu(
                                 database.query {
                                     update(songEntity.copy(inLibrary = if (isCurrentlySaved) null else java.time.LocalDateTime.now()))
                                 }
-                                launch {
+                                if (!isDirectPodcast) launch {
                                     if (isCurrentlySaved) {
                                         val setVideoIdEntity = database.getSetVideoId(songEntity.id)
                                         val setVideoId = setVideoIdEntity?.setVideoId
@@ -271,8 +272,8 @@ fun QueueMenu(
         // Quick actions grid
         item {
             NewActionGrid(
-                actions = listOf(
-                    NewAction(
+                actions = listOfNotNull(
+                    if (!isDirectPodcast) NewAction(
                         icon = {
                             Icon(
                                 painter = painterResource(R.drawable.radio),
@@ -295,7 +296,7 @@ fun QueueMenu(
                                 )
                             }
                         }
-                    ),
+                    ) else null,
                     NewAction(
                         icon = {
                             Icon(
@@ -325,13 +326,15 @@ fun QueueMenu(
                                 type = "text/plain"
                                 putExtra(
                                     Intent.EXTRA_TEXT,
-                                    "https://music.youtube.com/watch?v=${mediaMetadata.id}"
+                                    mediaMetadata.shareUrl ?: mediaMetadata.mediaUrl
+                                        ?: "https://music.youtube.com/watch?v=${mediaMetadata.id}"
                                 )
                             }
                             context.startActivity(Intent.createChooser(intent, null))
                         }
                     )
                 ),
+                columns = if (isDirectPodcast) 2 else 3,
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp)
             )
         }
@@ -471,7 +474,7 @@ fun QueueMenu(
         item {
             Material3MenuGroup(
                 items = buildList {
-                    if (artists.isNotEmpty()) {
+                    if (artists.isNotEmpty() && !mediaMetadata.isEpisode) {
                         add(
                             Material3MenuItemData(
                                 title = { Text(text = stringResource(R.string.view_artist)) },
@@ -504,7 +507,7 @@ fun QueueMenu(
                     if (mediaMetadata.album != null) {
                         add(
                             Material3MenuItemData(
-                                title = { Text(text = stringResource(R.string.view_album)) },
+                                title = { Text(text = stringResource(if (mediaMetadata.isEpisode) R.string.view_podcast else R.string.view_album)) },
                                 description = {
                                     Text(
                                         text = mediaMetadata.album.title,
@@ -514,13 +517,18 @@ fun QueueMenu(
                                 },
                                 icon = {
                                     Icon(
-                                        painter = painterResource(R.drawable.album),
+                                        painter = painterResource(if (mediaMetadata.isEpisode) R.drawable.mic else R.drawable.album),
                                         contentDescription = null,
                                         modifier = Modifier.size(24.dp)
                                     )
                                 },
                                 onClick = {
-                                    navController.navigate("album/${mediaMetadata.album.id}")
+                                    val route = when {
+                                        isDirectPodcast -> "rss_podcast/${mediaMetadata.album.id}"
+                                        mediaMetadata.isEpisode -> "online_podcast/${mediaMetadata.album.id}"
+                                        else -> "album/${mediaMetadata.album.id}"
+                                    }
+                                    navController.navigate(route)
                                     playerBottomSheetState.collapseSoft()
                                     onDismiss()
                                 }
@@ -537,7 +545,7 @@ fun QueueMenu(
         item {
             Material3MenuGroup(
                 items = buildList {
-                    add(
+                    if (!isDirectPodcast) add(
                         Material3MenuItemData(
                             title = { Text(text = stringResource(R.string.refetch)) },
                             description = { Text(text = stringResource(R.string.refetch_desc)) },
