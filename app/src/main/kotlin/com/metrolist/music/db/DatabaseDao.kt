@@ -1776,8 +1776,14 @@ interface DatabaseDao {
                 thumbnailUrl = mediaMetadata.thumbnailUrl,
                 albumId = mediaMetadata.album?.id,
                 albumName = mediaMetadata.album?.title,
+                explicit = mediaMetadata.explicit,
+                date = mediaMetadata.publishedAt,
                 libraryAddToken = mediaMetadata.libraryAddToken,
-                libraryRemoveToken = mediaMetadata.libraryRemoveToken
+                libraryRemoveToken = mediaMetadata.libraryRemoveToken,
+                isEpisode = mediaMetadata.isEpisode,
+                mediaUrl = mediaMetadata.mediaUrl,
+                shareUrl = mediaMetadata.shareUrl,
+                description = mediaMetadata.description,
             ),
         )
         songArtistMap(song.id).forEach(::delete)
@@ -1974,6 +1980,51 @@ interface DatabaseDao {
 
     @Query("SELECT * FROM podcast WHERE id = :id")
     fun podcast(id: String): Flow<PodcastEntity?>
+
+    @Query("SELECT * FROM podcast WHERE id = :id")
+    suspend fun podcastOnce(id: String): PodcastEntity?
+
+    @Query("SELECT * FROM podcast WHERE feedUrl = :feedUrl LIMIT 1")
+    suspend fun podcastByFeedUrl(feedUrl: String): PodcastEntity?
+
+    @Query("SELECT * FROM podcast WHERE feedUrl IS NOT NULL AND bookmarkedAt IS NOT NULL ORDER BY bookmarkedAt DESC")
+    suspend fun subscribedRssPodcastsOnce(): List<PodcastEntity>
+
+    @Transaction
+    @Query("SELECT * FROM song WHERE isEpisode = 1 AND mediaUrl IS NOT NULL AND albumId = :podcastId ORDER BY date DESC, rowId DESC")
+    fun rssPodcastEpisodes(podcastId: String): Flow<List<Song>>
+
+    @Transaction
+    @Query(
+        """
+        SELECT song.* FROM song
+        INNER JOIN podcast ON song.albumId = podcast.id
+        WHERE song.isEpisode = 1
+          AND song.mediaUrl IS NOT NULL
+          AND podcast.feedUrl IS NOT NULL
+          AND podcast.bookmarkedAt IS NOT NULL
+        ORDER BY song.date DESC, song.rowId DESC
+        LIMIT :limit
+        """,
+    )
+    fun latestRssPodcastEpisodes(limit: Int = 100): Flow<List<Song>>
+
+    @Transaction
+    @Query(
+        """
+        SELECT song.* FROM song
+        INNER JOIN podcast ON song.albumId = podcast.id
+        WHERE song.isEpisode = 1
+          AND song.mediaUrl IS NOT NULL
+          AND podcast.bookmarkedAt IS NOT NULL
+          AND song.playbackPosition IS NOT NULL
+          AND song.playbackPosition > 3000
+          AND (song.duration <= 0 OR song.playbackPosition < (song.duration * 1000 - 15000))
+        ORDER BY song.totalPlayTime DESC, song.date DESC
+        LIMIT :limit
+        """,
+    )
+    fun continueRssPodcastEpisodes(limit: Int = 30): Flow<List<Song>>
 
     @Query("SELECT EXISTS(SELECT 1 FROM podcast WHERE channelId = :channelId AND bookmarkedAt IS NOT NULL)")
     fun hasSubscribedPodcastByChannelId(channelId: String): Flow<Boolean>

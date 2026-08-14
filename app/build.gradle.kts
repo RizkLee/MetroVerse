@@ -390,6 +390,7 @@ dependencies {
 
     implementation(libs.hilt)
     implementation(libs.jsoup)
+    implementation(libs.rssparser)
     ksp(libs.hilt.compiler)
 
     implementation(project(":innertube"))

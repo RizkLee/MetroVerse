@@ -64,6 +64,12 @@ data class SongEntity(
     val uploadEntityId: String? = null,
     @ColumnInfo(name = "isCached", defaultValue = "0")
     val isCached: Boolean = false,
+    @ColumnInfo(name = "mediaUrl", defaultValue = "NULL")
+    val mediaUrl: String? = null,
+    @ColumnInfo(name = "shareUrl", defaultValue = "NULL")
+    val shareUrl: String? = null,
+    @ColumnInfo(name = "description", defaultValue = "NULL")
+    val description: String? = null,
 ) {
     fun localToggleLike() =
         copy(

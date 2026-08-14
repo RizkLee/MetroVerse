@@ -9,6 +9,7 @@ import android.os.Bundle
 import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata.MEDIA_TYPE_MUSIC
+import androidx.media3.common.MediaMetadata.MEDIA_TYPE_PODCAST_EPISODE
 import com.metrolist.innertube.models.SongItem
 import com.metrolist.music.db.entities.Song
 import com.metrolist.music.models.MediaMetadata
@@ -20,7 +21,7 @@ val MediaItem.metadata: MediaMetadata?
 
 fun Song.toMediaItem() = MediaItem.Builder()
     .setMediaId(song.id)
-    .setUri(song.id)
+    .setUri(song.mediaUrl ?: song.id)
     .setCustomCacheKey(song.id)
     .setTag(toMediaMetadata())
     .setMediaMetadata(
@@ -32,11 +33,14 @@ fun Song.toMediaItem() = MediaItem.Builder()
             .setAlbumTitle(song.albumName)
             .setAlbumArtist(orderedArtists.firstOrNull()?.name)
             .setDisplayTitle(song.title)
-            .setMediaType(MEDIA_TYPE_MUSIC)
+            .setDescription(song.description)
+            .setMediaType(if (song.isEpisode) MEDIA_TYPE_PODCAST_EPISODE else MEDIA_TYPE_MUSIC)
             .setIsBrowsable(false)
             .setIsPlayable(true)
             .setExtras(Bundle().apply {
                 putString("artwork_uri", song.thumbnailUrl)
+                putString("media_url", song.mediaUrl)
+                putString("share_url", song.shareUrl)
             })
             .build()
     )
@@ -68,7 +72,7 @@ fun SongItem.toMediaItem() = MediaItem.Builder()
 
 fun MediaMetadata.toMediaItem() = MediaItem.Builder()
     .setMediaId(id)
-    .setUri(id)
+    .setUri(mediaUrl ?: id)
     .setCustomCacheKey(id)
     .setTag(this)
     .setMediaMetadata(
@@ -80,11 +84,14 @@ fun MediaMetadata.toMediaItem() = MediaItem.Builder()
             .setAlbumTitle(album?.title)
             .setAlbumArtist(artists.firstOrNull()?.name)
             .setDisplayTitle(title)
-            .setMediaType(MEDIA_TYPE_MUSIC)
+            .setDescription(description)
+            .setMediaType(if (isEpisode) MEDIA_TYPE_PODCAST_EPISODE else MEDIA_TYPE_MUSIC)
             .setIsBrowsable(false)
             .setIsPlayable(true)
             .setExtras(Bundle().apply {
                 thumbnailUrl?.let { putString("artwork_uri", it) }
+                mediaUrl?.let { putString("media_url", it) }
+                shareUrl?.let { putString("share_url", it) }
             })
             .build()
     )
