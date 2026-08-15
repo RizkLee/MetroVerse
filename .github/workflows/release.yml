@@ -4,9 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag, for example v0.1.0"
+        description: "Release tag, for example v0.2.0"
         required: true
         type: string
+      publish:
+        description: "Publish or replace the GitHub Release"
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -30,18 +35,19 @@ jobs:
             artifact: MetroVerse-izzy
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
+          ref: ${{ inputs.tag }}
           submodules: recursive
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           java-version: "21"
           distribution: "temurin"
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@4c125117fe7c5aed11272ec4213f602f012f89f2 # v5
 
       - name: Build unsigned APK
         run: |
@@ -52,7 +58,7 @@ jobs:
           LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
 
       - name: Sign APK
-        uses: ilharp/sign-android-release@v2.0.0
+        uses: ilharp/sign-android-release@13dd52242698526f951aa8bb8696204f6fea702a # v2.0.0
         with:
           releaseDir: app/build/outputs/apk/${{ matrix.variant }}/release/
           signingKey: ${{ secrets.KEYSTORE }}
@@ -70,10 +76,24 @@ jobs:
             echo "No signed APK was produced"
             exit 1
           fi
-          cp "$SIGNED_APK" "release-files/${{ matrix.artifact }}.apk"
+          cp "$SIGNED_APK" "release-files/MetroVerse-${{ inputs.tag }}-${{ matrix.variant }}.apk"
+
+      - name: Verify release certificate
+        shell: bash
+        env:
+          RELEASE_APK: release-files/MetroVerse-${{ inputs.tag }}-${{ matrix.variant }}.apk
+          EXPECTED_CERT_SHA256: E2450731E5E35B3CCD61A9FE1A12B86CA7FB3E11073CA27F3E5FF6EB6CDD7250
+        run: |
+          set -euo pipefail
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -x "$APKSIGNER"
+          VERIFICATION="$($APKSIGNER verify --verbose --print-certs "$RELEASE_APK")"
+          printf '%s\n' "$VERIFICATION"
+          ACTUAL_CERT="$(printf '%s\n' "$VERIFICATION" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | tr -d ':')"
+          test "${ACTUAL_CERT^^}" = "$EXPECTED_CERT_SHA256"
 
       - name: Upload signed APK
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: ${{ matrix.artifact }}
           path: release-files/*.apk
@@ -81,19 +101,27 @@ jobs:
 
   publish:
     name: Publish GitHub release
+    if: ${{ inputs.publish }}
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
         with:
           path: release-files
           merge-multiple: true
 
+      - name: Create SHA-256 checksums
+        shell: bash
+        run: |
+          cd release-files
+          sha256sum *.apk > "MetroVerse-${{ inputs.tag }}-SHA256SUMS.txt"
+
       - name: Publish release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           tag_name: ${{ inputs.tag }}
           name: MetroVerse ${{ inputs.tag }}
           body: |
-            MetroVerse is a personal learning project. Review the repository and release notes before installing.
-          files: release-files/*.apk
+            MetroVerse unifies YouTube Music and open RSS podcasts in one Android app.
+            Review the change log, APK checksum, and signing certificate before installing.
+          files: release-files/*
