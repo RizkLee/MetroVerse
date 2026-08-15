@@ -16,10 +16,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
@@ -29,10 +29,10 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,18 +42,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -101,55 +98,43 @@ fun PodcastSearchResultScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    BasicTextField(
-                        value = searchField,
-                        onValueChange = {
-                            searchField = it
-                            viewModel.updateQuery(it.text)
-                        },
-                        textStyle = TextStyle(
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = 16.sp,
-                        ),
-                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                        singleLine = true,
-                        decorationBox = { innerTextField ->
-                            Box(contentAlignment = Alignment.CenterStart) {
-                                if (searchField.text.isEmpty()) {
-                                    Text(
-                                        text = stringResource(R.string.podcast_search_field_hint),
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontSize = 16.sp,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                }
-                                innerTextField()
-                            }
-                        },
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        keyboardActions = KeyboardActions(
-                            onSearch = {
-                                focusManager.clearFocus()
-                                viewModel.search(searchField.text)
-                            },
-                        ),
-                        modifier = Modifier.fillMaxWidth(),
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top)),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        ) {
+            OutlinedTextField(
+                value = searchField,
+                onValueChange = {
+                    searchField = it
+                    viewModel.updateQuery(it.text)
+                },
+                placeholder = {
+                    Text(
+                        text = stringResource(R.string.podcast_search_field_hint),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 },
-                navigationIcon = {
+                leadingIcon = {
                     IconButton(onClick = navController::navigateUp) {
                         Icon(
                             painter = painterResource(R.drawable.arrow_back),
                             contentDescription = stringResource(R.string.back_button_desc),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 },
-                actions = {
+                trailingIcon = {
                     if (searchField.text.isNotEmpty()) {
                         IconButton(
                             onClick = {
@@ -160,23 +145,41 @@ fun PodcastSearchResultScreen(
                             Icon(
                                 painter = painterResource(R.drawable.close),
                                 contentDescription = stringResource(R.string.clear),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
-                    PodcastRegionSelector(
-                        selectedCode = podcastRegion,
-                        onSelected = { podcastRegion = it },
-                        compact = true,
-                    )
                 },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(
+                    onSearch = {
+                        focusManager.clearFocus()
+                        viewModel.search(searchField.text)
+                    },
+                ),
+                singleLine = true,
+                shape = RoundedCornerShape(28.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                ),
+                modifier = Modifier.weight(1f),
             )
-        },
-    ) { padding ->
+            Spacer(Modifier.width(8.dp))
+            PodcastRegionSelector(
+                selectedCode = podcastRegion,
+                onSelected = { podcastRegion = it },
+                compact = true,
+            )
+        }
+
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .fillMaxSize()
-                .padding(top = padding.calculateTopPadding()),
+                .fillMaxWidth()
+                .weight(1f),
         ) {
             when {
                 looksLikeFeed -> {

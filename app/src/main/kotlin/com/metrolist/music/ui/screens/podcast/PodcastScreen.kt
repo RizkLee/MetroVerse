@@ -18,6 +18,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -42,15 +45,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -69,19 +69,19 @@ import com.metrolist.music.db.entities.PodcastEntity
 import com.metrolist.music.db.entities.Song
 import com.metrolist.music.extensions.toMediaItem
 import com.metrolist.music.playback.queues.ListQueue
+import com.metrolist.music.podcast.PodcastCategory
 import com.metrolist.music.podcast.PodcastDiscoverItem
 import com.metrolist.music.podcast.defaultPodcastRegionCode
 import com.metrolist.music.ui.component.LocalMenuState
 import com.metrolist.music.ui.component.SongListItem
 import com.metrolist.music.ui.menu.SongMenu
+import com.metrolist.music.ui.screens.MoodAndGenresButton
 import com.metrolist.music.utils.joinByBullet
 import com.metrolist.music.utils.makeTimeString
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.viewmodels.PodcastHomeViewModel
 import com.metrolist.music.viewmodels.PodcastUiEvent
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
@@ -99,8 +99,6 @@ fun PodcastScreen(
     val continueListening by viewModel.continueListening.collectAsStateWithLifecycle()
     val discover by viewModel.discover.collectAsStateWithLifecycle()
     val isLoadingDiscover by viewModel.isLoadingDiscover.collectAsStateWithLifecycle()
-    val isLoadingMoreDiscover by viewModel.isLoadingMoreDiscover.collectAsStateWithLifecycle()
-    val hasMoreDiscover by viewModel.hasMoreDiscover.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val isPlaying by playerConnection.isEffectivelyPlaying.collectAsStateWithLifecycle()
     val currentMetadata by playerConnection.mediaMetadata.collectAsStateWithLifecycle()
@@ -110,26 +108,9 @@ fun PodcastScreen(
     var feedUrl by rememberSaveable { mutableStateOf("") }
     var podcastRegion by rememberPreference(PodcastRegionKey, defaultPodcastRegionCode())
     var searchSource by rememberEnumPreference(SearchSourceKey, SearchSource.ONLINE)
-    val screenWidth = LocalWindowInfo.current.containerDpSize.width
-    val discoverColumns = when {
-        screenWidth >= 840.dp -> 5
-        screenWidth >= 600.dp -> 4
-        else -> 2
-    }
 
     LaunchedEffect(podcastRegion) {
         viewModel.setCountry(podcastRegion)
-    }
-
-    LaunchedEffect(listState, hasMoreDiscover) {
-        snapshotFlow {
-            val layout = listState.layoutInfo
-            val lastVisible = layout.visibleItemsInfo.lastOrNull()?.index ?: -1
-            hasMoreDiscover && layout.totalItemsCount > 0 && lastVisible >= layout.totalItemsCount - 3
-        }
-            .distinctUntilChanged()
-            .filter { it }
-            .collect { viewModel.loadMoreDiscover() }
     }
 
     LaunchedEffect(viewModel) {
@@ -218,47 +199,8 @@ fun PodcastScreen(
                     PodcastRegionSelector(
                         selectedCode = podcastRegion,
                         onSelected = { podcastRegion = it },
-                        modifier = Modifier.weight(0.65f),
+                        modifier = Modifier.weight(0.75f),
                     )
-                }
-            }
-
-            item(key = "discover_title") {
-                PodcastSectionTitle(stringResource(R.string.discover_podcasts))
-            }
-            if (isLoadingDiscover && discover.isEmpty()) {
-                item(key = "discover_loading") {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(180.dp),
-                    ) {
-                        ContainedLoadingIndicator()
-                    }
-                }
-            } else {
-                items(
-                    items = discover.chunked(discoverColumns),
-                    key = { row -> "discover_${row.firstOrNull()?.appleId.orEmpty()}" },
-                ) { row ->
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 6.dp),
-                    ) {
-                        row.forEach { item ->
-                            PodcastDiscoverCard(
-                                item = item,
-                                onClick = { viewModel.openDiscoverItem(item) },
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                        repeat(discoverColumns - row.size) {
-                            Spacer(Modifier.weight(1f))
-                        }
-                    }
                 }
             }
 
@@ -358,15 +300,66 @@ fun PodcastScreen(
                 }
             }
 
-            if (isLoadingMoreDiscover) {
-                item(key = "discover_loading_more") {
+            item(key = "discover_title") {
+                PodcastSectionTitle(stringResource(R.string.discover_podcasts))
+            }
+            item(key = "discover_grid") {
+                if (isLoadingDiscover && discover.isEmpty()) {
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(20.dp),
+                            .height(240.dp),
                     ) {
-                        ContainedLoadingIndicator(modifier = Modifier.size(32.dp))
+                        ContainedLoadingIndicator()
+                    }
+                } else {
+                    LazyHorizontalGrid(
+                        rows = GridCells.Fixed(2),
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(408.dp),
+                    ) {
+                        items(discover, key = { it.appleId }) { item ->
+                            PodcastDiscoverCard(
+                                item = item,
+                                onClick = { viewModel.openDiscoverItem(item) },
+                                modifier = Modifier.width(124.dp),
+                            )
+                        }
+                    }
+                }
+            }
+
+            item(key = "categories_title") {
+                PodcastSectionTitle(
+                    title = stringResource(R.string.podcast_categories),
+                    onClick = { navController.navigate("podcast_categories/$podcastRegion") },
+                )
+            }
+            item(key = "categories_grid") {
+                LazyHorizontalGrid(
+                    rows = GridCells.Fixed(2),
+                    contentPadding = PaddingValues(horizontal = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(108.dp),
+                ) {
+                    items(PodcastCategory.entries, key = PodcastCategory::slug) { category ->
+                        MoodAndGenresButton(
+                            title = stringResource(category.titleRes),
+                            onClick = {
+                                navController.navigate("podcast_category/${category.slug}/$podcastRegion")
+                            },
+                            modifier = Modifier
+                                .width(180.dp)
+                                .padding(horizontal = 6.dp),
+                        )
                     }
                 }
             }
@@ -381,12 +374,30 @@ fun PodcastScreen(
 }
 
 @Composable
-private fun PodcastSectionTitle(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleMedium,
-        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
-    )
+private fun PodcastSectionTitle(
+    title: String,
+    onClick: (() -> Unit)? = null,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(start = 16.dp, end = 8.dp, top = 16.dp, bottom = 8.dp),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.weight(1f),
+        )
+        if (onClick != null) {
+            Icon(
+                painter = painterResource(R.drawable.navigate_next),
+                contentDescription = stringResource(R.string.more_options),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
 }
 
 @Composable
@@ -430,14 +441,12 @@ private fun PodcastLibraryCard(
 }
 
 @Composable
-private fun PodcastDiscoverCard(
+internal fun PodcastDiscoverCard(
     item: PodcastDiscoverItem,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier.clickable(onClick = onClick),
-    ) {
+    Column(modifier = modifier.clickable(onClick = onClick)) {
         PodcastArtwork(
             url = item.artworkUrl,
             modifier = Modifier

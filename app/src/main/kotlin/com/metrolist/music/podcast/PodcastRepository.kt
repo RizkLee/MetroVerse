@@ -73,9 +73,11 @@ class PodcastRepository @Inject constructor(
     suspend fun topPodcasts(
         country: String = defaultCountry(),
         limit: Int = 25,
+        genreId: Int? = null,
     ): List<PodcastDiscoverItem> {
+        val genreSegment = genreId?.let { "genre=$it/" }.orEmpty()
         val response = client.get(
-            "https://itunes.apple.com/${country.lowercase(Locale.US)}/rss/toppodcasts/limit=$limit/explicit=true/json",
+            "https://itunes.apple.com/${country.lowercase(Locale.US)}/rss/toppodcasts/limit=$limit/${genreSegment}explicit=true/json",
         ) {
             header(HttpHeaders.UserAgent, PODCAST_USER_AGENT)
         }

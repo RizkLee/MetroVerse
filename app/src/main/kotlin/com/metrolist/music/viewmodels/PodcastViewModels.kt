@@ -8,6 +8,7 @@ import com.metrolist.music.constants.PauseSearchHistoryKey
 import com.metrolist.music.constants.SearchSource
 import com.metrolist.music.db.MusicDatabase
 import com.metrolist.music.db.entities.SearchHistory
+import com.metrolist.music.podcast.PodcastCategory
 import com.metrolist.music.podcast.PodcastDiscoverItem
 import com.metrolist.music.podcast.PodcastRepository
 import com.metrolist.music.podcast.defaultPodcastRegionCode
@@ -50,17 +51,12 @@ class PodcastHomeViewModel @Inject constructor(
     val discover = _discover.asStateFlow()
     private val _isLoadingDiscover = MutableStateFlow(false)
     val isLoadingDiscover = _isLoadingDiscover.asStateFlow()
-    private val _isLoadingMoreDiscover = MutableStateFlow(false)
-    val isLoadingMoreDiscover = _isLoadingMoreDiscover.asStateFlow()
-    private val _hasMoreDiscover = MutableStateFlow(true)
-    val hasMoreDiscover = _hasMoreDiscover.asStateFlow()
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing = _isRefreshing.asStateFlow()
     private val _events = MutableSharedFlow<PodcastUiEvent>(extraBufferCapacity = 1)
     val events = _events.asSharedFlow()
 
     private var country = defaultPodcastRegionCode()
-    private var discoverLimit = DISCOVER_PAGE_SIZE
     private var discoverJob: Job? = null
     private var refreshJob: Job? = null
     private var discoverGeneration = 0
@@ -73,37 +69,24 @@ class PodcastHomeViewModel @Inject constructor(
         val normalized = normalizePodcastRegionCode(value)
         if (normalized == country) {
             if (_discover.value.isEmpty() && !_isRefreshing.value && !_isLoadingDiscover.value) {
-                loadDiscover(reset = true)
+                loadDiscover()
             }
             return
         }
         country = normalized
-        discoverLimit = DISCOVER_PAGE_SIZE
-        _hasMoreDiscover.value = true
-        loadDiscover(reset = true)
+        _discover.value = emptyList()
+        loadDiscover()
     }
 
-    fun loadMoreDiscover() {
-        if (_isLoadingDiscover.value || _isLoadingMoreDiscover.value || !_hasMoreDiscover.value) return
-        val nextLimit = (discoverLimit + DISCOVER_PAGE_SIZE).coerceAtMost(MAX_DISCOVER_ITEMS)
-        if (nextLimit == discoverLimit) {
-            _hasMoreDiscover.value = false
-            return
-        }
-        discoverLimit = nextLimit
-        loadDiscover(reset = false)
-    }
-
-    private fun loadDiscover(reset: Boolean) {
+    private fun loadDiscover() {
         val generation = ++discoverGeneration
         discoverJob?.cancel()
         discoverJob = viewModelScope.launch(Dispatchers.IO) {
-            if (reset) _isLoadingDiscover.value = true else _isLoadingMoreDiscover.value = true
+            _isLoadingDiscover.value = true
             try {
-                val items = repository.topPodcasts(country = country, limit = discoverLimit)
+                val items = repository.topPodcasts(country = country, limit = DISCOVER_ITEM_COUNT)
                 if (generation == discoverGeneration) {
                     _discover.value = items
-                    _hasMoreDiscover.value = items.size >= discoverLimit && discoverLimit < MAX_DISCOVER_ITEMS
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
@@ -114,7 +97,6 @@ class PodcastHomeViewModel @Inject constructor(
             } finally {
                 if (generation == discoverGeneration) {
                     _isLoadingDiscover.value = false
-                    _isLoadingMoreDiscover.value = false
                 }
             }
         }
@@ -132,10 +114,9 @@ class PodcastHomeViewModel @Inject constructor(
                     .mapNotNull(Result<*>::exceptionOrNull)
                     .toMutableList()
                 try {
-                    val items = repository.topPodcasts(country = country, limit = discoverLimit)
+                    val items = repository.topPodcasts(country = country, limit = DISCOVER_ITEM_COUNT)
                     if (generation == discoverGeneration) {
-                        _discover.value = items
-                        _hasMoreDiscover.value = items.size >= discoverLimit && discoverLimit < MAX_DISCOVER_ITEMS
+                        _discover.value = items.shuffled()
                     }
                 } catch (cancelled: CancellationException) {
                     throw cancelled
@@ -182,8 +163,66 @@ class PodcastHomeViewModel @Inject constructor(
     }
 
     private companion object {
-        const val DISCOVER_PAGE_SIZE = 24
-        const val MAX_DISCOVER_ITEMS = 200
+        const val DISCOVER_ITEM_COUNT = 50
+    }
+}
+
+@HiltViewModel
+class PodcastCategoryViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
+    private val repository: PodcastRepository,
+) : ViewModel() {
+    val category = requireNotNull(PodcastCategory.fromSlug(savedStateHandle.get<String>("category")))
+    private val country = normalizePodcastRegionCode(
+        savedStateHandle.get<String>("country") ?: defaultPodcastRegionCode(),
+    )
+
+    private val _podcasts = MutableStateFlow<List<PodcastDiscoverItem>>(emptyList())
+    val podcasts = _podcasts.asStateFlow()
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading = _isLoading.asStateFlow()
+    private val _events = MutableSharedFlow<PodcastUiEvent>(extraBufferCapacity = 1)
+    val events = _events.asSharedFlow()
+
+    init {
+        refresh()
+    }
+
+    fun refresh() {
+        if (_isLoading.value) return
+        viewModelScope.launch(Dispatchers.IO) {
+            _isLoading.value = true
+            try {
+                _podcasts.value = repository.topPodcasts(
+                    country = country,
+                    limit = CATEGORY_ITEM_COUNT,
+                    genreId = category.appleGenreId,
+                )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Throwable) {
+                _events.emit(PodcastUiEvent.Error(error.message ?: "Podcast category failed"))
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun open(item: PodcastDiscoverItem) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val podcast = repository.importPodcast(item)
+                _events.emit(PodcastUiEvent.OpenPodcast(podcast.id))
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Throwable) {
+                _events.emit(PodcastUiEvent.Error(error.message ?: "Podcast feed failed"))
+            }
+        }
+    }
+
+    private companion object {
+        const val CATEGORY_ITEM_COUNT = 50
     }
 }
 

@@ -39,6 +39,8 @@ import com.metrolist.music.ui.screens.playlist.LocalPlaylistScreen
 import com.metrolist.music.ui.screens.playlist.OnlinePlaylistScreen
 import com.metrolist.music.ui.screens.playlist.TopPlaylistScreen
 import com.metrolist.music.ui.screens.podcast.OnlinePodcastScreen
+import com.metrolist.music.ui.screens.podcast.PodcastCategoriesScreen
+import com.metrolist.music.ui.screens.podcast.PodcastCategoryScreen
 import com.metrolist.music.ui.screens.podcast.PodcastScreen
 import com.metrolist.music.ui.screens.podcast.PodcastSearchResultScreen
 import com.metrolist.music.ui.screens.podcast.RssPodcastScreen
@@ -106,6 +108,29 @@ fun NavGraphBuilder.navigationBuilder(
 
     composable(Screens.Podcast.route) {
         PodcastScreen(snackbarHostState = snackbarHostState)
+    }
+
+    composable(
+        route = "podcast_categories/{country}",
+        arguments = listOf(navArgument("country") { type = NavType.StringType }),
+    ) { backStackEntry ->
+        PodcastCategoriesScreen(
+            navController = navController,
+            country = backStackEntry.arguments?.getString("country").orEmpty(),
+        )
+    }
+
+    composable(
+        route = "podcast_category/{category}/{country}",
+        arguments = listOf(
+            navArgument("category") { type = NavType.StringType },
+            navArgument("country") { type = NavType.StringType },
+        ),
+    ) {
+        PodcastCategoryScreen(
+            navController = navController,
+            snackbarHostState = snackbarHostState,
+        )
     }
 
     composable(Screens.ListenTogether.route) {

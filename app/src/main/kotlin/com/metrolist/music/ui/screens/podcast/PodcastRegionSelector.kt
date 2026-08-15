@@ -2,7 +2,10 @@ package com.metrolist.music.ui.screens.podcast
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -38,6 +41,12 @@ fun PodcastRegionSelector(
             modifier = if (compact) Modifier else Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(horizontal = if (compact) 12.dp else 16.dp),
         ) {
+            Icon(
+                painter = painterResource(R.drawable.language),
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(6.dp))
             Text(selectedCode)
         }
 
