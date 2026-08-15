@@ -290,7 +290,7 @@ D:\Android\AndroidSDK\platform-tools\adb.exe install -r .\app\build\outputs\apk\
 
 `lintFossDebug` 任务可以完成，但 0.2.0 构建的现有项目报告仍包含 65 个 error 和 297 个 warning；65 个 error 均为继承代码的基线债务，播客新增文件没有 lint error。HTML 报告位于 `app/build/reports/lint-results-fossDebug.html`。
 
-0.2.0 已验证的调试 APK 是 `app/build/outputs/apk/foss/debug/app-foss-debug.apk`，49,166,219 bytes。已验证的签名正式 APK 是 `app/build/outputs/apk/foss/release/app-foss-release.apk`，24,165,051 bytes，SHA-256 为 `bca51bbf0128d59d4bcd8efb1223812945076772f8d7ee042ee33bbc25620dfa`。
+0.2.0 已验证的调试 APK 是 `app/build/outputs/apk/foss/debug/app-foss-debug.apk`，签名正式 APK 是 `app/build/outputs/apk/foss/release/app-foss-release.apk`。GitHub Release 同时提供与 APK 同名版本对应的 `SHA256SUMS` 文件；公开下载后应在本机重新计算并逐字比较，不能只依赖浏览器显示的文件名。
 
 ## 8. 手工验收清单
 

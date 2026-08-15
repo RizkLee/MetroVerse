@@ -113,17 +113,14 @@ versionName='0.2.0'
 application-label='MetroVerse'
 ```
 
-0.2.0 本机最终校验值：
+MetroVerse 0.2.0 及后续兼容升级必须保持以下签名身份：
 
 ```text
-APK: app/build/outputs/apk/foss/release/app-foss-release.apk
-Size: 24,165,051 bytes
-SHA-256: bca51bbf0128d59d4bcd8efb1223812945076772f8d7ee042ee33bbc25620dfa
 Signature: APK Signature Scheme v2, one signer, RSA 4096
 Certificate SHA-256: e2450731e5e35b3ccd61a9fe1a12b86ca7fb3e11073ca27f3e5ff6eb6cdd7250
 ```
 
-公开下载后应再次计算 APK SHA-256，并与 GitHub Release 中记录的值比较。证书 SHA-256 必须在后续升级中保持不变。
+APK 哈希取决于源码提交和构建环境，不写死在被标记的源码中。每个 GitHub Release 应附带当次生成的 `SHA256SUMS`；公开下载后应再次计算 APK SHA-256 并逐字比较。证书 SHA-256 必须在所有后续升级中保持不变。
 
 ## 6. Android Studio 图形界面构建
 

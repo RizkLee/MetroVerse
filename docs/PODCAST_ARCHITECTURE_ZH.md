@@ -349,7 +349,7 @@ app/build/outputs/apk/foss/debug/app-foss-debug.apk
 app/build/outputs/apk/foss/release/app-foss-release.apk
 ```
 
-0.2.0 最终产物为 49,166,219 bytes（Debug）和 24,165,051 bytes（Release）。Release SHA-256 为 `bca51bbf0128d59d4bcd8efb1223812945076772f8d7ee042ee33bbc25620dfa`；源码或构建环境变化后必须重新计算，不能把这个值当作后续版本固定校验值。
+0.2.0 的最终公开 APK 与 `SHA256SUMS` 校验文件附在对应 GitHub Release。APK 嵌入 Android Gradle Plugin 的 `version-control-info.textproto`，正式资产必须从已标记的干净提交构建；源码或构建环境变化后必须重新构建并计算哈希，不能在被标记源码中维护会形成自引用的固定 APK 校验值。
 
 设备手工矩阵建议至少包含：
 
