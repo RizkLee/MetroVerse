@@ -277,13 +277,14 @@ D:\Android\AndroidSDK\platform-tools\adb.exe install -r .\app\build\outputs\apk\
 .\gradlew.bat :app:testFossDebugUnitTest --tests "com.metrolist.music.podcast.PodcastParsingTest"
 .\gradlew.bat :app:lintFossDebug
 .\gradlew.bat :app:assembleFossDebug
+.\gradlew.bat :app:assembleFossRelease
 ```
 
 当前仓库全量单元测试中，原有 `YouTubeUtilsTest` 有 4 个图片 URL 尺寸断言失败；它们与播客整合无关。播客专项测试已通过。
 
-`lintFossDebug` 任务可以完成，但现有项目报告仍包含 67 个 error 和 265 个 warning；播客新增文件没有 lint error。HTML 报告位于 `app/build/reports/lint-results-fossDebug.html`。
+`lintFossDebug` 任务可以完成，但现有项目报告仍包含 65 个 error 和 288 个 warning；这些是继承代码的基线债务，播客新增文件没有 lint error。HTML 报告位于 `app/build/reports/lint-results-fossDebug.html`。
 
-已验证的调试 APK 是 `app/build/outputs/apk/foss/debug/app-foss-debug.apk`，约 47 MiB。
+已验证的调试 APK 是 `app/build/outputs/apk/foss/debug/app-foss-debug.apk`，约 47 MiB。已验证的签名正式 APK 是 `app/build/outputs/apk/foss/release/app-foss-release.apk`，约 24 MiB。
 
 ## 8. 手工验收清单
 
@@ -291,14 +292,18 @@ D:\Android\AndroidSDK\platform-tools\adb.exe install -r .\app\build\outputs\apk\
 
 - 手机竖屏底栏显示 Podcast，平板/横屏侧栏也显示 Podcast。
 - Apple 搜索可返回结果，点击后能解析 RSS。
+- 在 Podcast 首页和搜索结果页切换至少两个 Apple 地区，确认榜单或搜索会重载。
 - 粘贴一个 RSS URL 可打开详情并订阅。
 - 退出并重新打开 App 后订阅仍存在。
+- 节目列表、单集列表、迷你播放器和完整播放器能显示 RSS 提供的封面；没有单集图时会回退到节目封面。
 - 播放单集后能暂停、拖动和前后跳转 30 秒。
 - 播放一段后切换到音乐，再回到单集可恢复进度。
 - RSS 单集可加入队列，重启 App 后队列仍可恢复并播放。
 - 收藏单集后可在 Library 的 Episodes 中看到。
 - 下载后可在断网状态播放，并出现在 Downloaded 中。
-- RSS 单集分享的是节目网页或音频地址，不是伪造的 YouTube 链接。
+- RSS 单集的喜欢、详情和分享可用；分享的是节目网页或音频地址，不是伪造的 YouTube 链接。
+- RSS 和 YouTube 播客的播放器菜单不显示歌词、Listen Together、Start Radio 或 View Artist。
+- 将 App 语言分别切换到 English 和简体中文，确认 Podcast、地区选择、错误状态和详情文案完整。
 - 音乐仍使用上一首/下一首，YouTube Music 播客仍打开原页面。
 - 播放 RSS 时不会发起 YouTube 解密、歌词或电台请求。
 

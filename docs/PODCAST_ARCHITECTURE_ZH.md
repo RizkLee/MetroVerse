@@ -332,9 +332,10 @@ SearchSource.LOCAL
 
 - `:app:compileFossDebugKotlin` 通过。
 - 播客专项单元测试通过。
-- `:app:lintFossDebug` 完成；现有项目报告为 67 errors、265 warnings，播客新增文件没有 lint error。
+- `:app:lintFossDebug` 完成；现有项目报告为 65 errors、288 warnings，这些是继承代码的基线债务，播客新增文件没有 lint error。
 - `:app:assembleFossDebug` 通过。
-- 调试 APK 已生成并通过 APK v2 签名校验。
+- 调试 APK 已生成。
+- R8 压缩后的 `:app:assembleFossRelease` 通过，正式 APK 已使用本机 MetroVerse RSA 4096 release key 签名，并通过 APK v2 签名校验。
 - Debug APK 包名为 `com.rizklee.metroverse.debug`，Release APK 包名为 `com.rizklee.metroverse`，最低 API 26，目标 API 36。
 - 全量单元测试执行完成，但原有 `YouTubeUtilsTest` 有 4 个与图片 URL 改写相关的失败。
 
@@ -342,7 +343,10 @@ SearchSource.LOCAL
 
 ```text
 app/build/outputs/apk/foss/debug/app-foss-debug.apk
+app/build/outputs/apk/foss/release/app-foss-release.apk
 ```
+
+当前产物约为 47 MiB（Debug）和 24 MiB（Release）。Release SHA-256 为 `f7c3689074d934d93677d1599a2d58bc18e5df96273914a7eb57f72bb40ea1f9`；源码或构建环境变化后必须重新计算，不能把这个值当作后续版本固定校验值。
 
 设备手工矩阵建议至少包含：
 
@@ -369,6 +373,13 @@ main
 eb1962b53 feat(podcast): route RSS episodes through shared playback
 fa6aa0945 docs(podcast): add user build and architecture guides
 ee8bb2ba2 fix(podcast): refresh subscriptions and playback sources
+d655337a4 docs(podcast): record integration checkpoints
+fff650eea feat(brand): establish MetroVerse app identity
+8c50b9ff7 feat(brand): replace upstream project and update surfaces
+6964c7fee docs(brand): reset MetroVerse changelog
+e43696442 feat(podcast): add regions and complete player adaptation
+88a4e2e33 fix(brand): remove stale runtime upstream links
+ce8cc1135 build(release): add private signing workflow and guide
 ```
 
 查看提交：
