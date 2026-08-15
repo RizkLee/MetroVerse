@@ -50,7 +50,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -110,10 +110,10 @@ fun PodcastScreen(
     var feedUrl by rememberSaveable { mutableStateOf("") }
     var podcastRegion by rememberPreference(PodcastRegionKey, defaultPodcastRegionCode())
     var searchSource by rememberEnumPreference(SearchSourceKey, SearchSource.ONLINE)
-    val screenWidth = LocalConfiguration.current.screenWidthDp
+    val screenWidth = LocalWindowInfo.current.containerDpSize.width
     val discoverColumns = when {
-        screenWidth >= 840 -> 5
-        screenWidth >= 600 -> 4
+        screenWidth >= 840.dp -> 5
+        screenWidth >= 600.dp -> 4
         else -> 2
     }
 

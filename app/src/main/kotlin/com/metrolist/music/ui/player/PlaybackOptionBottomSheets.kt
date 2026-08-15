@@ -68,7 +68,7 @@ fun PlaybackSpeedBottomSheet(
                 )
                 Spacer(Modifier.width(16.dp))
                 Text(
-                    text = String.format(Locale.getDefault(), "%.2fx", speed),
+                    text = String.format(Locale.ROOT, "%.2fx", speed),
                     color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.headlineMedium,
                 )
