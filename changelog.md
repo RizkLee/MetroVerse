@@ -16,6 +16,7 @@ All notable MetroVerse-specific changes are recorded here. Upstream Metrolist hi
 ### Changed
 
 - Replaced the Podcast icon with the filled Material Symbols Podcasts icon.
+- Replaced the launcher and in-app brand artwork with the fixed MetroVerse logo and removed the Dynamic icon colors setting.
 - Moved Podcast before Search in primary navigation and Podcasts to second position in Library.
 - Reduced podcast seek controls from 30 seconds to 10 seconds in the player, notification, and MediaSession.
 - Limited Latest episodes on the Podcast page to five items.

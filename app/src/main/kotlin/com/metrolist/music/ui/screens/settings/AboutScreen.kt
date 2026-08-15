@@ -71,7 +71,7 @@ fun AboutScreen(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Image(
-                painter = painterResource(R.drawable.about_icon),
+                painter = painterResource(R.drawable.ic_launcher_artwork),
                 contentDescription = stringResource(R.string.app_name),
                 modifier = Modifier.size(88.dp),
             )
