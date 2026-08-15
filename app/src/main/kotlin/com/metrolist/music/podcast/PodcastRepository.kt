@@ -221,7 +221,7 @@ class PodcastRepository @Inject constructor(
         value?.let { Jsoup.parse(it).text().trim() }.orEmpty()
 
     private companion object {
-        const val USER_AGENT = "Metrolist/Podcast"
+        const val USER_AGENT = "MetroVerse/0.1.0 Podcast"
         const val MAX_EPISODES_PER_FEED = 1000
     }
 }

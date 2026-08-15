@@ -549,7 +549,7 @@
     <string name="lyrics_provider_priority_desc">ลากเพื่อจัดเรียงลำดับผู้ให้บริการตามความต้องการ ตำแหน่งที่อยู่สูงกว่าจะมีลำดับความสำคัญมากกว่า</string>
     <string name="changelog">บันทึกการเปลี่ยนแปลง</string>
     <string name="changelog_empty">ยังไม่มีบันทึกการเปลี่ยนแปลง</string>
-    <string name="github_releases_url">https://github.com/MetrolistGroup/Metrolist/releases</string>
+    <string name="github_releases_url">https://github.com/Rizklee/MetroVerse/releases</string>
     <string name="list_bullet">•</string>
     <string name="view_on_github">ดูบน GitHub</string>
     <string name="current_version">เวอร์ชันปัจจุบัน</string>

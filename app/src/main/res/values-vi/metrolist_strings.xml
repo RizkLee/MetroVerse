@@ -388,7 +388,7 @@
     <string name="lyrics_provider_priority_desc">Kéo để xắp xếp lại nhà cung cấp theo ý muốn. Vị trí càng cao -&gt; Ưu tiên càng cao</string>
     <string name="changelog">Lịch sử cập nhật</string>
     <string name="changelog_empty">Không có lịch sử cập nhật có sẵn</string>
-    <string name="github_releases_url">https://github.com/MetrolistGroup/Metrolist/releases</string>
+    <string name="github_releases_url">https://github.com/Rizklee/MetroVerse/releases</string>
     <string name="list_bullet">•</string>
     <string name="view_on_github">Xem trong GitHub</string>
     <string name="current_version">Phiên bản hiện tại</string>

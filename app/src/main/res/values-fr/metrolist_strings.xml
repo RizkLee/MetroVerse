@@ -578,7 +578,7 @@
     <string name="lyrics_provider_priority_desc">Faites glisser pour réorganiser les fournisseurs selon vos préférences. Plus la position est élevée, plus la priorité est grande</string>
     <string name="changelog">Journal des modifications</string>
     <string name="changelog_empty">Aucun journal des modifications disponible</string>
-    <string name="github_releases_url">https://github.com/MetrolistGroup/Metrolist/releases</string>
+    <string name="github_releases_url">https://github.com/Rizklee/MetroVerse/releases</string>
     <string name="list_bullet">•</string>
     <string name="view_on_github">Voir sur GitHub</string>
     <string name="current_version">Version actuelle</string>

@@ -582,7 +582,7 @@
     <string name="lyrics_provider_priority_desc">اسحب لإعادة ترتيب المزودين حسب التفضيل. الموضع الأعلى يعني أولوية أعلى.</string>
     <string name="changelog">سجل التغييرات</string>
     <string name="changelog_empty">لا توجد سجلات تغييرات متاحة</string>
-    <string name="github_releases_url">https://github.com/MetrolistGroup/Metrolist/releases</string>
+    <string name="github_releases_url">https://github.com/Rizklee/MetroVerse/releases</string>
     <string name="list_bullet">‌•</string>
     <string name="view_on_github">عرض على GitHub</string>
     <string name="current_version">الإصدار الحالي</string>

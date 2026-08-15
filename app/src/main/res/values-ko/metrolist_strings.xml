@@ -243,7 +243,7 @@
     <string name="release_notes">릴리스 노트</string>
     <string name="changelog">변경 사항</string>
     <string name="changelog_empty">표시할 변경 사항이 없습니다</string>
-    <string name="github_releases_url">https://github.com/MetrolistGroup/Metrolist/releases</string>
+    <string name="github_releases_url">https://github.com/Rizklee/MetroVerse/releases</string>
     <string name="list_bullet">•</string>
     <string name="view_on_github">GitHub에서 보기</string>
     <string name="current_version">현재 버전</string>

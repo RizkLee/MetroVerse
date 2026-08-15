@@ -443,7 +443,7 @@
     <string name="enable_paxsenix">Abilitar o serviço Paxsenix</string>
     <string name="enable_paxsenix_desc">Letras síncronas de alta qualidade fornecidas pela API da Paxsenix</string>
     <string name="lyrics_provider_priority_desc">Arraste para re-ordenar os provedores por preferência. Quanto maior for a posição, maior será a prioridade.</string>
-    <string name="github_releases_url">(Note for the development team: Creation of a Portuguese subrepository for releases may be nessasary. FOR NOW we will be using the official pages)\n(Para quem é português e não consegue fazer a tradução pedimos imensa desculpa, mas o problema irá ser resolvido, e estaremos com uma solução o mais rápido possível!)\nhttps://github.com/MetrolistGroup/Metrolist/releases</string>
+    <string name="github_releases_url">(Note for the development team: Creation of a Portuguese subrepository for releases may be nessasary. FOR NOW we will be using the official pages)\n(Para quem é português e não consegue fazer a tradução pedimos imensa desculpa, mas o problema irá ser resolvido, e estaremos com uma solução o mais rápido possível!)\nhttps://github.com/Rizklee/MetroVerse/releases</string>
     <string name="alarm_battery_optimization_desc">Desabilite optimizações de bateria para um melhor comportamento do alarme em segundo plano</string>
     <string name="resume_on_bluetooth_connect">Resumir musica quando um dispositivo bluetooth for conectado.</string>
     <string name="crossfade_gapless">Desabilitar para álbuns sem espaço de intervalo entre musicas</string>

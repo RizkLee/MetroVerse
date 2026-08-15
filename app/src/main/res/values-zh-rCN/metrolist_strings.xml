@@ -517,7 +517,7 @@
     <string name="discord_buttons">按钮</string>
     <string name="discord_button_1">按钮 1</string>
     <string name="discord_button_2">按钮 2</string>
-    <string name="discord_information_warning">Metrolist 使用 Discord 的公共 OAuth2 和 Gateway API 来分享您当前正在收听的内容。授权通过本地浏览器会话进行，该会话在获取代码后会自动关闭——不会向第三方服务器发送任何信息。您的令牌存储在此设备的加密偏好设置中，绝不会被共享。Metrolist 直接连接到 wss://gateway.discord.gg 来发布您的活动，并且仅请求所需的最小权限范围（sdk.social_layer_presence）。</string>
+    <string name="discord_information_warning">MetroVerse 使用 Discord 的公共 OAuth2 和 Gateway API 来分享您当前正在收听的内容。授权通过本地浏览器会话进行，该会话在获取代码后会自动关闭——不会向第三方服务器发送任何信息。您的令牌存储在此设备的加密偏好设置中，绝不会被共享。MetroVerse 直接连接到 wss://gateway.discord.gg 来发布您的活动，并且仅请求所需的最小权限范围（sdk.social_layer_presence）。</string>
     <string name="discord_activity_type">活动类型</string>
     <string name="discord_activity_playing">正在播放</string>
     <string name="discord_activity_listening">正在听</string>

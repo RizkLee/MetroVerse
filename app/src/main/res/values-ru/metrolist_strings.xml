@@ -561,7 +561,7 @@
     <string name="lyrics_provider_priority_desc">Перетащите для изменения порядка. Чем выше источник в списке, тем выше его приоритет</string>
     <string name="changelog">Список изменений</string>
     <string name="changelog_empty">Список изменений недоступен</string>
-    <string name="github_releases_url">https://github.com/MetrolistGroup/Metrolist/releases</string>
+    <string name="github_releases_url">https://github.com/Rizklee/MetroVerse/releases</string>
     <string name="list_bullet">•</string>
     <string name="view_on_github">Открыть на GitHub</string>
     <string name="current_version">Текущая версия</string>

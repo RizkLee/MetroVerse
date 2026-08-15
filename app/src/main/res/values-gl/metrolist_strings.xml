@@ -149,7 +149,7 @@
     <string name="release_notes">Notas da versión</string>
     <string name="changelog">Rexistro de cambios</string>
     <string name="changelog_empty">Rexistro de cambios non dispoñible</string>
-    <string name="github_releases_url">https://github.com/MetrolistGroup/Metrolist/releases</string>
+    <string name="github_releases_url">https://github.com/Rizklee/MetroVerse/releases</string>
     <string name="list_bullet">•</string>
     <string name="view_on_github">Ver no GitHub</string>
     <string name="current_version">Versión actual</string>

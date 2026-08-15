@@ -553,7 +553,7 @@
     <string name="lyrics_provider_priority_desc">Sağlayıcıları sürükleyerek sıralayın. Üst konum daha yüksek öncelik demektir</string>
     <string name="changelog">Değişiklik günlüğü</string>
     <string name="changelog_empty">Değişiklik günlüğü mevcut değil</string>
-    <string name="github_releases_url">https://github.com/MetrolistGroup/Metrolist/releases</string>
+    <string name="github_releases_url">https://github.com/Rizklee/MetroVerse/releases</string>
     <string name="list_bullet">•</string>
     <string name="view_on_github">GitHub\'da görüntüle</string>
     <string name="current_version">Mevcut sürüm</string>

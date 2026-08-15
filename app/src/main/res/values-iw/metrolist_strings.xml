@@ -183,7 +183,7 @@
     <string name="release_notes">הערות שחרור</string>
     <string name="changelog">יומן שינויים</string>
     <string name="changelog_empty">אין יומני שינויים זמינים</string>
-    <string name="github_releases_url">https://github.com/MetrolistGroup/Metrolist/releases</string>
+    <string name="github_releases_url">https://github.com/Rizklee/MetroVerse/releases</string>
     <string name="list_bullet">•</string>
     <string name="view_on_github">הצג ב-GitHub</string>
     <string name="current_version">גרסה נוכחית</string>
