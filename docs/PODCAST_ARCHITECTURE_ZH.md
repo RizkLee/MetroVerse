@@ -1,4 +1,4 @@
-# Metrolist 播客整合架构与后续开发指南
+# MetroVerse 播客整合架构与后续开发指南
 
 ## 1. 设计目标
 
@@ -6,7 +6,7 @@
 
 - Podium 只作为 Apple Podcasts、RSS 解析和订阅流程的实现参考。
 - 不嵌入 Podium Activity、Material 3 Expressive 页面或独立数据库。
-- RSS 单集进入 Metrolist 的 `SongEntity`、队列、播放器、通知、缓存和下载链路。
+- RSS 单集进入 MetroVerse 继承的 `SongEntity`、队列、播放器、通知、缓存和下载链路。
 - 原有 YouTube Music 播客继续工作，并与 RSS 来源明确区分。
 - 手机 Bottom Navigation 和大屏 Navigation Rail 使用同一个 `Screens.Podcast`。
 
@@ -36,6 +36,8 @@ https://itunes.apple.com/search
 https://itunes.apple.com/lookup
 https://itunes.apple.com/{country}/rss/toppodcasts/...
 ```
+
+Apple storefront 来自持久化的 `PodcastRegionKey`。`PodcastRegions.kt` 将系统国家规范化到受支持列表，首页和搜索 ViewModel 在地区变化时取消旧请求并重新加载；这个设置只影响 Apple 发现，不修改任何 RSS 订阅。
 
 ### 2.2 RSS 导入
 
@@ -71,7 +73,7 @@ RssPodcastScreen
 - `mediaId`：稳定的 RSS 单集 ID。
 - `uri`：RSS enclosure URL。
 - `customCacheKey`：稳定单集 ID，避免 URL 跳转或查询参数变化破坏缓存键。
-- `tag`：可序列化的 Metrolist `MediaMetadata`，包含 `mediaUrl`。
+- `tag`：可序列化的 MetroVerse `MediaMetadata`，包含 `mediaUrl`。
 - Media3 metadata type：`MEDIA_TYPE_PODCAST_EPISODE`。
 
 `MusicService.createDataSourceFactory()` 在访问 YouTube 播放解析前查询 `SongEntity.mediaUrl`。存在直链时直接返回 URI，并继续经过现有 CacheDataSource。
@@ -87,7 +89,7 @@ RssPodcastScreen
     -> Media3 DownloadManager / downloadCache
 ```
 
-因此在线播放与下载使用同一稳定 ID，但缓存层仍由 Metrolist 原有模块负责。
+因此在线播放与下载使用同一稳定 ID，缓存层复用从 Metrolist 继承的模块。
 
 ### 2.5 断点续播
 
@@ -201,7 +203,7 @@ SearchSource.PODCAST
 SearchSource.LOCAL
 ```
 
-新增界面全部复用 Metrolist 的 TopAppBar、NavigationIconButton、ChipsRow、AsyncImage、SongListItem、BottomSheet 和主题色，不引入 Podium 的页面或第二套设计 token。
+新增界面全部复用 MetroVerse 从 Metrolist 继承的 TopAppBar、NavigationIconButton、ChipsRow、AsyncImage、SongListItem、BottomSheet 和主题色，不引入 Podium 的页面或第二套设计 token。
 
 ## 6. 核心文件索引
 
@@ -210,6 +212,7 @@ SearchSource.LOCAL
 - `podcast/PodcastModels.kt`：Apple JSON 模型和发现模型。
 - `podcast/PodcastParsing.kt`：URL、日期、时长和稳定 ID。
 - `podcast/PodcastRepository.kt`：Apple API、RSS 下载、解析、订阅和刷新。
+- `podcast/PodcastRegions.kt`：Apple storefront 支持列表和地区规范化。
 - `db/entities/PodcastEntity.kt`：节目实体。
 - `db/entities/SongEntity.kt`：RSS 单集直链元数据。
 - `db/DatabaseDao.kt`：RSS 节目和单集查询。
@@ -220,6 +223,7 @@ SearchSource.LOCAL
 - `viewmodels/PodcastViewModels.kt`
 - `ui/screens/podcast/PodcastScreen.kt`
 - `ui/screens/podcast/PodcastSearchResultScreen.kt`
+- `ui/screens/podcast/PodcastRegionSelector.kt`
 - `ui/screens/podcast/RssPodcastScreen.kt`
 - `ui/screens/search/SearchScreen.kt`
 - `ui/screens/library/LibraryPodcastsScreen.kt`
@@ -331,7 +335,7 @@ SearchSource.LOCAL
 - `:app:lintFossDebug` 完成；现有项目报告为 67 errors、265 warnings，播客新增文件没有 lint error。
 - `:app:assembleFossDebug` 通过。
 - 调试 APK 已生成并通过 APK v2 签名校验。
-- APK 包名为 `com.metrolist.music.debug`，最低 API 26，目标 API 36。
+- Debug APK 包名为 `com.rizklee.metroverse.debug`，Release APK 包名为 `com.rizklee.metroverse`，最低 API 26，目标 API 36。
 - 全量单元测试执行完成，但原有 `YouTubeUtilsTest` 有 4 个与图片 URL 改写相关的失败。
 
 产物：
@@ -351,10 +355,10 @@ app/build/outputs/apk/foss/debug/app-foss-debug.apk
 
 ## 9. Git 检查点与回退
 
-开发分支：
+MetroVerse 默认分支：
 
 ```text
-feature/podcast-integration
+main
 ```
 
 分阶段提交：
@@ -400,10 +404,10 @@ git revert 696f30444
 git switch -c inspect-podcast-data 14cf578a9
 ```
 
-返回开发分支：
+返回 MetroVerse 主分支：
 
 ```powershell
-git switch feature/podcast-integration
+git switch main
 ```
 
 不要把本机 `lastfm-api-key.txt`、`local.properties`、keystore 或密码加入提交。执行 `git status --short` 时，`lastfm-api-key.txt` 保持未跟踪是预期状态。
@@ -432,4 +436,4 @@ git switch feature/podcast-integration
 
 ## 12. 许可证
 
-Metrolist 和参考项目 Podium 都采用 GPL-3.0。整合代码继续受 Metrolist 仓库的 GPL-3.0 许可证约束。保留现有许可证文件和相关版权历史，不要把第三方不兼容许可证的代码或资源直接复制进项目。
+MetroVerse、上游 Metrolist 和参考项目 Podium 都采用 GPL-3.0。MetroVerse 继续受 GPL-3.0 约束，并在 `NOTICE.md`、Git 历史和继承的源码头中保留上游归属。不要把第三方不兼容许可证的代码或资源直接复制进项目。

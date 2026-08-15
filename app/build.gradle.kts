@@ -19,6 +19,26 @@ if (localPropertiesFile.exists()) {
     localProperties.load(localPropertiesFile.inputStream())
 }
 
+val releaseKeystoreProperties = Properties()
+val releaseKeystorePropertiesFile = rootProject.file("keystore.properties")
+if (releaseKeystorePropertiesFile.exists()) {
+    releaseKeystoreProperties.load(releaseKeystorePropertiesFile.inputStream())
+}
+val releaseStoreFilePath = System.getenv("METROVERSE_KEYSTORE_PATH")
+    ?: releaseKeystoreProperties.getProperty("storeFile")
+val releaseStorePassword = System.getenv("METROVERSE_KEYSTORE_PASSWORD")
+    ?: releaseKeystoreProperties.getProperty("storePassword")
+val releaseKeyAlias = System.getenv("METROVERSE_KEY_ALIAS")
+    ?: releaseKeystoreProperties.getProperty("keyAlias")
+val releaseKeyPassword = System.getenv("METROVERSE_KEY_PASSWORD")
+    ?: releaseKeystoreProperties.getProperty("keyPassword")
+val releaseSigningConfigured = listOf(
+    releaseStoreFilePath,
+    releaseStorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword,
+).all { !it.isNullOrBlank() }
+
 val baseApplicationId = "com.rizklee.metroverse"
 val applicationIdOverride = System.getenv("METROLIST_APPLICATION_ID")?.takeIf { it.isNotBlank() }
 val appNameOverride = System.getenv("METROLIST_APP_NAME")?.takeIf { it.isNotBlank() }
@@ -160,11 +180,13 @@ android {
             keyAlias = debugKeyAlias
             keyPassword = debugKeyPassword
         }
-        create("release") {
-            storeFile = file("keystore/release.keystore")
-            storePassword = System.getenv("STORE_PASSWORD")
-            keyAlias = System.getenv("KEY_ALIAS")
-            keyPassword = System.getenv("KEY_PASSWORD")
+        if (releaseSigningConfigured) {
+            create("release") {
+                storeFile = rootProject.file(requireNotNull(releaseStoreFilePath))
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
         }
         getByName("debug") {
             keyAlias = "androiddebugkey"
@@ -177,6 +199,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
+            signingConfig = signingConfigs.findByName("release")
             isShrinkResources = true
             isCrunchPngs = false
             isDebuggable = false

@@ -1,10 +1,10 @@
-# Metrolist 播客使用、构建与安装指南
+# MetroVerse 播客使用、构建与安装指南
 
-本文面向第一次接触 Android 项目的用户，说明如何使用 Metrolist 的播客功能，以及如何用 Android Studio 构建并安装调试版。
+本文面向第一次接触 Android 项目的用户，说明如何使用 MetroVerse 的播客功能，以及如何用 Android Studio 构建并安装调试版。
 
 ## 1. 当前功能
 
-Metrolist 现在可以在同一个 App 中播放音乐和播客：
+MetroVerse 现在可以在同一个 App 中播放音乐和播客：
 
 - 底部导航栏和大屏侧边导航栏都有 **Podcast（播客）** 入口。
 - 通过 Apple Podcasts 搜索和排行榜发现公开播客。
@@ -13,7 +13,7 @@ Metrolist 现在可以在同一个 App 中播放音乐和播客：
 - 播放 RSS 音频、排队、暂停、拖动进度和断点续播。
 - 在完整播放器中后退或前进 30 秒，并调整播放速度。
 - 收藏单集以供稍后收听。
-- 下载单集并使用 Metrolist 原有下载管理能力离线播放。
+- 下载单集并使用继承自 Metrolist 的下载管理能力离线播放。
 - 从 Library 查看播客频道、已保存单集和已下载单集。
 - 继续保留原有 YouTube Music 播客能力。
 
@@ -23,7 +23,7 @@ Apple Podcasts 在这里仅用于“发现节目”。订阅和播放使用节�
 
 ### 2.1 打开播客首页
 
-1. 启动 Metrolist。
+1. 启动 MetroVerse。
 2. 手机竖屏时，点击底部的 **Podcast/播客**。
 3. 平板或横屏时，点击左侧导航栏的播客图标。
 4. 页面上方显示订阅、继续收听和发现内容；首次加载排行榜需要联网。
@@ -50,9 +50,19 @@ Apple Podcasts 在这里仅用于“发现节目”。订阅和播放使用节�
 4. App 会先通过 Apple lookup 获取公开 RSS 地址，再抓取节目和单集。
 5. 点击 **Subscribe/订阅** 将节目保存到资料库。
 
-搜索与榜单由 Apple Podcasts 公开接口提供，实际结果可能因设备地区不同而变化。
+搜索与榜单由 Apple Podcasts 公开接口提供，实际结果可能因所选地区不同而变化。
 
-### 2.3 直接添加 RSS 订阅源
+### 2.3 切换 Apple Podcasts 地区
+
+1. 打开 Podcast 首页。
+2. 点击操作区中的 **Apple Podcasts 地区** 按钮。
+3. 选择美国、英国、中国大陆、香港、台湾、日本等支持的 storefront。
+4. 首页榜单会立即按新地区重新加载。
+5. 在播客搜索结果页也可以点击顶栏的地区图标切换，搜索会自动重跑。
+
+地区选择会持久保存，只影响 Apple 的发现、榜单和搜索，不会改变 RSS 订阅源内容或播放器行为。
+
+### 2.4 直接添加 RSS 订阅源
 
 1. 打开 **Podcast/播客** 首页。
 2. 点击添加图标。
@@ -64,7 +74,7 @@ Apple Podcasts 在这里仅用于“发现节目”。订阅和播放使用节�
 
 注意：普通网页地址不一定是 RSS 地址。有效订阅源通常返回 RSS、Atom 或 XML 内容，并包含音频 enclosure。
 
-### 2.4 订阅、刷新与取消订阅
+### 2.5 订阅、刷新与取消订阅
 
 - **订阅**：在 RSS 节目详情页点击订阅按钮。
 - **刷新单个节目**：在详情页点击刷新图标。
@@ -75,18 +85,18 @@ Apple Podcasts 在这里仅用于“发现节目”。订阅和播放使用节�
 
 取消订阅不会立即删除已经收藏、下载或带有播放进度的单集。
 
-### 2.5 播放与断点续播
+### 2.6 播放与断点续播
 
 1. 在节目详情页点击任意单集。
-2. 单集会进入 Metrolist 原有播放器和队列。
+2. 单集会进入 MetroVerse 与音乐共用的播放器和队列。
 3. 点击底部迷你播放器打开完整播放器。
 4. 播客单集的左右主按钮是 **后退 30 秒** 和 **前进 30 秒**。
 5. 锁屏通知、Android Auto 和兼容耳机控制也会使用前进/后退语义。
 6. 打开播放器菜单，进入 **Advanced/高级** 可调整播放速度。
 
-Metrolist 会周期保存播客进度，并在切换媒体、退出服务或下次播放同一单集时恢复。正常播放到接近结尾后，再次播放会从头开始。
+MetroVerse 会周期保存播客进度，并在切换媒体、退出服务或下次播放同一单集时恢复。正常播放到接近结尾后，再次播放会从头开始。
 
-### 2.6 收藏单集
+### 2.7 收藏单集
 
 单集上的心形按钮表示“稍后收听”：
 
@@ -95,7 +105,7 @@ Metrolist 会周期保存播客进度，并在切换媒体、退出服务或下�
 
 收藏后的单集可在 **Library > Podcasts > Episodes** 中找到。RSS 单集只修改本地资料库，不会向 YouTube Music 发送收藏请求。
 
-### 2.7 下载和删除下载
+### 2.8 下载和删除下载
 
 1. 打开单集右侧菜单，或打开完整播放器菜单。
 2. 点击 **Download/下载**。
@@ -103,9 +113,9 @@ Metrolist 会周期保存播客进度，并在切换媒体、退出服务或下�
 4. 在 **Library > Podcasts > Downloaded** 查看已下载单集。
 5. 再次打开菜单可删除下载。
 
-下载沿用 Metrolist 的 `DownloadUtil`、Media3 DownloadService 和缓存。下载时不要强制停止 App。某些节目使用会过期、需要登录或带 DRM 的音频地址，这类内容可能无法下载。
+下载沿用 MetroVerse 继承的 `DownloadUtil`、Media3 DownloadService 和缓存。下载时不要强制停止 App。某些节目使用会过期、需要登录或带 DRM 的音频地址，这类内容可能无法下载。
 
-### 2.8 Library 中的播客
+### 2.9 Library 中的播客
 
 打开 **Library/资料库** 并选择播客后，可以查看：
 
@@ -163,7 +173,7 @@ Android Studio 设置步骤：
 1. 打开 **Build > Select Build Variant**，或打开 Build Variants 工具窗口。
 2. 将 `app` 模块选择为 `fossDebug`。
 
-建议初次使用 `fossDebug`：它不依赖 Google Cast 配置，调试包名为 `com.metrolist.music.debug`，通常可以和正式版 Metrolist 共存。
+建议初次使用 `fossDebug`：它不依赖 Google Cast 配置，调试包名为 `com.rizklee.metroverse.debug`，可以和 MetroVerse 正式版及上游 Metrolist 共存。
 
 ## 5. 直接运行到设备
 
@@ -227,7 +237,21 @@ cd E:\Code\music-podcast-app\Metrolist
 Get-ChildItem .\app\build\outputs\apk\foss\debug\*.apk
 ```
 
-### 6.3 用 adb 安装 APK
+### 6.3 构建签名正式版
+
+正式版不能使用 Debug 签名。项目已经提供本机 keystore 生成脚本、Gradle 签名配置和完整说明：
+
+- [MetroVerse 正式版 APK 签名、构建与发布指南](RELEASE_BUILD_ZH.md)
+
+生成并备份签名文件后，命令是：
+
+```powershell
+.\gradlew.bat :app:assembleFossRelease
+```
+
+正式 APK 位于 `app\build\outputs\apk\foss\release\app-foss-release.apk`。必须用 `apksigner verify` 确认签名后才能分发。
+
+### 6.4 用 adb 安装 APK
 
 先连接并授权手机，然后执行：
 
@@ -242,7 +266,7 @@ D:\Android\AndroidSDK\platform-tools\adb.exe install -r .\app\build\outputs\apk\
 - `device unauthorized`：解锁手机并重新确认 USB 调试授权。
 - `INSTALL_FAILED_UPDATE_INCOMPATIBLE`：设备上已有同包名但签名不同的 App；先备份数据，再卸载冲突版本。
 - `INSTALL_FAILED_VERSION_DOWNGRADE`：先卸载旧调试版，或仅在清楚影响时使用 `adb install -r -d`。
-- 安装后找不到 App：调试版名称是 **Metrolist Debug**。
+- 安装后找不到 App：调试版名称是 **MetroVerse Debug**。
 
 ## 7. 构建前建议执行的检查
 
@@ -308,7 +332,7 @@ D:\Android\AndroidSDK\platform-tools\adb.exe logcat | Select-String "MusicServic
 
 ### 修改后出现数据库问题
 
-数据库版本已从 38 升到 39。调试阶段可以卸载 **Metrolist Debug** 后重装来清空调试数据，但这会删除调试版的订阅、队列、下载索引和设置。不要直接清除正式版数据。
+数据库版本已从 38 升到 39。调试阶段可以卸载 **MetroVerse Debug** 后重装来清空调试数据，但这会删除调试版的订阅、队列、下载索引和设置。不要直接清除正式版数据。
 
 ## 10. 关于密钥
 
