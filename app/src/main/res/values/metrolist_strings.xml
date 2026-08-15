@@ -241,7 +241,7 @@
     <string name="release_notes">Release notes</string>
     <string name="changelog">Changelog</string>
     <string name="changelog_empty">No changelogs available</string>
-    <string name="github_releases_url">https://github.com/MetrolistGroup/Metrolist/releases</string>
+    <string name="github_releases_url">https://github.com/Rizklee/MetroVerse/releases</string>
     <string name="list_bullet">•</string>
     <string name="view_on_github">View on GitHub</string>
     <string name="current_version">Current version</string>
@@ -892,6 +892,18 @@
     <string name="buy_mo_a_coffee">Buy me a coffee!</string>
     <string name="community_and_info">Community &amp; Info</string>
     <string name="metrolist">METROVERSE</string>
+    <string name="metroverse_learning_label">Learning project</string>
+    <string name="metroverse_summary">A personal learning fork that brings music and open RSS podcasts into one Android app.</string>
+    <string name="metroverse_unofficial_notice">MetroVerse is an independent learning project. It is not an official release of, endorsed by, or supported by Metrolist, Podium, Apple, or YouTube.</string>
+    <string name="metroverse_project">MetroVerse project</string>
+    <string name="metroverse_maintainer">Maintainer</string>
+    <string name="metroverse_releases">Project releases</string>
+    <string name="metroverse_manual_updates">Updates are checked manually on GitHub</string>
+    <string name="metroverse_license_description">GPL-3.0 open-source software. Modified source code and attribution are available in the project repository.</string>
+    <string name="metroverse_lineage">Source and attribution</string>
+    <string name="metroverse_metrolist_relationship">MetroVerse is based on Metrolist and retains its music architecture, interface foundations, contributors, and GPL history.</string>
+    <string name="metroverse_podium_relationship">The RSS and Apple Podcasts integration was developed by studying and adapting concepts from Podium under GPL-3.0.</string>
+    <string name="metroverse_changelog_body">Initial MetroVerse learning release\n\n• Renamed app and independent package identity\n• Unified music and RSS podcast navigation\n• Apple Podcasts discovery and regional search\n• RSS subscriptions, downloads, queue, and resume\n• Podcast-aware player controls and metadata</string>
     <string name="wanna_play_favorite_song">Want to play their favorite song?</string>
     <string name="yeah">Yeah!</string>
     <string name="stands_with_palestine">This project stands with Palestine 🇵🇸</string>

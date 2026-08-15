@@ -549,7 +549,7 @@
     <string name="lyrics_provider_priority_desc">拖动即可按偏好重新排序提供商。位置越高，优先级越高</string>
     <string name="changelog">更新日志</string>
     <string name="changelog_empty">暂无更新日志</string>
-    <string name="github_releases_url">https://github.com/MetrolistGroup/Metrolist/releases</string>
+    <string name="github_releases_url">https://github.com/Rizklee/MetroVerse/releases</string>
     <string name="list_bullet">•</string>
     <string name="view_on_github">在 GitHub 上查看</string>
     <string name="current_version">当前版本</string>
@@ -604,6 +604,18 @@
     <string name="buy_mo_a_coffee">请我喝杯咖啡！</string>
     <string name="community_and_info">社区与信息</string>
     <string name="metrolist">METROVERSE</string>
+    <string name="metroverse_learning_label">学习练手项目</string>
+    <string name="metroverse_summary">一个把音乐与开放 RSS 播客整合到同一 Android 应用中的个人学习分支。</string>
+    <string name="metroverse_unofficial_notice">MetroVerse 是独立学习项目，并非 Metrolist、Podium、Apple 或 YouTube 的官方版本，也未得到这些项目或服务的认可与支持。</string>
+    <string name="metroverse_project">MetroVerse 项目</string>
+    <string name="metroverse_maintainer">维护者</string>
+    <string name="metroverse_releases">项目版本发布</string>
+    <string name="metroverse_manual_updates">请在 GitHub 上手动检查更新</string>
+    <string name="metroverse_license_description">基于 GPL-3.0 的开源软件。修改后的源代码与归属说明均可在项目仓库中查看。</string>
+    <string name="metroverse_lineage">来源与归属</string>
+    <string name="metroverse_metrolist_relationship">MetroVerse 基于 Metrolist，保留其音乐架构、界面基础、贡献者历史和 GPL 授权关系。</string>
+    <string name="metroverse_podium_relationship">RSS 与 Apple Podcasts 整合功能是在 GPL-3.0 下研究并适配 Podium 实现思路后开发的。</string>
+    <string name="metroverse_changelog_body">MetroVerse 初始学习版本\n\n• 独立应用名称与包名\n• 统一音乐和 RSS 播客导航\n• Apple Podcasts 发现与地区搜索\n• RSS 订阅、下载、队列和断点续播\n• 适配播客的播放器控制与元数据</string>
     <string name="wanna_play_favorite_song">想播放他们最喜欢的歌曲吗？</string>
     <string name="yeah">是的！</string>
     <string name="stands_with_palestine">本项目声援巴勒斯坦 🇵🇸</string>

@@ -1,351 +1,115 @@
-<div align="center">
+# MetroVerse
 
-<img src="https://github.com/MetrolistGroup/Metrolist/blob/main/fastlane/metadata/android/en-US/images/icon.png" alt="Metrolist app icon" width="200" />
+MetroVerse is a personal Android learning project that combines a YouTube Music client experience with open RSS podcasts in one app.
 
-# Metrolist
+> **Important:** this repository is for study, experimentation, and personal testing. It is not an official Metrolist or Podium release, it is not affiliated with Apple or YouTube, and it should not be treated as a production-supported application. Review the source, build it yourself, and test with non-critical data first.
 
-### YouTube Music client for Android
+中文说明：MetroVerse 是由 `@Rizklee` 维护的个人学习练手项目，目标是在同一个 Android App 中整合音乐与开放 RSS 播客。项目仍处于实验阶段，请谨慎尝试并自行承担使用风险。
 
-<br/>
+## What it includes
 
-<a href="https://www.blacksmith.sh">
-  <img src="https://github.com/MetrolistGroup/Metrolist/blob/main/assets/blacksmith-powered.png" alt="CI powered by Blacksmith" width="280" />
-</a>
+### Music
 
-<br/>
-<br/>
+- YouTube Music browsing, search, library, playlists, queue, and background playback inherited from Metrolist.
+- Media3 player, notifications, Android Auto, caching, and offline downloads.
+- Lyrics, audio controls, themes, local history, and the existing Metrolist settings system.
 
-[![Latest release](https://img.shields.io/github/v/release/MetrolistGroup/Metrolist?style=for-the-badge&labelColor=0d1117)](https://github.com/MetrolistGroup/Metrolist/releases)
-[![License](https://img.shields.io/github/license/MetrolistGroup/metrolist?style=for-the-badge&labelColor=0d1117)](https://github.com/MetrolistGroup/Metrolist/blob/main/LICENSE)
-[![Downloads](https://img.shields.io/github/downloads/MetrolistGroup/Metrolist/total?style=for-the-badge&labelColor=0d1117)](https://github.com/MetrolistGroup/Metrolist/releases)
+### Podcasts
 
-<br/>
+- A dedicated Podcast destination on phone, tablet, and landscape navigation.
+- Apple Podcasts search and charts for discovering public RSS feeds.
+- Configurable Apple Podcasts storefront region.
+- Direct RSS/Atom feed import, subscriptions, refresh, and episode lists.
+- Episode artwork, descriptions, publication dates, sharing, saving, downloads, and resume position.
+- Podcast-aware player controls with 30-second rewind and forward.
+- The same queue, mini player, full player, notification, cache, and download engine used by music.
+- Podcast-only behavior hides lyrics, Start Radio, Listen Together, View Artist, and other YouTube-specific actions where they do not apply.
 
-[![Discord](https://img.shields.io/badge/Discord-%235865F2.svg?style=for-the-badge&logo=discord&logoColor=white&labelColor=0d1117)](https://dsc.gg/metrolist)
-[![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white&labelColor=0d1117)](https://t.me/metrolistapp)
+Apple Podcasts is used only for public discovery. MetroVerse does not log in to Apple Podcasts or synchronize an Apple account.
 
-<br/>
+## Current limitations
 
-[**Download**](#download-now) · [**Features**](#features) · [**Translate**](#translations) · [**FAQ**](#faq) · [**Support**](#support-the-project)
+- No periodic background podcast refresh. Subscriptions refresh when the Podcast page opens or when refresh is requested.
+- No OPML import/export, podcast chapters, transcripts, or private-feed credential manager yet.
+- DRM, login-protected, expiring, or unsupported RSS audio may not play.
+- RSS episodes are intentionally excluded from YouTube history, YouTube radio, lyrics lookup, Last.fm scrobbling, and Listen Together.
+- The repository still inherits upstream lint debt and several unrelated baseline unit-test failures documented in the development guide.
+- Only English and Simplified Chinese are maintained for MetroVerse-specific and podcast-specific text. Other inherited translations may be incomplete or refer to upstream terminology.
 
-</div>
+## Project lineage
 
-> [!WARNING]
-> # MAINTENANCE MODE
-> Metrolist is currently in maintenance mode. This means we will only be fixing bugs and making minor improvements. Please do not submit PRs for new features or major changes, as they will not be accepted.  
-> The app is **NOT** dead, please stay tuned for updates on our discord (found above).
+MetroVerse is not a from-scratch application:
 
-> [!WARNING]
-> **Regional Restriction** - If YouTube Music is unavailable in your region, this app will not work without a **VPN or proxy** connecting to a supported region.
+- [Metrolist](https://github.com/MetrolistGroup/Metrolist) provides the music architecture, Compose UI foundation, player, queue, download system, and most inherited functionality.
+- [Podium](https://github.com/aimok04/podium) was studied as a GPL-3.0 reference for Apple Podcasts discovery, RSS parsing, subscription, and podcast update concepts.
+- MetroVerse integrates those podcast concepts into Metrolist's existing architecture instead of embedding Podium as a second app.
 
----
+Both upstream projects are GPL-3.0. Their copyright history remains in Git history and source headers. See [NOTICE.md](NOTICE.md) and [LICENSE](LICENSE).
 
-<div align="center">
-
-<h1><a id="screenshots"></a>Screenshots</h1>
-
-<img src="https://github.com/MetrolistGroup/Metrolist/blob/main/fastlane/metadata/android/en-US/images/screenshots/screenshot_1.png" alt="Home screen" width="30%" />
-<img src="https://github.com/MetrolistGroup/Metrolist/blob/main/fastlane/metadata/android/en-US/images/screenshots/screenshot_2.png" alt="Artist screen" width="30%" />
-<img src="https://github.com/MetrolistGroup/Metrolist/blob/main/fastlane/metadata/android/en-US/images/screenshots/screenshot_3.png" alt="Recognize music screen" width="30%" />
-<img src="https://github.com/MetrolistGroup/Metrolist/blob/main/fastlane/metadata/android/en-US/images/screenshots/screenshot_4.png" alt="Listen together screen" width="30%" />
-<img src="https://github.com/MetrolistGroup/Metrolist/blob/main/fastlane/metadata/android/en-US/images/screenshots/screenshot_5.png" alt="Player screen" width="30%" />
-<img src="https://github.com/MetrolistGroup/Metrolist/blob/main/fastlane/metadata/android/en-US/images/screenshots/screenshot_6.png" alt="Player lyrics screen" width="30%" />
-
-</div>
-
----
-
-<div align="center">
-
-<h1><a id="features"></a>Features</h1>
-
-<table>
-  <tr>
-    <td width="50%" valign="top">
-
-#### Playback
-- Stream any song or video from YouTube Music
-- Background playback
-- Download & cache for offline use
-- Skip silence
-- Sleep timer
-
-</td>
-    <td width="50%" valign="top">
-
-#### Audio
-- Audio normalization
-- Tempo & pitch control
-- Equalizer
-
-</td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-
-#### Lyrics & Discovery
-- Live synced lyrics
-- AI-powered lyrics translation
-- Personalized quick picks
-- Search songs, albums, artists, videos, and playlists
-
-</td>
-    <td width="50%" valign="top">
-
-#### Library & Account
-- Full library management
-- Local playlists
-- Import playlists
-- Reorder songs in playlist or queue
-- YouTube Music account login
-- Sync songs, artists, albums, and playlists
-
-</td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-
-#### Social
-- Listen together with friends in real-time
-
-</td>
-    <td width="50%" valign="top">
-
-#### Interface
-- Home screen widget
-- Light / Dark / Black / Dynamic theme modes
-- Dynamic color + 19 preset color palettes
-- Built with Material 3
-
-</td>
-  </tr>
-</table>
-
-</div>
-
-### Podcast integration documentation
-
-- [播客使用、Android Studio 构建与安装指南](docs/PODCAST_USER_GUIDE_ZH.md)
-- [播客架构、测试、Git 回退与后续开发指南](docs/PODCAST_ARCHITECTURE_ZH.md)
-
----
-
-<div align="center">
-
-<h1><a id="download-now"></a>Download Now</h1>
-
-<h2>Stable Release</h2>
-
-<table>
-  <tr>
-    <th align="center">Obtainium</th>
-    <th align="center">IzzyOnDroid</th>
-  </tr>
-  <tr>
-    <td align="center">
-      <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/MetrolistGroup/Metrolist/">
-        <img src="https://github.com/ImranR98/Obtainium/blob/main/assets/graphics/badge_obtainium.png" alt="Download from Obtainium" height="40">
-      </a>
-    </td>
-    <td align="center">
-      <a href="https://apt.izzysoft.de/fdroid/index/apk/com.metrolist.music">
-        <img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroid.png" alt="Download from IzzyOnDroid" height="60">
-      </a>
-    </td>
-  </tr>
-  <tr>
-    <th align="center">OpenAPK</th>
-    <th align="center">GitHub</th>
-  </tr>
-  <tr>
-    <td align="center">
-      <a href="https://www.openapk.net/metrolist/com.metrolist.music/">
-        <img src="https://www.openapk.net/images/openapk-badge.png" alt="Download from OpenAPK" height="60">
-      </a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/MetrolistGroup/Metrolist/releases/latest/download/Metrolist.apk">
-        <img src="https://github.com/machiav3lli/oandbackupx/blob/034b226cea5c1b30eb4f6a6f313e4dadcbb0ece4/badge_github.png" alt="Download from GitHub" height="60">
-      </a>
-    </td>
-  </tr>
-</table>
-
-<h2>Nightly Build</h2>
-
-<table>
-  <tr>
-    <th align="center">GitHub</th>
-  </tr>
-  <tr>
-    <td align="center">
-      <a href="https://nightly.link/MetrolistGroup/Metrolist/workflows/build/main/app-with-Google-Cast.zip">
-        <img src="https://github.com/machiav3lli/oandbackupx/blob/034b226cea5c1b30eb4f6a6f313e4dadcbb0ece4/badge_github.png" alt="Download from GitHub" height="75">
-      </a>
-    </td>
-  </tr>
-</table>
-
-</div>
-
----
-
-<div align="center">
-
-<h1><a id="faq"></a>FAQ</h1>
-
-<h3>Got questions? Check out our <a href="https://metrolist.cc/#faq">FAQ page</a> for answers to the most common ones.</h3>
-
-</div>
-
----
-
-<div align="center">
-
-<h1><a id="translations"></a>Translations</h1>
-
-[![Translation status](https://img.shields.io/weblate/progress/metrolist?style=for-the-badge&labelColor=0d1117)](https://hosted.weblate.org/engage/metrolist/)
-
-<h3>We use Weblate to translate Metrolist. <a href="https://hosted.weblate.org/projects/Metrolist/">Help us bring Metrolist to more people!</a></h3>
-
-<a href="https://hosted.weblate.org/projects/Metrolist/">
-  <img src="https://hosted.weblate.org/widget/Metrolist/horizontal-auto.svg" alt="Translation status" />
-</a>
-
-<h3>Thank you! Every translation makes Metrolist a little more accessible to someone, somewhere in the world.</h3>
-
-</div>
-
----
-
-<div align="center">
-
-<h1><a id="support-the-project"></a>Support the Project</h1>
-
-<h3>Metrolist is free and open-source. If it brings you joy, consider supporting its development!</h3>
-
-#### Monero (XMR)
-
-<img src="https://github.com/MetrolistGroup/Metrolist/blob/main/assets/XMR.png" alt="Monero QR code" width="150" />
+## Package and version
 
 ```text
-44XjSELSWcgJTZiCKzjpCQWyXhokrH9RqH3rpp35FkSKi57T25hniHWHQNhLeXyFn3DDYqufmfRB1iEtENerZpJc7xJCcqt
+App name:       MetroVerse
+Application ID: com.rizklee.metroverse
+Debug ID:       com.rizklee.metroverse.debug
+Current version: 0.1.0
+Minimum Android: 8.0 / API 26
 ```
 
-#### Buy Me a Coffee
+The Kotlin namespace remains `com.metrolist.music` to preserve compatibility with the inherited codebase. The installed Android package is the independent MetroVerse application ID shown above.
 
-<a href="https://www.buymeacoffee.com/mostafaalagamy">
-  <img src="https://github.com/MetrolistGroup/Metrolist/blob/main/assets/buymeacoffee.png?raw=true" alt="Buy Me a Coffee" width="150" />
-</a>
+## Build quickly
 
-</div>
+Requirements:
 
----
+- Android Studio with JDK 21 selected as the Gradle JDK.
+- Android SDK Platform 37 and Platform Tools.
 
-<div align="center">
+Debug APK:
 
-<h1>Special Thanks</h1>
+```powershell
+.\gradlew.bat :app:assembleFossDebug
+```
 
-<h3>Metrolist stands on the shoulders of incredible open-source work.</h3>
+Signed release APK requires a private keystore and local `keystore.properties`:
 
-<h3>Main Inspirations</h3>
+```powershell
+.\gradlew.bat :app:assembleFossRelease
+```
 
-<table>
-  <thead>
-    <tr>
-      <th align="center">Project</th>
-      <th align="center">Authors</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td align="center"><strong>InnerTune</strong></td>
-      <td align="center"><a href="https://github.com/z-huang">Zion Huang</a> · <a href="https://github.com/Malopieds">Malopieds</a></td>
-    </tr>
-    <tr>
-      <td align="center"><strong>OuterTune</strong></td>
-      <td align="center"><a href="https://github.com/DD3Boh">Davide Garberi</a> · <a href="https://github.com/mikooomich">Michael Zh</a></td>
-    </tr>
-  </tbody>
-</table>
+Detailed instructions, including key generation, Android Studio menus, tests, APK signing, and installation:
 
-<h3>Libraries & Integrations</h3>
+- [Podcast user, build, and installation guide](docs/PODCAST_USER_GUIDE_ZH.md)
+- [Architecture, testing, and Git rollback guide](docs/PODCAST_ARCHITECTURE_ZH.md)
+- [MetroVerse release build guide](docs/RELEASE_BUILD_ZH.md)
 
-<table>
-  <thead>
-    <tr>
-      <th align="center">Project</th>
-      <th align="center">Contribution</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td align="center"><a href="https://better-lyrics.boidu.dev"><strong>Better Lyrics</strong></a></td>
-      <td>Time-synced lyrics with word-by-word highlighting & YouTube Music integration</td>
-    </tr>
-    <tr>
-      <td align="center"><a href="https://github.com/MetrolistGroup/metroserver"><strong>metroserver</strong></a></td>
-      <td>Listen-together real-time backend</td>
-    </tr>
-    <tr>
-      <td align="center"><a href="https://github.com/aleksey-saenko/MusicRecognizer"><strong>MusicRecognizer</strong></a></td>
-      <td>Music recognition feature & Shazam API integration</td>
-    </tr>
-    <tr>
-      <td align="center"><a href="https://github.com/ZemerTeam/zemer-cipher"><strong>zemer-cipher</strong></a></td>
-      <td>YouTube cipher deobfuscation and PoToken generation</td>
-    </tr>
-    <tr>
-      <td align="center"><a href="https://www.blacksmith.sh"><strong>Blacksmith</strong></a></td>
-      <td>High-performance GitHub Actions runners powering our CI</td>
-    </tr>
-  </tbody>
-</table>
+## Verification commands
 
-<br/>
+```powershell
+.\gradlew.bat :app:compileFossDebugKotlin
+.\gradlew.bat :app:testFossDebugUnitTest --tests "com.metrolist.music.podcast.PodcastParsingTest"
+.\gradlew.bat :app:lintFossDebug
+.\gradlew.bat :app:assembleFossDebug
+```
 
-<a href="https://www.blacksmith.sh">
-  <img src="https://github.com/MetrolistGroup/Metrolist/blob/main/assets/blacksmith-powered.png" alt="CI powered by Blacksmith" width="280" />
-</a>
+Real podcast feeds vary substantially. A successful build does not replace testing search, RSS parsing, playback, resume, download, and process-restoration behavior on a real Android device.
 
-<h3>We also thank the entire open-source community! For every library, tool, and API that powers this project.</h3>
+## Updates
 
-</div>
+MetroVerse does not automatically check for or install updates. The app's Settings and About pages link to this repository's Releases page:
 
----
+<https://github.com/Rizklee/MetroVerse/releases>
 
-<div align="center">
+Only install APKs that you built yourself or that are published by the repository owner and whose signature you trust.
 
-<h1>Contributors</h1>
+## Contributing
 
-<h3>This project wouldn't exist without these amazing people!</h3>
+This is primarily a personal learning repository. Issues and pull requests may be used for study, but there is no response-time or release-support commitment. Do not send credentials, private RSS URLs, account cookies, or signing keys in issue reports.
 
-<a href="https://github.com/MetrolistGroup/Metrolist/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=MetrolistGroup/Metrolist" alt="Contributors" />
-</a>
+## License
 
-</div>
+MetroVerse is distributed under the [GNU General Public License v3.0](LICENSE). If you distribute modified APKs, you must follow the GPL source-availability and license requirements and preserve upstream attribution.
 
----
+## Disclaimer
 
-<div align="center">
-
-<h1>Disclaimer</h1>
-
-This project is **not affiliated with, funded, authorized, endorsed by, or in any way associated** with YouTube, Google LLC, Metrolist Group LLC, or any of their affiliates and subsidiaries.
-
-All trademarks, service marks, and intellectual property rights referenced in this project belong to their respective owners.
-
-</div>
-
----
-
-<div align="center">
-
-<br/>
-
-**Made with ❤️ by [Mo Agamy](https://github.com/mostafaalagamy)**
-
-**This project stands with Palestine 🇵🇸**
-
-</div>
+Use MetroVerse at your own risk. You are responsible for complying with the terms of the services and podcast feeds you access. MetroVerse provides no warranty and no guarantee of availability, data preservation, compatibility, or account safety.
