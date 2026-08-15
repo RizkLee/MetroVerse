@@ -10,15 +10,15 @@ Android listeners who want music and podcasts in one application, including peop
 
 ## Product Purpose
 
-Metrolist is a unified personal audio client. It keeps its existing YouTube Music experience while adding open RSS podcast discovery, subscriptions, episode playback, downloads, and resume behavior. Success means music and podcasts feel like native parts of one app, with one library, search surface, player, queue, notification, and responsive navigation model.
+MetroVerse is a learning-oriented unified personal audio client maintained by Rizklee. It builds on Metrolist's YouTube Music experience and integrates open RSS podcast discovery, subscriptions, episode playback, downloads, and resume behavior using ideas studied from Podium. Success means music and podcasts feel like native parts of one app, with one library, search surface, player, queue, notification, and responsive navigation model.
 
 ## Brand Personality
 
-Focused, familiar, adaptable. The interface follows Metrolist's existing Material 3 theme, dynamic color behavior, typography, density, motion, and component vocabulary.
+Focused, familiar, adaptable, and transparent about its learning-project status. MetroVerse keeps Metrolist's proven Material 3 interaction model while using its own name, package identity, repository, icon, documentation, release process, and attribution.
 
 ## Anti-references
 
-Do not embed Podium as a second application, copy its Material 3 Expressive screens, introduce a separate podcast player, or create parallel navigation and settings systems. Avoid marketing layouts, decorative cards, unexplained controls, and podcast-only styling that conflicts with Metrolist.
+Do not present MetroVerse as an official Metrolist or Podium release. Do not embed Podium as a second application, copy its Material 3 Expressive screens, introduce a separate podcast player, or create parallel navigation and settings systems. Avoid marketing claims, decorative cards, unexplained controls, and podcast-only styling that conflicts with the inherited Metrolist interaction model.
 
 ## Design Principles
 

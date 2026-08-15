@@ -226,9 +226,9 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     companion object {
-        private const val ACTION_SEARCH = "com.metrolist.music.action.SEARCH"
-        private const val ACTION_LIBRARY = "com.metrolist.music.action.LIBRARY"
-        const val ACTION_RECOGNITION = "com.metrolist.music.action.RECOGNITION"
+        private const val ACTION_SEARCH = "com.rizklee.metroverse.action.SEARCH"
+        private const val ACTION_LIBRARY = "com.rizklee.metroverse.action.LIBRARY"
+        const val ACTION_RECOGNITION = "com.rizklee.metroverse.action.RECOGNITION"
         const val ACTION_OPEN_WIDGET_TARGET = "com.metrolist.music.action.OPEN_WIDGET_TARGET"
         const val EXTRA_AUTO_START_RECOGNITION = "auto_start_recognition"
         const val EXTRA_WIDGET_TARGET_TYPE = "widget_target_type"
@@ -726,8 +726,8 @@ class MainActivity : ComponentActivity() {
                 val tabOpenedFromShortcut =
                     remember {
                         when (intent?.action) {
-                            ACTION_SEARCH -> NavigationTab.LIBRARY
-                            ACTION_LIBRARY -> NavigationTab.SEARCH
+                            ACTION_SEARCH -> NavigationTab.SEARCH
+                            ACTION_LIBRARY -> NavigationTab.LIBRARY
                             else -> null
                         }
                     }
