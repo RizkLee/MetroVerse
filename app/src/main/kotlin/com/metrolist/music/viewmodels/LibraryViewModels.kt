@@ -70,6 +70,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.Duration
 import java.time.LocalDateTime
 import javax.inject.Inject
@@ -366,8 +367,17 @@ constructor(
 
     fun refresh() {
         viewModelScope.launch(Dispatchers.IO) {
-            _isRefreshing.value = true
-            syncUtils.performFullSyncSuspend()
+            refreshNow()
+        }
+    }
+
+    suspend fun refreshNow() {
+        _isRefreshing.value = true
+        try {
+            withContext(Dispatchers.IO) {
+                syncUtils.performFullSyncSuspend()
+            }
+        } finally {
             _isRefreshing.value = false
         }
     }
@@ -584,7 +594,7 @@ constructor(
         }
     }
 
-    suspend fun refreshAll() {
+    suspend fun refreshAll() = withContext(Dispatchers.IO) {
         fetchSePlaylist()
         fetchPodcastChannels()
         fetchRdpnPlaylist()

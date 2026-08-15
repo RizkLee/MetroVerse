@@ -32,9 +32,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
-import androidx.compose.material3.pulltorefresh.pullToRefresh
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -75,6 +72,8 @@ import com.metrolist.music.constants.SongSortType
 import com.metrolist.music.constants.SongSortTypeKey
 import com.metrolist.music.constants.ThumbnailCornerRadius
 import com.metrolist.music.db.MusicDatabase
+import com.metrolist.music.db.entities.Playlist
+import com.metrolist.music.db.entities.PlaylistEntity
 import com.metrolist.music.db.entities.PodcastEntity
 import com.metrolist.music.db.entities.SpeedDialItem
 import com.metrolist.music.extensions.toMediaItem
@@ -84,6 +83,7 @@ import com.metrolist.music.ui.component.HideOnScrollFAB
 import com.metrolist.music.ui.component.LocalMenuState
 import com.metrolist.music.ui.component.Material3MenuGroup
 import com.metrolist.music.ui.component.Material3MenuItemData
+import com.metrolist.music.ui.component.PlaylistListItem
 import com.metrolist.music.ui.component.SongListItem
 import com.metrolist.music.ui.component.SortHeader
 import com.metrolist.music.ui.menu.SongMenu
@@ -121,7 +121,6 @@ fun LibraryPodcastsScreen(
     val subscribedChannels by viewModel.subscribedChannels.collectAsStateWithLifecycle()
     val downloadedEpisodes by viewModel.downloadedEpisodes.collectAsStateWithLifecycle()
     val savedEpisodes by viewModel.savedEpisodes.collectAsStateWithLifecycle()
-    val sePlaylist by viewModel.sePlaylist.collectAsStateWithLifecycle()
     val podcastChannels by viewModel.podcastChannels.collectAsStateWithLifecycle()
     val rdpnPlaylist by viewModel.rdpnPlaylist.collectAsStateWithLifecycle()
 
@@ -153,28 +152,7 @@ fun LibraryPodcastsScreen(
         }
     }
 
-    var isRefreshing by remember { mutableStateOf(false) }
-    val coroutineScope = rememberCoroutineScope()
-    val pullToRefreshState = rememberPullToRefreshState()
-
-    Box(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .pullToRefresh(
-                    state = pullToRefreshState,
-                    isRefreshing = isRefreshing,
-                    onRefresh = {
-                        if (!isRefreshing) {
-                            isRefreshing = true
-                            coroutineScope.launch {
-                                viewModel.refreshAll()
-                                isRefreshing = false
-                            }
-                        }
-                    },
-                ),
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
         // Chip row header — same pattern as LibrarySongsScreen
         val chipsHeader = @Composable {
             Row {
@@ -232,26 +210,38 @@ fun LibraryPodcastsScreen(
                     }
 
                     item(key = "liked_episodes", contentType = CONTENT_TYPE_HEADER) {
-                        AutoPlaylistCard(
-                            title = stringResource(R.string.liked),
-                            thumbnailUrl = sePlaylist?.thumbnail ?: savedEpisodes.firstOrNull()?.song?.thumbnailUrl,
-                            episodeCount = savedEpisodes.takeIf { it.isNotEmpty() }?.let {
-                                pluralStringResource(R.plurals.n_episode, it.size, it.size)
-                            },
-                            fallbackIcon = R.drawable.favorite,
-                            onClick = { navController.navigate("podcast_collection/liked") },
+                        PlaylistListItem(
+                            playlist = Playlist(
+                                playlist = PlaylistEntity(
+                                    id = "podcast_liked",
+                                    name = stringResource(R.string.liked),
+                                ),
+                                songCount = savedEpisodes.size,
+                                songThumbnails = emptyList(),
+                            ),
+                            autoPlaylist = true,
+                            placeholderIcon = R.drawable.favorite_border,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { navController.navigate("podcast_collection/liked") },
                         )
                     }
 
                     item(key = "downloaded_episodes", contentType = CONTENT_TYPE_HEADER) {
-                        AutoPlaylistCard(
-                            title = stringResource(R.string.filter_downloaded),
-                            thumbnailUrl = downloadedEpisodes.firstOrNull()?.song?.thumbnailUrl,
-                            episodeCount = downloadedEpisodes.takeIf { it.isNotEmpty() }?.let {
-                                pluralStringResource(R.plurals.n_episode, it.size, it.size)
-                            },
-                            fallbackIcon = R.drawable.download,
-                            onClick = { navController.navigate("podcast_collection/downloaded") },
+                        PlaylistListItem(
+                            playlist = Playlist(
+                                playlist = PlaylistEntity(
+                                    id = "podcast_downloaded",
+                                    name = stringResource(R.string.filter_downloaded),
+                                ),
+                                songCount = downloadedEpisodes.size,
+                                songThumbnails = emptyList(),
+                            ),
+                            autoPlaylist = true,
+                            placeholderIcon = R.drawable.offline,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { navController.navigate("podcast_collection/downloaded") },
                         )
                     }
 
@@ -495,15 +485,6 @@ fun LibraryPodcastsScreen(
                 )
             }
         }
-
-        Indicator(
-            isRefreshing = isRefreshing,
-            state = pullToRefreshState,
-            modifier =
-                Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues()),
-        )
     }
 }
 

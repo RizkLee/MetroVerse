@@ -911,6 +911,7 @@ fun PlaylistListItem(
     playlist: Playlist,
     modifier: Modifier = Modifier,
     autoPlaylist: Boolean = false,
+    placeholderIcon: Int? = null,
     badges: @Composable RowScope.() -> Unit = {
         val downloadUtil = LocalDownloadUtil.current
         val database = LocalDatabase.current
@@ -965,7 +966,7 @@ fun PlaylistListItem(
             thumbnails = playlist.thumbnails,
             size = ListThumbnailSize,
             placeHolder = {
-                val painter = when (playlist.playlist.name) {
+                val painter = placeholderIcon ?: when (playlist.playlist.name) {
                     stringResource(R.string.liked) -> R.drawable.favorite_border
                     stringResource(R.string.offline) -> R.drawable.offline
                     stringResource(R.string.cached_playlist) -> R.drawable.cached
@@ -992,6 +993,7 @@ fun PlaylistGridItem(
     playlist: Playlist,
     modifier: Modifier = Modifier,
     autoPlaylist: Boolean = false,
+    placeholderIcon: Int? = null,
     badges: @Composable RowScope.() -> Unit = {
         val downloadUtil = LocalDownloadUtil.current
         val database = LocalDatabase.current
@@ -1065,7 +1067,7 @@ fun PlaylistGridItem(
             thumbnails = playlist.thumbnails,
             size = width,
             placeHolder = {
-                val painter = when (playlist.playlist.name) {
+                val painter = placeholderIcon ?: when (playlist.playlist.name) {
                     stringResource(R.string.liked) -> R.drawable.favorite_border
                     stringResource(R.string.offline) -> R.drawable.offline
                     stringResource(R.string.cached_playlist) -> R.drawable.cached
