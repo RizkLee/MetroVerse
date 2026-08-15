@@ -78,12 +78,6 @@ Signed release APK requires a private keystore and local `keystore.properties`:
 .\gradlew.bat :app:assembleFossRelease
 ```
 
-Detailed instructions, including key generation, Android Studio menus, tests, APK signing, and installation:
-
-- [Podcast user, build, and installation guide](docs/PODCAST_USER_GUIDE_ZH.md)
-- [Architecture, testing, and Git rollback guide](docs/PODCAST_ARCHITECTURE_ZH.md)
-- [MetroVerse release build guide](docs/RELEASE_BUILD_ZH.md)
-
 ## Verification commands
 
 ```powershell

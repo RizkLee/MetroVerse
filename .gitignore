@@ -57,6 +57,9 @@ captures/
 keystore.properties
 app/persistent-debug.keystore
 
+# Local project documentation is intentionally not published.
+/docs/
+
 # External native build folder generated in Android Studio 2.2 and later
 .externalNativeBuild
 .cxx/
