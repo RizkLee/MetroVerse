@@ -18,6 +18,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.minutes
 
+internal const val SLEEP_TIMER_FADE_OUT_WINDOW_MS = 20_000L
+
+internal fun sleepTimerVolumeMultiplier(remainingMs: Long): Float {
+    if (remainingMs >= SLEEP_TIMER_FADE_OUT_WINDOW_MS) return 1f
+    return (remainingMs.toFloat() / SLEEP_TIMER_FADE_OUT_WINDOW_MS).coerceIn(0f, 1f)
+}
+
 class SleepTimer(
     private val scope: CoroutineScope,
     var player: Player,
@@ -25,7 +32,6 @@ class SleepTimer(
 ) : Player.Listener {
     private companion object {
         private const val TIMER_TICK_MS = 1000L
-        private const val FADE_OUT_WINDOW_MS = 60_000L
     }
 
     private var sleepTimerJob: Job? = null
@@ -44,19 +50,17 @@ class SleepTimer(
         start(
             minute = minute,
             stopAfterCurrentSong = false,
-            fadeOut = false,
         )
     }
 
     fun start(
         minute: Int,
         stopAfterCurrentSong: Boolean,
-        fadeOut: Boolean,
     ) {
         sleepTimerJob?.cancel()
         sleepTimerJob = null
         updateVolumeMultiplier(1f)
-        fadeOutEnabled = fadeOut
+        fadeOutEnabled = true
 
         if (minute == -1) {
             pauseWhenSongEnd = true
@@ -150,12 +154,12 @@ class SleepTimer(
         stopAfterCurrentSongOnTimeout = false
         fadeOutEnabled = false
         triggerTime = -1L
-        updateVolumeMultiplier(1f)
         player.pause()
+        updateVolumeMultiplier(1f)
     }
 
     private fun updateVolumeMultiplierForRemainingTime(remainingMs: Long) {
-        updateVolumeMultiplier(volumeMultiplierForRemainingTime(remainingMs))
+        updateVolumeMultiplier(sleepTimerVolumeMultiplier(remainingMs))
     }
 
     private fun updateVolumeMultiplierForCurrentSong() {
@@ -167,11 +171,6 @@ class SleepTimer(
 
         val remainingMs = (duration - player.currentPosition).coerceAtLeast(0L)
         updateVolumeMultiplierForRemainingTime(remainingMs)
-    }
-
-    private fun volumeMultiplierForRemainingTime(remainingMs: Long): Float {
-        if (remainingMs >= FADE_OUT_WINDOW_MS) return 1f
-        return (remainingMs.toFloat() / FADE_OUT_WINDOW_MS).coerceIn(0f, 1f)
     }
 
     private fun updateVolumeMultiplier(multiplier: Float) {

@@ -31,7 +31,6 @@ import androidx.compose.ui.unit.dp
 import androidx.media3.common.PlaybackParameters
 import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
-import com.metrolist.music.constants.SleepTimerFadeOutKey
 import com.metrolist.music.constants.SleepTimerStopAfterCurrentSongKey
 import com.metrolist.music.utils.rememberPreference
 import java.util.Locale
@@ -96,7 +95,6 @@ fun PlaybackSleepTimerBottomSheet(
     val playerConnection = LocalPlayerConnection.current ?: return
     val timer = playerConnection.service.sleepTimer ?: return
     val stopAfterCurrentSong by rememberPreference(SleepTimerStopAfterCurrentSongKey, false)
-    val fadeOut by rememberPreference(SleepTimerFadeOutKey, false)
     val initialMinutes = remember(timer.triggerTime) {
         if (timer.triggerTime > 0L) {
             ceil((timer.triggerTime - System.currentTimeMillis()).coerceAtLeast(0L) / 60_000.0)
@@ -163,7 +161,6 @@ fun PlaybackSleepTimerBottomSheet(
                         timer.start(
                             minute = minutes,
                             stopAfterCurrentSong = stopAfterCurrentSong,
-                            fadeOut = fadeOut,
                         )
                     }
                 },
@@ -185,7 +182,6 @@ fun PlaybackSleepTimerBottomSheet(
                         timer.start(
                             minute = -1,
                             stopAfterCurrentSong = false,
-                            fadeOut = fadeOut,
                         )
                     }
                 },

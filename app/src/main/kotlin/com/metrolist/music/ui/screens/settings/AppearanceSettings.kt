@@ -134,7 +134,7 @@ fun AppearanceSettings(
     val (enableHighRefreshRate, onEnableHighRefreshRateChange) =
         rememberPreference(
             EnableHighRefreshRateKey,
-            defaultValue = true,
+            defaultValue = false,
         )
     val (enableLandscapeScaling, onEnableLandscapeScalingChange) =
         rememberPreference(
@@ -185,7 +185,7 @@ fun AppearanceSettings(
     val (playerBackground, onPlayerBackgroundChange) =
         rememberEnumPreference(
             PlayerBackgroundStyleKey,
-            defaultValue = PlayerBackgroundStyle.DEFAULT,
+            defaultValue = PlayerBackgroundStyle.BLUR,
         )
 
     val (defaultOpenTab, onDefaultOpenTabChange) =
@@ -254,7 +254,7 @@ fun AppearanceSettings(
     val (gridItemSize, onGridItemSizeChange) =
         rememberEnumPreference(
             GridItemsSizeKey,
-            defaultValue = GridItemSize.SMALL,
+            defaultValue = GridItemSize.BIG,
         )
 
     val (slimNav, onSlimNavChange) =
@@ -286,7 +286,7 @@ fun AppearanceSettings(
     val (listenTogetherInTopBar, onListenTogetherInTopBarChange) =
         rememberPreference(
             ListenTogetherInTopBarKey,
-            defaultValue = true,
+            defaultValue = false,
         )
 
     val (swipeToSong, onSwipeToSongChange) =

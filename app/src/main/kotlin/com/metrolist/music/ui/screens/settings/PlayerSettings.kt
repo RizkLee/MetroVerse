@@ -86,7 +86,6 @@ import com.metrolist.music.constants.SleepTimerStartTimeKey
 import com.metrolist.music.constants.SleepTimerDayTimesKey
 import com.metrolist.music.ui.component.decodeDayTimes
 import com.metrolist.music.ui.component.encodeDayTimes
-import com.metrolist.music.constants.SleepTimerFadeOutKey
 import com.metrolist.music.constants.SleepTimerStopAfterCurrentSongKey
 import com.metrolist.music.ui.utils.getLoudnessLevelLabel
 
@@ -602,11 +601,6 @@ fun PlayerSettings(
         val (sleepTimerStopAfterCurrentSong, onSleepTimerStopAfterCurrentSongChange) = rememberPreference (
         SleepTimerStopAfterCurrentSongKey,
         defaultValue = false)
-        val (sleepTimerFadeOut, onSleepTimerFadeOutChange) = rememberPreference(
-            SleepTimerFadeOutKey,
-            false
-        )
-
         if (showSleepTimerDialog) {
             val customDays = sleepTimerCustomDays.split(",").mapNotNull { it.toIntOrNull() }
             val dayTimesMap = decodeDayTimes(sleepTimerDayTimes)
@@ -707,30 +701,6 @@ fun PlayerSettings(
                             )
                         },
                         onClick = { onSleepTimerStopAfterCurrentSongChange(!sleepTimerStopAfterCurrentSong) }
-                    )
-                )
-
-                add(
-                    Material3SettingsItem(
-                        icon = painterResource(R.drawable.timer_arrow_down),
-                        title = { Text(stringResource(R.string.sleep_timer_fade_out_title)) },
-                        description = { Text(stringResource(R.string.sleep_timer_fade_out_description)) },
-                        trailingContent = {
-                            Switch(
-                                checked = sleepTimerFadeOut,
-                                onCheckedChange = onSleepTimerFadeOutChange,
-                                thumbContent = {
-                                    Icon(
-                                        painter = painterResource(
-                                            id = if (sleepTimerFadeOut) R.drawable.check else R.drawable.close
-                                        ),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(SwitchDefaults.IconSize)
-                                    )
-                                }
-                            )
-                        },
-                        onClick = { onSleepTimerFadeOutChange(!sleepTimerFadeOut) }
                     )
                 )
 

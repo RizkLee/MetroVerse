@@ -222,7 +222,7 @@ fun Thumbnail(
     val cropAlbumArt by rememberPreference(CropAlbumArtKey, false)
     val playerBackground by rememberEnumPreference(
         key = PlayerBackgroundStyleKey,
-        defaultValue = PlayerBackgroundStyle.DEFAULT
+        defaultValue = PlayerBackgroundStyle.BLUR
     )
     
     // Pre-calculate text color based on background style

@@ -469,7 +469,7 @@ class MainActivity : ComponentActivity() {
         syncUtils: SyncUtils,
     ) {
         val enableDynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
-        val enableHighRefreshRate by rememberPreference(EnableHighRefreshRateKey, defaultValue = true)
+        val enableHighRefreshRate by rememberPreference(EnableHighRefreshRateKey, defaultValue = false)
 
         LaunchedEffect(enableHighRefreshRate) {
             val window = this@MainActivity.window
@@ -638,7 +638,7 @@ class MainActivity : ComponentActivity() {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val (previousTab, setPreviousTab) = rememberSaveable { mutableStateOf("home") }
 
-                val (listenTogetherInTopBar) = rememberPreference(ListenTogetherInTopBarKey, defaultValue = true)
+                val (listenTogetherInTopBar) = rememberPreference(ListenTogetherInTopBarKey, defaultValue = false)
                 val navigationItems =
                     remember(listenTogetherInTopBar) {
                         if (listenTogetherInTopBar) {

@@ -227,7 +227,7 @@ fun BottomSheetPlayer(
 
     val playerBackground by rememberEnumPreference(
         key = PlayerBackgroundStyleKey,
-        defaultValue = PlayerBackgroundStyle.DEFAULT,
+        defaultValue = PlayerBackgroundStyle.BLUR,
     )
     val playerButtonsStyle by rememberEnumPreference(
         key = PlayerButtonsStyleKey,
@@ -1416,9 +1416,7 @@ fun BottomSheetPlayer(
 
                             val playPauseWeight by animateFloatAsState(
                                 targetValue =
-                                    if (mediaMetadata.isEpisode) {
-                                        1.3f
-                                    } else if (isPlayPausePressed) {
+                                    if (isPlayPausePressed) {
                                         1.9f
                                     } else if (isBackPressed || isNextPressed) {
                                         1.1f
@@ -1435,9 +1433,7 @@ fun BottomSheetPlayer(
 
                             val backButtonWeight by animateFloatAsState(
                                 targetValue =
-                                    if (mediaMetadata.isEpisode) {
-                                        0.45f
-                                    } else if (isBackPressed) {
+                                    if (isBackPressed) {
                                         0.65f
                                     } else if (isPlayPausePressed) {
                                         0.35f
@@ -1454,9 +1450,7 @@ fun BottomSheetPlayer(
 
                             val nextButtonWeight by animateFloatAsState(
                                 targetValue =
-                                    if (mediaMetadata.isEpisode) {
-                                        0.45f
-                                    } else if (isNextPressed) {
+                                    if (isNextPressed) {
                                         0.65f
                                     } else if (isPlayPausePressed) {
                                         0.35f

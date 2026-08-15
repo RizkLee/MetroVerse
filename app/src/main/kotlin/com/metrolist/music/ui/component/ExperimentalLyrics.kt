@@ -206,7 +206,7 @@ fun ExperimentalLyrics(
 
     val playerBackground by rememberEnumPreference(
         key = PlayerBackgroundStyleKey,
-        defaultValue = PlayerBackgroundStyle.DEFAULT
+        defaultValue = PlayerBackgroundStyle.BLUR
     )
 
     val enabledLanguages = remember(romanizeLyricsList.value) {
