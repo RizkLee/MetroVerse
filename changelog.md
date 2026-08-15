@@ -6,7 +6,11 @@ All notable MetroVerse-specific changes are recorded here. Upstream Metrolist hi
 
 ### Added
 
-- Multi-row Apple Podcasts discovery with incremental loading up to the storefront chart limit.
+- Two-row, horizontally scrolling Apple Podcasts discovery matching Home section behavior.
+- Apple Podcasts Categories with a complete genre index and per-category charts.
+- Library-wide pull-to-refresh across every Library tab.
+- Approximately 20-second Sleep Timer volume fade before pause.
+- Bilingual English and Simplified Chinese README with in-page language navigation.
 - Editable search field on Apple Podcasts result pages.
 - Source-aware YouTube Music and podcast search history.
 - Liked and Downloaded podcast episode collections in Library.
@@ -23,6 +27,8 @@ All notable MetroVerse-specific changes are recorded here. Upstream Metrolist hi
 - Consolidated Podcast actions into one compact row and moved Apple Podcasts attribution to About.
 - Renamed the online search source to YouTube Music and its podcast result filter to YouTube Podcasts.
 - Renamed song cache settings to audio cache and applied the cache toggle consistently to music and podcast streams.
+- Changed fresh-install defaults to Blur player background, standard refresh rate, hidden Listen Together top-bar action, and Big grid cells.
+- Restyled podcast Liked and Downloaded collections to match automatic Playlists, including collection artwork and playback actions.
 
 ### Fixed
 
@@ -31,7 +37,11 @@ All notable MetroVerse-specific changes are recorded here. Upstream Metrolist hi
 - Fixed podcast searches appearing in YouTube Music history.
 - Fixed subscribed, liked, and downloaded podcast episodes being absent from Library search.
 - Fixed RSS liked episodes opening the YouTube `Episodes for later` collection.
-- Removed the resize animation from podcast seek buttons to avoid a visible hitch while seeking.
+- Restored the same responsive seek and play/pause button animations used by the music player.
+- Fixed Library pull-to-refresh being unavailable outside individual child screens.
+- Fixed Podcast storefront changes retaining stale Discover content while the new region loaded.
+- Matched the Podcast results search field to the YouTube Music result field.
+- Fixed GitHub Actions debug builds failing when the runner had no default debug keystore.
 
 ### Upgrade note
 

@@ -1,110 +1,196 @@
-# MetroVerse
+<p align="right">
+  <a href="#english">English</a> · <a href="#简体中文">简体中文</a>
+</p>
 
-MetroVerse is a personal Android learning project that combines a YouTube Music client experience with open RSS podcasts in one app.
+<p align="center">
+  <img src="app/src/main/res/drawable-nodpi/ic_launcher_artwork.png" width="144" alt="MetroVerse app icon" />
+</p>
 
-> **Important:** this repository is for study, experimentation, and personal testing. It is not an official Metrolist or Podium release, it is not affiliated with Apple or YouTube, and it should not be treated as a production-supported application. Review the source, build it yourself, and test with non-critical data first.
+<h1 align="center">MetroVerse</h1>
 
-中文说明：MetroVerse 是由 `@Rizklee` 维护的个人学习练手项目，目标是在同一个 Android App 中整合音乐与开放 RSS 播客。项目仍处于实验阶段，请谨慎尝试并自行承担使用风险。
+<p align="center">
+  Music and open podcasts, one Android listening experience.
+</p>
 
-## What it includes
+<p align="center">
+  <a href="https://github.com/RizkLee/MetroVerse/releases"><img src="https://img.shields.io/github/v/release/RizkLee/MetroVerse?include_prereleases&label=release" alt="Release" /></a>
+  <img src="https://img.shields.io/badge/Android-8.0%2B-3DDC84" alt="Android 8.0+" />
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="GPL-3.0" /></a>
+</p>
 
-### Music
+<a id="english"></a>
 
-- YouTube Music browsing, search, library, playlists, queue, and background playback inherited from Metrolist.
-- Media3 player, notifications, Android Auto, caching, and offline downloads.
-- Lyrics, audio controls, themes, local history, and the existing Metrolist settings system.
+## English
 
-### Podcasts
+MetroVerse is an independently maintained Android audio client that brings YouTube Music and public RSS podcasts into one library, search surface, queue, player, notification, cache, and download system.
 
-- A dedicated Podcast destination on phone, tablet, and landscape navigation.
-- Apple Podcasts search and charts for discovering public RSS feeds.
-- Configurable Apple Podcasts storefront region.
-- Direct RSS/Atom feed import, subscriptions, refresh, and episode lists.
-- Episode artwork, descriptions, publication dates, sharing, saving, downloads, and resume position.
-- Podcast-aware player controls with 10-second rewind and forward.
-- The same queue, mini player, full player, notification, cache, and download engine used by music.
-- Podcast-only behavior hides lyrics, Start Radio, Listen Together, View Artist, and other YouTube-specific actions where they do not apply.
+It keeps the familiar Material 3 interaction model inherited from Metrolist while adding native podcast discovery, subscriptions, direct media playback, resume state, and podcast-aware controls. Apple Podcasts is used only to discover public feeds. No Apple account is required.
 
-Apple Podcasts is used only for public discovery. MetroVerse does not log in to Apple Podcasts or synchronize an Apple account.
+### Highlights
 
-## Current limitations
+- YouTube Music browsing, search, playlists, library, queue, background playback, lyrics, and local history.
+- A dedicated Podcast destination across phone, tablet, and landscape navigation.
+- Apple Podcasts charts, storefront selection, search, and genre-based Categories.
+- Direct RSS/Atom import, subscriptions, manual refresh, episode artwork, descriptions, and publication dates.
+- Shared Media3 playback, notification, Android Auto, cache, downloads, and persistent queue.
+- Podcast resume positions, 10-second seek controls, playback speed, and a gradual sleep-timer fade.
+- Source-aware behavior that keeps RSS episodes out of YouTube-only radio, lyrics, scrobbling, and synchronization paths.
+- English and Simplified Chinese text for MetroVerse-specific podcast workflows.
 
-- No periodic background podcast refresh. Subscriptions refresh when the Podcast page opens or when refresh is requested.
-- No OPML import/export, podcast chapters, transcripts, or private-feed credential manager yet.
-- DRM, login-protected, expiring, or unsupported RSS audio may not play.
-- RSS episodes are intentionally excluded from YouTube history, YouTube radio, lyrics lookup, Last.fm scrobbling, and Listen Together.
-- The repository still inherits upstream lint debt and several unrelated baseline unit-test failures documented in the development guide.
-- RSS feeds do not provide a standard episode pagination API. Episode pages use lazy rendering, but importing a feed still requires downloading and parsing its XML response.
-- Only English and Simplified Chinese are maintained for MetroVerse-specific and podcast-specific text. Other inherited translations may be incomplete or refer to upstream terminology.
+### Project lineage
 
-## Project lineage
+MetroVerse is built from established GPL-3.0 work:
 
-MetroVerse is not a from-scratch application:
+- [Metrolist](https://github.com/MetrolistGroup/Metrolist) provides the music architecture, Jetpack Compose foundation, player, queue, downloads, database, and most inherited functionality.
+- [Podium](https://github.com/aimok04/podium) was studied as a GPL-3.0 reference for Apple Podcasts discovery, RSS parsing, subscriptions, and genre-based podcast browsing.
+- MetroVerse integrates those podcast concepts into Metrolist's existing architecture. It does not embed Podium as a second application or run a separate podcast player.
 
-- [Metrolist](https://github.com/MetrolistGroup/Metrolist) provides the music architecture, Compose UI foundation, player, queue, download system, and most inherited functionality.
-- [Podium](https://github.com/aimok04/podium) was studied as a GPL-3.0 reference for Apple Podcasts discovery, RSS parsing, subscription, and podcast update concepts.
-- MetroVerse integrates those podcast concepts into Metrolist's existing architecture instead of embedding Podium as a second app.
+MetroVerse is not an official release of Metrolist or Podium and is not affiliated with Apple, Google, or YouTube. Original copyright notices, source headers, and contribution history remain preserved. See [NOTICE.md](NOTICE.md) and [LICENSE](LICENSE).
 
-Both upstream projects are GPL-3.0. Their copyright history remains in Git history and source headers. See [NOTICE.md](NOTICE.md) and [LICENSE](LICENSE).
-
-## Package and version
+### Package
 
 ```text
-App name:       MetroVerse
-Application ID: com.rizklee.metroverse
-Debug ID:       com.rizklee.metroverse.debug
-Current version: 0.2.0
-Minimum Android: 8.0 / API 26
+App name:        MetroVerse
+Application ID:  com.rizklee.metroverse
+Debug ID:        com.rizklee.metroverse.debug
+Version:         0.2.0
+Minimum Android: Android 8.0 / API 26
+Target Android:  API 36
 ```
 
-The Kotlin namespace remains `com.metrolist.music` to preserve compatibility with the inherited codebase. The installed Android package is the independent MetroVerse application ID shown above.
+The inherited Kotlin namespace remains `com.metrolist.music`; the installed application uses the independent MetroVerse package ID above.
 
-## Build quickly
+### Build
 
 Requirements:
 
-- Android Studio with JDK 21 selected as the Gradle JDK.
+- Android Studio or command-line Gradle with JDK 21.
 - Android SDK Platform 37 and Platform Tools.
 
-Debug APK:
-
 ```powershell
+# Debug APK
 .\gradlew.bat :app:assembleFossDebug
-```
 
-Signed release APK requires a private keystore and local `keystore.properties`:
+# Podcast-focused tests
+.\gradlew.bat :app:testFossDebugUnitTest --tests "com.metrolist.music.podcast.PodcastParsingTest"
 
-```powershell
+# Signed release, requires the private local signing configuration
 .\gradlew.bat :app:assembleFossRelease
 ```
 
-## Verification commands
+Release signing uses a private keystore that must never be committed. GitHub Actions signing uses repository Secrets and the same long-term certificate so installed releases remain upgrade-compatible.
 
-```powershell
-.\gradlew.bat :app:compileFossDebugKotlin
-.\gradlew.bat :app:testFossDebugUnitTest --tests "com.metrolist.music.podcast.PodcastParsingTest"
-.\gradlew.bat :app:lintFossDebug
-.\gradlew.bat :app:assembleFossDebug
+### Releases and verification
+
+Downloads are published on the [Releases page](https://github.com/RizkLee/MetroVerse/releases). Verify the attached SHA-256 file and APK signing certificate before installation.
+
+MetroVerse does not automatically install updates. A successful build also does not replace device testing for feed parsing, network playback, resume state, downloads, process restoration, and responsive layouts.
+
+### Current scope
+
+- Podcast refresh is foreground-driven; periodic WorkManager refresh is not included yet.
+- OPML, private-feed authentication, chapters, and transcripts are not included yet.
+- DRM, login-protected, expiring, or unsupported media URLs may fail.
+- FOSS builds do not include Google Cast; the GMS flavor provides Cast support.
+- The inherited codebase still contains lint debt and several unrelated baseline test failures.
+
+### Contributing
+
+Issues and focused pull requests are welcome. Do not include account cookies, private feed URLs, API credentials, signing material, or personal listening data in reports.
+
+MetroVerse is independently developed and remains learning-oriented, but published changes are reviewed, built, signed, and documented as a maintained application rather than a disposable experiment. No commercial support or response-time guarantee is provided.
+
+### License
+
+MetroVerse is distributed under the [GNU General Public License v3.0](LICENSE). Distributors of modified APKs must preserve attribution and satisfy GPL source-availability requirements.
+
+---
+
+<a id="简体中文"></a>
+
+<p align="right"><a href="#english">Back to English</a></p>
+
+## 简体中文
+
+MetroVerse 是一个独立维护的 Android 音频客户端，将 YouTube Music 与公开 RSS 播客整合到同一套资料库、搜索、队列、播放器、通知、缓存和下载系统中。
+
+应用延续 Metrolist 熟悉的 Material 3 交互方式，并原生加入播客发现、订阅、直链播放、断点续播和播客专用控制。Apple Podcasts 仅用于发现公开订阅源，不需要 Apple 账号。
+
+### 主要能力
+
+- YouTube Music 浏览、搜索、歌单、资料库、队列、后台播放、歌词和本地历史。
+- 手机、平板和横屏布局中的独立 Podcast 主入口。
+- Apple Podcasts 榜单、地区切换、搜索和按类别发现播客。
+- RSS/Atom 地址导入、订阅、手动刷新、分集封面、简介和发布日期。
+- 音乐与播客共用 Media3 播放器、通知、Android Auto、缓存、下载和持久队列。
+- 播客断点续播、前后 10 秒、倍速播放和睡眠计时渐弱暂停。
+- 明确区分来源，RSS 分集不会误入 YouTube 电台、歌词、Last.fm 或同步路径。
+- MetroVerse 播客流程维护英文和简体中文文案。
+
+### 项目来源
+
+MetroVerse 建立在两个 GPL-3.0 项目的工作之上：
+
+- [Metrolist](https://github.com/MetrolistGroup/Metrolist) 提供音乐架构、Jetpack Compose 界面基础、播放器、队列、下载、数据库及大部分继承功能。
+- [Podium](https://github.com/aimok04/podium) 是 Apple Podcasts 发现、RSS 解析、订阅和播客分类浏览的 GPL-3.0 参考实现。
+- MetroVerse 将这些播客思路整合进 Metrolist 的既有架构，没有嵌入第二个 Podium App，也没有建立平行播放器。
+
+MetroVerse 不是 Metrolist 或 Podium 的官方版本，与 Apple、Google 或 YouTube 没有隶属关系。原项目版权、源码头和贡献历史均保留，详见 [NOTICE.md](NOTICE.md) 与 [LICENSE](LICENSE)。
+
+### 包信息
+
+```text
+应用名称：      MetroVerse
+正式包名：      com.rizklee.metroverse
+调试包名：      com.rizklee.metroverse.debug
+当前版本：      0.2.0
+最低系统：      Android 8.0 / API 26
+目标 API：      36
 ```
 
-Real podcast feeds vary substantially. A successful build does not replace testing search, RSS parsing, playback, resume, download, and process-restoration behavior on a real Android device.
+内部 Kotlin namespace 继续使用 `com.metrolist.music` 以保持继承代码兼容；安装到设备上的应用使用独立 MetroVerse 包名。
 
-## Updates
+### 构建
 
-MetroVerse does not automatically check for or install updates. The app's Settings and About pages link to this repository's Releases page:
+环境要求：JDK 21、Android SDK Platform 37 和 Platform Tools。
 
-<https://github.com/Rizklee/MetroVerse/releases>
+```powershell
+# 调试 APK
+.\gradlew.bat :app:assembleFossDebug
 
-Only install APKs that you built yourself or that are published by the repository owner and whose signature you trust.
+# 播客专项测试
+.\gradlew.bat :app:testFossDebugUnitTest --tests "com.metrolist.music.podcast.PodcastParsingTest"
 
-## Contributing
+# 签名正式版，需要本机私有签名配置
+.\gradlew.bat :app:assembleFossRelease
+```
 
-This is primarily a personal learning repository. Issues and pull requests may be used for study, but there is no response-time or release-support commitment. Do not send credentials, private RSS URLs, account cookies, or signing keys in issue reports.
+正式签名 keystore 不得提交到仓库。GitHub Actions 必须使用同一张长期证书进行签名，才能让已安装的正式版继续覆盖升级。
 
-## License
+### 下载与校验
 
-MetroVerse is distributed under the [GNU General Public License v3.0](LICENSE). If you distribute modified APKs, you must follow the GPL source-availability and license requirements and preserve upstream attribution.
+APK 发布在 [Releases 页面](https://github.com/RizkLee/MetroVerse/releases)。安装前应核对随附 SHA-256 文件和 APK 签名证书。
 
-## Disclaimer
+MetroVerse 不会自动安装更新。构建通过也不能替代真机上的 RSS 解析、网络播放、断点续播、下载、进程恢复和横竖屏验收。
 
-Use MetroVerse at your own risk. You are responsible for complying with the terms of the services and podcast feeds you access. MetroVerse provides no warranty and no guarantee of availability, data preservation, compatibility, or account safety.
+### 当前范围
+
+- 播客刷新目前由前台页面和手动下拉触发，尚未加入 WorkManager 周期刷新。
+- 尚未加入 OPML、私人订阅认证、章节和转录文本。
+- DRM、登录保护、过期或设备不支持的媒体地址可能无法播放。
+- FOSS 构建不包含 Google Cast，GMS flavor 才包含 Cast。
+- 继承代码仍有 lint 债务和少量与本项目改动无关的基线测试失败。
+
+### 参与开发
+
+欢迎提交清晰、范围明确的 Issue 和 Pull Request。请勿在报告中附带账号 Cookie、私人订阅地址、API 凭据、签名材料或个人收听数据。
+
+MetroVerse 仍带有独立学习与研究性质，但公开改动会按持续维护的应用完成审查、构建、签名和说明，而不是一次性实验。项目不提供商业支持或固定响应时限。
+
+### 许可证
+
+MetroVerse 使用 [GNU GPL v3.0](LICENSE)。分发修改后的 APK 时，必须保留来源归属，并履行 GPL 对应源码提供义务。
+
+### 免责声明
+
+使用者应自行遵守所访问服务和播客订阅源的条款。MetroVerse 不提供任何担保，也不保证服务可用性、数据保存、持续兼容性或账号安全。
