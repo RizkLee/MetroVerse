@@ -45,6 +45,7 @@ import com.metrolist.music.ui.utils.backToMain
 private const val METROVERSE_REPOSITORY = "https://github.com/Rizklee/MetroVerse"
 private const val METROLIST_REPOSITORY = "https://github.com/MetrolistGroup/Metrolist"
 private const val PODIUM_REPOSITORY = "https://github.com/aimok04/podium"
+private const val APPLE_PODCASTS = "https://www.apple.com/apple-podcasts/"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -163,6 +164,12 @@ fun AboutScreen(
                         title = { Text("Podium") },
                         description = { Text(stringResource(R.string.metroverse_podium_relationship)) },
                         onClick = { uriHandler.openUri(PODIUM_REPOSITORY) },
+                    ),
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.podcast),
+                        title = { Text("Apple Podcasts") },
+                        description = { Text(stringResource(R.string.metroverse_apple_podcasts_attribution)) },
+                        onClick = { uriHandler.openUri(APPLE_PODCASTS) },
                     ),
                 ),
         )

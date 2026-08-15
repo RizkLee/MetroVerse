@@ -27,6 +27,7 @@ import com.metrolist.music.db.entities.FormatEntity
 import com.metrolist.music.db.entities.SongEntity
 import com.metrolist.music.di.DownloadCache
 import com.metrolist.music.di.PlayerCache
+import com.metrolist.music.podcast.PODCAST_USER_AGENT
 import com.metrolist.music.utils.YTPlayerUtils
 import com.metrolist.music.utils.enumPreference
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -95,7 +96,14 @@ constructor(
             }
 
             if (!directMediaUrl.isNullOrBlank()) {
-                return@Factory dataSpec.withUri(directMediaUrl.toUri())
+                return@Factory dataSpec
+                    .withUri(directMediaUrl.toUri())
+                    .withRequestHeaders(
+                        dataSpec.httpRequestHeaders + mapOf(
+                            "User-Agent" to PODCAST_USER_AGENT,
+                            "Accept" to "audio/*, application/ogg, video/mp4, */*",
+                        ),
+                    )
             }
 
             if (playerCache.isCached(mediaId, dataSpec.position, length)) {

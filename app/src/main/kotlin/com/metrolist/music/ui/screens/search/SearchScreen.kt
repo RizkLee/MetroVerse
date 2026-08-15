@@ -169,9 +169,10 @@ fun SearchScreen(
         }
 
         if (!pauseSearchHistory) {
+            val historySource = searchSource.name
             coroutineScope.launch(Dispatchers.IO) {
                 database.query {
-                    insert(SearchHistory(query = searchQuery))
+                    insert(SearchHistory(query = searchQuery, source = historySource))
                 }
             }
         }
@@ -212,7 +213,7 @@ fun SearchScreen(
                                                 when (searchSource) {
                                                     SearchSource.LOCAL -> R.string.search_library
                                                     SearchSource.ONLINE -> R.string.search_yt_music
-                                                    SearchSource.PODCAST -> R.string.search_podcasts
+                                                    SearchSource.PODCAST -> R.string.podcast_search_field_hint
                                                 },
                                             ),
                                         style =
@@ -263,7 +264,7 @@ fun SearchScreen(
                 )
                 ChipsRow(
                     chips = listOf(
-                        SearchSource.ONLINE to stringResource(R.string.search_online),
+                        SearchSource.ONLINE to stringResource(R.string.youtube_music),
                         SearchSource.PODCAST to stringResource(R.string.filter_podcasts),
                         SearchSource.LOCAL to stringResource(R.string.filter_library),
                     ),
@@ -305,6 +306,7 @@ fun SearchScreen(
                         query = query.text,
                         pureBlack = pureBlack,
                         onSearch = onSearchFromSuggestion,
+                        onQueryChange = { query = it },
                     )
                 }
             }

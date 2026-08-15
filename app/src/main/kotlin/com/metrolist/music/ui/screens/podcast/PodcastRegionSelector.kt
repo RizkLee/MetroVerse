@@ -1,13 +1,11 @@
 package com.metrolist.music.ui.screens.podcast
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,30 +32,13 @@ fun PodcastRegionSelector(
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     val displayLocale = LocalConfiguration.current.locales[0]
-    val selectedName = remember(selectedCode, displayLocale) {
-        Locale.Builder().setRegion(selectedCode).build().getDisplayCountry(displayLocale).ifBlank { selectedCode }
-    }
-
     Box(modifier = modifier) {
-        if (compact) {
-            IconButton(onClick = { expanded = true }) {
-                Icon(
-                    painter = painterResource(R.drawable.language),
-                    contentDescription = stringResource(R.string.podcast_region_current, selectedName),
-                )
-            }
-        } else {
-            OutlinedButton(
-                onClick = { expanded = true },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.language),
-                    contentDescription = null,
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.podcast_region_current, "$selectedName ($selectedCode)"))
-            }
+        OutlinedButton(
+            onClick = { expanded = true },
+            modifier = if (compact) Modifier else Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = if (compact) 12.dp else 16.dp),
+        ) {
+            Text(selectedCode)
         }
 
         DropdownMenu(

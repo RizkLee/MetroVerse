@@ -182,14 +182,14 @@
     <string name="storage">储存</string>
     <string name="cache">缓存</string>
     <string name="image_cache">图像缓存</string>
-    <string name="song_cache">歌曲缓存</string>
+    <string name="song_cache">音频缓存</string>
     <string name="max_cache_size">最大缓存大小</string>
     <string name="unlimited">无限制</string>
     <string name="clear_all_downloads">清除所有下载</string>
     <string name="max_image_cache_size">图像缓存大小</string>
     <string name="clear_image_cache">清除图像缓存</string>
-    <string name="max_song_cache_size">歌曲缓存大小</string>
-    <string name="clear_song_cache">清除歌曲缓存</string>
+    <string name="max_song_cache_size">音频缓存大小上限</string>
+    <string name="clear_song_cache">清除音频缓存</string>
     <string name="size_used">已使用 %s</string>
     <string name="privacy">隐私</string>
     <string name="pause_listen_history">暂停听歌历史</string>

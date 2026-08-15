@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -43,10 +45,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -59,6 +63,8 @@ import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
 import com.metrolist.music.constants.PodcastRegionKey
+import com.metrolist.music.constants.SearchSource
+import com.metrolist.music.constants.SearchSourceKey
 import com.metrolist.music.db.entities.PodcastEntity
 import com.metrolist.music.db.entities.Song
 import com.metrolist.music.extensions.toMediaItem
@@ -70,9 +76,12 @@ import com.metrolist.music.ui.component.SongListItem
 import com.metrolist.music.ui.menu.SongMenu
 import com.metrolist.music.utils.joinByBullet
 import com.metrolist.music.utils.makeTimeString
+import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.viewmodels.PodcastHomeViewModel
 import com.metrolist.music.viewmodels.PodcastUiEvent
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
@@ -90,16 +99,37 @@ fun PodcastScreen(
     val continueListening by viewModel.continueListening.collectAsStateWithLifecycle()
     val discover by viewModel.discover.collectAsStateWithLifecycle()
     val isLoadingDiscover by viewModel.isLoadingDiscover.collectAsStateWithLifecycle()
+    val isLoadingMoreDiscover by viewModel.isLoadingMoreDiscover.collectAsStateWithLifecycle()
+    val hasMoreDiscover by viewModel.hasMoreDiscover.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val isPlaying by playerConnection.isEffectivelyPlaying.collectAsStateWithLifecycle()
     val currentMetadata by playerConnection.mediaMetadata.collectAsStateWithLifecycle()
     val refreshState = rememberPullToRefreshState()
+    val listState = rememberLazyListState()
     var showAddFeed by rememberSaveable { mutableStateOf(false) }
     var feedUrl by rememberSaveable { mutableStateOf("") }
     var podcastRegion by rememberPreference(PodcastRegionKey, defaultPodcastRegionCode())
+    var searchSource by rememberEnumPreference(SearchSourceKey, SearchSource.ONLINE)
+    val screenWidth = LocalConfiguration.current.screenWidthDp
+    val discoverColumns = when {
+        screenWidth >= 840 -> 5
+        screenWidth >= 600 -> 4
+        else -> 2
+    }
 
     LaunchedEffect(podcastRegion) {
         viewModel.setCountry(podcastRegion)
+    }
+
+    LaunchedEffect(listState, hasMoreDiscover) {
+        snapshotFlow {
+            val layout = listState.layoutInfo
+            val lastVisible = layout.visibleItemsInfo.lastOrNull()?.index ?: -1
+            hasMoreDiscover && layout.totalItemsCount > 0 && lastVisible >= layout.totalItemsCount - 3
+        }
+            .distinctUntilChanged()
+            .filter { it }
+            .collect { viewModel.loadMoreDiscover() }
     }
 
     LaunchedEffect(viewModel) {
@@ -154,40 +184,81 @@ fun PodcastScreen(
             ),
     ) {
         LazyColumn(
+            state = listState,
             contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
             verticalArrangement = Arrangement.spacedBy(4.dp),
             modifier = Modifier.fillMaxSize(),
         ) {
             item(key = "podcast_actions") {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                 ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Button(
-                            onClick = { navController.navigate("search_input") },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Icon(painterResource(R.drawable.search), contentDescription = null)
-                            Spacer(Modifier.width(8.dp))
-                            Text(stringResource(R.string.search))
-                        }
-                        OutlinedButton(
-                            onClick = { showAddFeed = true },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Icon(painterResource(R.drawable.add), contentDescription = null)
-                            Spacer(Modifier.width(8.dp))
-                            Text(stringResource(R.string.add_podcast_feed), maxLines = 1)
-                        }
+                    Button(
+                        onClick = {
+                            searchSource = SearchSource.PODCAST
+                            navController.navigate("search_input")
+                        },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Icon(painterResource(R.drawable.search), contentDescription = null)
+                        Spacer(Modifier.width(6.dp))
+                        Text(stringResource(R.string.search), maxLines = 1)
+                    }
+                    OutlinedButton(
+                        onClick = { showAddFeed = true },
+                        modifier = Modifier.weight(0.8f),
+                    ) {
+                        Icon(painterResource(R.drawable.add), contentDescription = null)
+                        Spacer(Modifier.width(6.dp))
+                        Text(stringResource(R.string.rss), maxLines = 1)
                     }
                     PodcastRegionSelector(
                         selectedCode = podcastRegion,
                         onSelected = { podcastRegion = it },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.weight(0.65f),
                     )
+                }
+            }
+
+            item(key = "discover_title") {
+                PodcastSectionTitle(stringResource(R.string.discover_podcasts))
+            }
+            if (isLoadingDiscover && discover.isEmpty()) {
+                item(key = "discover_loading") {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(180.dp),
+                    ) {
+                        ContainedLoadingIndicator()
+                    }
+                }
+            } else {
+                items(
+                    items = discover.chunked(discoverColumns),
+                    key = { row -> "discover_${row.firstOrNull()?.appleId.orEmpty()}" },
+                ) { row ->
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
+                    ) {
+                        row.forEach { item ->
+                            PodcastDiscoverCard(
+                                item = item,
+                                onClick = { viewModel.openDiscoverItem(item) },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        repeat(discoverColumns - row.size) {
+                            Spacer(Modifier.weight(1f))
+                        }
+                    }
                 }
             }
 
@@ -258,7 +329,7 @@ fun PodcastScreen(
                     PodcastSectionTitle(stringResource(R.string.latest_episodes))
                 }
                 itemsIndexed(
-                    items = latestEpisodes.take(12),
+                    items = latestEpisodes.take(5),
                     key = { _, song -> "latest_${song.id}" },
                 ) { index, song ->
                     PodcastEpisodeRow(
@@ -272,7 +343,7 @@ fun PodcastScreen(
                                 playerConnection.playQueue(
                                     ListQueue(
                                         title = null,
-                                        items = latestEpisodes.map(Song::toMediaItem),
+                                        items = latestEpisodes.take(5).map(Song::toMediaItem),
                                         startIndex = index,
                                     ),
                                 )
@@ -287,37 +358,17 @@ fun PodcastScreen(
                 }
             }
 
-            item(key = "discover_title") {
-                PodcastSectionTitle(stringResource(R.string.discover_podcasts))
-            }
-            item(key = "discover") {
-                if (isLoadingDiscover && discover.isEmpty()) {
+            if (isLoadingMoreDiscover) {
+                item(key = "discover_loading_more") {
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(180.dp),
+                            .padding(20.dp),
                     ) {
-                        ContainedLoadingIndicator()
-                    }
-                } else {
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        items(discover, key = PodcastDiscoverItem::appleId) { item ->
-                            PodcastDiscoverCard(item = item, onClick = { viewModel.openDiscoverItem(item) })
-                        }
+                        ContainedLoadingIndicator(modifier = Modifier.size(32.dp))
                     }
                 }
-            }
-            item(key = "attribution") {
-                Text(
-                    text = stringResource(R.string.podcast_discovery_attribution),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                )
             }
         }
 
@@ -358,7 +409,7 @@ private fun PodcastLibraryCard(
             .width(124.dp)
             .clickable(onClick = onClick),
     ) {
-        PodcastArtwork(url = podcast.thumbnailUrl, size = 124)
+        PodcastArtwork(url = podcast.thumbnailUrl, modifier = Modifier.size(124.dp))
         Text(
             text = podcast.title,
             style = MaterialTheme.typography.bodyMedium,
@@ -382,13 +433,17 @@ private fun PodcastLibraryCard(
 private fun PodcastDiscoverCard(
     item: PodcastDiscoverItem,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = Modifier
-            .width(124.dp)
-            .clickable(onClick = onClick),
+        modifier = modifier.clickable(onClick = onClick),
     ) {
-        PodcastArtwork(url = item.artworkUrl, size = 124)
+        PodcastArtwork(
+            url = item.artworkUrl,
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f),
+        )
         Text(
             text = item.title,
             style = MaterialTheme.typography.bodyMedium,
@@ -409,12 +464,11 @@ private fun PodcastDiscoverCard(
 @Composable
 private fun PodcastArtwork(
     url: String?,
-    size: Int,
+    modifier: Modifier,
 ) {
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .size(size.dp)
+        modifier = modifier
             .clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.surfaceContainerHigh),
     ) {

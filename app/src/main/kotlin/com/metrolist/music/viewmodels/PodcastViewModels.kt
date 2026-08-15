@@ -1,15 +1,23 @@
 package com.metrolist.music.viewmodels
 
+import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.metrolist.music.constants.PauseSearchHistoryKey
+import com.metrolist.music.constants.SearchSource
 import com.metrolist.music.db.MusicDatabase
+import com.metrolist.music.db.entities.SearchHistory
 import com.metrolist.music.podcast.PodcastDiscoverItem
 import com.metrolist.music.podcast.PodcastRepository
 import com.metrolist.music.podcast.defaultPodcastRegionCode
 import com.metrolist.music.podcast.normalizePodcastRegionCode
 import com.metrolist.music.utils.SearchRoutes
+import com.metrolist.music.utils.dataStore
+import com.metrolist.music.utils.get
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -40,14 +48,22 @@ class PodcastHomeViewModel @Inject constructor(
 
     private val _discover = MutableStateFlow<List<PodcastDiscoverItem>>(emptyList())
     val discover = _discover.asStateFlow()
-    private var country = defaultPodcastRegionCode()
-    private var discoverJob: Job? = null
     private val _isLoadingDiscover = MutableStateFlow(false)
     val isLoadingDiscover = _isLoadingDiscover.asStateFlow()
+    private val _isLoadingMoreDiscover = MutableStateFlow(false)
+    val isLoadingMoreDiscover = _isLoadingMoreDiscover.asStateFlow()
+    private val _hasMoreDiscover = MutableStateFlow(true)
+    val hasMoreDiscover = _hasMoreDiscover.asStateFlow()
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing = _isRefreshing.asStateFlow()
     private val _events = MutableSharedFlow<PodcastUiEvent>(extraBufferCapacity = 1)
     val events = _events.asSharedFlow()
+
+    private var country = defaultPodcastRegionCode()
+    private var discoverLimit = DISCOVER_PAGE_SIZE
+    private var discoverJob: Job? = null
+    private var refreshJob: Job? = null
+    private var discoverGeneration = 0
 
     init {
         refresh()
@@ -55,115 +71,249 @@ class PodcastHomeViewModel @Inject constructor(
 
     fun setCountry(value: String) {
         val normalized = normalizePodcastRegionCode(value)
-        if (normalized == country) return
+        if (normalized == country) {
+            if (_discover.value.isEmpty() && !_isRefreshing.value && !_isLoadingDiscover.value) {
+                loadDiscover(reset = true)
+            }
+            return
+        }
         country = normalized
-        loadDiscover()
+        discoverLimit = DISCOVER_PAGE_SIZE
+        _hasMoreDiscover.value = true
+        loadDiscover(reset = true)
     }
 
-    fun loadDiscover() {
+    fun loadMoreDiscover() {
+        if (_isLoadingDiscover.value || _isLoadingMoreDiscover.value || !_hasMoreDiscover.value) return
+        val nextLimit = (discoverLimit + DISCOVER_PAGE_SIZE).coerceAtMost(MAX_DISCOVER_ITEMS)
+        if (nextLimit == discoverLimit) {
+            _hasMoreDiscover.value = false
+            return
+        }
+        discoverLimit = nextLimit
+        loadDiscover(reset = false)
+    }
+
+    private fun loadDiscover(reset: Boolean) {
+        val generation = ++discoverGeneration
         discoverJob?.cancel()
         discoverJob = viewModelScope.launch(Dispatchers.IO) {
-            _isLoadingDiscover.value = true
-            runCatching { repository.topPodcasts(country = country) }
-                .onSuccess { _discover.value = it }
-                .onFailure { _events.emit(PodcastUiEvent.Error(it.message ?: "Podcast discovery failed")) }
-            _isLoadingDiscover.value = false
+            if (reset) _isLoadingDiscover.value = true else _isLoadingMoreDiscover.value = true
+            try {
+                val items = repository.topPodcasts(country = country, limit = discoverLimit)
+                if (generation == discoverGeneration) {
+                    _discover.value = items
+                    _hasMoreDiscover.value = items.size >= discoverLimit && discoverLimit < MAX_DISCOVER_ITEMS
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Throwable) {
+                if (generation == discoverGeneration) {
+                    _events.emit(PodcastUiEvent.Error(error.message ?: "Podcast discovery failed"))
+                }
+            } finally {
+                if (generation == discoverGeneration) {
+                    _isLoadingDiscover.value = false
+                    _isLoadingMoreDiscover.value = false
+                }
+            }
         }
     }
 
     fun refresh() {
         if (_isRefreshing.value) return
-        viewModelScope.launch(Dispatchers.IO) {
+        val generation = ++discoverGeneration
+        discoverJob?.cancel()
+        refreshJob?.cancel()
+        refreshJob = viewModelScope.launch(Dispatchers.IO) {
             _isRefreshing.value = true
-            val failures = repository.refreshSubscribed()
-                .mapNotNull(Result<*>::exceptionOrNull)
-                .toMutableList()
-            runCatching { repository.topPodcasts(country = country) }
-                .onSuccess { _discover.value = it }
-                .onFailure(failures::add)
-            failures.firstOrNull()?.let {
-                _events.emit(PodcastUiEvent.Error(it.message ?: "Podcast refresh failed"))
+            try {
+                val failures = repository.refreshSubscribed()
+                    .mapNotNull(Result<*>::exceptionOrNull)
+                    .toMutableList()
+                try {
+                    val items = repository.topPodcasts(country = country, limit = discoverLimit)
+                    if (generation == discoverGeneration) {
+                        _discover.value = items
+                        _hasMoreDiscover.value = items.size >= discoverLimit && discoverLimit < MAX_DISCOVER_ITEMS
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (error: Throwable) {
+                    failures += error
+                }
+                failures.firstOrNull()?.let { error ->
+                    if (generation == discoverGeneration) {
+                        _events.emit(PodcastUiEvent.Error(error.message ?: "Podcast refresh failed"))
+                    }
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } finally {
+                _isRefreshing.value = false
             }
-            _isRefreshing.value = false
         }
     }
 
     fun openDiscoverItem(item: PodcastDiscoverItem) {
         viewModelScope.launch(Dispatchers.IO) {
-            runCatching { repository.importPodcast(item) }
-                .onSuccess { _events.emit(PodcastUiEvent.OpenPodcast(it.id)) }
-                .onFailure { _events.emit(PodcastUiEvent.Error(it.message ?: "Podcast feed failed")) }
+            try {
+                val podcast = repository.importPodcast(item)
+                _events.emit(PodcastUiEvent.OpenPodcast(podcast.id))
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Throwable) {
+                _events.emit(PodcastUiEvent.Error(error.message ?: "Podcast feed failed"))
+            }
         }
     }
 
     fun addFeed(url: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            runCatching { repository.fetchFeed(url, subscribe = true) }
-                .onSuccess { _events.emit(PodcastUiEvent.OpenPodcast(it.id)) }
-                .onFailure { _events.emit(PodcastUiEvent.Error(it.message ?: "Podcast feed failed")) }
+            try {
+                val podcast = repository.fetchFeed(url, subscribe = true)
+                _events.emit(PodcastUiEvent.OpenPodcast(podcast.id))
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Throwable) {
+                _events.emit(PodcastUiEvent.Error(error.message ?: "Podcast feed failed"))
+            }
         }
+    }
+
+    private companion object {
+        const val DISCOVER_PAGE_SIZE = 24
+        const val MAX_DISCOVER_ITEMS = 200
     }
 }
 
 @HiltViewModel
 class PodcastSearchViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
+    @ApplicationContext private val context: Context,
+    private val database: MusicDatabase,
     private val repository: PodcastRepository,
 ) : ViewModel() {
-    val query = SearchRoutes.decodeQuery(savedStateHandle.get<String>("query").orEmpty())
-    val looksLikeFeed = query.trim().startsWith("http://", true) || query.trim().startsWith("https://", true)
-
+    private val initialQuery = SearchRoutes.decodeQuery(savedStateHandle.get<String>("query").orEmpty())
+    private val _query = MutableStateFlow(initialQuery)
+    val query = _query.asStateFlow()
     private val _results = MutableStateFlow<List<PodcastDiscoverItem>>(emptyList())
     val results = _results.asStateFlow()
-    private var country = defaultPodcastRegionCode()
-    private var searchJob: Job? = null
     private val _isLoading = MutableStateFlow(false)
     val isLoading = _isLoading.asStateFlow()
+    private val _isOpening = MutableStateFlow(false)
+    val isOpening = _isOpening.asStateFlow()
     private val _error = MutableStateFlow<String?>(null)
     val error = _error.asStateFlow()
     private val _events = MutableSharedFlow<PodcastUiEvent>(extraBufferCapacity = 1)
     val events = _events.asSharedFlow()
 
+    private var country = defaultPodcastRegionCode()
+    private var searchJob: Job? = null
+    private var searchGeneration = 0
+
     init {
-        if (!looksLikeFeed) search()
+        if (!isFeedQuery(initialQuery)) search()
     }
 
     fun setCountry(value: String) {
         val normalized = normalizePodcastRegionCode(value)
-        if (normalized == country) return
+        if (normalized == country && (_results.value.isNotEmpty() || _isLoading.value)) return
         country = normalized
-        if (!looksLikeFeed) search()
+        if (!isFeedQuery(_query.value)) search()
     }
 
-    fun search() {
+    fun updateQuery(value: String) {
+        _query.value = value
+        if (value.isBlank()) {
+            searchJob?.cancel()
+            _results.value = emptyList()
+            _error.value = null
+            _isLoading.value = false
+        }
+    }
+
+    fun search(value: String = _query.value) {
+        val normalizedQuery = value.trim()
+        if (normalizedQuery.isEmpty()) return
+        _query.value = normalizedQuery
+        if (isFeedQuery(normalizedQuery)) {
+            searchJob?.cancel()
+            _results.value = emptyList()
+            _error.value = null
+            _isLoading.value = false
+            saveHistory(normalizedQuery)
+            return
+        }
+
+        val generation = ++searchGeneration
         searchJob?.cancel()
         searchJob = viewModelScope.launch(Dispatchers.IO) {
             _isLoading.value = true
             _error.value = null
-            runCatching { repository.search(query, country = country) }
-                .onSuccess { _results.value = it }
-                .onFailure { _error.value = it.message ?: "Podcast search failed" }
-            _isLoading.value = false
+            try {
+                val items = repository.search(normalizedQuery, country = country)
+                if (generation == searchGeneration) _results.value = items
+                saveHistory(normalizedQuery)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Throwable) {
+                if (generation == searchGeneration) {
+                    _error.value = error.message ?: "Podcast search failed"
+                }
+            } finally {
+                if (generation == searchGeneration) _isLoading.value = false
+            }
         }
     }
 
     fun open(item: PodcastDiscoverItem) {
         viewModelScope.launch(Dispatchers.IO) {
-            _isLoading.value = true
-            runCatching { repository.importPodcast(item) }
-                .onSuccess { _events.emit(PodcastUiEvent.OpenPodcast(it.id)) }
-                .onFailure { _events.emit(PodcastUiEvent.Error(it.message ?: "Podcast feed failed")) }
-            _isLoading.value = false
+            _isOpening.value = true
+            try {
+                val podcast = repository.importPodcast(item)
+                _events.emit(PodcastUiEvent.OpenPodcast(podcast.id))
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Throwable) {
+                _events.emit(PodcastUiEvent.Error(error.message ?: "Podcast feed failed"))
+            } finally {
+                _isOpening.value = false
+            }
         }
     }
 
     fun openFeed() {
+        val feedQuery = _query.value.trim()
+        if (!isFeedQuery(feedQuery)) return
         viewModelScope.launch(Dispatchers.IO) {
-            _isLoading.value = true
-            runCatching { repository.fetchFeed(query) }
-                .onSuccess { _events.emit(PodcastUiEvent.OpenPodcast(it.id)) }
-                .onFailure { _events.emit(PodcastUiEvent.Error(it.message ?: "Podcast feed failed")) }
-            _isLoading.value = false
+            _isOpening.value = true
+            try {
+                saveHistory(feedQuery)
+                val podcast = repository.fetchFeed(feedQuery)
+                _events.emit(PodcastUiEvent.OpenPodcast(podcast.id))
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Throwable) {
+                _events.emit(PodcastUiEvent.Error(error.message ?: "Podcast feed failed"))
+            } finally {
+                _isOpening.value = false
+            }
+        }
+    }
+
+    private fun saveHistory(value: String) {
+        if (context.dataStore.get(PauseSearchHistoryKey, false)) return
+        database.query {
+            insert(SearchHistory(query = value, source = SearchSource.PODCAST.name))
+        }
+    }
+
+    companion object {
+        fun isFeedQuery(value: String): Boolean {
+            val trimmed = value.trim()
+            return trimmed.startsWith("http://", ignoreCase = true) ||
+                trimmed.startsWith("https://", ignoreCase = true)
         }
     }
 }
@@ -191,9 +341,15 @@ class RssPodcastViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             _isRefreshing.value = true
             _error.value = null
-            runCatching { repository.fetchFeed(feedUrl) }
-                .onFailure { _error.value = it.message ?: "Podcast refresh failed" }
-            _isRefreshing.value = false
+            try {
+                repository.fetchFeed(feedUrl)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Throwable) {
+                _error.value = error.message ?: "Podcast refresh failed"
+            } finally {
+                _isRefreshing.value = false
+            }
         }
     }
 

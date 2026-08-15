@@ -11,14 +11,17 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,24 +36,35 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
+import com.metrolist.music.LocalDatabase
 import com.metrolist.music.R
 import com.metrolist.music.constants.PodcastRegionKey
+import com.metrolist.music.constants.SearchSource
 import com.metrolist.music.podcast.PodcastDiscoverItem
 import com.metrolist.music.podcast.defaultPodcastRegionCode
+import com.metrolist.music.ui.screens.search.SuggestionItem
 import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.viewmodels.PodcastSearchViewModel
 import com.metrolist.music.viewmodels.PodcastUiEvent
@@ -62,10 +76,17 @@ fun PodcastSearchResultScreen(
     snackbarHostState: SnackbarHostState,
     viewModel: PodcastSearchViewModel = hiltViewModel(),
 ) {
+    val query by viewModel.query.collectAsStateWithLifecycle()
     val results by viewModel.results.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val isOpening by viewModel.isOpening.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
     var podcastRegion by rememberPreference(PodcastRegionKey, defaultPodcastRegionCode())
+    var searchField by remember(query) {
+        androidx.compose.runtime.mutableStateOf(TextFieldValue(query, TextRange(query.length)))
+    }
+    val focusManager = LocalFocusManager.current
+    val looksLikeFeed = PodcastSearchViewModel.isFeedQuery(query)
 
     LaunchedEffect(podcastRegion) {
         viewModel.setCountry(podcastRegion)
@@ -84,10 +105,40 @@ fun PodcastSearchResultScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = viewModel.query,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                    BasicTextField(
+                        value = searchField,
+                        onValueChange = {
+                            searchField = it
+                            viewModel.updateQuery(it.text)
+                        },
+                        textStyle = TextStyle(
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 16.sp,
+                        ),
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                        singleLine = true,
+                        decorationBox = { innerTextField ->
+                            Box(contentAlignment = Alignment.CenterStart) {
+                                if (searchField.text.isEmpty()) {
+                                    Text(
+                                        text = stringResource(R.string.podcast_search_field_hint),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontSize = 16.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                                innerTextField()
+                            }
+                        },
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(
+                            onSearch = {
+                                focusManager.clearFocus()
+                                viewModel.search(searchField.text)
+                            },
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 },
                 navigationIcon = {
@@ -99,6 +150,19 @@ fun PodcastSearchResultScreen(
                     }
                 },
                 actions = {
+                    if (searchField.text.isNotEmpty()) {
+                        IconButton(
+                            onClick = {
+                                searchField = TextFieldValue()
+                                viewModel.updateQuery("")
+                            },
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.close),
+                                contentDescription = stringResource(R.string.clear),
+                            )
+                        }
+                    }
                     PodcastRegionSelector(
                         selectedCode = podcastRegion,
                         onSelected = { podcastRegion = it },
@@ -115,7 +179,7 @@ fun PodcastSearchResultScreen(
                 .padding(top = padding.calculateTopPadding()),
         ) {
             when {
-                viewModel.looksLikeFeed -> {
+                looksLikeFeed -> {
                     Button(onClick = viewModel::openFeed) {
                         Icon(painterResource(R.drawable.podcast), contentDescription = null)
                         Spacer(Modifier.width(8.dp))
@@ -130,7 +194,7 @@ fun PodcastSearchResultScreen(
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.padding(24.dp),
                         )
-                        Button(onClick = viewModel::search) {
+                        Button(onClick = { viewModel.search(searchField.text) }) {
                             Text(stringResource(R.string.retry))
                         }
                     }
@@ -158,7 +222,7 @@ fun PodcastSearchResultScreen(
                 }
             }
 
-            if (isLoading) {
+            if (isLoading || isOpening) {
                 ContainedLoadingIndicator()
             }
         }
@@ -223,51 +287,55 @@ fun PodcastSearchSuggestions(
     query: String,
     pureBlack: Boolean,
     onSearch: (String) -> Unit,
+    onQueryChange: (TextFieldValue) -> Unit,
 ) {
-    Box(
-        contentAlignment = Alignment.TopCenter,
+    val database = LocalDatabase.current
+    val historyFlow = remember(database, query) {
+        database.searchHistory(query, SearchSource.PODCAST.name)
+    }
+    val history by historyFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background),
     ) {
-        if (query.isBlank()) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(top = 56.dp, start = 24.dp, end = 24.dp),
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.podcast),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(48.dp),
-                )
-                Text(
-                    text = stringResource(R.string.podcast_search_hint),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 16.dp),
-                )
-            }
-        } else {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onSearch(query) }
-                    .padding(horizontal = 16.dp, vertical = 18.dp),
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.search),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.width(16.dp))
-                Text(
-                    text = query,
-                    style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+        items(history, key = { "podcast_history_${it.id}" }) { item ->
+            SuggestionItem(
+                query = item.query,
+                online = false,
+                onClick = { onSearch(item.query) },
+                onDelete = { database.query { delete(item) } },
+                onFillTextField = {
+                    onQueryChange(TextFieldValue(item.query, TextRange(item.query.length)))
+                },
+                pureBlack = pureBlack,
+                modifier = Modifier.animateItem(),
+            )
+        }
+
+        if (query.isNotBlank() && history.none { it.query.equals(query, ignoreCase = true) }) {
+            item(key = "search_current_podcast_query") {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onSearch(query) }
+                        .padding(horizontal = 16.dp, vertical = 18.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.search),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.width(16.dp))
+                    Text(
+                        text = query,
+                        style = MaterialTheme.typography.bodyLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
     }

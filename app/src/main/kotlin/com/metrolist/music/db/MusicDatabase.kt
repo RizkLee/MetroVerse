@@ -118,7 +118,7 @@ class MusicDatabase(
         SortedSongAlbumMap::class,
         PlaylistSongMapPreview::class,
     ],
-    version = 39,
+    version = 40,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 2, to = 3),
@@ -158,6 +158,7 @@ class MusicDatabase(
         AutoMigration(from = 36, to = 37),
         AutoMigration(from = 37, to = 38),
         AutoMigration(from = 38, to = 39),
+        AutoMigration(from = 39, to = 40, spec = Migration39To40::class),
     ],
 )
 @TypeConverters(Converters::class)
@@ -878,6 +879,14 @@ class Migration29To30 : AutoMigrationSpec {
         if (!hasProvider) {
             db.execSQL("ALTER TABLE lyrics ADD COLUMN provider TEXT NOT NULL DEFAULT 'Unknown'")
         }
+    }
+}
+
+class Migration39To40 : AutoMigrationSpec {
+    override fun onPostMigrate(db: SupportSQLiteDatabase) {
+        // v0.1 stored YouTube and podcast queries together, so their source cannot be
+        // reconstructed reliably. Hide ambiguous legacy rows instead of misfiling them.
+        db.execSQL("UPDATE search_history SET source = 'LEGACY'")
     }
 }
 

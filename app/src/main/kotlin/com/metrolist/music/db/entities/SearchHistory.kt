@@ -5,6 +5,7 @@
 
 package com.metrolist.music.db.entities
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -13,7 +14,7 @@ import androidx.room.PrimaryKey
     tableName = "search_history",
     indices = [
         Index(
-            value = ["query"],
+            value = ["query", "source"],
             unique = true,
         ),
     ],
@@ -21,4 +22,5 @@ import androidx.room.PrimaryKey
 data class SearchHistory(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val query: String,
+    @ColumnInfo(defaultValue = "'ONLINE'") val source: String = "ONLINE",
 )

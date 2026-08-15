@@ -149,8 +149,8 @@
     <string name="show_downloaded_playlist">Show Downloaded playlist</string>
     <string name="show_top_playlist">Show Top playlist</string>
     <string name="show_cached_playlist">Show Cached playlist</string>
-    <string name="enable_song_cache">Enable song cache</string>
-    <string name="enable_song_cache_desc">Automatically cache songs for faster future playback</string>
+    <string name="enable_song_cache">Enable audio cache</string>
+    <string name="enable_song_cache_desc">Cache music and podcast audio for faster future playback</string>
     <string name="show_uploaded_playlist">Show Uploaded playlist</string>
     <string name="show_most_stats_playlists">Show Weekly and Monthly Most playlists</string>
     <string name="show_most_stats_playlists_desc">Create and show stats-based Most playlists in Stats and Library</string>
@@ -227,7 +227,7 @@
     <string name="swipe_sensitivity">Mini-player swipe sensitivity</string>
     <string name="sensitivity_percentage">%1$d%%</string>
 
-    <string name="clear_song_cache_dialog">Are you sure you want to clear all cached songs?</string>
+    <string name="clear_song_cache_dialog">Clear all cached music and podcast audio?</string>
     <string name="clear_image_cache_dialog">Are you sure you want to clear all cached images?</string>
     <string name="clear_downloads_dialog">Are you sure you want to clear all downloads?</string>
 
@@ -903,6 +903,7 @@
     <string name="metroverse_lineage">Source and attribution</string>
     <string name="metroverse_metrolist_relationship">MetroVerse is based on Metrolist and retains its music architecture, interface foundations, contributors, and GPL history.</string>
     <string name="metroverse_podium_relationship">The RSS and Apple Podcasts integration was developed by studying and adapting concepts from Podium under GPL-3.0.</string>
+    <string name="metroverse_apple_podcasts_attribution">Apple Podcasts provides public discovery, charts, search metadata, and artwork. MetroVerse plays public RSS feeds independently and is not affiliated with Apple.</string>
     <string name="metroverse_changelog_body">Initial MetroVerse learning release\n\n• Renamed app and independent package identity\n• Unified music and RSS podcast navigation\n• Apple Podcasts discovery and regional search\n• RSS subscriptions, downloads, queue, and resume\n• Podcast-aware player controls and metadata</string>
     <string name="wanna_play_favorite_song">Want to play their favorite song?</string>
     <string name="yeah">Yeah!</string>
@@ -912,7 +913,10 @@
     <string name="podcast">Podcast</string>
     <string name="filter_podcasts">Podcasts</string>
     <string name="search_podcasts">Search podcasts…</string>
-    <string name="podcast_search_hint">Search Apple Podcasts or paste an RSS feed URL</string>
+    <string name="podcast_search_field_hint">Search podcasts or paste URL</string>
+    <string name="youtube_music">YouTube Music</string>
+    <string name="youtube_podcasts">YouTube Podcasts</string>
+    <string name="rss">RSS</string>
     <string name="add_podcast_feed">Add RSS feed</string>
     <string name="add_action">Add</string>
     <string name="podcast_feed_url">Podcast feed URL</string>
@@ -936,6 +940,10 @@
     <string name="refresh_podcasts">Refresh podcasts</string>
     <string name="rewind_30_seconds">Rewind 30 seconds</string>
     <string name="forward_30_seconds">Forward 30 seconds</string>
+    <string name="rewind_10_seconds">Rewind 10 seconds</string>
+    <string name="forward_10_seconds">Forward 10 seconds</string>
+    <string name="sleep_timer_off">Off</string>
+    <string name="end_of_episode">End of episode</string>
     <string name="previous_track">Previous track</string>
     <string name="next_track">Next track</string>
     <string name="open_rss_feed">Open RSS feed</string>
@@ -960,6 +968,7 @@
     <string name="downloaded_episodes">Downloaded episodes</string>
     <string name="no_subscribed_channels">No subscribed channels</string>
     <string name="no_downloaded_episodes">No downloaded episodes</string>
+    <string name="no_saved_episodes">No liked episodes</string>
     <plurals name="n_channel">
         <item quantity="one">%d channel</item>
         <item quantity="other">%d channels</item>

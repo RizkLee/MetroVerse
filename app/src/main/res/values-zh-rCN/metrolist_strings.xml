@@ -62,7 +62,7 @@
     <string name="app_language">应用语言</string>
     <string name="auto_download_on_like">点赞后自动下载</string>
     <string name="auto_download_on_like_desc">当您点赞某首歌曲时，将自动下载这首歌</string>
-    <string name="clear_song_cache_dialog">确定要清除所有已缓存的歌曲吗？</string>
+    <string name="clear_song_cache_dialog">确定要清除所有已缓存的音乐和播客音频吗？</string>
     <string name="clear_downloads_dialog">确定要清除所有下载内容吗？</string>
     <string name="not_logged_in_youtube">未登录 YouTube</string>
     <string name="default_links">打开支持的链接</string>
@@ -615,6 +615,7 @@
     <string name="metroverse_lineage">来源与归属</string>
     <string name="metroverse_metrolist_relationship">MetroVerse 基于 Metrolist，保留其音乐架构、界面基础、贡献者历史和 GPL 授权关系。</string>
     <string name="metroverse_podium_relationship">RSS 与 Apple Podcasts 整合功能是在 GPL-3.0 下研究并适配 Podium 实现思路后开发的。</string>
+    <string name="metroverse_apple_podcasts_attribution">Apple Podcasts 提供公开的发现、榜单、搜索元数据和封面。MetroVerse 独立播放公开 RSS 订阅源，与 Apple 无隶属或合作关系。</string>
     <string name="metroverse_changelog_body">MetroVerse 初始学习版本\n\n• 独立应用名称与包名\n• 统一音乐和 RSS 播客导航\n• Apple Podcasts 发现与地区搜索\n• RSS 订阅、下载、队列和断点续播\n• 适配播客的播放器控制与元数据</string>
     <string name="wanna_play_favorite_song">想播放他们最喜欢的歌曲吗？</string>
     <string name="yeah">是的！</string>
@@ -622,7 +623,10 @@
     <string name="podcast">播客</string>
     <string name="filter_podcasts">播客</string>
     <string name="search_podcasts">搜索播客…</string>
-    <string name="podcast_search_hint">搜索 Apple Podcasts 或粘贴 RSS 订阅源网址</string>
+    <string name="podcast_search_field_hint">搜索播客或粘贴网址</string>
+    <string name="youtube_music">YouTube Music</string>
+    <string name="youtube_podcasts">YouTube 播客</string>
+    <string name="rss">RSS</string>
     <string name="add_podcast_feed">添加 RSS 订阅源</string>
     <string name="add_action">添加</string>
     <string name="podcast_feed_url">播客订阅源网址</string>
@@ -646,6 +650,10 @@
     <string name="refresh_podcasts">刷新播客</string>
     <string name="rewind_30_seconds">后退 30 秒</string>
     <string name="forward_30_seconds">前进 30 秒</string>
+    <string name="rewind_10_seconds">后退 10 秒</string>
+    <string name="forward_10_seconds">前进 10 秒</string>
+    <string name="sleep_timer_off">关闭</string>
+    <string name="end_of_episode">本集播放完毕</string>
     <string name="previous_track">上一首</string>
     <string name="next_track">下一首</string>
     <string name="open_rss_feed">打开 RSS 订阅源</string>
@@ -688,6 +696,7 @@
     <string name="downloaded_episodes">已下载的分集</string>
     <string name="no_subscribed_channels">无已订阅的频道</string>
     <string name="no_downloaded_episodes">无已下载的分集</string>
+    <string name="no_saved_episodes">无已点赞的分集</string>
     <plurals name="n_channel">
         <item quantity="other">%d 个频道</item>
     </plurals>
@@ -737,8 +746,8 @@
     <string name="ai_provider_mistral_help">访问 https://console.mistral.ai/api-keys</string>
     <string name="weekly_most_playlist_name">本周最常播放</string>
     <string name="monthly_most_playlist_name">本月最常播放</string>
-    <string name="enable_song_cache">启用歌曲缓存</string>
-    <string name="enable_song_cache_desc">自动缓存歌曲，以便将来更快播放</string>
+    <string name="enable_song_cache">启用音频缓存</string>
+    <string name="enable_song_cache_desc">缓存音乐与播客音频，以便以后更快播放</string>
     <string name="sleep_timer_stop_after_current_song_title">播放完当前歌曲就停止</string>
     <string name="sleep_timer_stop_after_current_song_description">等待当前播放的歌曲播放结束后再停止</string>
     <string name="sleep_timer_fade_out_title">渐隐效果</string>

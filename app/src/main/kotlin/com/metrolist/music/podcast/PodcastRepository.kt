@@ -26,6 +26,8 @@ import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
+const val PODCAST_USER_AGENT = "MetroVerse/0.2.0 (Android; Podcast)"
+
 @Singleton
 class PodcastRepository @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -58,7 +60,7 @@ class PodcastRepository @Inject constructor(
             parameter("limit", 40)
             parameter("country", country)
             parameter("term", query.trim())
-            header(HttpHeaders.UserAgent, USER_AGENT)
+            header(HttpHeaders.UserAgent, PODCAST_USER_AGENT)
         }
         check(response.status.isSuccess()) { "Apple Podcasts search failed (${response.status.value})" }
         return json.decodeFromString<ApplePodcastSearchResponse>(response.bodyAsText())
@@ -75,7 +77,7 @@ class PodcastRepository @Inject constructor(
         val response = client.get(
             "https://itunes.apple.com/${country.lowercase(Locale.US)}/rss/toppodcasts/limit=$limit/explicit=true/json",
         ) {
-            header(HttpHeaders.UserAgent, USER_AGENT)
+            header(HttpHeaders.UserAgent, PODCAST_USER_AGENT)
         }
         check(response.status.isSuccess()) { "Apple Podcasts chart failed (${response.status.value})" }
 
@@ -119,7 +121,7 @@ class PodcastRepository @Inject constructor(
         val feedUrl = normalizeFeedUrl(inputUrl)
         val response = client.get(feedUrl) {
             header(HttpHeaders.Accept, "application/rss+xml, application/atom+xml, application/xml, text/xml, */*")
-            header(HttpHeaders.UserAgent, USER_AGENT)
+            header(HttpHeaders.UserAgent, PODCAST_USER_AGENT)
         }
         check(response.status.isSuccess()) { "Podcast feed failed (${response.status.value})" }
 
@@ -205,7 +207,7 @@ class PodcastRepository @Inject constructor(
         val response = client.get("https://itunes.apple.com/lookup") {
             parameter("id", appleId)
             parameter("entity", "podcast")
-            header(HttpHeaders.UserAgent, USER_AGENT)
+            header(HttpHeaders.UserAgent, PODCAST_USER_AGENT)
         }
         check(response.status.isSuccess()) { "Apple Podcasts lookup failed (${response.status.value})" }
         return json.decodeFromString<ApplePodcastLookupResponse>(response.bodyAsText())
@@ -221,7 +223,6 @@ class PodcastRepository @Inject constructor(
         value?.let { Jsoup.parse(it).text().trim() }.orEmpty()
 
     private companion object {
-        const val USER_AGENT = "MetroVerse/0.1.0 Podcast"
         const val MAX_EPISODES_PER_FEED = 1000
     }
 }

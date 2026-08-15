@@ -32,6 +32,7 @@ import com.metrolist.music.ui.screens.artist.ArtistSongsScreen
 import com.metrolist.music.ui.screens.equalizer.EqScreen
 import com.metrolist.music.ui.screens.equalizer.wizard.WizardScreen
 import com.metrolist.music.ui.screens.library.LibraryScreen
+import com.metrolist.music.ui.screens.library.PodcastCollectionScreen
 import com.metrolist.music.ui.screens.playlist.AutoPlaylistScreen
 import com.metrolist.music.ui.screens.playlist.CachePlaylistScreen
 import com.metrolist.music.ui.screens.playlist.LocalPlaylistScreen
@@ -312,6 +313,21 @@ fun NavGraphBuilder.navigationBuilder(
             ),
     ) {
         RssPodcastScreen(navController)
+    }
+
+    composable(
+        route = "podcast_collection/{collection}",
+        arguments =
+            listOf(
+                navArgument("collection") {
+                    type = NavType.StringType
+                },
+            ),
+    ) { backStackEntry ->
+        PodcastCollectionScreen(
+            navController = navController,
+            collection = backStackEntry.arguments?.getString("collection").orEmpty(),
+        )
     }
 
     composable(

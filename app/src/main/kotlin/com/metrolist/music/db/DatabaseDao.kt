@@ -1434,7 +1434,41 @@ interface DatabaseDao {
     }.map { it.reversed(descending) }
 
     @Transaction
-    @Query("SELECT * FROM song WHERE title LIKE '%' || :query || '%' AND inLibrary IS NOT NULL LIMIT :previewSize")
+    @Query(
+        """
+        SELECT * FROM song
+        WHERE (
+            title LIKE '%' || :query || '%'
+            OR EXISTS (
+                SELECT 1 FROM song_artist_map
+                JOIN artist ON song_artist_map.artistId = artist.id
+                WHERE song_artist_map.songId = song.id
+                AND artist.name LIKE '%' || :query || '%'
+            )
+            OR EXISTS (
+                SELECT 1 FROM album
+                WHERE album.id = song.albumId
+                AND album.title LIKE '%' || :query || '%'
+            )
+        )
+        AND (
+            inLibrary IS NOT NULL
+            OR (
+                isEpisode = 1
+                AND (
+                    isDownloaded = 1
+                    OR EXISTS (
+                        SELECT 1 FROM podcast
+                        WHERE podcast.id = song.albumId
+                        AND podcast.bookmarkedAt IS NOT NULL
+                    )
+                )
+            )
+        )
+        ORDER BY totalPlayTime DESC, id ASC
+        LIMIT :previewSize
+        """,
+    )
     fun searchSongs(
         query: String,
         previewSize: Int = Int.MAX_VALUE,
@@ -1518,8 +1552,11 @@ interface DatabaseDao {
     fun clearListenHistory()
 
     @Transaction
-    @Query("SELECT * FROM search_history WHERE `query` LIKE :query || '%' ORDER BY id DESC")
-    fun searchHistory(query: String = ""): Flow<List<SearchHistory>>
+    @Query("SELECT * FROM search_history WHERE source = :source AND `query` LIKE :query || '%' ORDER BY id DESC")
+    fun searchHistory(
+        query: String = "",
+        source: String = "ONLINE",
+    ): Flow<List<SearchHistory>>
 
     @Transaction
     @Query("DELETE FROM search_history")

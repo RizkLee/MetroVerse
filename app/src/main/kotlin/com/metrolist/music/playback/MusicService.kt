@@ -78,10 +78,7 @@ import androidx.media3.exoplayer.audio.SilenceSkippingAudioProcessor
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder
-import androidx.media3.extractor.ExtractorsFactory
-import androidx.media3.extractor.mkv.MatroskaExtractor
-import androidx.media3.extractor.mp4.FragmentedMp4Extractor
-import androidx.media3.extractor.mp4.Mp4Extractor
+import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.session.CommandButton
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaController
@@ -202,6 +199,7 @@ import com.metrolist.music.playback.queues.EmptyQueue
 import com.metrolist.music.playback.queues.ListQueue
 import com.metrolist.music.playback.queues.Queue
 import com.metrolist.music.playback.queues.YouTubeQueue
+import com.metrolist.music.podcast.PODCAST_USER_AGENT
 import com.metrolist.music.playback.queues.YouTubePlaylistQueue
 import com.metrolist.music.playback.queues.filterExplicit
 import com.metrolist.music.playback.queues.filterVideoSongs
@@ -1340,8 +1338,8 @@ class MusicService :
                         .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
                         .build(),
                     false,
-                ).setSeekBackIncrementMs(30_000)
-                .setSeekForwardIncrementMs(30_000)
+                ).setSeekBackIncrementMs(PODCAST_SEEK_INCREMENT_MS)
+                .setSeekForwardIncrementMs(PODCAST_SEEK_INCREMENT_MS)
                 .setDeviceVolumeControlEnabled(true)
                 .build()
 
@@ -1584,14 +1582,14 @@ class MusicService :
             listOf(
                 CommandButton
                     .Builder()
-                    .setDisplayName(getString(if (isEpisode) R.string.rewind_30_seconds else R.string.previous_track))
-                    .setIconResId(if (isEpisode) R.drawable.replay_30 else R.drawable.skip_previous)
+                    .setDisplayName(getString(if (isEpisode) R.string.rewind_10_seconds else R.string.previous_track))
+                    .setIconResId(if (isEpisode) R.drawable.replay_10 else R.drawable.skip_previous)
                     .setPlayerCommand(if (isEpisode) Player.COMMAND_SEEK_BACK else Player.COMMAND_SEEK_TO_PREVIOUS)
                     .build(),
                 CommandButton
                     .Builder()
-                    .setDisplayName(getString(if (isEpisode) R.string.forward_30_seconds else R.string.next_track))
-                    .setIconResId(if (isEpisode) R.drawable.forward_30 else R.drawable.skip_next)
+                    .setDisplayName(getString(if (isEpisode) R.string.forward_10_seconds else R.string.next_track))
+                    .setIconResId(if (isEpisode) R.drawable.forward_10 else R.drawable.skip_next)
                     .setPlayerCommand(if (isEpisode) Player.COMMAND_SEEK_FORWARD else Player.COMMAND_SEEK_TO_NEXT)
                     .build(),
             ),
@@ -3472,34 +3470,42 @@ class MusicService :
         }
     }
 
-    private fun createCacheDataSource(): CacheDataSource.Factory =
-        CacheDataSource
-            .Factory()
-            .setCache(downloadCache)
-            .setUpstreamDataSourceFactory(
-                CacheDataSource
-                    .Factory()
-                    .setCache(playerCache)
-                    .setUpstreamDataSourceFactory(
-                        DefaultDataSource.Factory(
-                            this,
-                            OkHttpDataSource.Factory(
-                                OkHttpClient
-                                    .Builder()
-                                    .proxy(YouTube.proxy)
-                                    .proxyAuthenticator { _, response ->
-                                        YouTube.proxyAuth?.let { auth ->
-                                            response.request
-                                                .newBuilder()
-                                                .header("Proxy-Authorization", auth)
-                                                .build()
-                                        } ?: response.request
-                                    }.build(),
-                            ),
-                        ),
+    private fun createCacheDataSource(): DataSource.Factory =
+        DataSource.Factory {
+            val networkFactory =
+                DefaultDataSource.Factory(
+                    this,
+                    OkHttpDataSource.Factory(
+                        OkHttpClient
+                            .Builder()
+                            .proxy(YouTube.proxy)
+                            .proxyAuthenticator { _, response ->
+                                YouTube.proxyAuth?.let { auth ->
+                                    response.request
+                                        .newBuilder()
+                                        .header("Proxy-Authorization", auth)
+                                        .build()
+                                } ?: response.request
+                            }.build(),
                     ),
-            ).setCacheWriteDataSinkFactory(null)
-            .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
+                )
+            val streamingFactory =
+                if (dataStore.get(EnableSongCacheKey, true)) {
+                    CacheDataSource.Factory()
+                        .setCache(playerCache)
+                        .setUpstreamDataSourceFactory(networkFactory)
+                        .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
+                } else {
+                    networkFactory
+                }
+
+            CacheDataSource.Factory()
+                .setCache(downloadCache)
+                .setUpstreamDataSourceFactory(streamingFactory)
+                .setCacheWriteDataSinkFactory(null)
+                .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
+                .createDataSource()
+        }
 
     private var isSilenceSkipping = false
 
@@ -3787,7 +3793,14 @@ class MusicService :
 
             if (!directMediaUrl.isNullOrBlank()) {
                 currentStreamClient.value = "RSS"
-                return@Factory dataSpec.withUri(directMediaUrl.toUri())
+                return@Factory dataSpec
+                    .withUri(directMediaUrl.toUri())
+                    .withRequestHeaders(
+                        dataSpec.httpRequestHeaders + mapOf(
+                            "User-Agent" to PODCAST_USER_AGENT,
+                            "Accept" to "audio/*, application/ogg, video/mp4, */*",
+                        ),
+                    )
             }
 
             val shouldBypassCache = bypassCacheForQualityChange.contains(mediaId)
@@ -3938,9 +3951,7 @@ class MusicService :
     private fun createMediaSourceFactory() =
         DefaultMediaSourceFactory(
             createDataSourceFactory(),
-            ExtractorsFactory {
-                arrayOf(MatroskaExtractor(), FragmentedMp4Extractor(), Mp4Extractor())
-            },
+            DefaultExtractorsFactory().setConstantBitrateSeekingEnabled(true),
         )
 
     private fun createRenderersFactory(
@@ -4987,6 +4998,7 @@ class MusicService :
         const val NOTIFICATION_ID = 888
         const val ERROR_CODE_NO_STREAM = 1000001
         const val CHUNK_LENGTH = 512 * 1024L
+        const val PODCAST_SEEK_INCREMENT_MS = 10_000L
         const val PERSISTENT_QUEUE_FILE = "persistent_queue.data"
         const val PERSISTENT_AUTOMIX_FILE = "persistent_automix.data"
         const val PERSISTENT_PLAYER_STATE_FILE = "persistent_player_state.data"

@@ -231,18 +231,27 @@ fun LibraryPodcastsScreen(
                         )
                     }
 
-                    // Episodes for Later - card/folder (works both logged in and out)
-                    item(key = "episodes_for_later", contentType = CONTENT_TYPE_HEADER) {
+                    item(key = "liked_episodes", contentType = CONTENT_TYPE_HEADER) {
                         AutoPlaylistCard(
-                            title = stringResource(R.string.episodes_for_later),
+                            title = stringResource(R.string.liked),
                             thumbnailUrl = sePlaylist?.thumbnail ?: savedEpisodes.firstOrNull()?.song?.thumbnailUrl,
-                            episodeCount =
-                                sePlaylist?.songCountText ?: if (savedEpisodes.isNotEmpty()) {
-                                    pluralStringResource(R.plurals.n_episode, savedEpisodes.size, savedEpisodes.size)
-                                } else {
-                                    null
-                                },
-                            onClick = { navController.navigate("online_playlist/SE") },
+                            episodeCount = savedEpisodes.takeIf { it.isNotEmpty() }?.let {
+                                pluralStringResource(R.plurals.n_episode, it.size, it.size)
+                            },
+                            fallbackIcon = R.drawable.favorite,
+                            onClick = { navController.navigate("podcast_collection/liked") },
+                        )
+                    }
+
+                    item(key = "downloaded_episodes", contentType = CONTENT_TYPE_HEADER) {
+                        AutoPlaylistCard(
+                            title = stringResource(R.string.filter_downloaded),
+                            thumbnailUrl = downloadedEpisodes.firstOrNull()?.song?.thumbnailUrl,
+                            episodeCount = downloadedEpisodes.takeIf { it.isNotEmpty() }?.let {
+                                pluralStringResource(R.plurals.n_episode, it.size, it.size)
+                            },
+                            fallbackIcon = R.drawable.download,
+                            onClick = { navController.navigate("podcast_collection/downloaded") },
                         )
                     }
 
@@ -506,6 +515,7 @@ private fun AutoPlaylistCard(
     episodeCount: String?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    fallbackIcon: Int = R.drawable.queue_music,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -535,7 +545,7 @@ private fun AutoPlaylistCard(
                 )
             } else {
                 Icon(
-                    painter = painterResource(R.drawable.queue_music),
+                    painter = painterResource(fallbackIcon),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.size(28.dp),
