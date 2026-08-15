@@ -573,7 +573,7 @@ fun SongMenu(
             Material3MenuGroup(
                 items =
                     listOfNotNull(
-                        if (listenTogetherManager != null && listenTogetherManager.isInRoom && !listenTogetherManager.isHost) {
+                        if (!song.song.isEpisode && listenTogetherManager != null && listenTogetherManager.isInRoom && !listenTogetherManager.isHost) {
                             Material3MenuItemData(
                                 title = { Text(text = stringResource(R.string.suggest_to_host)) },
                                 icon = {
@@ -600,7 +600,7 @@ fun SongMenu(
                         } else {
                             null
                         },
-                        if (!isGuest && !isDirectPodcast) {
+                        if (!isGuest && !song.song.isEpisode) {
                             Material3MenuItemData(
                                 title = { Text(text = stringResource(R.string.start_radio)) },
                                 description = { Text(text = stringResource(R.string.start_radio_desc)) },

@@ -273,7 +273,7 @@ fun QueueMenu(
         item {
             NewActionGrid(
                 actions = listOfNotNull(
-                    if (!isDirectPodcast) NewAction(
+                    if (!mediaMetadata.isEpisode) NewAction(
                         icon = {
                             Icon(
                                 painter = painterResource(R.drawable.radio),

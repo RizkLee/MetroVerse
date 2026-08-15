@@ -352,7 +352,7 @@ fun YouTubeSongMenu(
         item {
             Material3MenuGroup(
                 items = listOfNotNull(
-                    if (listenTogetherManager != null && listenTogetherManager.isInRoom && !listenTogetherManager.isHost) {
+                    if (!song.isEpisode && listenTogetherManager != null && listenTogetherManager.isInRoom && !listenTogetherManager.isHost) {
                         Material3MenuItemData(
                             title = { Text(text = stringResource(R.string.suggest_to_host)) },
                             icon = {
@@ -376,7 +376,7 @@ fun YouTubeSongMenu(
                             }
                         )
                     } else null,
-                    if (!isGuest) {
+                    if (!isGuest && !song.isEpisode) {
                         Material3MenuItemData(
                             title = { Text(text = stringResource(R.string.start_radio)) },
                             description = { Text(text = stringResource(R.string.start_radio_desc)) },
@@ -649,8 +649,7 @@ fun YouTubeSongMenu(
         item { Spacer(modifier = Modifier.height(12.dp)) }
 
         item {
-            // Check if this is a podcast episode (album ID doesn't start with MPREb_)
-            val isPodcast = song.album?.let { !it.id.startsWith("MPREb_") } ?: false
+            val isPodcast = song.isEpisode
 
             Material3MenuGroup(
                 items = buildList {

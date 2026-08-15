@@ -56,6 +56,8 @@ import com.metrolist.music.ui.component.shimmer.ShimmerHost
 import com.metrolist.music.ui.component.shimmer.TextPlaceholder
 import com.metrolist.music.utils.rememberEnumPreference
 import androidx.compose.ui.platform.LocalLocale
+import com.metrolist.music.utils.makeTimeString
+import kotlinx.coroutines.flow.first
 
 @Composable
 fun getLoudnessLevelLabel(loudnessLevel: LoudnessLevel): String {
@@ -93,11 +95,12 @@ fun ShowMediaInfo(videoId: String) {
 
     val targetLufs: Float = loudnessLevel.targetLufs
 
-    LaunchedEffect(Unit, videoId) {
-        info = YouTube.getMediaInfo(videoId).getOrNull()
-    }
-
-    LaunchedEffect(Unit, videoId) {
+    LaunchedEffect(videoId) {
+        val localSong = database.song(videoId).first()
+        song = localSong
+        if (localSong?.song?.mediaUrl == null) {
+            info = YouTube.getMediaInfo(videoId).getOrNull()
+        }
         database.song(videoId).collect {
             song = it
         }
@@ -119,20 +122,45 @@ fun ShowMediaInfo(videoId: String) {
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        if (info != null) {
+        if (info != null || song != null) {
             item(contentType = "MediaDetails") {
                 Column {
-                    val baseList = listOf(
-                        stringResource(R.string.song_title) to (info?.title ?: song?.title),
-                        stringResource(R.string.song_artists) to (info?.author ?: song?.artists?.joinToString { it.name }),
-                        stringResource(R.string.media_id) to (song?.id ?: info?.videoId)
-                    )
+                    val isDirectPodcast = song?.song?.isEpisode == true && song?.song?.mediaUrl != null
+                    val baseList = if (isDirectPodcast) {
+                        listOf(
+                            stringResource(R.string.podcast_episode_title) to song?.title,
+                            stringResource(R.string.podcast_show) to song?.album?.title,
+                            stringResource(R.string.podcast_author) to song?.artists?.joinToString { it.name },
+                            stringResource(R.string.published_date) to song?.song?.date?.toLocalDate()?.toString(),
+                            stringResource(R.string.media_duration) to song?.song?.duration?.takeIf { it > 0 }?.let { makeTimeString(it * 1000L) },
+                            stringResource(R.string.media_url) to song?.song?.mediaUrl,
+                            stringResource(R.string.media_id) to song?.id,
+                        )
+                    } else {
+                        listOf(
+                            stringResource(R.string.song_title) to (info?.title ?: song?.title),
+                            stringResource(R.string.song_artists) to (info?.author ?: song?.artists?.joinToString { it.name }),
+                            stringResource(R.string.media_id) to (song?.id ?: info?.videoId),
+                        )
+                    }
 
-                    val baseIconsList = listOf(
-                        R.drawable.music_note,
-                        R.drawable.person,
-                        R.drawable.media3_icon_bookmark_filled,
-                    )
+                    val baseIconsList = if (isDirectPodcast) {
+                        listOf(
+                            R.drawable.podcast,
+                            R.drawable.album,
+                            R.drawable.person,
+                            R.drawable.info,
+                            R.drawable.timer,
+                            R.drawable.link,
+                            R.drawable.media3_icon_bookmark_filled,
+                        )
+                    } else {
+                        listOf(
+                            R.drawable.music_note,
+                            R.drawable.person,
+                            R.drawable.media3_icon_bookmark_filled,
+                        )
+                    }
 
                     val iconsList = listOf(
                         R.drawable.media3_icon_feed,
@@ -161,7 +189,7 @@ fun ShowMediaInfo(videoId: String) {
 
                     val measuredLufs: Double? = currentFormat?.perceptualLoudnessDb ?: currentFormat?.loudnessDb?.let { it + LoudnessLevel.AGGRESSIVE.targetLufs }
 
-                    val extendedList = if (currentFormat != null) {
+                    val extendedList = if (currentFormat != null && !isDirectPodcast) {
                         listOf(
                             stringResource(R.string.views) to info?.viewCount?.let(::numberFormatter).orEmpty(),
                             stringResource(R.string.likes) to info?.like?.let(::numberFormatter).orEmpty(),
@@ -237,7 +265,7 @@ fun ShowMediaInfo(videoId: String) {
 
                     Spacer(Modifier.height(8.dp))
 
-                    val descriptionText = info?.description ?: stringResource(R.string.unknown)
+                    val descriptionText = info?.description ?: song?.song?.description ?: stringResource(R.string.unknown)
 
                     Material3SettingsGroup(
                         title = stringResource(R.string.description),

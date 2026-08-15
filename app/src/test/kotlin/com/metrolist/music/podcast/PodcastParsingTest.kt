@@ -25,6 +25,13 @@ class PodcastParsingTest {
     }
 
     @Test
+    fun podcastRegions_normalizeSupportedCodes() {
+        assertEquals("GB", normalizePodcastRegionCode("gb"))
+        assertEquals("US", normalizePodcastRegionCode("unsupported"))
+        assertEquals(true, supportedPodcastRegions.any { it.code == defaultPodcastRegionCode() })
+    }
+
+    @Test
     fun generatedIdsAreStableAndSourceScoped() {
         val feed = "https://example.com/feed.xml"
         assertEquals(podcastIdForFeed(feed), podcastIdForFeed(feed))

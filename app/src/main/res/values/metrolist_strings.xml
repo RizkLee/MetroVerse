@@ -920,10 +920,17 @@
     <string name="continue_listening">Continue listening</string>
     <string name="discover_podcasts">Discover podcasts</string>
     <string name="podcast_discovery_attribution">Podcast discovery by Apple Podcasts</string>
+    <string name="podcast_region_current">Apple Podcasts region: %s</string>
     <string name="no_podcast_subscriptions">Subscribed podcasts will show up here</string>
     <string name="no_podcast_episodes">No podcast episodes found</string>
     <string name="no_podcast_results">No podcasts found</string>
     <string name="podcast_not_found">Podcast not found</string>
+    <string name="podcast_episode_title">Episode title</string>
+    <string name="podcast_show">Podcast</string>
+    <string name="podcast_author">Author</string>
+    <string name="published_date">Published</string>
+    <string name="media_duration">Duration</string>
+    <string name="media_url">Media URL</string>
     <string name="podcast_feed_error">Could not load podcast feed: %s</string>
     <string name="unsubscribe">Unsubscribe</string>
     <string name="refresh_podcasts">Refresh podcasts</string>

@@ -33,6 +33,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,7 +48,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.metrolist.music.R
+import com.metrolist.music.constants.PodcastRegionKey
 import com.metrolist.music.podcast.PodcastDiscoverItem
+import com.metrolist.music.podcast.defaultPodcastRegionCode
+import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.viewmodels.PodcastSearchViewModel
 import com.metrolist.music.viewmodels.PodcastUiEvent
 
@@ -61,6 +65,11 @@ fun PodcastSearchResultScreen(
     val results by viewModel.results.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
+    var podcastRegion by rememberPreference(PodcastRegionKey, defaultPodcastRegionCode())
+
+    LaunchedEffect(podcastRegion) {
+        viewModel.setCountry(podcastRegion)
+    }
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
@@ -88,6 +97,13 @@ fun PodcastSearchResultScreen(
                             contentDescription = stringResource(R.string.back_button_desc),
                         )
                     }
+                },
+                actions = {
+                    PodcastRegionSelector(
+                        selectedCode = podcastRegion,
+                        onSelected = { podcastRegion = it },
+                        compact = true,
+                    )
                 },
             )
         },

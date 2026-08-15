@@ -6,9 +6,12 @@ import androidx.lifecycle.viewModelScope
 import com.metrolist.music.db.MusicDatabase
 import com.metrolist.music.podcast.PodcastDiscoverItem
 import com.metrolist.music.podcast.PodcastRepository
+import com.metrolist.music.podcast.defaultPodcastRegionCode
+import com.metrolist.music.podcast.normalizePodcastRegionCode
 import com.metrolist.music.utils.SearchRoutes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -37,6 +40,8 @@ class PodcastHomeViewModel @Inject constructor(
 
     private val _discover = MutableStateFlow<List<PodcastDiscoverItem>>(emptyList())
     val discover = _discover.asStateFlow()
+    private var country = defaultPodcastRegionCode()
+    private var discoverJob: Job? = null
     private val _isLoadingDiscover = MutableStateFlow(false)
     val isLoadingDiscover = _isLoadingDiscover.asStateFlow()
     private val _isRefreshing = MutableStateFlow(false)
@@ -48,10 +53,18 @@ class PodcastHomeViewModel @Inject constructor(
         refresh()
     }
 
+    fun setCountry(value: String) {
+        val normalized = normalizePodcastRegionCode(value)
+        if (normalized == country) return
+        country = normalized
+        loadDiscover()
+    }
+
     fun loadDiscover() {
-        viewModelScope.launch(Dispatchers.IO) {
+        discoverJob?.cancel()
+        discoverJob = viewModelScope.launch(Dispatchers.IO) {
             _isLoadingDiscover.value = true
-            runCatching { repository.topPodcasts() }
+            runCatching { repository.topPodcasts(country = country) }
                 .onSuccess { _discover.value = it }
                 .onFailure { _events.emit(PodcastUiEvent.Error(it.message ?: "Podcast discovery failed")) }
             _isLoadingDiscover.value = false
@@ -65,7 +78,7 @@ class PodcastHomeViewModel @Inject constructor(
             val failures = repository.refreshSubscribed()
                 .mapNotNull(Result<*>::exceptionOrNull)
                 .toMutableList()
-            runCatching { repository.topPodcasts() }
+            runCatching { repository.topPodcasts(country = country) }
                 .onSuccess { _discover.value = it }
                 .onFailure(failures::add)
             failures.firstOrNull()?.let {
@@ -102,6 +115,8 @@ class PodcastSearchViewModel @Inject constructor(
 
     private val _results = MutableStateFlow<List<PodcastDiscoverItem>>(emptyList())
     val results = _results.asStateFlow()
+    private var country = defaultPodcastRegionCode()
+    private var searchJob: Job? = null
     private val _isLoading = MutableStateFlow(false)
     val isLoading = _isLoading.asStateFlow()
     private val _error = MutableStateFlow<String?>(null)
@@ -113,11 +128,19 @@ class PodcastSearchViewModel @Inject constructor(
         if (!looksLikeFeed) search()
     }
 
+    fun setCountry(value: String) {
+        val normalized = normalizePodcastRegionCode(value)
+        if (normalized == country) return
+        country = normalized
+        if (!looksLikeFeed) search()
+    }
+
     fun search() {
-        viewModelScope.launch(Dispatchers.IO) {
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch(Dispatchers.IO) {
             _isLoading.value = true
             _error.value = null
-            runCatching { repository.search(query) }
+            runCatching { repository.search(query, country = country) }
                 .onSuccess { _results.value = it }
                 .onFailure { _error.value = it.message ?: "Podcast search failed" }
             _isLoading.value = false

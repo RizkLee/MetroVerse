@@ -156,6 +156,7 @@ fun Queue(
     iconButtonColor: Color,
     pureBlack: Boolean,
     showInlineLyrics: Boolean,
+    lyricsEnabled: Boolean = true,
     playerBackground: PlayerBackgroundStyle = PlayerBackgroundStyle.DEFAULT,
     onToggleLyrics: () -> Unit = {},
 ) {
@@ -347,18 +348,20 @@ fun Queue(
                         playerBackground = playerBackground,
                     )
 
-                    PlayerQueueButton(
-                        icon = R.drawable.lyrics,
-                        onClick = { onToggleLyrics() },
-                        isActive = showInlineLyrics,
-                        shape = middleShape,
-                        modifier = Modifier.size(buttonSize),
-                        textButtonColor = textButtonColor,
-                        iconButtonColor = iconButtonColor,
-                        iconSize = iconSize,
-                        textBackgroundColor = TextBackgroundColor,
-                        playerBackground = playerBackground,
-                    )
+                    if (lyricsEnabled) {
+                        PlayerQueueButton(
+                            icon = R.drawable.lyrics,
+                            onClick = { onToggleLyrics() },
+                            isActive = showInlineLyrics,
+                            shape = middleShape,
+                            modifier = Modifier.size(buttonSize),
+                            textButtonColor = textButtonColor,
+                            iconButtonColor = iconButtonColor,
+                            iconSize = iconSize,
+                            textBackgroundColor = TextBackgroundColor,
+                            playerBackground = playerBackground,
+                        )
+                    }
 
                     PlayerQueueButton(
                         icon =
@@ -508,32 +511,32 @@ fun Queue(
                         }
                     }
 
-                    TextButton(
-                        onClick = {
-                            onToggleLyrics()
-                        },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center,
-                            modifier = Modifier.fillMaxWidth(),
+                    if (lyricsEnabled) {
+                        TextButton(
+                            onClick = onToggleLyrics,
+                            modifier = Modifier.weight(1f),
                         ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.lyrics),
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = TextBackgroundColor,
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = stringResource(R.string.lyrics),
-                                color = TextBackgroundColor,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.basicMarquee(),
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.lyrics),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = TextBackgroundColor,
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = stringResource(R.string.lyrics),
+                                    color = TextBackgroundColor,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.basicMarquee(),
+                                )
+                            }
                         }
                     }
                 }

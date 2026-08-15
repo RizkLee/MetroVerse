@@ -319,6 +319,10 @@ fun BottomSheetPlayer(
     val playbackState by playerConnection.playbackState.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val currentSong by playerConnection.currentSong.collectAsStateWithLifecycle(initialValue = null)
+
+    LaunchedEffect(mediaMetadata?.id) {
+        if (mediaMetadata?.isEpisode == true) showInlineLyrics = false
+    }
     val automix by playerConnection.service.automixItems.collectAsStateWithLifecycle()
     val repeatMode by playerConnection.repeatMode.collectAsStateWithLifecycle()
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsStateWithLifecycle()
@@ -1088,6 +1092,7 @@ fun BottomSheetPlayer(
                                                 indication = null,
                                                 interactionSource = remember { MutableInteractionSource() },
                                                 onClick = {
+                                                    if (mediaMetadata.isEpisode) return@combinedClickable
                                                     val tapPosition = clickOffset
                                                     val layout = layoutResult
                                                     if (tapPosition != null && layout != null) {
@@ -1998,9 +2003,10 @@ fun BottomSheetPlayer(
                 iconButtonColor = iconButtonColor,
                 pureBlack = pureBlack,
                 showInlineLyrics = showInlineLyrics,
+                lyricsEnabled = mediaMetadata?.isEpisode != true,
                 playerBackground = playerBackground,
                 onToggleLyrics = {
-                    showInlineLyrics = !showInlineLyrics
+                    if (mediaMetadata?.isEpisode != true) showInlineLyrics = !showInlineLyrics
                 },
             )
         }

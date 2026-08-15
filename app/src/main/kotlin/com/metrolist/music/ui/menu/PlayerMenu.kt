@@ -138,7 +138,8 @@ fun PlayerMenu(
     val varispeedMode by rememberPreference(VarispeedKey, defaultValue = false)
 
     val librarySong by database.song(mediaMetadata.id).collectAsStateWithLifecycle(initialValue = null)
-    val isDirectPodcast = mediaMetadata.isEpisode && mediaMetadata.mediaUrl != null
+    val isPodcastEpisode = mediaMetadata.isEpisode
+    val isDirectPodcast = isPodcastEpisode && mediaMetadata.mediaUrl != null
     val coroutineScope = rememberCoroutineScope()
 
     val download by LocalDownloadUtil.current
@@ -323,7 +324,7 @@ fun PlayerMenu(
             NewActionGrid(
                 actions =
                     listOfNotNull(
-                        if (!isListenTogetherGuest && !isDirectPodcast) {
+                        if (!isListenTogetherGuest && !isPodcastEpisode) {
                             NewAction(
                                 icon = {
                                     Icon(
@@ -616,7 +617,7 @@ fun PlayerMenu(
             Material3MenuGroup(
                 items =
                     buildList {
-                        if (!isDirectPodcast) add(
+                        if (!isPodcastEpisode) add(
                             Material3MenuItemData(
                                 title = { Text(text = stringResource(R.string.listen_together)) },
                                 icon = {

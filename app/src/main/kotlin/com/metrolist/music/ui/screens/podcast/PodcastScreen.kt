@@ -58,16 +58,19 @@ import com.metrolist.music.LocalNavController
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
+import com.metrolist.music.constants.PodcastRegionKey
 import com.metrolist.music.db.entities.PodcastEntity
 import com.metrolist.music.db.entities.Song
 import com.metrolist.music.extensions.toMediaItem
 import com.metrolist.music.playback.queues.ListQueue
 import com.metrolist.music.podcast.PodcastDiscoverItem
+import com.metrolist.music.podcast.defaultPodcastRegionCode
 import com.metrolist.music.ui.component.LocalMenuState
 import com.metrolist.music.ui.component.SongListItem
 import com.metrolist.music.ui.menu.SongMenu
 import com.metrolist.music.utils.joinByBullet
 import com.metrolist.music.utils.makeTimeString
+import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.viewmodels.PodcastHomeViewModel
 import com.metrolist.music.viewmodels.PodcastUiEvent
 import java.time.format.DateTimeFormatter
@@ -93,6 +96,11 @@ fun PodcastScreen(
     val refreshState = rememberPullToRefreshState()
     var showAddFeed by rememberSaveable { mutableStateOf(false) }
     var feedUrl by rememberSaveable { mutableStateOf("") }
+    var podcastRegion by rememberPreference(PodcastRegionKey, defaultPodcastRegionCode())
+
+    LaunchedEffect(podcastRegion) {
+        viewModel.setCountry(podcastRegion)
+    }
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
@@ -151,28 +159,35 @@ fun PodcastScreen(
             modifier = Modifier.fillMaxSize(),
         ) {
             item(key = "podcast_actions") {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                 ) {
-                    Button(
-                        onClick = { navController.navigate("search_input") },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Icon(painterResource(R.drawable.search), contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.search))
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Button(
+                            onClick = { navController.navigate("search_input") },
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Icon(painterResource(R.drawable.search), contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(stringResource(R.string.search))
+                        }
+                        OutlinedButton(
+                            onClick = { showAddFeed = true },
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Icon(painterResource(R.drawable.add), contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(stringResource(R.string.add_podcast_feed), maxLines = 1)
+                        }
                     }
-                    OutlinedButton(
-                        onClick = { showAddFeed = true },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Icon(painterResource(R.drawable.add), contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.add_podcast_feed), maxLines = 1)
-                    }
+                    PodcastRegionSelector(
+                        selectedCode = podcastRegion,
+                        onSelected = { podcastRegion = it },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
 
