@@ -37,7 +37,7 @@ https://itunes.apple.com/lookup
 https://itunes.apple.com/{country}/rss/toppodcasts/...
 ```
 
-Apple storefront 来自持久化的 `PodcastRegionKey`。`PodcastRegions.kt` 将系统国家规范化到受支持列表，首页和搜索 ViewModel 在地区变化时取消旧请求并重新加载；这个设置只影响 Apple 发现，不修改任何 RSS 订阅。
+Apple storefront 来自持久化的 `PodcastRegionKey`。`PodcastRegions.kt` 将系统国家规范化到受支持列表，首页和搜索 ViewModel 在地区变化时取消旧请求并重新加载；`CancellationException` 会继续向上抛出，不会再被转换为 `StandaloneCoroutine was cancelled` 用户错误。这个设置只影响 Apple 发现，不修改任何 RSS 订阅。Discover 首次请求 24 项，滚动接近页面末尾后每次提高 24 项 limit，最多请求 Apple 榜单的 200 项。
 
 ### 2.2 RSS 导入
 
@@ -53,7 +53,7 @@ RSS URL
     -> SongEntity + ArtistEntity + SongArtistMap
 ```
 
-RSS 描述通过 Jsoup 转成可显示的纯文本。单次最多导入 1000 个单集，避免异常大订阅源无限占用内存和数据库。
+RSS 描述通过 Jsoup 转成可显示的纯文本。单次最多导入 1000 个单集，避免异常大订阅源无限占用内存和数据库。RSS/Atom 没有统一的历史分集分页参数，详情页使用 `LazyColumn` 避免一次组合全部行，但首次导入仍需下载并解析服务器返回的完整 XML；不能把客户端分批显示误称为网络分页。
 
 ### 2.3 播放
 
@@ -76,7 +76,7 @@ RssPodcastScreen
 - `tag`：可序列化的 MetroVerse `MediaMetadata`，包含 `mediaUrl`。
 - Media3 metadata type：`MEDIA_TYPE_PODCAST_EPISODE`。
 
-`MusicService.createDataSourceFactory()` 在访问 YouTube 播放解析前查询 `SongEntity.mediaUrl`。存在直链时直接返回 URI，并继续经过现有 CacheDataSource。
+`MusicService.createDataSourceFactory()` 在访问 YouTube 播放解析前查询 `SongEntity.mediaUrl`。存在直链时添加 MetroVerse User-Agent 与音频 Accept 请求头，直接返回 URI，并继续经过现有 CacheDataSource。媒体源使用 `DefaultExtractorsFactory`，覆盖 MP3、AAC/ADTS、Ogg、FLAC、WAV、MP4、Matroska 和 MPEG-TS 等 Media3 默认容器；0.1.0 只注册 Matroska/Fragmented MP4/MP4，是 `PARSING_CONTAINER_UNSUPPORTED (3003)` 的根因。
 
 ### 2.4 下载
 
@@ -89,7 +89,7 @@ RssPodcastScreen
     -> Media3 DownloadManager / downloadCache
 ```
 
-因此在线播放与下载使用同一稳定 ID，缓存层复用从 Metrolist 继承的模块。
+因此在线播放与下载使用同一稳定 ID，缓存层复用从 Metrolist 继承的模块。Storage 的音频缓存开关在每次创建数据流时读取：关闭后仍可读取明确下载的内容，但不会写播放器缓存；大小限制、清理缓存和下载清理同时作用于音乐与播客。
 
 ### 2.5 断点续播
 
@@ -105,10 +105,10 @@ RssPodcastScreen
 
 ## 3. 数据库设计
 
-Room 数据库版本从 38 升到 39，并使用 `AutoMigration(from = 38, to = 39)`。导出的 schema 位于：
+Room 数据库先从 38 升到 39，再在 0.2.0 升到 40。版本 40 为 `search_history` 添加 `source`，唯一索引改为 `(query, source)`，使同一查询可以分别存在于 YouTube Music 和 Podcasts 历史中。0.1.0 的记录没有来源信息，`Migration39To40` 将其标记为 `LEGACY` 并从两个来源界面隐藏，避免继续错误归类。导出的最新 schema 位于：
 
 ```text
-app/schemas/com.metrolist.music.db.InternalDatabase/39.json
+app/schemas/com.metrolist.music.db.InternalDatabase/40.json
 ```
 
 ### 3.1 PodcastEntity 新字段
@@ -185,6 +185,7 @@ val isDirectPodcast = metadata.isEpisode && metadata.mediaUrl != null
 podcast
 podcast_search/{query}
 rss_podcast/{podcastId}
+podcast_collection/{liked|downloaded}
 ```
 
 顶级入口：
@@ -198,9 +199,9 @@ rss_podcast/{podcastId}
 搜索来源：
 
 ```kotlin
-SearchSource.ONLINE
-SearchSource.PODCAST
-SearchSource.LOCAL
+SearchSource.ONLINE   // UI label: YouTube Music
+SearchSource.PODCAST  // UI label: Podcasts
+SearchSource.LOCAL    // UI label: Library
 ```
 
 新增界面全部复用 MetroVerse 从 Metrolist 继承的 TopAppBar、NavigationIconButton、ChipsRow、AsyncImage、SongListItem、BottomSheet 和主题色，不引入 Podium 的页面或第二套设计 token。
@@ -216,7 +217,7 @@ SearchSource.LOCAL
 - `db/entities/PodcastEntity.kt`：节目实体。
 - `db/entities/SongEntity.kt`：RSS 单集直链元数据。
 - `db/DatabaseDao.kt`：RSS 节目和单集查询。
-- `db/MusicDatabase.kt`：Room 39 与迁移。
+- `db/MusicDatabase.kt`：Room 40、搜索来源迁移与 schema。
 
 ### UI 和状态
 
@@ -227,6 +228,7 @@ SearchSource.LOCAL
 - `ui/screens/podcast/RssPodcastScreen.kt`
 - `ui/screens/search/SearchScreen.kt`
 - `ui/screens/library/LibraryPodcastsScreen.kt`
+- `ui/screens/library/PodcastCollectionScreen.kt`
 - `ui/screens/NavigationBuilder.kt`
 - `ui/screens/Screens.kt`
 
@@ -238,6 +240,7 @@ SearchSource.LOCAL
 - `playback/DownloadUtil.kt`
 - `playback/PlayerConnection.kt`
 - `ui/player/Player.kt`
+- `ui/player/PlaybackOptionBottomSheets.kt`
 - `ui/menu/PlayerMenu.kt`
 - `ui/menu/QueueMenu.kt`
 - `ui/menu/SongMenu.kt`
@@ -245,10 +248,10 @@ SearchSource.LOCAL
 ### 测试和资源
 
 - `app/src/test/kotlin/com/metrolist/music/podcast/PodcastParsingTest.kt`
-- `app/schemas/com.metrolist.music.db.InternalDatabase/39.json`
+- `app/schemas/com.metrolist.music.db.InternalDatabase/40.json`
 - `res/drawable/podcast.xml`
-- `res/drawable/replay_30.xml`
-- `res/drawable/forward_30.xml`
+- `res/drawable/replay_10.xml`
+- `res/drawable/forward_10.xml`
 - `res/values/metrolist_strings.xml`
 - `res/values-zh-rCN/metrolist_strings.xml`
 
@@ -321,7 +324,7 @@ SearchSource.LOCAL
 
 - MockWebServer 下的 Apple search/lookup JSON 测试。
 - 多种真实 RSS/Atom fixture。
-- Room 38 到 39 的 instrumentation migration test。
+- Room 38 到 39 以及 39 到 40 的 instrumentation migration test。
 - DownloadUtil 直链 resolver 测试。
 - Compose 导航和订阅状态测试。
 - MediaSession 播客按钮测试。
@@ -332,7 +335,7 @@ SearchSource.LOCAL
 
 - `:app:compileFossDebugKotlin` 通过。
 - 播客专项单元测试通过。
-- `:app:lintFossDebug` 完成；现有项目报告为 65 errors、288 warnings，这些是继承代码的基线债务，播客新增文件没有 lint error。
+- `:app:lintFossDebug` 完成；0.2.0 报告为 65 errors、297 warnings，65 个 error 是继承代码的基线债务，播客新增文件没有 lint error。
 - `:app:assembleFossDebug` 通过。
 - 调试 APK 已生成。
 - R8 压缩后的 `:app:assembleFossRelease` 通过，正式 APK 已使用本机 MetroVerse RSA 4096 release key 签名，并通过 APK v2 签名校验。
@@ -346,7 +349,7 @@ app/build/outputs/apk/foss/debug/app-foss-debug.apk
 app/build/outputs/apk/foss/release/app-foss-release.apk
 ```
 
-当前产物约为 47 MiB（Debug）和 24 MiB（Release）。Release SHA-256 为 `f7c3689074d934d93677d1599a2d58bc18e5df96273914a7eb57f72bb40ea1f9`；源码或构建环境变化后必须重新计算，不能把这个值当作后续版本固定校验值。
+0.2.0 最终产物为 49,166,219 bytes（Debug）和 24,165,051 bytes（Release）。Release SHA-256 为 `bca51bbf0128d59d4bcd8efb1223812945076772f8d7ee042ee33bbc25620dfa`；源码或构建环境变化后必须重新计算，不能把这个值当作后续版本固定校验值。
 
 设备手工矩阵建议至少包含：
 

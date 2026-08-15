@@ -1,0 +1,9 @@
+MetroVerse 0.2.0
+
+- Fix MP3 and other common RSS podcast containers.
+- Add multi-row discovery with incremental loading.
+- Add editable podcast search results and source-aware history.
+- Add Liked and Downloaded episode collections.
+- Add podcast playback speed and revised sleep timer sheets.
+- Change podcast seek controls from 30 seconds to 10 seconds.
+- Apply audio cache settings consistently to music and podcasts.

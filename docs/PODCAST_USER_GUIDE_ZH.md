@@ -11,7 +11,7 @@ MetroVerse 现在可以在同一个 App 中播放音乐和播客：
 - 粘贴 RSS/Atom 订阅源网址，直接添加未收录在 Apple Podcasts 的节目。
 - 订阅、取消订阅和手动刷新 RSS 节目。
 - 播放 RSS 音频、排队、暂停、拖动进度和断点续播。
-- 在完整播放器中后退或前进 30 秒，并调整播放速度。
+- 在完整播放器中后退或前进 10 秒，并通过播客工具栏调整播放速度。
 - 收藏单集以供稍后收听。
 - 下载单集并使用继承自 Metrolist 的下载管理能力离线播放。
 - 从 Library 查看播客频道、已保存单集和已下载单集。
@@ -26,7 +26,9 @@ Apple Podcasts 在这里仅用于“发现节目”。订阅和播放使用节�
 1. 启动 MetroVerse。
 2. 手机竖屏时，点击底部的 **Podcast/播客**。
 3. 平板或横屏时，点击左侧导航栏的播客图标。
-4. 页面上方显示订阅、继续收听和发现内容；首次加载排行榜需要联网。
+4. 页面顶部先显示 **Discover podcasts/发现播客** 多列内容，向下滚动接近页面末尾时继续加载更多 Apple 榜单项目。
+5. **Latest episodes/最新分集** 最多显示 5 条，完整内容仍可从节目详情和资料库进入。
+6. 顶部 Search、RSS 和地区码三个操作保持在同一行；地区按钮只显示 `US`、`CN` 等代码。
 
 如需把播客设为启动后默认页面：
 
@@ -39,7 +41,7 @@ Apple Podcasts 在这里仅用于“发现节目”。订阅和播放使用节�
 
 有两个入口：
 
-- 在播客首页点击搜索图标；或
+- 在播客首页点击 **Search/搜索**；或
 - 打开全局 **Search/搜索**，选择 **Podcast/播客** 来源。
 
 操作步骤：
@@ -47,15 +49,16 @@ Apple Podcasts 在这里仅用于“发现节目”。订阅和播放使用节�
 1. 输入节目名称、作者或主题。
 2. 提交搜索。
 3. 点击结果进入节目详情。
-4. App 会先通过 Apple lookup 获取公开 RSS 地址，再抓取节目和单集。
-5. 点击 **Subscribe/订阅** 将节目保存到资料库。
+4. 搜索结果页顶部仍有可编辑搜索框，无需返回上一页即可修改并重新提交。
+5. App 会先通过 Apple lookup 获取公开 RSS 地址，再抓取节目和单集。
+6. 点击 **Subscribe/订阅** 将节目保存到资料库。
 
-搜索与榜单由 Apple Podcasts 公开接口提供，实际结果可能因所选地区不同而变化。
+YouTube Music 和 Podcasts 使用分开的搜索历史。升级到 0.2.0 后，0.1.0 无法判断来源的旧历史会被隐藏；新记录会出现在正确来源下。搜索与榜单由 Apple Podcasts 公开接口提供，实际结果可能因所选地区不同而变化。
 
 ### 2.3 切换 Apple Podcasts 地区
 
 1. 打开 Podcast 首页。
-2. 点击操作区中的 **Apple Podcasts 地区** 按钮。
+2. 点击操作区中的两位地区码按钮，例如 `US` 或 `CN`。
 3. 选择美国、英国、中国大陆、香港、台湾、日本等支持的 storefront。
 4. 首页榜单会立即按新地区重新加载。
 5. 在播客搜索结果页也可以点击顶栏的地区图标切换，搜索会自动重跑。
@@ -90,9 +93,10 @@ Apple Podcasts 在这里仅用于“发现节目”。订阅和播放使用节�
 1. 在节目详情页点击任意单集。
 2. 单集会进入 MetroVerse 与音乐共用的播放器和队列。
 3. 点击底部迷你播放器打开完整播放器。
-4. 播客单集的左右主按钮是 **后退 30 秒** 和 **前进 30 秒**。
+4. 播客单集的左右主按钮是 **后退 10 秒** 和 **前进 10 秒**；通知和系统媒体控制使用相同步长。
 5. 锁屏通知、Android Auto 和兼容耳机控制也会使用前进/后退语义。
-6. 打开播放器菜单，进入 **Advanced/高级** 可调整播放速度。
+6. 播客播放器工具栏用 **Speed/倍速** 替换歌词按钮，弹层可在 0.25x 到 4.00x 间即时调整。
+7. 音乐和播客的 **Sleep timer/睡眠计时器** 使用底部弹层；可选择关闭、5 到 90 分钟，或在当前歌曲/单集结束时停止。
 
 MetroVerse 会周期保存播客进度，并在切换媒体、退出服务或下次播放同一单集时恢复。正常播放到接近结尾后，再次播放会从头开始。
 
@@ -103,14 +107,14 @@ MetroVerse 会周期保存播客进度，并在切换媒体、退出服务或下
 - 空心：尚未收藏。
 - 实心：已经收藏。
 
-收藏后的单集可在 **Library > Podcasts > Episodes** 中找到。RSS 单集只修改本地资料库，不会向 YouTube Music 发送收藏请求。
+收藏后的单集可在 **Library > Podcasts > Liked** 集合中找到。RSS 单集只修改本地资料库，不会向 YouTube Music 发送收藏请求。
 
 ### 2.8 下载和删除下载
 
 1. 打开单集右侧菜单，或打开完整播放器菜单。
 2. 点击 **Download/下载**。
 3. 等待下载完成。
-4. 在 **Library > Podcasts > Downloaded** 查看已下载单集。
+4. 在 **Library > Podcasts > Downloaded** 集合或 Downloaded 筛选中查看已下载单集。
 5. 再次打开菜单可删除下载。
 
 下载沿用 MetroVerse 继承的 `DownloadUtil`、Media3 DownloadService 和缓存。下载时不要强制停止 App。某些节目使用会过期、需要登录或带 DRM 的音频地址，这类内容可能无法下载。
@@ -119,9 +123,10 @@ MetroVerse 会周期保存播客进度，并在切换媒体、退出服务或下
 
 打开 **Library/资料库** 并选择播客后，可以查看：
 
+- **Liked/已点赞** 集合：已收藏的 RSS 与 YouTube 播客单集。
+- **Downloaded/已下载** 集合：已完成下载的播客单集。
 - **Channels/频道**：RSS 订阅和原有 YouTube Music 播客。
-- **Episodes/单集**：已保存单集。
-- **Downloaded/已下载**：已完成下载的单集。
+- **Episodes/单集** 与 **Downloaded/已下载** 筛选：快速浏览对应内容。
 
 点击 RSS 节目会进入新的 RSS 详情页；点击 YouTube Music 播客仍进入原有在线播客页。
 
@@ -130,7 +135,8 @@ MetroVerse 会周期保存播客进度，并在切换媒体、退出服务或下
 - 不会同步 Apple Podcasts 账户、播放历史或私人订阅。
 - 当前没有 OPML 导入/导出。
 - 当前没有后台定时刷新；需要打开播客页或点击刷新。
-- RSS 音频必须是 Android Media3 支持、设备可直接访问的格式。
+- RSS 音频必须是 Android Media3 支持、设备可直接访问的格式；0.2.0 已启用 MP3、AAC/ADTS、Ogg、FLAC、WAV、MP4 等默认 extractor。
+- RSS/Atom 没有统一的历史分集分页协议。详情页采用懒列表，不会一次组合所有行，但首次导入仍需下载并解析订阅源返回的完整 XML。
 - 需要网页登录、Cookie、付费鉴权或 DRM 的私人订阅源可能无法播放。
 - RSS 直链不会参与 YouTube 电台、歌词、Last.fm scrobble 或 Listen Together。
 - Apple 搜索和榜单需要访问 `itunes.apple.com`；RSS 播放还需要访问节目自己的服务器。
@@ -282,25 +288,30 @@ D:\Android\AndroidSDK\platform-tools\adb.exe install -r .\app\build\outputs\apk\
 
 当前仓库全量单元测试中，原有 `YouTubeUtilsTest` 有 4 个图片 URL 尺寸断言失败；它们与播客整合无关。播客专项测试已通过。
 
-`lintFossDebug` 任务可以完成，但现有项目报告仍包含 65 个 error 和 288 个 warning；这些是继承代码的基线债务，播客新增文件没有 lint error。HTML 报告位于 `app/build/reports/lint-results-fossDebug.html`。
+`lintFossDebug` 任务可以完成，但 0.2.0 构建的现有项目报告仍包含 65 个 error 和 297 个 warning；65 个 error 均为继承代码的基线债务，播客新增文件没有 lint error。HTML 报告位于 `app/build/reports/lint-results-fossDebug.html`。
 
-已验证的调试 APK 是 `app/build/outputs/apk/foss/debug/app-foss-debug.apk`，约 47 MiB。已验证的签名正式 APK 是 `app/build/outputs/apk/foss/release/app-foss-release.apk`，约 24 MiB。
+0.2.0 已验证的调试 APK 是 `app/build/outputs/apk/foss/debug/app-foss-debug.apk`，49,166,219 bytes。已验证的签名正式 APK 是 `app/build/outputs/apk/foss/release/app-foss-release.apk`，24,165,051 bytes，SHA-256 为 `bca51bbf0128d59d4bcd8efb1223812945076772f8d7ee042ee33bbc25620dfa`。
 
 ## 8. 手工验收清单
 
 建议每次改动播客代码后完成以下检查：
 
 - 手机竖屏底栏显示 Podcast，平板/横屏侧栏也显示 Podcast。
-- Apple 搜索可返回结果，点击后能解析 RSS。
+- Apple 搜索可返回结果，结果页搜索框可直接修改查询，点击结果后能解析 RSS。
 - 在 Podcast 首页和搜索结果页切换至少两个 Apple 地区，确认榜单或搜索会重载。
 - 粘贴一个 RSS URL 可打开详情并订阅。
 - 退出并重新打开 App 后订阅仍存在。
 - 节目列表、单集列表、迷你播放器和完整播放器能显示 RSS 提供的封面；没有单集图时会回退到节目封面。
-- 播放单集后能暂停、拖动和前后跳转 30 秒。
+- 播放一个 `audio/mpeg` 境外 RSS 单集，确认 VPN 开启时不再出现 `PARSING_CONTAINER_UNSUPPORTED (3003)`。
+- 播放单集后能暂停、拖动和前后跳转 10 秒，按压时按钮尺寸不再发生卡顿动画。
+- 播客倍速弹层可在 0.25x 到 4.00x 调整；音乐与播客睡眠计时器都可选择分钟数和当前歌曲/单集结束。
 - 播放一段后切换到音乐，再回到单集可恢复进度。
 - RSS 单集可加入队列，重启 App 后队列仍可恢复并播放。
-- 收藏单集后可在 Library 的 Episodes 中看到。
-- 下载后可在断网状态播放，并出现在 Downloaded 中。
+- 收藏单集后可在 Library > Podcasts 的 Liked 集合中看到。
+- 下载后可在断网状态播放，并出现在 Downloaded 集合和筛选中。
+- 在 Search > Library 中能按节目名、作者或单集名搜到已订阅、点赞或下载的播客单集。
+- 在 YouTube Music 与 Podcasts 搜索来源分别搜索不同词，确认历史不会串到另一来源。
+- 关闭 Storage 中的音频缓存后播放音乐和播客，确认播放器缓存不再增长；清理缓存和下载对两类音频都生效。
 - RSS 单集的喜欢、详情和分享可用；分享的是节目网页或音频地址，不是伪造的 YouTube 链接。
 - RSS 和 YouTube 播客的播放器菜单不显示歌词、Listen Together、Start Radio 或 View Artist。
 - 将 App 语言分别切换到 English 和简体中文，确认 Podcast、地区选择、错误状态和详情文案完整。
@@ -337,7 +348,7 @@ D:\Android\AndroidSDK\platform-tools\adb.exe logcat | Select-String "MusicServic
 
 ### 修改后出现数据库问题
 
-数据库版本已从 38 升到 39。调试阶段可以卸载 **MetroVerse Debug** 后重装来清空调试数据，但这会删除调试版的订阅、队列、下载索引和设置。不要直接清除正式版数据。
+数据库版本已依次从 38 升到 39，再升到 40。版本 40 为搜索历史增加来源字段；0.1.0 的旧记录无法可靠判断来自 YouTube Music 还是 Podcasts，因此升级时会隐藏这些旧记录，之后的新记录会正确分开保存。调试阶段可以卸载 **MetroVerse Debug** 后重装来清空调试数据，但这会删除调试版的订阅、队列、下载索引和设置。不要直接清除正式版数据。
 
 ## 10. 关于密钥
 

@@ -19,4 +19,9 @@ MetroVerse is an independent learning project. It is not an official release of,
 
 Apple Podcasts names and discovery data belong to their respective owners. YouTube and YouTube Music names and services belong to Google and their respective owners. Use of those services is subject to their own terms.
 
+The Podcast, replay 10, and forward 10 vector icons are derived from Google Material Symbols, licensed under Apache License 2.0:
+
+- Source: https://fonts.google.com/icons
+- License: https://www.apache.org/licenses/LICENSE-2.0
+
 The complete license for MetroVerse and its GPL-covered inherited and modified source code is in `LICENSE`.

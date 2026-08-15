@@ -21,7 +21,7 @@ MetroVerse is a personal Android learning project that combines a YouTube Music 
 - Configurable Apple Podcasts storefront region.
 - Direct RSS/Atom feed import, subscriptions, refresh, and episode lists.
 - Episode artwork, descriptions, publication dates, sharing, saving, downloads, and resume position.
-- Podcast-aware player controls with 30-second rewind and forward.
+- Podcast-aware player controls with 10-second rewind and forward.
 - The same queue, mini player, full player, notification, cache, and download engine used by music.
 - Podcast-only behavior hides lyrics, Start Radio, Listen Together, View Artist, and other YouTube-specific actions where they do not apply.
 
@@ -34,6 +34,7 @@ Apple Podcasts is used only for public discovery. MetroVerse does not log in to 
 - DRM, login-protected, expiring, or unsupported RSS audio may not play.
 - RSS episodes are intentionally excluded from YouTube history, YouTube radio, lyrics lookup, Last.fm scrobbling, and Listen Together.
 - The repository still inherits upstream lint debt and several unrelated baseline unit-test failures documented in the development guide.
+- RSS feeds do not provide a standard episode pagination API. Episode pages use lazy rendering, but importing a feed still requires downloading and parsing its XML response.
 - Only English and Simplified Chinese are maintained for MetroVerse-specific and podcast-specific text. Other inherited translations may be incomplete or refer to upstream terminology.
 
 ## Project lineage
@@ -52,7 +53,7 @@ Both upstream projects are GPL-3.0. Their copyright history remains in Git histo
 App name:       MetroVerse
 Application ID: com.rizklee.metroverse
 Debug ID:       com.rizklee.metroverse.debug
-Current version: 0.1.0
+Current version: 0.2.0
 Minimum Android: 8.0 / API 26
 ```
 

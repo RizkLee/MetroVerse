@@ -108,9 +108,22 @@ $aapt = 'D:\Android\AndroidSDK\build-tools\37.0.0\aapt.exe'
 
 ```text
 package name='com.rizklee.metroverse'
-versionName='0.1.0'
+versionCode='2'
+versionName='0.2.0'
 application-label='MetroVerse'
 ```
+
+0.2.0 本机最终校验值：
+
+```text
+APK: app/build/outputs/apk/foss/release/app-foss-release.apk
+Size: 24,165,051 bytes
+SHA-256: bca51bbf0128d59d4bcd8efb1223812945076772f8d7ee042ee33bbc25620dfa
+Signature: APK Signature Scheme v2, one signer, RSA 4096
+Certificate SHA-256: e2450731e5e35b3ccd61a9fe1a12b86ca7fb3e11073ca27f3e5ff6eb6cdd7250
+```
+
+公开下载后应再次计算 APK SHA-256，并与 GitHub Release 中记录的值比较。证书 SHA-256 必须在后续升级中保持不变。
 
 ## 6. Android Studio 图形界面构建
 
@@ -144,8 +157,8 @@ if ($LASTEXITCODE -ne 0) { throw 'APK installation failed' }
 每次发布前修改 `app/build.gradle.kts`：
 
 ```kotlin
-versionCode = 2
-versionName = "0.1.1"
+versionCode = 3
+versionName = "0.2.1"
 ```
 
 规则：
@@ -173,7 +186,7 @@ versionName = "0.1.1"
 - Apple Podcasts 两个不同地区的搜索。
 - RSS 添加、订阅和刷新。
 - 单集封面、背景、分享和详情。
-- 播放速度、30 秒跳转和断点续播。
+- 播放速度、10 秒跳转、睡眠计时器和断点续播。
 - 收藏、下载、断网播放和删除下载。
 - App 进程被终止后的队列恢复。
 - 英文和简体中文界面。
@@ -191,7 +204,7 @@ LASTFM_API_KEY        可选
 LASTFM_SECRET         可选
 ```
 
-其中 `KEYSTORE` 通常是 keystore 文件的 Base64 内容。设置 Secrets 后，从 GitHub 的 **Actions > Build signed MetroVerse release > Run workflow** 手动输入 tag，例如 `v0.1.0`。
+其中 `KEYSTORE` 通常是 keystore 文件的 Base64 内容。设置 Secrets 后，从 GitHub 的 **Actions > Build signed MetroVerse release > Run workflow** 手动输入 tag，例如 `v0.2.0`。
 
 不要在尚未配置签名 Secrets 时运行发布工作流。普通 `Build MetroVerse` 工作流只生成 Debug APK，不需要签名 Secrets。
 
