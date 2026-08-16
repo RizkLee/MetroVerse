@@ -57,6 +57,9 @@ jobs:
           :app:compileFossDebugKotlin
           :app:testFossDebugUnitTest
           --tests com.metrolist.music.podcast.PodcastParsingTest
+          --tests com.metrolist.music.podcast.PodcastCategoriesTest
+          --tests com.metrolist.music.playback.SleepTimerTest
+          --tests com.metrolist.music.listentogether.ListenTogetherServersTest
 
       - name: Build debug APK
         run: ./gradlew --console=plain :app:assembleFossDebug

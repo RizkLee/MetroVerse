@@ -1,0 +1,8 @@
+MetroVerse 0.3.0
+
+- Added complete subscribed podcast shows to Library search.
+- Moved Listen Together server selection to the main page and left its default empty.
+- Added loading feedback when opening discovered podcasts.
+- Matched Podcast headings and detail spacing to Home and Album screens.
+- Fixed mini-player podcast subscription actions and state.
+- Fixed refresh indicators and bottom content spacing above the mini player.

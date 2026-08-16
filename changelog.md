@@ -2,6 +2,29 @@
 
 All notable MetroVerse-specific changes are recorded here. Upstream Metrolist history remains available in Git history.
 
+## 0.3.0 - 2026
+
+### Added
+
+- Complete subscribed podcast show results in Library search, with a dedicated Podcasts filter.
+- Explicit Listen Together server selection on the main Listen Together page, including the optional Metrolist official endpoint and custom URLs.
+- Centered loading feedback while opening Apple Podcast discovery and category results.
+
+### Changed
+
+- Restored Listen Together in the top bar as the fresh-install default.
+- Left the Listen Together server URL empty until the user selects or enters one.
+- Matched Podcast section headings to Home section typography and spacing.
+- Restyled YouTube Music's New Episodes auto-playlist to match Liked and Downloaded podcast collections.
+- Aligned podcast and collection detail headers with Album detail top spacing.
+
+### Fixed
+
+- Fixed RSS and YouTube podcast subscription controls in the mini player so they update the correct database entity, synchronize where applicable, and reflect current state.
+- Fixed pull-to-refresh indicators being obscured by the top app bar or disappearing too quickly to confirm Library refresh.
+- Fixed scrollable content overlapping the new mini player by including its bottom spacing in shared player-aware insets.
+- Fixed podcast search and Library search results omitting player-aware bottom padding.
+
 ## 0.2.0 - 2026
 
 ### Added
