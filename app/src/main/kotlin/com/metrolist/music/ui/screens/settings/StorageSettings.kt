@@ -473,6 +473,8 @@ fun StorageSettings(
                     ),
                 ),
         )
+
+        Spacer(Modifier.size(24.dp))
     }
 
     TopAppBar(

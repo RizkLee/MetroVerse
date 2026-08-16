@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
 import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -31,15 +32,18 @@ import com.metrolist.music.R
 import com.metrolist.music.constants.ChipSortTypeKey
 import com.metrolist.music.constants.LibraryFilter
 import com.metrolist.music.ui.component.ChipsRow
+import com.metrolist.music.utils.FullSyncResult
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.viewmodels.LibraryMixViewModel
 import com.metrolist.music.viewmodels.LibraryPodcastsViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryScreen(
+    snackbarHostState: SnackbarHostState,
     mixViewModel: LibraryMixViewModel = hiltViewModel(),
     podcastsViewModel: LibraryPodcastsViewModel = hiltViewModel(),
 ) {
@@ -48,6 +52,10 @@ fun LibraryScreen(
     var isRefreshing by remember { mutableStateOf(false) }
     val refreshState = rememberPullToRefreshState()
     val scope = rememberCoroutineScope()
+    val refreshCompletedMessage = stringResource(R.string.library_refresh_completed)
+    val refreshOfflineMessage = stringResource(R.string.library_refresh_offline)
+    val refreshLoginMessage = stringResource(R.string.library_refresh_login_required)
+    val refreshFailedMessage = stringResource(R.string.library_refresh_failed)
 
     val filterContent = @Composable {
         Row {
@@ -79,18 +87,32 @@ fun LibraryScreen(
                         scope.launch {
                             isRefreshing = true
                             val refreshStartedAt = SystemClock.elapsedRealtime()
-                            try {
-                                if (filterType == LibraryFilter.PODCASTS) {
-                                    podcastsViewModel.refreshAll()
-                                } else {
-                                    mixViewModel.refreshNow()
+                            val refreshResult =
+                                try {
+                                    if (filterType == LibraryFilter.PODCASTS) {
+                                        podcastsViewModel.refreshAll()
+                                        FullSyncResult.COMPLETED
+                                    } else {
+                                        mixViewModel.refreshNow()
+                                    }
+                                } catch (error: CancellationException) {
+                                    throw error
+                                } catch (_: Exception) {
+                                    FullSyncResult.FAILED
+                                } finally {
+                                    val remainingIndicatorTime = MIN_REFRESH_INDICATOR_MS -
+                                        (SystemClock.elapsedRealtime() - refreshStartedAt)
+                                    if (remainingIndicatorTime > 0L) delay(remainingIndicatorTime)
+                                    isRefreshing = false
                                 }
-                            } finally {
-                                val remainingIndicatorTime = MIN_REFRESH_INDICATOR_MS -
-                                    (SystemClock.elapsedRealtime() - refreshStartedAt)
-                                if (remainingIndicatorTime > 0L) delay(remainingIndicatorTime)
-                                isRefreshing = false
-                            }
+                            snackbarHostState.showSnackbar(
+                                when (refreshResult) {
+                                    FullSyncResult.COMPLETED -> refreshCompletedMessage
+                                    FullSyncResult.NOT_LOGGED_IN -> refreshLoginMessage
+                                    FullSyncResult.OFFLINE -> refreshOfflineMessage
+                                    FullSyncResult.FAILED -> refreshFailedMessage
+                                },
+                            )
                         }
                     }
                 },

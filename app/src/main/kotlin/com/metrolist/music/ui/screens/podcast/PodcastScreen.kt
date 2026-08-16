@@ -365,6 +365,10 @@ fun PodcastScreen(
                     }
                 }
             }
+
+            item(key = "podcast_bottom_spacing") {
+                Spacer(Modifier.height(24.dp))
+            }
         }
 
         if (isOpening) {

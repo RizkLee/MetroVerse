@@ -254,6 +254,18 @@
     <string name="hide_changelog">Hide changelog</string>
     <string name="view_changelog">View changelog</string>
     <string name="failed_to_check_updates">Failed to check for updates: %s</string>
+    <string name="update_download_and_install">Download and install</string>
+    <string name="update_not_now">Not now</string>
+    <string name="update_version_and_variant">Version %1$s · %2$s</string>
+    <string name="update_prerelease_notice">This is a pre-release build. Review the release notes before installing.</string>
+    <string name="update_install_permission_required">Android requires permission to install updates from MetroVerse. The next step opens the system setting for this app.</string>
+    <string name="update_install_permission_denied">Install permission was not granted. You can try again from Settings.</string>
+    <string name="update_downloading_and_verifying">Downloading and verifying the signed APK…</string>
+    <string name="update_download_failed">Update failed: %s</string>
+    <string name="library_refresh_completed">Library refreshed</string>
+    <string name="library_refresh_offline">Could not refresh: device is offline</string>
+    <string name="library_refresh_login_required">Sign in to YouTube Music to refresh the online library</string>
+    <string name="library_refresh_failed">Library refresh did not complete. Check the connection and try again.</string>
 
     <string name="all_time">All time</string>
     <string name="past_24_hours">Past 24 hours</string>
@@ -902,12 +914,14 @@
     <string name="metroverse_maintainer">Maintainer</string>
     <string name="metroverse_releases">Project releases</string>
     <string name="metroverse_manual_updates">Updates are checked manually on GitHub</string>
+    <string name="metroverse_automatic_updates">Automatically check GitHub Releases; you approve every download and installation</string>
+    <string name="metroverse_release_browser">Browse published versions, release notes, and downloads on GitHub</string>
     <string name="metroverse_license_description">GPL-3.0 open-source software. Modified source code and attribution are available in the project repository.</string>
     <string name="metroverse_lineage">Source and attribution</string>
     <string name="metroverse_metrolist_relationship">MetroVerse is based on Metrolist and retains its music architecture, interface foundations, contributors, and GPL history.</string>
     <string name="metroverse_podium_relationship">The RSS and Apple Podcasts integration was developed by studying and adapting concepts from Podium under GPL-3.0.</string>
     <string name="metroverse_apple_podcasts_attribution">Apple Podcasts provides public discovery, charts, search metadata, and artwork. MetroVerse plays public RSS feeds independently and is not affiliated with Apple.</string>
-    <string name="metroverse_changelog_body">MetroVerse 0.3.0\n\n• Added subscribed podcast shows to Library search\n• Moved Listen Together server selection to its main page\n• Added loading feedback when opening discovered podcasts\n• Matched Podcast section titles to Home\n• Fixed mini-player podcast subscription state and actions\n• Fixed refresh indicator placement and visibility\n• Fixed bottom content spacing above the mini player\n• Aligned podcast detail top spacing with Album pages</string>
+    <string name="metroverse_changelog_body">MetroVerse 0.4.0\n\n• Added automatic GitHub Release checks with user-confirmed download and installation\n• Verify update checksums, package identity, version, flavor, and signing certificate\n• Kept only FOSS and GMS release variants\n• Unified RSS podcast Add to library actions and icons with YouTube podcasts\n• Fixed Podcast and Storage content overlapping the mini player\n• Fixed automatic Library collection covers and added refresh result feedback\n• Kept the full-player Play/Pause labels in English\n• Added dedicated no-buffer artwork to About</string>
     <string name="wanna_play_favorite_song">Want to play their favorite song?</string>
     <string name="yeah">Yeah!</string>
     <string name="stands_with_palestine">This project stands with Palestine 🇵🇸</string>

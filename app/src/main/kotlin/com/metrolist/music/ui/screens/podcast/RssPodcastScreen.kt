@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -191,18 +192,33 @@ fun RssPodcastScreen(
                             Spacer(Modifier.height(16.dp))
                             OutlinedButton(
                                 onClick = viewModel::toggleSubscription,
+                                colors =
+                                    ButtonDefaults.outlinedButtonColors(
+                                        containerColor =
+                                            if (currentPodcast.bookmarkedAt != null) {
+                                                MaterialTheme.colorScheme.secondaryContainer
+                                            } else {
+                                                Color.Transparent
+                                            },
+                                    ),
+                                shape = RoundedCornerShape(50),
                                 modifier = Modifier.height(40.dp),
                             ) {
-                                val subscribed = currentPodcast.bookmarkedAt != null
+                                val inLibrary = currentPodcast.bookmarkedAt != null
                                 Icon(
-                                    painter = painterResource(
-                                        if (subscribed) R.drawable.subscribed else R.drawable.subscribe,
-                                    ),
+                                    painter =
+                                        painterResource(
+                                            if (inLibrary) R.drawable.library_add_check else R.drawable.library_add,
+                                        ),
                                     contentDescription = null,
                                     modifier = Modifier.size(20.dp),
                                 )
                                 Spacer(Modifier.size(8.dp))
-                                Text(stringResource(if (subscribed) R.string.unsubscribe else R.string.subscribe))
+                                Text(
+                                    stringResource(
+                                        if (inLibrary) R.string.remove_from_library else R.string.add_to_library,
+                                    ),
+                                )
                             }
                             currentPodcast.description?.takeIf(String::isNotBlank)?.let { description ->
                                 ExpandableText(

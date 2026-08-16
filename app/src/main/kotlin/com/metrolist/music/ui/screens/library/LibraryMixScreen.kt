@@ -107,7 +107,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.Collator
 import java.time.LocalDateTime
-import java.util.UUID
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -159,33 +158,37 @@ fun LibraryMixScreen(
     }
 
     val topSize by viewModel.topValue.collectAsStateWithLifecycle(initialValue = 50)
+    val likedAutoPlaylistSongs by viewModel.likedAutoPlaylistSongs.collectAsStateWithLifecycle()
+    val downloadedAutoPlaylistSongs by viewModel.downloadedAutoPlaylistSongs.collectAsStateWithLifecycle()
+    val uploadedAutoPlaylistSongs by viewModel.uploadedAutoPlaylistSongs.collectAsStateWithLifecycle()
+
     val likedPlaylist =
         Playlist(
             playlist =
                 PlaylistEntity(
-                    id = UUID.randomUUID().toString(),
+                    id = "auto_liked",
                     name = stringResource(R.string.liked),
                 ),
-            songCount = 0,
-            songThumbnails = emptyList(),
+            songCount = likedAutoPlaylistSongs.size,
+            songThumbnails = likedAutoPlaylistSongs.mapNotNull { it.thumbnailUrl }.distinct().take(4),
         )
 
     val downloadPlaylist =
         Playlist(
             playlist =
                 PlaylistEntity(
-                    id = UUID.randomUUID().toString(),
+                    id = "auto_downloaded",
                     name = stringResource(R.string.offline),
                 ),
-            songCount = 0,
-            songThumbnails = emptyList(),
+            songCount = downloadedAutoPlaylistSongs.size,
+            songThumbnails = downloadedAutoPlaylistSongs.mapNotNull { it.thumbnailUrl }.distinct().take(4),
         )
 
     val topPlaylist =
         Playlist(
             playlist =
                 PlaylistEntity(
-                    id = UUID.randomUUID().toString(),
+                    id = "auto_top",
                     name = stringResource(R.string.my_top) + " $topSize",
                 ),
             songCount = 0,
@@ -196,7 +199,7 @@ fun LibraryMixScreen(
         Playlist(
             playlist =
                 PlaylistEntity(
-                    id = UUID.randomUUID().toString(),
+                    id = "auto_cached",
                     name = stringResource(R.string.cached_playlist),
                 ),
             songCount = 0,
@@ -207,11 +210,11 @@ fun LibraryMixScreen(
         Playlist(
             playlist =
                 PlaylistEntity(
-                    id = UUID.randomUUID().toString(),
+                    id = "auto_uploaded",
                     name = stringResource(R.string.uploaded_playlist),
                 ),
-            songCount = 0,
-            songThumbnails = emptyList(),
+            songCount = uploadedAutoPlaylistSongs.size,
+            songThumbnails = uploadedAutoPlaylistSongs.mapNotNull { it.thumbnailUrl }.distinct().take(4),
         )
 
     val (showLiked) = rememberPreference(ShowLikedPlaylistKey, true)

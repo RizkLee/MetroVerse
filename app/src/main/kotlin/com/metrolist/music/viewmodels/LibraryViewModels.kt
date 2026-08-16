@@ -43,6 +43,7 @@ import com.metrolist.music.constants.SongSortType
 import com.metrolist.music.constants.SongSortTypeKey
 import com.metrolist.music.constants.TopSize
 import com.metrolist.music.db.MusicDatabase
+import com.metrolist.music.db.entities.Song
 import com.metrolist.music.extensions.filterExplicit
 import com.metrolist.music.extensions.filterExplicitAlbums
 import com.metrolist.music.extensions.filterVideoSongs
@@ -51,6 +52,7 @@ import com.metrolist.music.extensions.matchesNormalizedQuery
 import com.metrolist.music.extensions.normalizeForSearch
 import com.metrolist.music.extensions.toEnum
 import com.metrolist.music.playback.DownloadUtil
+import com.metrolist.music.utils.FullSyncResult
 import com.metrolist.music.utils.PodcastRefreshTrigger
 import com.metrolist.music.utils.SyncUtils
 import com.metrolist.music.utils.dataStore
@@ -371,9 +373,9 @@ constructor(
         }
     }
 
-    suspend fun refreshNow() {
+    suspend fun refreshNow(): FullSyncResult {
         _isRefreshing.value = true
-        try {
+        return try {
             withContext(Dispatchers.IO) {
                 syncUtils.performFullSyncSuspend()
             }
@@ -418,6 +420,22 @@ constructor(
         .flatMapLatest { hideYoutubeShorts ->
             database.playlists(PlaylistSortType.CREATE_DATE, true).map { it.filterYoutubeShorts(hideYoutubeShorts) }
         }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    val likedAutoPlaylistSongs =
+        database
+            .likedSongs(SongSortType.CREATE_DATE, true)
+            .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    val downloadedAutoPlaylistSongs =
+        database
+            .downloadedSongs(SongSortType.CREATE_DATE, true)
+            .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    val uploadedAutoPlaylistSongs =
+        database
+            .uploadedSongsByCreateDateAsc()
+            .map(List<Song>::reversed)
+            .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     init {
         viewModelScope.launch(Dispatchers.IO) {

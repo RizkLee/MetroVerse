@@ -1541,7 +1541,7 @@ fun BottomSheetPlayer(
                                             if (isListenTogetherGuest) {
                                                 if (isMuted) stringResource(R.string.unmute) else stringResource(R.string.mute)
                                             } else {
-                                                if (effectiveIsPlaying) stringResource(R.string.pause) else stringResource(R.string.play)
+                                                if (effectiveIsPlaying) "Pause" else "Play"
                                             },
                                         modifier = Modifier.size(32.dp),
                                     )
@@ -1551,7 +1551,7 @@ fun BottomSheetPlayer(
                                             if (isListenTogetherGuest) {
                                                 if (isMuted) stringResource(R.string.unmute) else stringResource(R.string.mute)
                                             } else {
-                                                if (effectiveIsPlaying) stringResource(R.string.pause) else stringResource(R.string.play)
+                                                if (effectiveIsPlaying) "Pause" else "Play"
                                             },
                                         style = MaterialTheme.typography.titleMedium,
                                     )

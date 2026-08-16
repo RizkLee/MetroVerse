@@ -1135,8 +1135,22 @@ private fun SubscribeButton(
                 },
     ) {
         Icon(
-            painter = painterResource(if (isSubscribed) R.drawable.subscribed else R.drawable.subscribe),
-            contentDescription = null,
+            painter =
+                painterResource(
+                    if (isPodcast) {
+                        if (isSubscribed) R.drawable.library_add_check else R.drawable.library_add
+                    } else {
+                        if (isSubscribed) R.drawable.subscribed else R.drawable.subscribe
+                    },
+                ),
+            contentDescription =
+                stringResource(
+                    if (isPodcast) {
+                        if (isSubscribed) R.string.remove_from_library else R.string.add_to_library
+                    } else {
+                        if (isSubscribed) R.string.unsubscribe else R.string.subscribe
+                    },
+                ),
             tint = if (isSubscribed) primaryColor else onSurfaceColor.copy(alpha = 0.7f),
             modifier = Modifier.size(20.dp),
         )

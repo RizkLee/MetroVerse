@@ -89,6 +89,13 @@ sealed class SyncStatus {
     data object Completed : SyncStatus()
 }
 
+enum class FullSyncResult {
+    COMPLETED,
+    NOT_LOGGED_IN,
+    OFFLINE,
+    FAILED,
+}
+
 data class SyncState(
     val overallStatus: SyncStatus = SyncStatus.Idle,
     val likedSongs: SyncStatus = SyncStatus.Idle,
@@ -323,12 +330,41 @@ class SyncUtils @Inject constructor(
         enqueue(SyncOperation.FullSync)
     }
 
-    suspend fun performFullSyncSuspend() {
+    suspend fun performFullSyncSuspend(): FullSyncResult {
+        if (!context.isInternetConnected()) {
+            Timber.w("Skipping full sync - device is offline")
+            return FullSyncResult.OFFLINE
+        }
         if (!isLoggedIn()) {
             Timber.w("Skipping full sync - user not logged in")
-            return
+            return FullSyncResult.NOT_LOGGED_IN
         }
-        syncExecutionMutex.withLock { executeFullSync() }
+
+        return try {
+            syncExecutionMutex.withLock { executeFullSync() }
+            val state = syncState.value
+            val operationStatuses =
+                listOf(
+                    state.overallStatus,
+                    state.likedSongs,
+                    state.librarySongs,
+                    state.uploadedSongs,
+                    state.likedAlbums,
+                    state.uploadedAlbums,
+                    state.artists,
+                    state.playlists,
+                )
+            if (operationStatuses.any { it is SyncStatus.Error }) {
+                FullSyncResult.FAILED
+            } else {
+                FullSyncResult.COMPLETED
+            }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            Timber.e(error, "Manual full sync failed")
+            FullSyncResult.FAILED
+        }
     }
 
     fun tryAutoSync() {
