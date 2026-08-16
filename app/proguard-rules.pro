@@ -8,8 +8,8 @@
 ## Reproducible Build Support
 # Disable obfuscation to ensure deterministic R8 output across different build environments.
 # Without this, R8 assigns short names (e.g. `j`, `k`) to renamed classes in a non-deterministic
-# order, causing byte-for-byte differences between builds. This is required for F-Droid / IzzyOnDroid
-# Reproducible Build verification. Code shrinking (dead code removal) remains fully enabled.
+# order, causing byte-for-byte differences between builds. Deterministic output also makes local
+# and GitHub Release verification easier. Code shrinking (dead code removal) remains fully enabled.
 # Since Metrolist is fully open-source, obfuscation provides no meaningful security benefit.
 -dontobfuscate
 

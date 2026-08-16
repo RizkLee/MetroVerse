@@ -121,8 +121,8 @@ android {
         applicationId = applicationIdOverride ?: baseApplicationId
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.3.0"
+        versionCode = 4
+        versionName = "0.4.0"
         resValue("string", "app_name", appNameOverride ?: "MetroVerse")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -144,26 +144,21 @@ android {
 
     flavorDimensions += listOf("variant")
     productFlavors {
-        // FOSS - no Google Cast and no automatic updater.
+        // FOSS - no Google Cast; updates are delivered from GitHub Releases.
         create("foss") {
             dimension = "variant"
             isDefault = true
             buildConfigField("Boolean", "CAST_AVAILABLE", "false")
-            buildConfigField("Boolean", "UPDATER_AVAILABLE", "false")
+            buildConfigField("Boolean", "UPDATER_AVAILABLE", "true")
+            buildConfigField("String", "DISTRIBUTION", "\"foss\"")
         }
 
-        // GMS - Google Cast is available, automatic updates remain disabled.
+        // GMS - includes Google Cast and uses the matching GitHub Release APK.
         create("gms") {
             dimension = "variant"
             buildConfigField("Boolean", "CAST_AVAILABLE", "true")
-            buildConfigField("Boolean", "UPDATER_AVAILABLE", "false")
-        }
-
-        // IzzyOnDroid - no Google Cast and no updater.
-        create("izzy") {
-            dimension = "variant"
-            buildConfigField("Boolean", "CAST_AVAILABLE", "false")
-            buildConfigField("Boolean", "UPDATER_AVAILABLE", "false")
+            buildConfigField("Boolean", "UPDATER_AVAILABLE", "true")
+            buildConfigField("String", "DISTRIBUTION", "\"gms\"")
         }
     }
 

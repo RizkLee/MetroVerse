@@ -31,7 +31,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -40,11 +39,12 @@ import com.metrolist.music.BuildConfig
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
 import com.metrolist.music.constants.CheckForUpdatesKey
-import com.metrolist.music.constants.UpdateNotificationsEnabledKey
 import com.metrolist.music.ui.component.IconButton
+import com.metrolist.music.ui.component.UpdateDownloadDialog
 import com.metrolist.music.ui.component.Material3SettingsGroup
 import com.metrolist.music.ui.component.Material3SettingsItem
 import com.metrolist.music.ui.utils.backToMain
+import com.metrolist.music.utils.ReleaseInfo
 import com.metrolist.music.utils.Updater
 import com.metrolist.music.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
@@ -57,36 +57,45 @@ fun UpdaterScreen(
     navController: NavController
 ) {
     val (checkForUpdates, onCheckForUpdatesChange) = rememberPreference(CheckForUpdatesKey, true)
-    val (updateNotifications, onUpdateNotificationsChange) = rememberPreference(UpdateNotificationsEnabledKey, true)
 
-    val context = LocalContext.current
     var isChecking by remember { mutableStateOf(false) }
     var updateAvailable by remember { mutableStateOf(false) }
     var latestVersion by remember { mutableStateOf<String?>(null) }
     var showChangelog by remember { mutableStateOf(false) }
     var changelogContent by remember { mutableStateOf<String?>(null) }
     var checkError by remember { mutableStateOf<String?>(null) }
+    var latestRelease by remember { mutableStateOf<ReleaseInfo?>(null) }
+    var releaseToInstall by remember { mutableStateOf<ReleaseInfo?>(null) }
     val failedToCheckUpdatesTemplate = stringResource(R.string.failed_to_check_updates)
 
     val coroutineScope = rememberCoroutineScope()
+
+    releaseToInstall?.let { releaseInfo ->
+        UpdateDownloadDialog(
+            releaseInfo = releaseInfo,
+            onDismiss = { releaseToInstall = null },
+        )
+    }
 
     fun performManualCheck() {
         coroutineScope.launch {
             isChecking = true
             checkError = null
-            withContext(Dispatchers.IO) {
-                Updater
-                    .checkForUpdate(forceRefresh = true)
-                    .onSuccess { (releaseInfo, hasUpdate) ->
-                        if (releaseInfo != null) {
-                            latestVersion = releaseInfo.versionName
-                            updateAvailable = hasUpdate
-                            changelogContent = releaseInfo.description
-                        }
-                    }.onFailure {
-                        checkError = String.format(failedToCheckUpdatesTemplate, it.message ?: "Unknown error")
+            val result =
+                withContext(Dispatchers.IO) {
+                    Updater.checkForUpdate(forceRefresh = true)
+                }
+            result
+                .onSuccess { (releaseInfo, hasUpdate) ->
+                    if (releaseInfo != null) {
+                        latestVersion = releaseInfo.versionName
+                        latestRelease = releaseInfo
+                        updateAvailable = hasUpdate
+                        changelogContent = releaseInfo.description
                     }
-            }
+                }.onFailure {
+                    checkError = String.format(failedToCheckUpdatesTemplate, it.message ?: "Unknown error")
+                }
             isChecking = false
         }
     }
@@ -122,9 +131,7 @@ fun UpdaterScreen(
                             Text(stringResource(R.string.version_format, BuildConfig.VERSION_NAME))
                         },
                         description = {
-                            val arch = BuildConfig.ARCHITECTURE
-                            val variant = if (BuildConfig.CAST_AVAILABLE) "GMS" else "FOSS"
-                            Text("$arch - $variant")
+                            Text("${BuildConfig.ARCHITECTURE} - ${BuildConfig.DISTRIBUTION.uppercase()}")
                         },
                     ),
                 ),
@@ -150,21 +157,6 @@ fun UpdaterScreen(
                         ),
                     )
 
-                    if (checkForUpdates) {
-                        add(
-                            Material3SettingsItem(
-                                title = { Text(stringResource(R.string.update_notifications)) },
-                                icon = painterResource(R.drawable.notification),
-                                trailingContent = {
-                                    Switch(
-                                        checked = updateNotifications,
-                                        onCheckedChange = onUpdateNotificationsChange,
-                                    )
-                                },
-                                onClick = { onUpdateNotificationsChange(!updateNotifications) },
-                            ),
-                        )
-                    }
                 },
         )
 
@@ -216,6 +208,18 @@ fun UpdaterScreen(
 
         if (updateAvailable && latestVersion != null) {
             Spacer(Modifier.height(16.dp))
+            Button(
+                onClick = { latestRelease?.let { releaseToInstall = it } },
+                enabled = latestRelease?.let(Updater::getAssetForCurrentVariant) != null,
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+            ) {
+                Text(stringResource(R.string.update_download_and_install))
+            }
+
+            Spacer(Modifier.height(8.dp))
             Button(
                 onClick = { showChangelog = !showChangelog },
                 modifier =

@@ -23,7 +23,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -43,7 +42,6 @@ fun SettingsScreen(
     navController: NavController,
     _latestVersionName: String,
 ) {
-    val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
     val isAndroid12OrLater = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val hasAndroidAuto = remember {
@@ -214,9 +212,9 @@ fun SettingsScreen(
                 add(
                     Material3SettingsItem(
                         icon = painterResource(R.drawable.update),
-                        title = { Text(stringResource(R.string.metroverse_releases)) },
-                        description = { Text(stringResource(R.string.metroverse_manual_updates)) },
-                        onClick = { uriHandler.openUri("https://github.com/Rizklee/MetroVerse/releases") }
+                        title = { Text(stringResource(R.string.updater)) },
+                        description = { Text(stringResource(R.string.metroverse_automatic_updates)) },
+                        onClick = { navController.navigate("settings/updater") }
                     )
                 )
                 val showChangelog = com.metrolist.music.LocalChangelogState.current

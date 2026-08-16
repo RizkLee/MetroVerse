@@ -60,6 +60,7 @@ jobs:
           --tests com.metrolist.music.podcast.PodcastCategoriesTest
           --tests com.metrolist.music.playback.SleepTimerTest
           --tests com.metrolist.music.listentogether.ListenTogetherServersTest
+          --tests com.metrolist.music.utils.UpdaterTest
 
       - name: Build debug APK
         run: ./gradlew --console=plain :app:assembleFossDebug
