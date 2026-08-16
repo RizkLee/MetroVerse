@@ -16,14 +16,24 @@ data class ListenTogetherServer(
     val operator: String
 )
 
+internal fun normalizeListenTogetherServerUrl(url: String): String {
+    val trimmed = url.trim()
+    if (trimmed.isEmpty()) return ""
+    return if (trimmed.contains("metroserver.meowery.eu", ignoreCase = true)) {
+        ListenTogetherServers.defaultServerUrl
+    } else {
+        trimmed
+    }
+}
+
 object ListenTogetherServers {
     private const val ServersJson = """
         [
           {
-            "name": "The Meowery",
+            "name": "Metrolist official",
             "url": "wss://metroserverx.meowery.eu/ws",
             "location": "Poland",
-            "operator": "Nyx"
+            "operator": "Metrolist"
           }
         ]
     """

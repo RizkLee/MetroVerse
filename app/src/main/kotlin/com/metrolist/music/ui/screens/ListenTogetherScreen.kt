@@ -44,6 +44,7 @@ import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -90,10 +91,13 @@ import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
 import com.metrolist.music.constants.AppBarHeight
 import com.metrolist.music.constants.ListenTogetherInTopBarKey
+import com.metrolist.music.constants.ListenTogetherServerUrlKey
 import com.metrolist.music.constants.ListenTogetherUsernameKey
 import com.metrolist.music.listentogether.ConnectionState
 import com.metrolist.music.listentogether.JoinRequestPayload
 import com.metrolist.music.listentogether.ListenTogetherEvent
+import com.metrolist.music.listentogether.ListenTogetherServer
+import com.metrolist.music.listentogether.ListenTogetherServers
 import com.metrolist.music.listentogether.RoomRole
 import com.metrolist.music.listentogether.SuggestionReceivedPayload
 import com.metrolist.music.listentogether.UserInfo
@@ -126,15 +130,18 @@ fun ListenTogetherScreen(
     val pendingJoinRequests by listenTogetherManager.pendingJoinRequests.collectAsStateWithLifecycle()
     val pendingSuggestions by listenTogetherManager.pendingSuggestions.collectAsStateWithLifecycle()
 
-    val (listenTogetherInTopBar) = rememberPreference(ListenTogetherInTopBarKey, defaultValue = false)
+    val (listenTogetherInTopBar) = rememberPreference(ListenTogetherInTopBarKey, defaultValue = true)
     val shouldShowTopBar = showTopBar || listenTogetherInTopBar
 
+    val servers = remember { ListenTogetherServers.servers }
+    var serverUrl by rememberPreference(ListenTogetherServerUrlKey, "")
     var savedUsername by rememberPreference(ListenTogetherUsernameKey, "")
     var roomCodeInput by rememberSaveable { mutableStateOf("") }
     var usernameInput by rememberSaveable { mutableStateOf(savedUsername) }
 
     var isCreatingRoom by rememberSaveable { mutableStateOf(false) }
     var isJoiningRoom by rememberSaveable { mutableStateOf(false) }
+    var showServerChooser by rememberSaveable { mutableStateOf(false) }
     var joinErrorMessage by rememberSaveable { mutableStateOf<String?>(null) }
 
     var selectedUserForMenu by rememberSaveable { mutableStateOf<String?>(null) }
@@ -184,6 +191,29 @@ fun ListenTogetherScreen(
 
     val isInRoom = listenTogetherManager.isInRoom
     val isHost = roomState?.hostId == userId
+    val selectedServer = remember(serverUrl) { ListenTogetherServers.findByUrl(serverUrl) }
+
+    if (showServerChooser) {
+        ListenTogetherServerChooserDialog(
+            servers = servers,
+            currentUrl = serverUrl,
+            onSelect = { server ->
+                if (connectionState != ConnectionState.DISCONNECTED) {
+                    listenTogetherManager.disconnect()
+                }
+                serverUrl = server.url
+                showServerChooser = false
+            },
+            onUseCustom = { customUrl ->
+                if (connectionState != ConnectionState.DISCONNECTED) {
+                    listenTogetherManager.disconnect()
+                }
+                serverUrl = customUrl.trim()
+                showServerChooser = false
+            },
+            onDismiss = { showServerChooser = false },
+        )
+    }
 
     // User action menu dialog
     if (selectedUserForMenu != null && selectedUsername != null) {
@@ -255,10 +285,20 @@ fun ListenTogetherScreen(
             HeaderSection(isInRoom = isInRoom)
         }
 
+        item {
+            ListenTogetherServerCard(
+                serverUrl = serverUrl,
+                selectedServer = selectedServer,
+                enabled = !isInRoom,
+                onClick = { showServerChooser = true },
+            )
+        }
+
         // Connection status card
         item {
             ConnectionStatusCard(
                 connectionState = connectionState,
+                serverConfigured = serverUrl.isNotBlank(),
                 onConnect = { listenTogetherManager.connect() },
                 onDisconnect = { listenTogetherManager.disconnect() },
                 onReconnect = { listenTogetherManager.forceReconnect() },
@@ -360,6 +400,7 @@ fun ListenTogetherScreen(
                     roomCodeInput = roomCodeInput,
                     onRoomCodeChange = { roomCodeInput = it },
                     savedUsername = savedUsername,
+                    serverConfigured = serverUrl.isNotBlank(),
                     isJoiningRoom = isJoiningRoom,
                     joinErrorMessage = joinErrorMessage,
                     waitingForApprovalText = waitingForApprovalText,
@@ -509,8 +550,176 @@ private fun HeaderSection(isInRoom: Boolean = false) {
 }
 
 @Composable
+private fun ListenTogetherServerCard(
+    serverUrl: String,
+    selectedServer: ListenTogetherServer?,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled, onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(16.dp),
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.cloud),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp),
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.listen_together_server_url),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                )
+                Text(
+                    text = selectedServer?.name
+                        ?: serverUrl.takeIf(String::isNotBlank)
+                        ?: stringResource(R.string.listen_together_server_not_set),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (selectedServer != null) {
+                    Text(
+                        text = stringResource(R.string.listen_together_official_server_note),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.tertiary,
+                    )
+                }
+            }
+            Icon(
+                painter = painterResource(R.drawable.navigate_next),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ListenTogetherServerChooserDialog(
+    servers: List<ListenTogetherServer>,
+    currentUrl: String,
+    onSelect: (ListenTogetherServer) -> Unit,
+    onUseCustom: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var customUrl by rememberSaveable(currentUrl) { mutableStateOf(currentUrl) }
+    val trimmedCustomUrl = customUrl.trim()
+
+    DefaultDialog(
+        onDismiss = onDismiss,
+        icon = { Icon(painterResource(R.drawable.cloud), contentDescription = null) },
+        title = { Text(stringResource(R.string.listen_together_choose_server)) },
+        buttons = {
+            TextButton(onClick = { onUseCustom("") }) {
+                Text(stringResource(R.string.clear))
+            }
+            Spacer(Modifier.weight(1f))
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(android.R.string.cancel))
+            }
+        },
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            servers.forEach { server ->
+                val isSelected = server.url == currentUrl
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onSelect(server) },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isSelected) {
+                            MaterialTheme.colorScheme.primaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant
+                        },
+                    ),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = server.name,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                text = stringResource(R.string.listen_together_official_server_note),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                text = server.url,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        if (isSelected) {
+                            Icon(
+                                painter = painterResource(R.drawable.done),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                }
+            }
+
+            HorizontalDivider()
+            Text(
+                text = stringResource(R.string.listen_together_custom_server),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            OutlinedTextField(
+                value = customUrl,
+                onValueChange = { customUrl = it },
+                label = { Text(stringResource(R.string.listen_together_server_url)) },
+                leadingIcon = { Icon(painterResource(R.drawable.link), contentDescription = null) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Button(
+                onClick = { onUseCustom(trimmedCustomUrl) },
+                enabled = trimmedCustomUrl.isNotBlank(),
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+            ) {
+                Text(stringResource(R.string.listen_together_use_custom_server))
+            }
+        }
+    }
+}
+
+@Composable
 private fun ConnectionStatusCard(
     connectionState: ConnectionState,
+    serverConfigured: Boolean,
     onConnect: () -> Unit,
     onDisconnect: () -> Unit,
     onReconnect: () -> Unit,
@@ -604,6 +813,7 @@ private fun ConnectionStatusCard(
                 if (connectionState == ConnectionState.DISCONNECTED || connectionState == ConnectionState.ERROR) {
                     Button(
                         onClick = onConnect,
+                        enabled = serverConfigured,
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
                         colors =
@@ -1056,6 +1266,7 @@ private fun JoinCreateRoomSection(
     roomCodeInput: String,
     onRoomCodeChange: (String) -> Unit,
     savedUsername: String,
+    serverConfigured: Boolean,
     isJoiningRoom: Boolean,
     joinErrorMessage: String?,
     waitingForApprovalText: String,
@@ -1233,7 +1444,7 @@ private fun JoinCreateRoomSection(
                 Button(
                     onClick = onCreateRoom,
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = hasUsername,
+                    enabled = hasUsername && serverConfigured,
                     shape = RoundedCornerShape(16.dp),
                     colors =
                         ButtonDefaults.buttonColors(
@@ -1255,7 +1466,7 @@ private fun JoinCreateRoomSection(
                 Button(
                     onClick = onJoinRoom,
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = hasUsername && hasRoomCode,
+                    enabled = hasUsername && hasRoomCode && serverConfigured,
                     shape = RoundedCornerShape(16.dp),
                     colors =
                         ButtonDefaults.buttonColors(

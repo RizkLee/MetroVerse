@@ -228,7 +228,7 @@ class ListenTogetherClient
     ) {
         companion object {
             private const val TAG = "ListenTogether"
-            private val DEFAULT_SERVER_URL = ListenTogetherServers.defaultServerUrl
+            private const val DEFAULT_SERVER_URL = ""
             private const val MAX_RECONNECT_ATTEMPTS = 15 // Increased from 5 to 15
             private const val INITIAL_RECONNECT_DELAY_MS = 1000L // Start at 1 second
             private const val MAX_RECONNECT_DELAY_MS = 120000L // Cap at 2 minutes
@@ -621,15 +621,8 @@ class ListenTogetherClient
                 .pingInterval(60, TimeUnit.SECONDS) // Match server ping interval
                 .build()
 
-        private fun normalizeServerUrl(url: String): String {
-            val trimmed = url.trim()
-            if (trimmed.isEmpty()) return DEFAULT_SERVER_URL
-            return if (trimmed.contains("metroserver.meowery.eu", ignoreCase = true)) {
-                DEFAULT_SERVER_URL
-            } else {
-                trimmed
-            }
-        }
+        private fun normalizeServerUrl(url: String): String =
+            normalizeListenTogetherServerUrl(url)
 
         private fun getServerUrl(): String {
             val configuredUrl = context.dataStore.get(ListenTogetherServerUrlKey, DEFAULT_SERVER_URL)
@@ -680,15 +673,24 @@ class ListenTogetherClient
                 return
             }
 
+            val serverUrl = getServerUrl()
+            if (serverUrl.isBlank()) {
+                val message = context.getString(R.string.listen_together_server_required)
+                _connectionState.value = ConnectionState.ERROR
+                log(LogLevel.ERROR, "Listen Together server is not configured")
+                emitEvent(ListenTogetherEvent.ConnectionError(message))
+                return
+            }
+
             _connectionState.value = ConnectionState.CONNECTING
             serverClock.reset()
             evaluateBackgroundDisconnectPolicy("connect")
-            log(LogLevel.INFO, "Connecting to server", getServerUrl())
+            log(LogLevel.INFO, "Connecting to server", serverUrl)
 
             val request =
                 Request
                     .Builder()
-                    .url(getServerUrl())
+                    .url(serverUrl)
                     .header("User-Agent", context.packageName)
                     .build()
 

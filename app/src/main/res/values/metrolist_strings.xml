@@ -601,6 +601,9 @@
     <string name="listen_together_choose_server">Choose server</string>
     <string name="listen_together_custom_server">Custom server</string>
     <string name="listen_together_use_custom_server">Use custom server</string>
+    <string name="listen_together_server_required">Choose a Listen Together server before connecting</string>
+    <string name="listen_together_server_not_set">Not set. Choose a server before creating or joining a room.</string>
+    <string name="listen_together_official_server_note">Metrolist official server. Availability is unknown and not guaranteed.</string>
     <string name="listen_together_username">Username</string>
     <string name="listen_together_connected">Connected</string>
     <string name="listen_together_reconnecting">Reconnecting…</string>
@@ -630,7 +633,7 @@
     <string name="listen_together_in_top_bar_desc">Show Listen Together in the top app bar instead of the navigation bar</string>
     <string name="listen_together_description">Listen to music with your friends in real time. Create a room to host, or join an existing room with a code</string>
     <string name="listen_together_background_disconnect_note">NOTE: When you are connected but not in a room, Listen Together disconnects after 30 minutes in the background to save battery</string>
-    <string name="listen_together_not_configured">Listen Together is not set up. Please configure the server URL in: Listen Together &gt; Settings &gt; Server URL</string>
+    <string name="listen_together_not_configured">Listen Together is not set up. Choose a server on the Listen Together page.</string>
     <string name="listen_together_suggestion_received">%1$s suggested %2$s</string>
     <string name="listen_together_suggestion_sent">Suggestion sent to host!</string>
     <string name="listen_together_join_request_notification">%1$s wants to join the room</string>
@@ -671,7 +674,7 @@
     <string name="connected_users">Connected users</string>
     <string name="enter_username">Enter a username</string>
     <string name="enter_room_code">Enter a room code</string>
-    <string name="listen_together_settings_desc">Configure server, username, and more</string>
+    <string name="listen_together_settings_desc">Configure username, room behavior, and diagnostics</string>
     <string name="error_username_empty">A username is required</string>
     <string name="resync">Re-sync</string>
     <string name="copy_code">Copy code</string>
@@ -904,7 +907,7 @@
     <string name="metroverse_metrolist_relationship">MetroVerse is based on Metrolist and retains its music architecture, interface foundations, contributors, and GPL history.</string>
     <string name="metroverse_podium_relationship">The RSS and Apple Podcasts integration was developed by studying and adapting concepts from Podium under GPL-3.0.</string>
     <string name="metroverse_apple_podcasts_attribution">Apple Podcasts provides public discovery, charts, search metadata, and artwork. MetroVerse plays public RSS feeds independently and is not affiliated with Apple.</string>
-    <string name="metroverse_changelog_body">MetroVerse 0.2.0\n\n• Fixed MP3 and other common RSS podcast containers\n• Added two-row podcast discovery and Categories\n• Separated YouTube Music and podcast search history\n• Added Liked and Downloaded episode collections\n• Added podcast speed and revised sleep timer sheets\n• Changed podcast seek controls to 10 seconds\n• Replaced the app icon with fixed MetroVerse artwork\n• Added Library refresh and playlist-style podcast collections\n• Added a 20-second Sleep Timer fade</string>
+    <string name="metroverse_changelog_body">MetroVerse 0.3.0\n\n• Added subscribed podcast shows to Library search\n• Moved Listen Together server selection to its main page\n• Added loading feedback when opening discovered podcasts\n• Matched Podcast section titles to Home\n• Fixed mini-player podcast subscription state and actions\n• Fixed refresh indicator placement and visibility\n• Fixed bottom content spacing above the mini player\n• Aligned podcast detail top spacing with Album pages</string>
     <string name="wanna_play_favorite_song">Want to play their favorite song?</string>
     <string name="yeah">Yeah!</string>
     <string name="stands_with_palestine">This project stands with Palestine 🇵🇸</string>

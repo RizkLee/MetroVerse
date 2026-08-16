@@ -286,7 +286,7 @@ fun AppearanceSettings(
     val (listenTogetherInTopBar, onListenTogetherInTopBarChange) =
         rememberPreference(
             ListenTogetherInTopBarKey,
-            defaultValue = false,
+            defaultValue = true,
         )
 
     val (swipeToSong, onSwipeToSongChange) =
