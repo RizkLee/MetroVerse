@@ -2015,6 +2015,20 @@ interface DatabaseDao {
     @Query("SELECT * FROM podcast WHERE bookmarkedAt IS NOT NULL ORDER BY bookmarkedAt DESC")
     fun subscribedPodcasts(): Flow<List<PodcastEntity>>
 
+    @Query(
+        """
+        SELECT * FROM podcast
+        WHERE bookmarkedAt IS NOT NULL
+          AND (title LIKE '%' || :query || '%' OR author LIKE '%' || :query || '%')
+        ORDER BY bookmarkedAt DESC, title COLLATE NOCASE ASC
+        LIMIT :previewSize
+        """,
+    )
+    fun searchPodcasts(
+        query: String,
+        previewSize: Int = Int.MAX_VALUE,
+    ): Flow<List<PodcastEntity>>
+
     @Query("SELECT * FROM podcast WHERE id = :id")
     fun podcast(id: String): Flow<PodcastEntity?>
 

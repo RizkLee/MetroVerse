@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -20,9 +21,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Icon
@@ -36,23 +39,28 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import coil3.compose.AsyncImage
 import com.metrolist.music.LocalNavController
+import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
 import com.metrolist.music.constants.CONTENT_TYPE_LIST
 import com.metrolist.music.constants.ListItemHeight
+import com.metrolist.music.constants.ListThumbnailSize
+import com.metrolist.music.constants.ThumbnailCornerRadius
 import com.metrolist.music.db.entities.Album
 import com.metrolist.music.db.entities.Artist
 import com.metrolist.music.db.entities.Playlist
+import com.metrolist.music.db.entities.PodcastEntity
 import com.metrolist.music.db.entities.Song
 import com.metrolist.music.extensions.toMediaItem
 import com.metrolist.music.playback.queues.ListQueue
@@ -60,6 +68,7 @@ import com.metrolist.music.ui.component.AlbumListItem
 import com.metrolist.music.ui.component.ArtistListItem
 import com.metrolist.music.ui.component.ChipsRow
 import com.metrolist.music.ui.component.EmptyPlaceholder
+import com.metrolist.music.ui.component.ListItem
 import com.metrolist.music.ui.component.LocalMenuState
 import com.metrolist.music.ui.component.PlaylistListItem
 import com.metrolist.music.ui.component.SongListItem
@@ -129,6 +138,7 @@ fun LocalSearchScreen(
                     LocalFilter.ALBUM to stringResource(R.string.filter_albums),
                     LocalFilter.ARTIST to stringResource(R.string.filter_artists),
                     LocalFilter.PLAYLIST to stringResource(R.string.filter_playlists),
+                    LocalFilter.PODCAST to stringResource(R.string.filter_podcasts),
                 ),
             currentValue = searchFilter,
             onValueUpdate = { viewModel.filter.value = it },
@@ -138,7 +148,7 @@ fun LocalSearchScreen(
             state = lazyListState,
             modifier = Modifier.weight(1f),
             contentPadding =
-                WindowInsets.systemBars
+                LocalPlayerAwareWindowInsets.current
                     .only(WindowInsetsSides.Bottom)
                     .asPaddingValues(),
         ) {
@@ -163,6 +173,7 @@ fun LocalSearchScreen(
                                             LocalFilter.ALBUM -> R.string.filter_albums
                                             LocalFilter.ARTIST -> R.string.filter_artists
                                             LocalFilter.PLAYLIST -> R.string.filter_playlists
+                                            LocalFilter.PODCAST -> R.string.filter_podcasts
                                             LocalFilter.ALL -> error("")
                                         },
                                     ),
@@ -289,7 +300,82 @@ fun LocalSearchScreen(
                 }
             }
 
-            if (result.query.isNotEmpty() && result.map.isEmpty()) {
+            if (result.podcasts.isNotEmpty()) {
+                if (result.filter == LocalFilter.ALL) {
+                    item(key = "podcast_search_header") {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(ListItemHeight)
+                                .clickable { viewModel.filter.value = LocalFilter.PODCAST }
+                                .padding(start = 12.dp, end = 18.dp),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.filter_podcasts),
+                                style = MaterialTheme.typography.titleLarge,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Icon(
+                                painter = painterResource(R.drawable.navigate_next),
+                                contentDescription = null,
+                            )
+                        }
+                    }
+                }
+
+                items(
+                    items = result.podcasts,
+                    key = PodcastEntity::id,
+                    contentType = { CONTENT_TYPE_LIST },
+                ) { podcast ->
+                    ListItem(
+                        title = podcast.title,
+                        subtitle = podcast.author,
+                        thumbnailContent = {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .size(ListThumbnailSize)
+                                    .clip(RoundedCornerShape(ThumbnailCornerRadius))
+                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                            ) {
+                                if (podcast.thumbnailUrl != null) {
+                                    AsyncImage(
+                                        model = podcast.thumbnailUrl,
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                } else {
+                                    Icon(
+                                        painter = painterResource(R.drawable.podcast),
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.size(ListThumbnailSize / 2),
+                                    )
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onDismiss()
+                                navController.navigate(
+                                    if (podcast.feedUrl != null) {
+                                        "rss_podcast/${podcast.id}"
+                                    } else {
+                                        "online_podcast/${podcast.id}"
+                                    },
+                                )
+                            }
+                            .animateItem(),
+                    )
+                }
+            }
+
+            if (result.query.isNotEmpty() && result.map.isEmpty() && result.podcasts.isEmpty()) {
                 item(key = "no_result") {
                     EmptyPlaceholder(
                         icon = R.drawable.search,

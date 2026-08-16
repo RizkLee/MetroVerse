@@ -14,6 +14,7 @@ import com.metrolist.music.db.entities.Album
 import com.metrolist.music.db.entities.Artist
 import com.metrolist.music.db.entities.LocalItem
 import com.metrolist.music.db.entities.Playlist
+import com.metrolist.music.db.entities.PodcastEntity
 import com.metrolist.music.db.entities.Song
 import com.metrolist.music.utils.dataStore
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -44,7 +45,7 @@ constructor(
         combine(
             query,
             filter,
-            context.dataStore.data.map { it[HideVideoSongsKey] ?: false }.distinctUntilChanged()
+            context.dataStore.data.map { it[HideVideoSongsKey] ?: false }.distinctUntilChanged(),
         ) { query, filter, hideVideoSongs ->
             Triple(query, filter, hideVideoSongs)
         }.flatMapLatest { (query, filter, hideVideoSongs) ->
@@ -52,47 +53,62 @@ constructor(
                 flowOf(LocalSearchResult("", filter, emptyMap()))
             } else {
                 when (filter) {
-                    LocalFilter.ALL ->
-                        combine(
+                    LocalFilter.ALL -> {
+                        val mediaResults = combine(
                             database.searchSongs(query, PREVIEW_SIZE),
                             database.searchAlbums(query, PREVIEW_SIZE),
                             database.searchArtists(query, PREVIEW_SIZE),
                             database.searchPlaylists(query, PREVIEW_SIZE),
                         ) { songs, albums, artists, playlists ->
                             val filteredSongs = if (hideVideoSongs) songs.filter { !it.song.isVideo } else songs
-                            val localSongs = filteredSongs.map { it }
-                            val localAlbums = albums.map { it }
-                            val localArtists = artists.map { it }
-                            val localPlaylists = playlists.map { it }
-                            localSongs + localAlbums + localArtists + localPlaylists
+                            filteredSongs + albums + artists + playlists
                         }
-
-                    LocalFilter.SONG -> database.searchSongs(query).map { songs ->
-                        if (hideVideoSongs) songs.filter { !it.song.isVideo } else songs
+                        combine(
+                            mediaResults,
+                            database.searchPodcasts(query, PREVIEW_SIZE),
+                        ) { items, podcasts ->
+                            LocalSearchResult(
+                                query = query,
+                                filter = filter,
+                                map = items.groupByLocalFilter(),
+                                podcasts = podcasts,
+                            )
+                        }
                     }
-                    LocalFilter.ALBUM -> database.searchAlbums(query)
-                    LocalFilter.ARTIST -> database.searchArtists(query)
-                    LocalFilter.PLAYLIST -> database.searchPlaylists(query)
-                }.map { list ->
-                    LocalSearchResult(
-                        query = query,
-                        filter = filter,
-                        map =
-                        list.groupBy {
-                            when (it) {
-                                is Song -> LocalFilter.SONG
-                                is Album -> LocalFilter.ALBUM
-                                is Artist -> LocalFilter.ARTIST
-                                is Playlist -> LocalFilter.PLAYLIST
+
+                    LocalFilter.PODCAST -> database.searchPodcasts(query).map { podcasts ->
+                        LocalSearchResult(
+                            query = query,
+                            filter = filter,
+                            map = emptyMap(),
+                            podcasts = podcasts,
+                        )
+                    }
+
+                    else -> {
+                        val items = when (filter) {
+                            LocalFilter.SONG -> database.searchSongs(query).map { songs ->
+                                if (hideVideoSongs) songs.filter { !it.song.isVideo } else songs
                             }
-                        },
-                    )
+                            LocalFilter.ALBUM -> database.searchAlbums(query)
+                            LocalFilter.ARTIST -> database.searchArtists(query)
+                            LocalFilter.PLAYLIST -> database.searchPlaylists(query)
+                            LocalFilter.ALL, LocalFilter.PODCAST -> error("Handled above")
+                        }
+                        items.map { mediaItems ->
+                            LocalSearchResult(
+                                query = query,
+                                filter = filter,
+                                map = mediaItems.groupByLocalFilter(),
+                            )
+                        }
+                    }
                 }
             }
         }.stateIn(
             viewModelScope,
             SharingStarted.Lazily,
-            LocalSearchResult("", filter.value, emptyMap())
+            LocalSearchResult("", filter.value, emptyMap()),
         )
 
     companion object {
@@ -106,10 +122,22 @@ enum class LocalFilter {
     ALBUM,
     ARTIST,
     PLAYLIST,
+    PODCAST,
 }
 
 data class LocalSearchResult(
     val query: String,
     val filter: LocalFilter,
     val map: Map<LocalFilter, List<LocalItem>>,
+    val podcasts: List<PodcastEntity> = emptyList(),
 )
+
+private fun List<LocalItem>.groupByLocalFilter(): Map<LocalFilter, List<LocalItem>> =
+    groupBy { item ->
+        when (item) {
+            is Song -> LocalFilter.SONG
+            is Album -> LocalFilter.ALBUM
+            is Artist -> LocalFilter.ARTIST
+            is Playlist -> LocalFilter.PLAYLIST
+        }
+    }
