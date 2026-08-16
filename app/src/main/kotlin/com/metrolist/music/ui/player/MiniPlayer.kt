@@ -85,6 +85,7 @@ import coil3.compose.AsyncImage
 import com.metrolist.music.LocalDatabase
 import com.metrolist.music.LocalListenTogetherManager
 import com.metrolist.music.LocalPlayerConnection
+import com.metrolist.music.LocalSyncUtils
 import com.metrolist.music.R
 import com.metrolist.music.constants.CropAlbumArtKey
 import com.metrolist.music.constants.DarkModeKey
@@ -95,6 +96,7 @@ import com.metrolist.music.constants.SwipeThumbnailKey
 import com.metrolist.music.constants.ThumbnailCornerRadius
 import com.metrolist.music.constants.UseNewMiniPlayerDesignKey
 import com.metrolist.music.db.entities.ArtistEntity
+import com.metrolist.music.db.entities.PodcastEntity
 import com.metrolist.music.listentogether.ListenTogetherManager
 import com.metrolist.music.models.MediaMetadata
 import com.metrolist.music.playback.CastConnectionHandler
@@ -469,14 +471,21 @@ private fun NewMiniPlayer(
                 }
 
 // Subscribe button - isolated composable
-                mediaMetadata?.artists?.firstOrNull()?.id?.let { artistId ->
-                    SubscribeButton(
-                        artistId = artistId,
-                        metadata = mediaMetadata!!,
-                        primaryColor = primaryColor,
-                        outlineColor = outlineColor,
-                        onSurfaceColor = onSurfaceColor,
-                    )
+                mediaMetadata?.let { metadata ->
+                    val subscriptionId = if (metadata.isEpisode) {
+                        metadata.album?.id
+                    } else {
+                        metadata.artists.firstOrNull()?.id
+                    }
+                    subscriptionId?.let { subjectId ->
+                        SubscribeButton(
+                            subjectId = subjectId,
+                            metadata = metadata,
+                            primaryColor = primaryColor,
+                            outlineColor = outlineColor,
+                            onSurfaceColor = onSurfaceColor,
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.width(8.dp))
@@ -1052,16 +1061,23 @@ private fun LegacyMiniMediaInfo(
 
 @Composable
 private fun SubscribeButton(
-    artistId: String,
+    subjectId: String,
     metadata: MediaMetadata,
     primaryColor: Color,
     outlineColor: Color,
     onSurfaceColor: Color,
 ) {
     val database = LocalDatabase.current
-    val libraryArtist by database.artist(artistId).collectAsStateWithLifecycle(initialValue = null)
-    val isSubscribed = libraryArtist?.artist?.bookmarkedAt != null
-
+    val syncUtils = LocalSyncUtils.current
+    val isPodcast = metadata.isEpisode
+    val isDirectPodcast = isPodcast && metadata.mediaUrl != null
+    val libraryArtist by database.artist(subjectId).collectAsStateWithLifecycle(initialValue = null)
+    val libraryPodcast by database.podcast(subjectId).collectAsStateWithLifecycle(initialValue = null)
+    val isSubscribed = if (isPodcast) {
+        libraryPodcast?.bookmarkedAt != null
+    } else {
+        libraryArtist?.artist?.bookmarkedAt != null
+    }
 
     Box(
         contentAlignment = Alignment.Center,
@@ -1077,20 +1093,42 @@ private fun SubscribeButton(
                     color = if (isSubscribed) primaryColor.copy(alpha = 0.1f) else Color.Transparent,
                     shape = CircleShape,
                 ).clickable {
-                    database.transaction {
-                        val artist = libraryArtist?.artist
-                        if (artist != null) {
-                            update(artist.toggleLike())
-                        } else {
-                            metadata.artists.firstOrNull()?.let { artistInfo ->
+                    if (isPodcast) {
+                        val shouldSubscribe = libraryPodcast?.bookmarkedAt == null
+                        database.transaction {
+                            val podcast = libraryPodcast
+                            if (podcast != null) {
+                                update(podcast.toggleBookmark())
+                            } else {
                                 insert(
-                                    ArtistEntity(
-                                        id = artistInfo.id ?: "",
-                                        name = artistInfo.name,
-                                        channelId = null,
-                                        thumbnailUrl = null,
-                                    ).toggleLike(),
+                                    PodcastEntity(
+                                        id = subjectId,
+                                        title = metadata.album?.title ?: metadata.title,
+                                        author = metadata.artists.joinToString { it.name }.ifBlank { null },
+                                        thumbnailUrl = metadata.thumbnailUrl,
+                                    ).toggleBookmark(),
                                 )
+                            }
+                        }
+                        if (!isDirectPodcast) {
+                            syncUtils.savePodcast(subjectId, shouldSubscribe)
+                        }
+                    } else {
+                        database.transaction {
+                            val artist = libraryArtist?.artist
+                            if (artist != null) {
+                                update(artist.toggleLike())
+                            } else {
+                                metadata.artists.firstOrNull()?.let { artistInfo ->
+                                    insert(
+                                        ArtistEntity(
+                                            id = artistInfo.id ?: return@let,
+                                            name = artistInfo.name,
+                                            channelId = artistInfo.id,
+                                            thumbnailUrl = null,
+                                        ).toggleLike(),
+                                    )
+                                }
                             }
                         }
                     }

@@ -19,7 +19,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -72,26 +71,10 @@ fun PodcastCollectionScreen(
     val isPlaying by playerConnection.isEffectivelyPlaying.collectAsStateWithLifecycle()
     val currentMetadata by playerConnection.mediaMetadata.collectAsStateWithLifecycle()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(title) },
-                navigationIcon = {
-                    IconButton(onClick = navController::navigateUp) {
-                        Icon(
-                            painter = painterResource(R.drawable.arrow_back),
-                            contentDescription = stringResource(R.string.back_button_desc),
-                        )
-                    }
-                },
-            )
-        },
-    ) { padding ->
+    Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = padding.calculateTopPadding()),
+            modifier = Modifier.fillMaxSize(),
         ) {
             item(key = "podcast_collection_header") {
                 PodcastCollectionHeader(
@@ -171,6 +154,18 @@ fun PodcastCollectionScreen(
                 }
             }
         }
+        TopAppBar(
+            title = { Text(title) },
+            navigationIcon = {
+                IconButton(onClick = navController::navigateUp) {
+                    Icon(
+                        painter = painterResource(R.drawable.arrow_back),
+                        contentDescription = stringResource(R.string.back_button_desc),
+                    )
+                }
+            },
+            modifier = Modifier.align(Alignment.TopCenter),
+        )
     }
 }
 
@@ -190,7 +185,7 @@ private fun PodcastCollectionHeader(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 16.dp, bottom = 24.dp),
+            .padding(top = 8.dp, bottom = 24.dp),
     ) {
         Surface(
             color = MaterialTheme.colorScheme.primaryContainer,

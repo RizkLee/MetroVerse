@@ -5,6 +5,7 @@
 
 package com.metrolist.music.ui.screens.library
 
+import android.os.SystemClock
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.asPaddingValues
@@ -33,6 +34,7 @@ import com.metrolist.music.ui.component.ChipsRow
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.viewmodels.LibraryMixViewModel
 import com.metrolist.music.viewmodels.LibraryPodcastsViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -76,6 +78,7 @@ fun LibraryScreen(
                     if (!isRefreshing) {
                         scope.launch {
                             isRefreshing = true
+                            val refreshStartedAt = SystemClock.elapsedRealtime()
                             try {
                                 if (filterType == LibraryFilter.PODCASTS) {
                                     podcastsViewModel.refreshAll()
@@ -83,6 +86,9 @@ fun LibraryScreen(
                                     mixViewModel.refreshNow()
                                 }
                             } finally {
+                                val remainingIndicatorTime = MIN_REFRESH_INDICATOR_MS -
+                                    (SystemClock.elapsedRealtime() - refreshStartedAt)
+                                if (remainingIndicatorTime > 0L) delay(remainingIndicatorTime)
                                 isRefreshing = false
                             }
                         }
@@ -117,7 +123,13 @@ fun LibraryScreen(
             state = refreshState,
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues()),
+                .padding(
+                    top = LocalPlayerAwareWindowInsets.current
+                        .asPaddingValues()
+                        .calculateTopPadding(),
+                ),
         )
     }
 }
+
+private const val MIN_REFRESH_INDICATOR_MS = 700L

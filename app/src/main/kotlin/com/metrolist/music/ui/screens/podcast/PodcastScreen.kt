@@ -73,6 +73,7 @@ import com.metrolist.music.podcast.PodcastCategory
 import com.metrolist.music.podcast.PodcastDiscoverItem
 import com.metrolist.music.podcast.defaultPodcastRegionCode
 import com.metrolist.music.ui.component.LocalMenuState
+import com.metrolist.music.ui.component.NavigationTitle
 import com.metrolist.music.ui.component.SongListItem
 import com.metrolist.music.ui.menu.SongMenu
 import com.metrolist.music.ui.screens.MoodAndGenresButton
@@ -100,6 +101,7 @@ fun PodcastScreen(
     val discover by viewModel.discover.collectAsStateWithLifecycle()
     val isLoadingDiscover by viewModel.isLoadingDiscover.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+    val isOpening by viewModel.isOpening.collectAsStateWithLifecycle()
     val isPlaying by playerConnection.isEffectivelyPlaying.collectAsStateWithLifecycle()
     val currentMetadata by playerConnection.mediaMetadata.collectAsStateWithLifecycle()
     val refreshState = rememberPullToRefreshState()
@@ -206,7 +208,7 @@ fun PodcastScreen(
 
             if (continueListening.isNotEmpty()) {
                 item(key = "continue_title") {
-                    PodcastSectionTitle(stringResource(R.string.continue_listening))
+                    NavigationTitle(title = stringResource(R.string.continue_listening))
                 }
                 itemsIndexed(
                     items = continueListening.take(5),
@@ -236,7 +238,7 @@ fun PodcastScreen(
             }
 
             item(key = "subscriptions_title") {
-                PodcastSectionTitle(stringResource(R.string.subscriptions))
+                NavigationTitle(title = stringResource(R.string.subscriptions))
             }
             if (subscriptions.isEmpty()) {
                 item(key = "subscriptions_empty") {
@@ -268,7 +270,7 @@ fun PodcastScreen(
 
             if (latestEpisodes.isNotEmpty()) {
                 item(key = "latest_title") {
-                    PodcastSectionTitle(stringResource(R.string.latest_episodes))
+                    NavigationTitle(title = stringResource(R.string.latest_episodes))
                 }
                 itemsIndexed(
                     items = latestEpisodes.take(5),
@@ -301,7 +303,7 @@ fun PodcastScreen(
             }
 
             item(key = "discover_title") {
-                PodcastSectionTitle(stringResource(R.string.discover_podcasts))
+                NavigationTitle(title = stringResource(R.string.discover_podcasts))
             }
             item(key = "discover_grid") {
                 if (isLoadingDiscover && discover.isEmpty()) {
@@ -335,7 +337,7 @@ fun PodcastScreen(
             }
 
             item(key = "categories_title") {
-                PodcastSectionTitle(
+                NavigationTitle(
                     title = stringResource(R.string.podcast_categories),
                     onClick = { navController.navigate("podcast_categories/$podcastRegion") },
                 )
@@ -365,38 +367,28 @@ fun PodcastScreen(
             }
         }
 
+        if (isOpening) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.55f)),
+            ) {
+                ContainedLoadingIndicator()
+            }
+        }
+
         Indicator(
             isRefreshing = isRefreshing,
             state = refreshState,
-            modifier = Modifier.align(Alignment.TopCenter),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(
+                    top = LocalPlayerAwareWindowInsets.current
+                        .asPaddingValues()
+                        .calculateTopPadding(),
+                ),
         )
-    }
-}
-
-@Composable
-private fun PodcastSectionTitle(
-    title: String,
-    onClick: (() -> Unit)? = null,
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(start = 16.dp, end = 8.dp, top = 16.dp, bottom = 8.dp),
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.weight(1f),
-        )
-        if (onClick != null) {
-            Icon(
-                painter = painterResource(R.drawable.navigate_next),
-                contentDescription = stringResource(R.string.more_options),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
     }
 }
 

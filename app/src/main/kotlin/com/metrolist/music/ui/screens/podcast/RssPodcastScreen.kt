@@ -128,8 +128,6 @@ fun RssPodcastScreen(
                 .asPaddingValues(),
             modifier = Modifier.fillMaxSize(),
         ) {
-            item(key = "top_spacer") { Spacer(Modifier.height(64.dp)) }
-
             val currentPodcast = podcast
             if (currentPodcast == null && isRefreshing) {
                 item(key = "loading") {
@@ -349,7 +347,13 @@ fun RssPodcastScreen(
         Indicator(
             isRefreshing = isRefreshing,
             state = refreshState,
-            modifier = Modifier.align(Alignment.TopCenter),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(
+                    top = LocalPlayerAwareWindowInsets.current
+                        .asPaddingValues()
+                        .calculateTopPadding(),
+                ),
         )
     }
 }

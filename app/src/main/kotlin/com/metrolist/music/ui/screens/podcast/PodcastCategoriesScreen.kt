@@ -18,7 +18,6 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -52,26 +51,10 @@ fun PodcastCategoriesScreen(
 ) {
     val itemsPerRow = if (LocalWindowInfo.current.containerDpSize.width >= 600.dp) 3 else 2
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.podcast_categories)) },
-                navigationIcon = {
-                    IconButton(onClick = navController::navigateUp) {
-                        Icon(
-                            painter = painterResource(R.drawable.arrow_back),
-                            contentDescription = stringResource(R.string.back_button_desc),
-                        )
-                    }
-                },
-            )
-        },
-    ) { padding ->
+    Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = padding.calculateTopPadding()),
+            modifier = Modifier.fillMaxSize(),
         ) {
             PodcastCategory.entries.chunked(itemsPerRow).forEachIndexed { index, row ->
                 item(key = "podcast_category_row_$index") {
@@ -94,6 +77,18 @@ fun PodcastCategoriesScreen(
                 }
             }
         }
+        TopAppBar(
+            title = { Text(stringResource(R.string.podcast_categories)) },
+            navigationIcon = {
+                IconButton(onClick = navController::navigateUp) {
+                    Icon(
+                        painter = painterResource(R.drawable.arrow_back),
+                        contentDescription = stringResource(R.string.back_button_desc),
+                    )
+                }
+            },
+            modifier = Modifier.align(Alignment.TopCenter),
+        )
     }
 }
 
@@ -106,7 +101,9 @@ fun PodcastCategoryScreen(
 ) {
     val podcasts by viewModel.podcasts.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val isOpening by viewModel.isOpening.collectAsStateWithLifecycle()
     val refreshState = rememberPullToRefreshState()
+    val playerAwarePadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
@@ -117,68 +114,65 @@ fun PodcastCategoryScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(viewModel.category.titleRes)) },
-                navigationIcon = {
-                    IconButton(onClick = navController::navigateUp) {
-                        Icon(
-                            painter = painterResource(R.drawable.arrow_back),
-                            contentDescription = stringResource(R.string.back_button_desc),
-                        )
-                    }
-                },
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .pullToRefresh(
+                state = refreshState,
+                isRefreshing = isLoading,
+                onRefresh = viewModel::refresh,
+            ),
+    ) {
+        if (podcasts.isEmpty() && !isLoading) {
+            Text(
+                text = stringResource(R.string.no_podcast_results),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.align(Alignment.Center),
             )
-        },
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = padding.calculateTopPadding())
-                .pullToRefresh(
-                    state = refreshState,
-                    isRefreshing = isLoading,
-                    onRefresh = viewModel::refresh,
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(128.dp),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = playerAwarePadding.calculateTopPadding() + 8.dp,
+                    bottom = playerAwarePadding.calculateBottomPadding(),
                 ),
-        ) {
-            if (podcasts.isEmpty() && !isLoading) {
-                Text(
-                    text = stringResource(R.string.no_podcast_results),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.align(Alignment.Center),
-                )
-            } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(128.dp),
-                    contentPadding = PaddingValues(
-                        start = 16.dp,
-                        end = 16.dp,
-                        top = 12.dp,
-                        bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding(),
-                    ),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    items(podcasts, key = { it.appleId }) { podcast ->
-                        PodcastDiscoverCard(
-                            item = podcast,
-                            onClick = { viewModel.open(podcast) },
-                        )
-                    }
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                items(podcasts, key = { it.appleId }) { podcast ->
+                    PodcastDiscoverCard(
+                        item = podcast,
+                        onClick = { viewModel.open(podcast) },
+                    )
                 }
             }
-
-            if (isLoading && podcasts.isEmpty()) {
-                ContainedLoadingIndicator(modifier = Modifier.align(Alignment.Center))
-            }
-            Indicator(
-                isRefreshing = isLoading,
-                state = refreshState,
-                modifier = Modifier.align(Alignment.TopCenter),
-            )
         }
+
+        if ((isLoading && podcasts.isEmpty()) || isOpening) {
+            ContainedLoadingIndicator(modifier = Modifier.align(Alignment.Center))
+        }
+        Indicator(
+            isRefreshing = isLoading,
+            state = refreshState,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = playerAwarePadding.calculateTopPadding()),
+        )
+        TopAppBar(
+            title = { Text(stringResource(viewModel.category.titleRes)) },
+            navigationIcon = {
+                IconButton(onClick = navController::navigateUp) {
+                    Icon(
+                        painter = painterResource(R.drawable.arrow_back),
+                        contentDescription = stringResource(R.string.back_button_desc),
+                    )
+                }
+            },
+            modifier = Modifier.align(Alignment.TopCenter),
+        )
     }
 }

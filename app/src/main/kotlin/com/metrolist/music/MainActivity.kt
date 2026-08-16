@@ -638,7 +638,7 @@ class MainActivity : ComponentActivity() {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val (previousTab, setPreviousTab) = rememberSaveable { mutableStateOf("home") }
 
-                val (listenTogetherInTopBar) = rememberPreference(ListenTogetherInTopBarKey, defaultValue = false)
+                val (listenTogetherInTopBar) = rememberPreference(ListenTogetherInTopBarKey, defaultValue = true)
                 val navigationItems =
                     remember(listenTogetherInTopBar) {
                         if (listenTogetherInTopBar) {
@@ -766,12 +766,16 @@ class MainActivity : ComponentActivity() {
                         shouldShowNavigationBar,
                         playerBottomSheetState.isDismissed,
                         showRail,
+                        useNewMiniPlayerDesign,
                     ) {
                         var bottom = bottomInset
                         if (shouldShowNavigationBar && !showRail) {
                             bottom += NavigationBarHeight
                         }
-                        if (!playerBottomSheetState.isDismissed) bottom += MiniPlayerHeight
+                        if (!playerBottomSheetState.isDismissed) {
+                            bottom += MiniPlayerHeight
+                            if (useNewMiniPlayerDesign) bottom += MiniPlayerBottomSpacing
+                        }
                         windowsInsets
                             .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
                             .add(WindowInsets(top = AppBarHeight, bottom = bottom))

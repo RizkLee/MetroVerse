@@ -53,6 +53,8 @@ class PodcastHomeViewModel @Inject constructor(
     val isLoadingDiscover = _isLoadingDiscover.asStateFlow()
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing = _isRefreshing.asStateFlow()
+    private val _isOpening = MutableStateFlow(false)
+    val isOpening = _isOpening.asStateFlow()
     private val _events = MutableSharedFlow<PodcastUiEvent>(extraBufferCapacity = 1)
     val events = _events.asSharedFlow()
 
@@ -137,7 +139,9 @@ class PodcastHomeViewModel @Inject constructor(
     }
 
     fun openDiscoverItem(item: PodcastDiscoverItem) {
+        if (_isOpening.value) return
         viewModelScope.launch(Dispatchers.IO) {
+            _isOpening.value = true
             try {
                 val podcast = repository.importPodcast(item)
                 _events.emit(PodcastUiEvent.OpenPodcast(podcast.id))
@@ -145,6 +149,8 @@ class PodcastHomeViewModel @Inject constructor(
                 throw cancelled
             } catch (error: Throwable) {
                 _events.emit(PodcastUiEvent.Error(error.message ?: "Podcast feed failed"))
+            } finally {
+                _isOpening.value = false
             }
         }
     }
@@ -181,6 +187,8 @@ class PodcastCategoryViewModel @Inject constructor(
     val podcasts = _podcasts.asStateFlow()
     private val _isLoading = MutableStateFlow(false)
     val isLoading = _isLoading.asStateFlow()
+    private val _isOpening = MutableStateFlow(false)
+    val isOpening = _isOpening.asStateFlow()
     private val _events = MutableSharedFlow<PodcastUiEvent>(extraBufferCapacity = 1)
     val events = _events.asSharedFlow()
 
@@ -209,7 +217,9 @@ class PodcastCategoryViewModel @Inject constructor(
     }
 
     fun open(item: PodcastDiscoverItem) {
+        if (_isOpening.value) return
         viewModelScope.launch(Dispatchers.IO) {
+            _isOpening.value = true
             try {
                 val podcast = repository.importPodcast(item)
                 _events.emit(PodcastUiEvent.OpenPodcast(podcast.id))
@@ -217,6 +227,8 @@ class PodcastCategoryViewModel @Inject constructor(
                 throw cancelled
             } catch (error: Throwable) {
                 _events.emit(PodcastUiEvent.Error(error.message ?: "Podcast feed failed"))
+            } finally {
+                _isOpening.value = false
             }
         }
     }

@@ -199,13 +199,25 @@ fun LibraryPodcastsScreen(
                         chipsHeader()
                     }
 
-                    // RDPN "New Episodes" auto-playlist card
+                    // RDPN is YouTube Music's auto-playlist of recent episodes from subscribed shows.
                     item(key = "rdpn_playlist", contentType = CONTENT_TYPE_HEADER) {
-                        AutoPlaylistCard(
-                            title = stringResource(R.string.new_episodes),
-                            thumbnailUrl = rdpnPlaylist?.thumbnail,
-                            episodeCount = rdpnPlaylist?.songCountText,
-                            onClick = { navController.navigate("online_playlist/RDPN") },
+                        PlaylistListItem(
+                            playlist = Playlist(
+                                playlist = PlaylistEntity(
+                                    id = "RDPN",
+                                    name = stringResource(R.string.new_episodes),
+                                    browseId = "RDPN",
+                                    isEditable = false,
+                                    thumbnailUrl = rdpnPlaylist?.thumbnail,
+                                ),
+                                songCount = 0,
+                                songThumbnails = emptyList(),
+                            ),
+                            autoPlaylist = true,
+                            placeholderIcon = R.drawable.queue_music,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { navController.navigate("online_playlist/RDPN") },
                         )
                     }
 
@@ -484,79 +496,6 @@ fun LibraryPodcastsScreen(
                     },
                 )
             }
-        }
-    }
-}
-
-/** Auto-playlist card — mirrors YT Music design. Used for both SE and RDPN playlists. */
-@Composable
-private fun AutoPlaylistCard(
-    title: String,
-    thumbnailUrl: String?,
-    episodeCount: String?,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    fallbackIcon: Int = R.drawable.queue_music,
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 10.dp),
-    ) {
-        Box(
-            modifier =
-                Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(ThumbnailCornerRadius))
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (thumbnailUrl != null) {
-                AsyncImage(
-                    model = thumbnailUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier =
-                        Modifier
-                            .size(56.dp)
-                            .clip(RoundedCornerShape(ThumbnailCornerRadius)),
-                )
-            } else {
-                Icon(
-                    painter = painterResource(fallbackIcon),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(28.dp),
-                )
-            }
-        }
-
-        Spacer(Modifier.width(12.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text =
-                    buildString {
-                        append(stringResource(R.string.auto_playlist))
-                        if (!episodeCount.isNullOrBlank()) {
-                            append(" • ")
-                            append(episodeCount)
-                        }
-                    },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
         }
     }
 }

@@ -56,6 +56,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.metrolist.music.LocalDatabase
+import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
 import com.metrolist.music.constants.PodcastRegionKey
 import com.metrolist.music.constants.SearchSource
@@ -213,7 +214,7 @@ fun PodcastSearchResultScreen(
 
                 else -> {
                     LazyColumn(
-                        contentPadding = WindowInsets.systemBars
+                        contentPadding = LocalPlayerAwareWindowInsets.current
                             .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
                             .asPaddingValues(),
                         modifier = Modifier.fillMaxSize(),
