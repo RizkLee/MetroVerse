@@ -1,0 +1,9 @@
+MetroVerse 0.4.0
+
+- Added user-confirmed, signature-verified updates from GitHub Releases.
+- Reduced release variants to FOSS and GMS.
+- Unified RSS podcast library actions and mini-player icons with YouTube podcasts.
+- Fixed Podcast and Storage bottom spacing above the mini player.
+- Fixed automatic Library collection artwork and added refresh status feedback.
+- Kept the full-player Play/Pause labels in English.
+- Added dedicated no-buffer artwork to About.

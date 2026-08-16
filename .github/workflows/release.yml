@@ -4,13 +4,18 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag, for example v0.3.0"
+        description: "Release tag, for example v0.4.0"
         required: true
         type: string
       publish:
         description: "Publish or replace the GitHub Release"
         required: true
         default: false
+        type: boolean
+      prerelease:
+        description: "Mark the GitHub Release as a pre-release"
+        required: true
+        default: true
         type: boolean
 
 permissions:
@@ -30,9 +35,6 @@ jobs:
           - variant: gms
             task: assembleGmsRelease
             artifact: MetroVerse-with-Google-Cast
-          - variant: izzy
-            task: assembleIzzyRelease
-            artifact: MetroVerse-izzy
 
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -124,4 +126,5 @@ jobs:
           body: |
             MetroVerse unifies YouTube Music and open RSS podcasts in one Android app.
             Review the change log, APK checksum, and signing certificate before installing.
+          prerelease: ${{ inputs.prerelease }}
           files: release-files/*

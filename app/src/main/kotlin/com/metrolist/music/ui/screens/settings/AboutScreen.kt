@@ -71,7 +71,7 @@ fun AboutScreen(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Image(
-                painter = painterResource(R.drawable.ic_launcher_artwork),
+                painter = painterResource(R.drawable.ic_about_artwork),
                 contentDescription = stringResource(R.string.app_name),
                 modifier = Modifier.size(88.dp),
             )
@@ -135,7 +135,7 @@ fun AboutScreen(
                     Material3SettingsItem(
                         icon = painterResource(R.drawable.update),
                         title = { Text(stringResource(R.string.metroverse_releases)) },
-                        description = { Text(stringResource(R.string.metroverse_manual_updates)) },
+                        description = { Text(stringResource(R.string.metroverse_release_browser)) },
                         onClick = { uriHandler.openUri("$METROVERSE_REPOSITORY/releases") },
                     ),
                     Material3SettingsItem(

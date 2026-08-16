@@ -2,6 +2,28 @@
 
 All notable MetroVerse-specific changes are recorded here. Upstream Metrolist history remains available in Git history.
 
+## 0.4.0 - 2026
+
+### Added
+
+- Automatic GitHub Release checks with an explicit user confirmation before downloading and opening Android's installer.
+- Update verification for SHA-256, package name, version code, matching FOSS/GMS flavor, and the installed signing certificate.
+- Clear Library refresh results for completed, offline, signed-out, and failed states.
+
+### Changed
+
+- Reduced published variants to FOSS and GMS; removed the redundant Izzy flavor and source set.
+- Renamed RSS podcast subscription actions to Add to library / Remove from library, matching YouTube podcast details and mini-player icons.
+- Kept the full-player Play/Pause button labels in English in every app language.
+- Added a dedicated no-buffer MetroVerse artwork resource for About and README while retaining the padded launcher artwork.
+
+### Fixed
+
+- Added extra bottom clearance on Podcast and Storage so their final content stays above the new mini player.
+- Fixed Liked, Offline, and Uploaded automatic Library collections always using placeholder covers instead of their songs' artwork.
+- Made Library pull-to-refresh report when online synchronization could not run because the device is offline or YouTube Music is signed out.
+- Fixed the updater's previous inability to discover pre-releases or recognize versioned MetroVerse APK filenames.
+
 ## 0.3.0 - 2026
 
 ### Added
