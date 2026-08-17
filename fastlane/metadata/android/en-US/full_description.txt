@@ -1,23 +1,17 @@
-Material 3 YouTube Music client for Android
+MetroVerse combines YouTube Music and open RSS podcasts in one Android app.
 
 Features:
 
-- Play any song or video from YT Music
-- Background playback 
-- Personalized quick picks 
-- Library management 
-- Download and cache songs for offline playback
-- Search for songs, albums, artists, videos and playlists
-- Live lyrics 
-- YouTube Music account login support
-- Syncing of songs, artists, albums and playlists, from and to your account
-- Skip silence 
-- Import playlists 
-- Audio normalization 
-- Adjust tempo/pitch 
-- Local playlist management
-- Reorder songs in playlist or queue 
-- Light - Dark - black - Dynamic theme
-- Sleep timer
-- Material 3 
-- etc.
+- Browse and play music from YouTube Music
+- Discover public podcasts through Apple Podcasts
+- Import and subscribe to public RSS and Atom feeds
+- Shared music and podcast queue, player, notification, cache, and downloads
+- Podcast resume positions, 10-second seek controls, playback speed, and sleep timer
+- Background playback and Android Auto
+- Lyrics, playlists, library synchronization, and listening history
+- FOSS build without Google Cast dependencies
+- GMS build with Google Cast support
+- Material 3 Expressive interface
+- User-confirmed, signature-verified updates from GitHub Releases
+
+MetroVerse is an independent GPL-3.0 project based on Metrolist. Podium was studied as a GPL-3.0 reference for podcast integration. No Apple account is required for public podcast discovery or playback.

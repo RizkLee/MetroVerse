@@ -1,1 +1,1 @@
-Material 3 YouTube Music client for Android
+YouTube Music and open RSS podcasts in one Android app

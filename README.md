@@ -19,6 +19,23 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="GPL-3.0" /></a>
 </p>
 
+## Screenshots
+
+<table>
+  <tr>
+    <td><img src="fastlane/metadata/android/en-US/images/screenshots/01-podcast-home.jpg" alt="Podcast home" /></td>
+    <td><img src="fastlane/metadata/android/en-US/images/screenshots/02-podcast-library.jpg" alt="Podcast library" /></td>
+    <td><img src="fastlane/metadata/android/en-US/images/screenshots/03-podcast-details.jpg" alt="Podcast details" /></td>
+    <td><img src="fastlane/metadata/android/en-US/images/screenshots/04-podcast-player.jpg" alt="Podcast player" /></td>
+  </tr>
+  <tr>
+    <td align="center">Podcast</td>
+    <td align="center">Library</td>
+    <td align="center">Show details</td>
+    <td align="center">Now playing</td>
+  </tr>
+</table>
+
 <a id="english"></a>
 
 ## English
@@ -53,7 +70,7 @@ MetroVerse is not an official release of Metrolist or Podium and is not affiliat
 App name:        MetroVerse
 Application ID:  com.rizklee.metroverse
 Debug ID:        com.rizklee.metroverse.debug
-Version:         0.4.0
+Version:         0.5.0
 Minimum Android: Android 8.0 / API 26
 Target Android:  API 36
 ```
@@ -83,6 +100,12 @@ Release signing uses a private keystore that must never be committed. GitHub Act
 ### Releases and verification
 
 Downloads are published on the [Releases page](https://github.com/RizkLee/MetroVerse/releases). You may verify the attached SHA-256 file and APK signing certificate before installation.
+
+| Download | Description | Direct link |
+| --- | --- | --- |
+| FOSS APK | Music and podcasts without Google Cast dependencies | [Download FOSS](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.0/MetroVerse-v0.5.0-foss.apk) |
+| GMS APK | Music and podcasts with Google Cast support | [Download GMS](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.0/MetroVerse-v0.5.0-gms.apk) |
+| SHA-256 | Checksums for both APK files | [Download checksums](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.0/MetroVerse-v0.5.0-SHA256SUMS.txt) |
 
 ### Pending Issues
 
@@ -140,7 +163,7 @@ MetroVerse 不是 Metrolist 或 Podium 的官方版本，与 Apple、Google 或 
 应用名称：      MetroVerse
 正式包名：      com.rizklee.metroverse
 调试包名：      com.rizklee.metroverse.debug
-当前版本：      0.4.0
+当前版本：      0.5.0
 最低系统：      Android 8.0 / API 26
 目标 API：      36
 ```
@@ -167,6 +190,12 @@ MetroVerse 不是 Metrolist 或 Podium 的官方版本，与 Apple、Google 或 
 ### 下载与校验
 
 APK 发布在 [Releases 页面](https://github.com/RizkLee/MetroVerse/releases)。安装前可核对随附 SHA-256 文件和 APK 签名证书。
+
+| 下载内容 | 适用场景 | APK 直达链接 |
+| --- | --- | --- |
+| FOSS APK | 音乐与播客，不包含 Google Cast 依赖 | [直接下载 FOSS](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.0/MetroVerse-v0.5.0-foss.apk) |
+| GMS APK | 音乐与播客，包含 Google Cast 支持 | [直接下载 GMS](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.0/MetroVerse-v0.5.0-gms.apk) |
+| SHA-256 | 两个 APK 的文件校验值 | [下载校验文件](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.0/MetroVerse-v0.5.0-SHA256SUMS.txt) |
 
 ### 待解决
 
