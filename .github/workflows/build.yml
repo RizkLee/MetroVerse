@@ -61,6 +61,8 @@ jobs:
           --tests com.metrolist.music.playback.SleepTimerTest
           --tests com.metrolist.music.listentogether.ListenTogetherServersTest
           --tests com.metrolist.music.utils.UpdaterTest
+          --tests com.metrolist.music.extensions.PlaylistDeduplicationTest
+          --tests com.metrolist.music.ui.utils.YouTubeUtilsTest
 
       - name: Build debug APK
         run: ./gradlew --console=plain :app:assembleFossDebug

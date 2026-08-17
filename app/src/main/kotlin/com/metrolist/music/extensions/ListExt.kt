@@ -66,6 +66,31 @@ fun List<Album>.filterExplicitAlbums(enabled: Boolean = true) =
         this
     }
 
+fun List<Playlist>.deduplicateByBrowseId(): List<Playlist> {
+    val uniquePlaylists = linkedMapOf<String, Playlist>()
+    forEach { candidate ->
+        val key = candidate.playlist.browseId ?: candidate.id
+        val existing = uniquePlaylists[key]
+        if (existing == null || comparePlaylistCompleteness(candidate, existing) > 0) {
+            uniquePlaylists[key] = candidate
+        }
+    }
+    return uniquePlaylists.values.toList()
+}
+
+private fun comparePlaylistCompleteness(
+    first: Playlist,
+    second: Playlist,
+): Int =
+    compareValuesBy(
+        first,
+        second,
+        { if (it.playlist.thumbnailUrl.isNullOrBlank()) 0 else 1 },
+        Playlist::songCount,
+        { it.playlist.remoteSongCount ?: 0 },
+        { if (it.playlist.bookmarkedAt == null) 0 else 1 },
+    )
+
 // Extension function to filter YouTube Shorts playlist
 fun List<Playlist>.filterYoutubeShorts(enabled: Boolean = false) =
     if (enabled) {

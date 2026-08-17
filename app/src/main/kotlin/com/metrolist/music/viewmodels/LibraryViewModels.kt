@@ -44,6 +44,7 @@ import com.metrolist.music.constants.SongSortTypeKey
 import com.metrolist.music.constants.TopSize
 import com.metrolist.music.db.MusicDatabase
 import com.metrolist.music.db.entities.Song
+import com.metrolist.music.extensions.deduplicateByBrowseId
 import com.metrolist.music.extensions.filterExplicit
 import com.metrolist.music.extensions.filterExplicitAlbums
 import com.metrolist.music.extensions.filterVideoSongs
@@ -297,7 +298,9 @@ constructor(
                 )
             }.distinctUntilChanged()
             .flatMapLatest { (sortType, descending, hideYoutubeShorts) ->
-                database.playlists(sortType, descending).map { it.filterYoutubeShorts(hideYoutubeShorts) }
+                database.playlists(sortType, descending).map {
+                    it.filterYoutubeShorts(hideYoutubeShorts).deduplicateByBrowseId()
+                }
             }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     fun sync() {
@@ -418,7 +421,9 @@ constructor(
         .map { it[HideYoutubeShortsKey] ?: false }
         .distinctUntilChanged()
         .flatMapLatest { hideYoutubeShorts ->
-            database.playlists(PlaylistSortType.CREATE_DATE, true).map { it.filterYoutubeShorts(hideYoutubeShorts) }
+            database.playlists(PlaylistSortType.CREATE_DATE, true).map {
+                it.filterYoutubeShorts(hideYoutubeShorts).deduplicateByBrowseId()
+            }
         }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     val likedAutoPlaylistSongs =

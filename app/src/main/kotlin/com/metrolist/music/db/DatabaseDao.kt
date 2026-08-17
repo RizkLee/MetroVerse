@@ -1114,8 +1114,11 @@ interface DatabaseDao {
     fun editablePlaylistsByCreateDateAsc(): Flow<List<Playlist>>
 
     @Transaction
-    @Query("SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE browseId = :browseId")
+    @Query("SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE browseId = :browseId LIMIT 1")
     fun playlistByBrowseId(browseId: String): Flow<Playlist?>
+
+    @Query("SELECT * FROM playlist WHERE browseId = :browseId LIMIT 1")
+    fun playlistEntityByBrowseIdBlocking(browseId: String): PlaylistEntity?
 
     @Transaction
     @Query("SELECT COUNT(*) from playlist_song_map WHERE playlistId = :playlistId AND songId = :songId LIMIT 1")
@@ -1937,7 +1940,7 @@ interface DatabaseDao {
             playlistEntity.copy(
                 name = playlistItem.title,
                 browseId = playlistItem.id,
-                thumbnailUrl = playlistItem.thumbnail,
+                thumbnailUrl = playlistItem.thumbnail ?: playlistEntity.thumbnailUrl,
                 isEditable = playlistItem.isEditable,
                 remoteSongCount = playlistItem.songCountText?.let { Regex("""\d+""").find(it)?.value?.toIntOrNull() },
                 playEndpointParams = playlistItem.playEndpoint?.params,
