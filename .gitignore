@@ -116,3 +116,4 @@ app/src/main/cpp/coverart/
 .cursor*
 .codeium
 .cortexkit
+lastfm-api-key.txt

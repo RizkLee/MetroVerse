@@ -9,8 +9,8 @@
 <h1 align="center">MetroVerse</h1>
 
 <p align="center">
-  A Modified version of <a href="https://github.com/MetrolistGroup/Metrolist">Metrolist</a>.<br>
-  Music and open podcasts, one Android listening experience.
+  A powerful modified version of <a href="https://github.com/MetrolistGroup/Metrolist">Metrolist</a>.<br>
+  Youtube Music and open podcasts, one Android listening experience.
 </p>
 
 <p align="center">
@@ -26,12 +26,14 @@
     <td><img src="fastlane/metadata/android/en-US/images/screenshots/01-podcast-home.jpg" alt="Podcast home" /></td>
     <td><img src="fastlane/metadata/android/en-US/images/screenshots/02-podcast-library.jpg" alt="Podcast library" /></td>
     <td><img src="fastlane/metadata/android/en-US/images/screenshots/03-podcast-details.jpg" alt="Podcast details" /></td>
-    <td><img src="fastlane/metadata/android/en-US/images/screenshots/04-podcast-player.jpg" alt="Podcast player" /></td>
+    <td><img src="fastlane/metadata/android/en-US/images/screenshots/04-artist-details.jpg" alt="Artist details" /></td>
+    <td><img src="fastlane/metadata/android/en-US/images/screenshots/05-podcast-player.jpg" alt="Podcast player" /></td>
   </tr>
   <tr>
     <td align="center">Podcast</td>
     <td align="center">Library</td>
     <td align="center">Show details</td>
+    <td align="center">Artist details
     <td align="center">Now playing</td>
   </tr>
 </table>
@@ -101,11 +103,10 @@ Release signing uses a private keystore that must never be committed. GitHub Act
 
 Downloads are published on the [Releases page](https://github.com/RizkLee/MetroVerse/releases). You may verify the attached SHA-256 file and APK signing certificate before installation.
 
-| Download | Description | Direct link |
+| Variant | Description | Download link |
 | --- | --- | --- |
-| FOSS APK | Music and podcasts without Google Cast dependencies | [Download FOSS](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.0/MetroVerse-v0.5.0-foss.apk) |
-| GMS APK | Music and podcasts with Google Cast support | [Download GMS](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.0/MetroVerse-v0.5.0-gms.apk) |
-| SHA-256 | Checksums for both APK files | [Download checksums](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.0/MetroVerse-v0.5.0-SHA256SUMS.txt) |
+| FOSS APK | MetroVerse app without Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.0/MetroVerse-v0.5.0-foss.apk) |
+| GMS APK | The same app, but with Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.0/MetroVerse-v0.5.0-gms.apk) |
 
 ### Pending Issues
 
@@ -191,11 +192,10 @@ MetroVerse 不是 Metrolist 或 Podium 的官方版本，与 Apple、Google 或 
 
 APK 发布在 [Releases 页面](https://github.com/RizkLee/MetroVerse/releases)。安装前可核对随附 SHA-256 文件和 APK 签名证书。
 
-| 下载内容 | 适用场景 | APK 直达链接 |
+| App 版本 | 适用场景 | 下载链接 |
 | --- | --- | --- |
-| FOSS APK | 音乐与播客，不包含 Google Cast 依赖 | [直接下载 FOSS](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.0/MetroVerse-v0.5.0-foss.apk) |
-| GMS APK | 音乐与播客，包含 Google Cast 支持 | [直接下载 GMS](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.0/MetroVerse-v0.5.0-gms.apk) |
-| SHA-256 | 两个 APK 的文件校验值 | [下载校验文件](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.0/MetroVerse-v0.5.0-SHA256SUMS.txt) |
+| FOSS APK | 音乐与播客，不包含 Google Cast 功能 | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.0/MetroVerse-v0.5.0-foss.apk) |
+| GMS APK | 音乐与播客，包含 Google Cast 功能 | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.0/MetroVerse-v0.5.0-gms.apk) |
 
 ### 待解决
 
