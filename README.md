@@ -55,6 +55,7 @@ It keeps the familiar Material 3 Expressive interaction model inherited from Met
 ### Highlights
 
 - YouTube Music browsing, search, playlists, library, queue, background playback, lyrics, and local history.
+- Remove annoying ads and various playback restrictions, and provide song downloads.
 - A dedicated Podcast destination across phone, tablet, and landscape navigation.
 - Apple Podcasts charts, storefront selection, search, and genre-based Categories.
 - Direct RSS/Atom import, subscriptions, manual refresh, episode artwork, descriptions, and publication dates.
@@ -150,6 +151,7 @@ MetroVerse 是一个独立维护的修改版 [Metrolist](https://github.com/Metr
 ### 主要能力
 
 - YouTube Music 浏览、搜索、歌单、资料库、队列、后台播放、歌词和本地历史。
+- 去除烦人的广告和各类播放限制，提供歌曲下载。
 - 手机、平板和横屏布局中的独立 Podcast 主入口。
 - Apple Podcasts 榜单、地区切换、搜索和按类别发现播客。
 - RSS/Atom 地址导入、订阅、手动刷新、分集封面、简介和发布日期。
