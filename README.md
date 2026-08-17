@@ -72,7 +72,7 @@ MetroVerse is not an official release of Metrolist or Podium and is not affiliat
 App name:        MetroVerse
 Application ID:  com.rizklee.metroverse
 Debug ID:        com.rizklee.metroverse.debug
-Version:         0.5.0
+Version:         0.5.1
 Minimum Android: Android 8.0 / API 26
 Target Android:  API 36
 ```
@@ -105,8 +105,8 @@ Downloads are published on the [Releases page](https://github.com/RizkLee/MetroV
 
 | Variant | Description | Download link |
 | --- | --- | --- |
-| FOSS APK | MetroVerse app without Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.0/MetroVerse-v0.5.0-foss.apk) |
-| GMS APK | The same app, but with Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.0/MetroVerse-v0.5.0-gms.apk) |
+| FOSS APK | MetroVerse app without Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.1/MetroVerse-v0.5.1-foss.apk) |
+| GMS APK | The same app, but with Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.1/MetroVerse-v0.5.1-gms.apk) |
 
 ### Pending Issues
 
@@ -164,7 +164,7 @@ MetroVerse 不是 Metrolist 或 Podium 的官方版本，与 Apple、Google 或 
 应用名称：      MetroVerse
 正式包名：      com.rizklee.metroverse
 调试包名：      com.rizklee.metroverse.debug
-当前版本：      0.5.0
+当前版本：      0.5.1
 最低系统：      Android 8.0 / API 26
 目标 API：      36
 ```
@@ -194,8 +194,8 @@ APK 发布在 [Releases 页面](https://github.com/RizkLee/MetroVerse/releases)�
 
 | App 版本 | 适用场景 | 下载链接 |
 | --- | --- | --- |
-| FOSS APK | 音乐与播客，不包含 Google Cast 功能 | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.0/MetroVerse-v0.5.0-foss.apk) |
-| GMS APK | 音乐与播客，包含 Google Cast 功能 | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.0/MetroVerse-v0.5.0-gms.apk) |
+| FOSS APK | 音乐与播客，不包含 Google Cast 功能 | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.1/MetroVerse-v0.5.1-foss.apk) |
+| GMS APK | 音乐与播客，包含 Google Cast 功能 | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.1/MetroVerse-v0.5.1-gms.apk) |
 
 ### 待解决
 

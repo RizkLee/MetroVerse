@@ -921,7 +921,7 @@
     <string name="metroverse_metrolist_relationship">MetroVerse is based on Metrolist and retains its music architecture, interface foundations, contributors, and GPL history.</string>
     <string name="metroverse_podium_relationship">The RSS and Apple Podcasts integration was developed by studying and adapting concepts from Podium under GPL-3.0.</string>
     <string name="metroverse_apple_podcasts_attribution">Apple Podcasts provides public discovery, charts, search metadata, and artwork. MetroVerse plays public RSS feeds independently and is not affiliated with Apple.</string>
-    <string name="metroverse_changelog_body">MetroVerse 0.5.0\n\n• Fixed duplicate saved YouTube Music playlists and preserved official playlist artwork\n• Corrected YouTube and Google thumbnail URL resizing\n• Restored fixed icons for built-in Library collections\n• Removed the duplicate loading indicator from podcast category pages\n• Added podcast translations for nine major languages\n• Added app screenshots and direct APK download links to the README\n• Library refresh now stays quiet on success and only reports errors</string>
+    <string name="metroverse_changelog_body">MetroVerse 0.5.1\n\n• Podcast home now shows its first Discover load in the Discover section instead of the top refresh indicator\n• Podcast category pages now reserve the top indicator for manual refreshes after content is available</string>
     <string name="wanna_play_favorite_song">Want to play their favorite song?</string>
     <string name="yeah">Yeah!</string>
     <string name="stands_with_palestine">This project stands with Palestine 🇵🇸</string>

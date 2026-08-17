@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag, for example v0.5.0"
+        description: "Release tag, for example v0.5.1"
         required: true
         type: string
       publish:
@@ -126,12 +126,30 @@ jobs:
           body: |
             MetroVerse unifies YouTube Music and open RSS podcasts in one Android app.
 
-            | Download | Description | Direct link |
-            | --- | --- | --- |
-            | FOSS APK | Without Google Cast dependencies | [Download FOSS](https://github.com/RizkLee/MetroVerse/releases/download/${{ inputs.tag }}/MetroVerse-${{ inputs.tag }}-foss.apk) |
-            | GMS APK | Includes Google Cast support | [Download GMS](https://github.com/RizkLee/MetroVerse/releases/download/${{ inputs.tag }}/MetroVerse-${{ inputs.tag }}-gms.apk) |
-            | SHA-256 | Checksums for both APKs | [Download checksums](https://github.com/RizkLee/MetroVerse/releases/download/${{ inputs.tag }}/MetroVerse-${{ inputs.tag }}-SHA256SUMS.txt) |
+            ## Downloads
 
-            Review the change log, APK checksum, and signing certificate before installing.
+            | Variant | Description | Download link |
+            | --- | --- | --- |
+            | FOSS APK | MetroVerse app without Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/${{ inputs.tag }}/MetroVerse-${{ inputs.tag }}-foss.apk) |
+            | GMS APK | The same app, but with Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/${{ inputs.tag }}/MetroVerse-${{ inputs.tag }}-gms.apk) |
+
+            ## Verification
+
+            Review the attached checksum file and APK signing certificate before installation.
+
+            ---
+
+            MetroVerse 将 YouTube Music 与开放 RSS 播客整合在同一个 Android 应用中。
+
+            ## 下载
+
+            | App 版本 | 适用场景 | 下载链接 |
+            | --- | --- | --- |
+            | FOSS APK | 音乐与播客，不包含 Google Cast 功能 | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/${{ inputs.tag }}/MetroVerse-${{ inputs.tag }}-foss.apk) |
+            | GMS APK | 音乐与播客，包含 Google Cast 功能 | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/${{ inputs.tag }}/MetroVerse-${{ inputs.tag }}-gms.apk) |
+
+            ## 文件校验
+
+            安装前请核对附件中的校验和文件与 APK 签名证书。
           prerelease: ${{ inputs.prerelease }}
           files: release-files/*

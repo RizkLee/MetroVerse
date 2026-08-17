@@ -2,6 +2,13 @@
 
 All notable MetroVerse-specific changes are recorded here. Upstream Metrolist history remains available in Git history.
 
+## 0.5.1 - 2026
+
+### Fixed
+
+- Podcast home now shows the first Apple Podcasts discovery load in the Discover section instead of the top pull-to-refresh indicator.
+- Podcast category pages now reserve the top indicator for manual refreshes after category content is available.
+
 ## 0.5.0 - 2026
 
 ### Added

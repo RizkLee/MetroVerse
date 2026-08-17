@@ -1,0 +1,4 @@
+MetroVerse 0.5.1
+
+- Podcast home now shows its first Discover load in the Discover section instead of the top refresh indicator.
+- Podcast category pages now show the top refresh indicator only for manual refreshes after content is available.
