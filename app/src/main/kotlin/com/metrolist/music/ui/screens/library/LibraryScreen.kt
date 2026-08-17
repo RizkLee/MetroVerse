@@ -52,7 +52,6 @@ fun LibraryScreen(
     var isRefreshing by remember { mutableStateOf(false) }
     val refreshState = rememberPullToRefreshState()
     val scope = rememberCoroutineScope()
-    val refreshCompletedMessage = stringResource(R.string.library_refresh_completed)
     val refreshOfflineMessage = stringResource(R.string.library_refresh_offline)
     val refreshLoginMessage = stringResource(R.string.library_refresh_login_required)
     val refreshFailedMessage = stringResource(R.string.library_refresh_failed)
@@ -105,14 +104,14 @@ fun LibraryScreen(
                                     if (remainingIndicatorTime > 0L) delay(remainingIndicatorTime)
                                     isRefreshing = false
                                 }
-                            snackbarHostState.showSnackbar(
+                            val errorMessage =
                                 when (refreshResult) {
-                                    FullSyncResult.COMPLETED -> refreshCompletedMessage
+                                    FullSyncResult.COMPLETED -> null
                                     FullSyncResult.NOT_LOGGED_IN -> refreshLoginMessage
                                     FullSyncResult.OFFLINE -> refreshOfflineMessage
                                     FullSyncResult.FAILED -> refreshFailedMessage
-                                },
-                            )
+                                }
+                            errorMessage?.let { snackbarHostState.showSnackbar(it) }
                         }
                     }
                 },

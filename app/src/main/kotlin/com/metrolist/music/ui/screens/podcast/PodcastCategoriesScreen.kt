@@ -156,7 +156,7 @@ fun PodcastCategoryScreen(
             ContainedLoadingIndicator(modifier = Modifier.align(Alignment.Center))
         }
         Indicator(
-            isRefreshing = isLoading,
+            isRefreshing = isLoading && podcasts.isNotEmpty(),
             state = refreshState,
             modifier = Modifier
                 .align(Alignment.TopCenter)
