@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag, for example v0.4.0"
+        description: "Release tag, for example v0.5.0"
         required: true
         type: string
       publish:
@@ -125,6 +125,13 @@ jobs:
           name: MetroVerse ${{ inputs.tag }}
           body: |
             MetroVerse unifies YouTube Music and open RSS podcasts in one Android app.
+
+            | Download | Description | Direct link |
+            | --- | --- | --- |
+            | FOSS APK | Without Google Cast dependencies | [Download FOSS](https://github.com/RizkLee/MetroVerse/releases/download/${{ inputs.tag }}/MetroVerse-${{ inputs.tag }}-foss.apk) |
+            | GMS APK | Includes Google Cast support | [Download GMS](https://github.com/RizkLee/MetroVerse/releases/download/${{ inputs.tag }}/MetroVerse-${{ inputs.tag }}-gms.apk) |
+            | SHA-256 | Checksums for both APKs | [Download checksums](https://github.com/RizkLee/MetroVerse/releases/download/${{ inputs.tag }}/MetroVerse-${{ inputs.tag }}-SHA256SUMS.txt) |
+
             Review the change log, APK checksum, and signing certificate before installing.
           prerelease: ${{ inputs.prerelease }}
           files: release-files/*

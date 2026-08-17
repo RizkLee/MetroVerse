@@ -2,6 +2,26 @@
 
 All notable MetroVerse-specific changes are recorded here. Upstream Metrolist history remains available in Git history.
 
+## 0.5.0 - 2026
+
+### Added
+
+- Added podcast interface translations for German, Spanish, French, Italian, Japanese, Korean, Brazilian Portuguese, Russian, and Traditional Chinese.
+- Added four current app screenshots and direct FOSS/GMS/checksum download links to the README.
+
+### Changed
+
+- Restored fixed default icons for the Liked, Downloaded, and Uploaded Library collections while retaining live item counts.
+- Library pull-to-refresh now stays quiet after success and only reports offline, signed-out, or failed results.
+- Retained only current English Fastlane listing metadata because GitHub Releases do not consume the inherited store-localization folders.
+
+### Fixed
+
+- Fixed duplicate saved YouTube Music playlists by querying existing rows directly by browse ID and restoring missing bookmark state during synchronization.
+- Improved duplicate cleanup to preserve the row with usable artwork and more complete song metadata.
+- Fixed official playlist and other YouTube artwork failures caused by malformed Google thumbnail resize URLs.
+- Removed the second loading indicator shown during the initial load of a podcast category.
+
 ## 0.4.0 - 2026
 
 ### Added

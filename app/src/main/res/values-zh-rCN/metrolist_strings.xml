@@ -633,7 +633,7 @@
     <string name="metroverse_metrolist_relationship">MetroVerse 基于 Metrolist，保留其音乐架构、界面基础、贡献者历史和 GPL 授权关系。</string>
     <string name="metroverse_podium_relationship">RSS 与 Apple Podcasts 整合功能是在 GPL-3.0 下研究并适配 Podium 实现思路后开发的。</string>
     <string name="metroverse_apple_podcasts_attribution">Apple Podcasts 提供公开的发现、榜单、搜索元数据和封面。MetroVerse 独立播放公开 RSS 订阅源，与 Apple 无隶属或合作关系。</string>
-    <string name="metroverse_changelog_body">MetroVerse 0.4.0\n\n• 新增自动检查 GitHub Release，由用户确认下载和安装\n• 更新时核对 SHA-256、包名、版本、flavor 和签名证书\n• 正式构建仅保留 FOSS 与 GMS\n• RSS 播客改用与 YouTube 播客一致的“添加到媒体库”操作和图标\n• 修复 Podcast 与 Storage 内容和迷你播放器重叠\n• 修复自动媒体库集合封面并增加刷新结果提示\n• 播放器 Play/Pause 按钮固定使用英文\n• About 改用独立无安全边距图标</string>
+    <string name="metroverse_changelog_body">MetroVerse 0.5.0\n\n• 修复已收藏 YouTube Music 歌单重复并保留官方歌单封面\n• 修正 YouTube 与 Google 缩略图地址尺寸转换\n• Library 内置集合恢复固定默认图标\n• 移除 Podcast 分类详情页重复的加载图标\n• 为九种主要语言补充播客翻译\n• README 增加应用截图和 APK 下载直达链接\n• Library 刷新成功时不再提示，仅在异常时显示信息</string>
     <string name="wanna_play_favorite_song">想播放他们最喜欢的歌曲吗？</string>
     <string name="yeah">是的！</string>
     <string name="stands_with_palestine">本项目声援巴勒斯坦 🇵🇸</string>
