@@ -102,6 +102,8 @@ fun PodcastScreen(
     val isLoadingDiscover by viewModel.isLoadingDiscover.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val isOpening by viewModel.isOpening.collectAsStateWithLifecycle()
+    val isDiscoverLoading = discover.isEmpty() && (isLoadingDiscover || isRefreshing)
+    val isPullRefreshing = isRefreshing && discover.isNotEmpty()
     val isPlaying by playerConnection.isEffectivelyPlaying.collectAsStateWithLifecycle()
     val currentMetadata by playerConnection.mediaMetadata.collectAsStateWithLifecycle()
     val refreshState = rememberPullToRefreshState()
@@ -162,7 +164,7 @@ fun PodcastScreen(
             .fillMaxSize()
             .pullToRefresh(
                 state = refreshState,
-                isRefreshing = isRefreshing,
+                isRefreshing = isPullRefreshing,
                 onRefresh = viewModel::refresh,
             ),
     ) {
@@ -306,7 +308,7 @@ fun PodcastScreen(
                 NavigationTitle(title = stringResource(R.string.discover_podcasts))
             }
             item(key = "discover_grid") {
-                if (isLoadingDiscover && discover.isEmpty()) {
+                if (isDiscoverLoading) {
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
@@ -383,7 +385,7 @@ fun PodcastScreen(
         }
 
         Indicator(
-            isRefreshing = isRefreshing,
+            isRefreshing = isPullRefreshing,
             state = refreshState,
             modifier = Modifier
                 .align(Alignment.TopCenter)

@@ -103,6 +103,7 @@ fun PodcastCategoryScreen(
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val isOpening by viewModel.isOpening.collectAsStateWithLifecycle()
     val refreshState = rememberPullToRefreshState()
+    val isPullRefreshing = isLoading && podcasts.isNotEmpty()
     val playerAwarePadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
 
     LaunchedEffect(viewModel) {
@@ -119,7 +120,7 @@ fun PodcastCategoryScreen(
             .fillMaxSize()
             .pullToRefresh(
                 state = refreshState,
-                isRefreshing = isLoading,
+                isRefreshing = isPullRefreshing,
                 onRefresh = viewModel::refresh,
             ),
     ) {
@@ -156,7 +157,7 @@ fun PodcastCategoryScreen(
             ContainedLoadingIndicator(modifier = Modifier.align(Alignment.Center))
         }
         Indicator(
-            isRefreshing = isLoading && podcasts.isNotEmpty(),
+            isRefreshing = isPullRefreshing,
             state = refreshState,
             modifier = Modifier
                 .align(Alignment.TopCenter)
