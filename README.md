@@ -19,6 +19,12 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="GPL-3.0" /></a>
 </p>
 
+<p align="center">
+  <b>
+    <a href="#releases-and-verification">Download</a> · <a href="#下载与校验">下载</a>
+  </b>
+</p>
+
 ## Screenshots
 
 <table>
@@ -124,6 +130,10 @@ MetroVerse remains a standalone learning project, and the project may not provid
 ### License
 
 MetroVerse is distributed under the [GNU General Public License v3.0](LICENSE). Distributors of modified APKs must preserve attribution and satisfy GPL source-availability requirements.
+
+### Disclaimer
+
+Please ensure you comply with the terms of any services and podcast feeds you access. MetroVerse makes no guarantees regarding service availability, data keeping, continued compatibility, or account security. Use at your own risk.
 
 ---
 
