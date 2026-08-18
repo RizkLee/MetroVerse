@@ -26,7 +26,7 @@ import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
-const val PODCAST_USER_AGENT = "MetroVerse/0.5.2 (Android; Podcast)"
+const val PODCAST_USER_AGENT = "MetroVerse/0.5.3 (Android; Podcast)"
 
 @Singleton
 class PodcastRepository @Inject constructor(

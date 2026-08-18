@@ -76,7 +76,7 @@ MetroVerse is not an official release of Metrolist or Podium and is not affiliat
 App name:        MetroVerse
 Application ID:  com.rizklee.metroverse
 Debug ID:        com.rizklee.metroverse.debug
-Version:         0.5.2
+Version:         0.5.3
 Minimum Android: Android 8.0 / API 26
 Target Android:  API 36
 ```
@@ -168,7 +168,7 @@ MetroVerse 不是 Metrolist 或 Podium 的官方版本，与 Apple、Google 或 
 应用名称：      MetroVerse
 正式包名：      com.rizklee.metroverse
 调试包名：      com.rizklee.metroverse.debug
-当前版本：      0.5.2
+当前版本：      0.5.3
 最低系统：      Android 8.0 / API 26
 目标 API：      36
 ```

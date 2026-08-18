@@ -1,0 +1,7 @@
+MetroVerse 0.5.3
+
+- Added End of album/playlist sleep timer and a Normal speed action.
+- End-based sleep timers no longer fade; direct timed countdowns retain the twenty-second fade.
+- Restores repeat settings after end-based sleep timers finish or are cancelled.
+- Added the new light adaptive launcher, monochrome themed icon, round fallback, and notification icon.
+- Preserved query parameters while resizing YouTube artwork URLs.

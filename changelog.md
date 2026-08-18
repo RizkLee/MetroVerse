@@ -2,6 +2,25 @@
 
 All notable MetroVerse-specific changes are recorded here. Upstream Metrolist history remains available in Git history.
 
+## 0.5.3 - 2026
+
+### Added
+
+- Added an End of album/playlist sleep-timer mode that stops when the current collection queue finishes.
+- Added a Normal speed action to restore playback speed to 1.00x.
+- Added a complete light adaptive launcher icon set, themed monochrome icon, fallback round icon, and notification icon.
+
+### Changed
+
+- End of song/episode and End of album/playlist modes no longer apply the final twenty-second sleep-timer fade; only direct timed countdowns fade out.
+- End-based sleep timers temporarily disable repeat and restore the previous repeat mode when completed or cancelled.
+- Album sleep timers stop before radio recommendations, while playlist pagination remains part of the current collection.
+- Launcher installation now consistently uses the light icon instead of selecting a color variant from install-time night mode.
+
+### Fixed
+
+- Preserved query parameters while resizing googleusercontent and ggpht artwork URLs.
+
 ## 0.5.2 - 2026
 
 ### Added
