@@ -626,14 +626,13 @@
     <string name="metroverse_maintainer">维护者</string>
     <string name="metroverse_releases">项目版本发布</string>
     <string name="metroverse_manual_updates">请在 GitHub 上手动检查更新</string>
-    <string name="metroverse_automatic_updates">自动检查 GitHub Release，每次下载和安装均由您确认</string>
     <string name="metroverse_release_browser">在 GitHub 浏览已发布版本、更新说明和下载文件</string>
     <string name="metroverse_license_description">基于 GPL-3.0 的开源软件。修改后的源代码与归属说明均可在项目仓库中查看。</string>
     <string name="metroverse_lineage">来源与归属</string>
     <string name="metroverse_metrolist_relationship">MetroVerse 基于 Metrolist，保留其音乐架构、界面基础、贡献者历史和 GPL 授权关系。</string>
     <string name="metroverse_podium_relationship">RSS 与 Apple Podcasts 整合功能是在 GPL-3.0 下研究并适配 Podium 实现思路后开发的。</string>
     <string name="metroverse_apple_podcasts_attribution">Apple Podcasts 提供公开的发现、榜单、搜索元数据和封面。MetroVerse 独立播放公开 RSS 订阅源，与 Apple 无隶属或合作关系。</string>
-    <string name="metroverse_changelog_body">MetroVerse 0.5.1\n\n• Podcast 首页首次加载时改在 Discover 区域中央显示，不再显示顶部刷新图标\n• Podcast 分类页仅在已有内容后手动刷新时显示顶部刷新图标</string>
+    <string name="metroverse_changelog_body">MetroVerse 0.5.2\n\n• 恢复 Library 与 Search 中的圆形艺人头像，同时保留歌单封面修复\n• 将更新日志移入更新器，并简化 Settings 入口\n• AI 歌词翻译默认使用当前应用语言\n• 罗马化默认关闭当前应用语言对应项\n• 酷狗在默认歌词提供商优先级中移至最后\n• 在 Settings、About 和 README 增加紧凑的 Buy Me a Coffee 按钮</string>
     <string name="wanna_play_favorite_song">想播放他们最喜欢的歌曲吗？</string>
     <string name="yeah">是的！</string>
     <string name="stands_with_palestine">本项目声援巴勒斯坦 🇵🇸</string>

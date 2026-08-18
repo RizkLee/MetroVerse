@@ -2,6 +2,25 @@
 
 All notable MetroVerse-specific changes are recorded here. Upstream Metrolist history remains available in Git history.
 
+## 0.5.2 - 2026
+
+### Added
+
+- Added compact Buy Me a Coffee actions to Settings, About, and the README.
+- Added shared app-language defaults for AI lyrics translation and Romanization.
+
+### Changed
+
+- Moved the permanent Changelog entry from Settings into Updater and removed the Updater description from Settings.
+- AI lyrics translation now defaults to the current effective app language for users without a saved target language.
+- Romanization now defaults the current app language to off when it maps to a supported script; existing selections remain unchanged.
+- Moved KuGou to the end of the default lyrics provider priority while preserving saved custom orders.
+
+### Fixed
+
+- Restored square CDN crops for artist artwork so Library and Search render circular avatars without horizontal stretching or clipping.
+- Preserved the ggpht, ytimg, and aspect-ratio fixes used by playlist and other YouTube artwork.
+
 ## 0.5.1 - 2026
 
 ### Fixed

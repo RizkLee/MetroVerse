@@ -15,20 +15,20 @@ class UpdaterTest {
     @Test
     fun `release asset parser accepts current foss and gms names`() {
         assertEquals(
-            ParsedReleaseAssetName("v0.5.1", "foss"),
-            parseReleaseAssetName("MetroVerse-v0.5.1-foss.apk"),
+            ParsedReleaseAssetName("v0.5.2", "foss"),
+            parseReleaseAssetName("MetroVerse-v0.5.2-foss.apk"),
         )
         assertEquals(
-            ParsedReleaseAssetName("v0.5.1", "gms"),
-            parseReleaseAssetName("MetroVerse-v0.5.1-gms.apk"),
+            ParsedReleaseAssetName("v0.5.2", "gms"),
+            parseReleaseAssetName("MetroVerse-v0.5.2-gms.apk"),
         )
     }
 
     @Test
     fun `release asset parser rejects removed or unrelated variants`() {
-        assertNull(parseReleaseAssetName("MetroVerse-v0.5.1-izzy.apk"))
-        assertNull(parseReleaseAssetName("another-app-v0.5.1-foss.apk"))
-        assertNull(parseReleaseAssetName("MetroVerse-v0.5.1-SHA256SUMS.txt"))
+        assertNull(parseReleaseAssetName("MetroVerse-v0.5.2-izzy.apk"))
+        assertNull(parseReleaseAssetName("another-app-v0.5.2-foss.apk"))
+        assertNull(parseReleaseAssetName("MetroVerse-v0.5.2-SHA256SUMS.txt"))
     }
 
     @Test
@@ -36,30 +36,30 @@ class UpdaterTest {
         val expected = "a".repeat(64)
         val checksums =
             """
-            ${"b".repeat(64)}  MetroVerse-v0.5.1-gms.apk
-            $expected *MetroVerse-v0.5.1-foss.apk
+            ${"b".repeat(64)}  MetroVerse-v0.5.2-gms.apk
+            $expected *MetroVerse-v0.5.2-foss.apk
             """.trimIndent()
 
         assertEquals(
             expected,
-            parseSha256Checksum(checksums, "MetroVerse-v0.5.1-foss.apk"),
+            parseSha256Checksum(checksums, "MetroVerse-v0.5.2-foss.apk"),
         )
-        assertNull(parseSha256Checksum(checksums, "MetroVerse-v0.5.1-izzy.apk"))
+        assertNull(parseSha256Checksum(checksums, "MetroVerse-v0.5.2-izzy.apk"))
     }
 
     @Test
     fun `semantic versions compare stable and prerelease tags`() {
-        assertTrue(Updater.compareVersions("v0.5.1", "0.4.0") > 0)
+        assertTrue(Updater.compareVersions("v0.5.2", "0.4.0") > 0)
         assertTrue(Updater.compareVersions("v1.0.0", "v0.99.99") > 0)
-        assertTrue(Updater.compareVersions("v0.5.1", "v0.5.1-rc.1") > 0)
-        assertTrue(Updater.compareVersions("v0.5.1-rc.2", "v0.5.1-rc.1") > 0)
-        assertEquals(0, Updater.compareVersions("v0.5.1", "0.5.1"))
+        assertTrue(Updater.compareVersions("v0.5.2", "v0.5.2-rc.1") > 0)
+        assertTrue(Updater.compareVersions("v0.5.2-rc.2", "v0.5.2-rc.1") > 0)
+        assertEquals(0, Updater.compareVersions("v0.5.2", "0.5.2"))
     }
 
     @Test
     fun `update availability only accepts newer versions`() {
-        assertTrue(Updater.isUpdateAvailable("0.4.0", "v0.5.1"))
-        assertFalse(Updater.isUpdateAvailable("0.5.1", "v0.5.1"))
-        assertFalse(Updater.isUpdateAvailable("0.6.0", "v0.5.1"))
+        assertTrue(Updater.isUpdateAvailable("0.4.0", "v0.5.2"))
+        assertFalse(Updater.isUpdateAvailable("0.5.2", "v0.5.2"))
+        assertFalse(Updater.isUpdateAvailable("0.6.0", "v0.5.2"))
     }
 }

@@ -1,0 +1,8 @@
+MetroVerse 0.5.2
+
+- Restored circular artist artwork in Library and Search.
+- Moved Changelog into Updater and simplified the Settings entry.
+- AI lyrics translation now defaults to the current app language.
+- Romanization defaults now exclude the current app language when supported.
+- Moved KuGou to the end of the default lyrics provider priority.
+- Added compact Buy Me a Coffee actions to Settings, About, and README.
