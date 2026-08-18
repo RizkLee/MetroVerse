@@ -11,6 +11,8 @@ import com.metrolist.music.models.MediaMetadata
 
 interface Queue {
     val preloadItem: MediaMetadata?
+    val continuationBelongsToCurrentCollection: Boolean
+        get() = false
 
     suspend fun getInitialStatus(): Status
 

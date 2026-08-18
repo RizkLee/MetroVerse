@@ -204,6 +204,8 @@
     <string name="lyrics_not_found">Lyrics not found</string>
     <string name="sleep_timer">Sleep timer</string>
     <string name="end_of_song">End of song</string>
+    <string name="end_of_album_or_playlist">End of album/playlist</string>
+    <string name="normal_speed">Normal speed</string>
     <plurals name="minute">
         <item quantity="one">1 minute</item>
         <item quantity="other">%d minutes</item>

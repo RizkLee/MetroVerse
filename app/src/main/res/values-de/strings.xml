@@ -137,6 +137,8 @@
     <string name="lyrics_not_found">Songtext nicht gefunden</string>
     <string name="sleep_timer">Schlaf-Timer</string>
     <string name="end_of_song">Ende des Songs</string>
+    <string name="end_of_album_or_playlist">Ende von Album/Playlist</string>
+    <string name="normal_speed">Normale Geschwindigkeit</string>
     <plurals name="minute">
         <item quantity="one">1 Minute</item>
         <item quantity="other">%d Minuten</item>

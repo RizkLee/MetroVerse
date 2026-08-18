@@ -146,6 +146,8 @@
     <string name="lyrics_not_found">A letra não foi encontrada</string>
     <string name="sleep_timer">Timer para soneca</string>
     <string name="end_of_song">Fim da música</string>
+    <string name="end_of_album_or_playlist">Fim do álbum/playlist</string>
+    <string name="normal_speed">Velocidade normal</string>
     <plurals name="minute">
         <item quantity="one">%d minuto</item>
         <item quantity="many">%d de minutos</item>

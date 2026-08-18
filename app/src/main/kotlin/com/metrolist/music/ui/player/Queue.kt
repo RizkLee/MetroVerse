@@ -219,12 +219,7 @@ fun Queue(
     LaunchedEffect(sleepTimerEnabled) {
         if (sleepTimerEnabled) {
             while (isActive) {
-                sleepTimerTimeLeft =
-                    if (playerConnection.service.sleepTimer?.pauseWhenSongEnd == true) {
-                        playerConnection.player.duration - playerConnection.player.currentPosition
-                    } else {
-                        (playerConnection.service.sleepTimer?.triggerTime ?: 0L) - System.currentTimeMillis()
-                    }
+                sleepTimerTimeLeft = playerConnection.service.sleepTimer?.remainingTimeMs() ?: 0L
                 delay(1000L)
             }
         }

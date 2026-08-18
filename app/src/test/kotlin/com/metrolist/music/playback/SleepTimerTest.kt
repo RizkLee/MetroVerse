@@ -1,6 +1,8 @@
 package com.metrolist.music.playback
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SleepTimerTest {
@@ -16,5 +18,13 @@ class SleepTimerTest {
     fun `fade multiplier is clamped outside timer window`() {
         assertEquals(1f, sleepTimerVolumeMultiplier(30_000L), 0.001f)
         assertEquals(0f, sleepTimerVolumeMultiplier(-1_000L), 0.001f)
+    }
+
+    @Test
+    fun `only direct countdown mode enables fade out`() {
+        assertTrue(sleepTimerFadeOutEnabled(SleepTimerMode.TIMED, stopAfterCurrentSongOnTimeout = false))
+        assertFalse(sleepTimerFadeOutEnabled(SleepTimerMode.TIMED, stopAfterCurrentSongOnTimeout = true))
+        assertFalse(sleepTimerFadeOutEnabled(SleepTimerMode.END_OF_MEDIA, stopAfterCurrentSongOnTimeout = false))
+        assertFalse(sleepTimerFadeOutEnabled(SleepTimerMode.END_OF_QUEUE, stopAfterCurrentSongOnTimeout = false))
     }
 }

@@ -631,7 +631,7 @@ class MusicService :
                 CHANNEL_ID,
                 R.string.music_player,
             ).apply {
-                setSmallIcon(R.drawable.small_icon)
+                setSmallIcon(R.drawable.ic_notification)
             }
 
         setMediaNotificationProvider(
@@ -2575,6 +2575,7 @@ class MusicService :
             reason != Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT &&
             player.mediaItemCount - player.currentMediaItemIndex <= 5 &&
             currentQueue.hasNextPage() &&
+            (sleepTimer?.pauseWhenQueueEnd != true || currentQueue.continuationBelongsToCurrentCollection) &&
             !(cachedDisableLoadMoreWhenRepeatAll && player.repeatMode == REPEAT_MODE_ALL)
         ) {
             scope.launch(SilentHandler) {
@@ -2605,9 +2606,9 @@ class MusicService :
         updateInitialBufferRecovery(playbackState)
 
         if (playbackState == Player.STATE_ENDED) {
-            // Check sleep timer guard - don't autoplay/repeat if sleep timer will pause
+            // Do not restart repeat/autoplay when an end-of-media or end-of-queue timer is completing.
             val timer = sleepTimer ?: return
-            if (timer.isActive && timer.pauseWhenSongEnd) {
+            if (timer.isActive && timer.stopsAtPlaybackEnd) {
                 return
             }
 
@@ -4199,7 +4200,7 @@ class MusicService :
             .Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.music_player))
             .setContentText("")
-            .setSmallIcon(R.drawable.small_icon)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentIntent(pending)
             .setOngoing(true)
             .build()
