@@ -59,16 +59,18 @@ import com.metrolist.music.ui.component.EnumDialog
 import com.metrolist.music.ui.component.Material3SettingsGroup
 import com.metrolist.music.ui.component.Material3SettingsItem
 import com.metrolist.music.ui.component.TextFieldDialog
+import com.metrolist.music.ui.utils.rememberEffectiveAppLanguageCode
 import com.metrolist.music.utils.rememberPreference
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AiSettings(navController: NavController) {
+    val appLanguageCode = rememberEffectiveAppLanguageCode()
     var aiProvider by rememberPreference(AiProviderKey, "OpenRouter")
     var openRouterApiKey by rememberPreference(OpenRouterApiKey, "")
     var openRouterBaseUrl by rememberPreference(OpenRouterBaseUrlKey, "https://openrouter.ai/api/v1/chat/completions")
     var openRouterModel by rememberPreference(OpenRouterModelKey, "google/gemini-2.5-flash-lite")
-    var translateLanguage by rememberPreference(TranslateLanguageKey, "en")
+    var translateLanguage by rememberPreference(TranslateLanguageKey, appLanguageCode)
     var translateMode by rememberPreference(TranslateModeKey, "Literal")
     var deeplApiKey by rememberPreference(DeeplApiKey, "")
     var deeplFormality by rememberPreference(DeeplFormalityKey, "default")

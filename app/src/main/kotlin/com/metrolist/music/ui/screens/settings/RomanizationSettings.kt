@@ -39,22 +39,9 @@ import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.component.Material3SettingsGroup
 import com.metrolist.music.ui.component.Material3SettingsItem
 import com.metrolist.music.ui.utils.backToMain
+import com.metrolist.music.ui.utils.defaultRomanizationLanguageSettings
+import com.metrolist.music.ui.utils.rememberEffectiveAppLanguageCode
 import com.metrolist.music.utils.rememberPreference
-
-val defaultList = mutableListOf(
-    "Japanese" to true,
-    "Korean" to true,
-    "Chinese" to true,
-    "Hindi" to true,
-    "Punjabi" to true,
-    "Russian" to true,
-    "Ukrainian" to true,
-    "Serbian" to true,
-    "Bulgarian" to true,
-    "Belarusian" to true,
-    "Kyrgyz" to true,
-    "Macedonian" to true,
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,8 +49,10 @@ fun RomanizationSettings(
     navController: NavController
 ) {
     val (pref, prefValue) = rememberPreference(LyricsRomanizeList, "")
+    val appLanguageCode = rememberEffectiveAppLanguageCode()
+    val defaultList = remember(appLanguageCode) { defaultRomanizationLanguageSettings(appLanguageCode) }
 
-    val initialList = remember(pref) {
+    val initialList = remember(pref, defaultList) {
         if (pref.isEmpty()) defaultList
         else {
             val savedMap = pref.split(",").associate { entry ->

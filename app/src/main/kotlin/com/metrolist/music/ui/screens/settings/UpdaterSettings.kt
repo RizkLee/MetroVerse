@@ -36,6 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.metrolist.music.BuildConfig
+import com.metrolist.music.LocalChangelogState
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
 import com.metrolist.music.constants.CheckForUpdatesKey
@@ -57,6 +58,7 @@ fun UpdaterScreen(
     navController: NavController
 ) {
     val (checkForUpdates, onCheckForUpdatesChange) = rememberPreference(CheckForUpdatesKey, true)
+    val showAppChangelog = LocalChangelogState.current
 
     var isChecking by remember { mutableStateOf(false) }
     var updateAvailable by remember { mutableStateOf(false) }
@@ -156,7 +158,13 @@ fun UpdaterScreen(
                             onClick = { onCheckForUpdatesChange(!checkForUpdates) },
                         ),
                     )
-
+                    add(
+                        Material3SettingsItem(
+                            title = { Text(stringResource(R.string.changelog)) },
+                            icon = painterResource(R.drawable.newspaper),
+                            onClick = { showAppChangelog.value = true },
+                        ),
+                    )
                 },
         )
 

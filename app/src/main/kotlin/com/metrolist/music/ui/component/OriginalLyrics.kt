@@ -168,8 +168,9 @@ import com.metrolist.music.ui.component.shimmer.ShimmerHost
 import com.metrolist.music.ui.component.shimmer.TextPlaceholder
 import com.metrolist.music.ui.screens.settings.DarkMode
 import com.metrolist.music.ui.screens.settings.LyricsPosition
-import com.metrolist.music.ui.screens.settings.defaultList
+import com.metrolist.music.ui.utils.defaultRomanizationLanguageSettings
 import com.metrolist.music.ui.utils.fadingEdge
+import com.metrolist.music.ui.utils.rememberEffectiveAppLanguageCode
 import com.metrolist.music.utils.ComposeToImage
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
@@ -202,6 +203,8 @@ fun OriginalLyrics(
     val density = LocalDensity.current
     val context = LocalContext.current
     val configuration = LocalWindowInfo.current
+    val appLanguageCode = rememberEffectiveAppLanguageCode()
+    val defaultRomanizationList = remember(appLanguageCode) { defaultRomanizationLanguageSettings(appLanguageCode) }
     val listenTogetherManager = LocalListenTogetherManager.current
     val isGuest = listenTogetherManager?.isInRoom == true && !listenTogetherManager.isHost
     val shareLyricsStr = stringResource(R.string.share_lyrics)
@@ -223,7 +226,7 @@ fun OriginalLyrics(
     val aiProvider by rememberPreference(AiProviderKey, "OpenRouter")
     val openRouterBaseUrl by rememberPreference(OpenRouterBaseUrlKey, "https://openrouter.ai/api/v1/chat/completions")
     val openRouterModel by rememberPreference(OpenRouterModelKey, "google/gemini-2.5-flash-lite")
-    val translateLanguage by rememberPreference(TranslateLanguageKey, "en")
+    val translateLanguage by rememberPreference(TranslateLanguageKey, appLanguageCode)
     val translateMode by rememberPreference(TranslateModeKey, "Literal")
     val deeplFormality by rememberPreference(DeeplFormalityKey, "default")
     val aiSystemPrompt by rememberPreference(AiSystemPromptKey, "")
@@ -249,7 +252,7 @@ fun OriginalLyrics(
 
     val decodedList =
         if (romanizeLyricsList.value.isEmpty()) {
-            defaultList
+            defaultRomanizationList
         } else {
             romanizeLyricsList.value.split(",").map { entry ->
                 val (lang, checked) = entry.split(":")

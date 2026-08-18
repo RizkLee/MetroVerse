@@ -63,6 +63,8 @@ jobs:
           --tests com.metrolist.music.utils.UpdaterTest
           --tests com.metrolist.music.extensions.PlaylistDeduplicationTest
           --tests com.metrolist.music.ui.utils.YouTubeUtilsTest
+          --tests com.metrolist.music.ui.utils.AppLanguageUtilsTest
+          --tests com.metrolist.music.lyrics.LyricsProviderRegistryTest
 
       - name: Build debug APK
         run: ./gradlew --console=plain :app:assembleFossDebug

@@ -37,6 +37,7 @@ import androidx.navigation.NavController
 import com.metrolist.music.BuildConfig
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
+import com.metrolist.music.ui.component.BuyMeACoffeeButton
 import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.component.Material3SettingsGroup
 import com.metrolist.music.ui.component.Material3SettingsItem
@@ -147,7 +148,9 @@ fun AboutScreen(
                 ),
         )
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(20.dp))
+        BuyMeACoffeeButton(modifier = Modifier.padding(horizontal = 8.dp))
+        Spacer(Modifier.height(28.dp))
 
         Material3SettingsGroup(
             title = stringResource(R.string.metroverse_lineage),

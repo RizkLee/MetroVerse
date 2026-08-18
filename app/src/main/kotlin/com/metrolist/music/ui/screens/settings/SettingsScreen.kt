@@ -30,6 +30,7 @@ import androidx.core.net.toUri
 import androidx.navigation.NavController
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
+import com.metrolist.music.ui.component.BuyMeACoffeeButton
 import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.component.Material3SettingsGroup
 import com.metrolist.music.ui.component.Material3SettingsItem
@@ -213,16 +214,7 @@ fun SettingsScreen(
                     Material3SettingsItem(
                         icon = painterResource(R.drawable.update),
                         title = { Text(stringResource(R.string.updater)) },
-                        description = { Text(stringResource(R.string.metroverse_automatic_updates)) },
                         onClick = { navController.navigate("settings/updater") }
-                    )
-                )
-                val showChangelog = com.metrolist.music.LocalChangelogState.current
-                add(
-                    Material3SettingsItem(
-                        icon = painterResource(R.drawable.newspaper),
-                        title = { Text(stringResource(R.string.changelog)) },
-                        onClick = { showChangelog.value = true }
                     )
                 )
                 add(
@@ -234,7 +226,10 @@ fun SettingsScreen(
                 )
             }
         )
-        Spacer(modifier = Modifier.height(16.dp))
+
+        Spacer(modifier = Modifier.height(24.dp))
+        BuyMeACoffeeButton(modifier = Modifier.padding(horizontal = 8.dp))
+        Spacer(modifier = Modifier.height(24.dp))
     }
 
     TopAppBar(

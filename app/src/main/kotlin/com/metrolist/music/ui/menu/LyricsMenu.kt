@@ -81,6 +81,7 @@ import com.metrolist.music.constants.DeeplApiKey
 import com.metrolist.music.constants.AiProviderKey
 import com.metrolist.music.constants.TranslateLanguageKey
 import com.metrolist.music.constants.TranslateModeKey
+import com.metrolist.music.ui.utils.rememberEffectiveAppLanguageCode
 import com.metrolist.music.constants.RespectAgentPositioningKey
 import com.metrolist.music.constants.ShowIntervalIndicatorKey
 import com.metrolist.music.constants.OpenRouterBaseUrlKey
@@ -102,11 +103,12 @@ fun LyricsMenu(
 ) {
     val context = LocalContext.current
     val database = LocalDatabase.current
-    
+    val appLanguageCode = rememberEffectiveAppLanguageCode()
+
     val openRouterApiKey by rememberPreference(OpenRouterApiKey, "")
     val deeplApiKey by rememberPreference(DeeplApiKey, "")
     val aiProvider by rememberPreference(AiProviderKey, "OpenRouter")
-    val translateLanguage by rememberPreference(TranslateLanguageKey, "en")
+    val translateLanguage by rememberPreference(TranslateLanguageKey, appLanguageCode)
     val translateMode by rememberPreference(TranslateModeKey, "Literal")
     val openRouterBaseUrl by rememberPreference(OpenRouterBaseUrlKey, OpenRouterDefaultBaseUrl)
     val openRouterModel by rememberPreference(OpenRouterModelKey, OpenRouterDefaultModel)
