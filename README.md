@@ -29,17 +29,17 @@
 
 <table>
   <tr>
-    <td><img src="fastlane/metadata/android/en-US/images/screenshots/01-podcast-home.jpg" alt="Podcast home" /></td>
-    <td><img src="fastlane/metadata/android/en-US/images/screenshots/02-podcast-library.jpg" alt="Podcast library" /></td>
-    <td><img src="fastlane/metadata/android/en-US/images/screenshots/03-podcast-details.jpg" alt="Podcast details" /></td>
-    <td><img src="fastlane/metadata/android/en-US/images/screenshots/04-artist-details.jpg" alt="Artist details" /></td>
-    <td><img src="fastlane/metadata/android/en-US/images/screenshots/05-podcast-player.jpg" alt="Podcast player" /></td>
+    <td width="180"><img src="fastlane/metadata/android/en-US/images/screenshots/01-podcast-home.jpg" alt="Podcast home" width="180" height="400" /></td>
+    <td width="180"><img src="fastlane/metadata/android/en-US/images/screenshots/02-podcast-library.jpg" alt="Podcast library" width="180" height="400" /></td>
+    <td width="180"><img src="fastlane/metadata/android/en-US/images/screenshots/03-podcast-details.jpg" alt="Podcast details" width="180" height="400" /></td>
+    <td width="180"><img src="fastlane/metadata/android/en-US/images/screenshots/04-artist-details.jpg" alt="Artist details" width="180" height="400" /></td>
+    <td width="180"><img src="fastlane/metadata/android/en-US/images/screenshots/05-podcast-player.jpg" alt="Podcast player" width="180" height="400" /></td>
   </tr>
   <tr>
     <td align="center">Podcast</td>
     <td align="center">Library</td>
     <td align="center">Show details</td>
-    <td align="center">Artist details
+    <td align="center">Artist details</td>
     <td align="center">Now playing</td>
   </tr>
 </table>
@@ -54,14 +54,11 @@ It keeps the familiar Material 3 Expressive interaction model inherited from Met
 
 ### Highlights
 
-- YouTube Music browsing, search, playlists, library, queue, background playback, lyrics, and local history.
-- Remove annoying ads and various playback restrictions, and provide song downloads.
-- A dedicated Podcast destination across phone, tablet, and landscape navigation.
-- Apple Podcasts charts, storefront selection, search, and genre-based Categories.
-- Direct RSS/Atom import, subscriptions, manual refresh, episode artwork, descriptions, and publication dates.
-- Shared Media3 playback, notification, Android Auto, cache, downloads, and persistent queue.
-- Podcast resume positions, 10-second seek controls, playback speed, and a gradual sleep-timer fade.
-- Automatic GitHub Release checks with user-confirmed, signature-verified FOSS/GMS updates.
+- 🎨 **Expressive UI:** Stunning Material Design 3 Expressive interface with Dynamic Color support, beautifully adapted for phones, tablets, and landscape modes.
+- 🔓 **Unrestricted & Ad-Free:** Say goodbye to annoying ads and playback restrictions. Enjoy seamless background playback and download your favorite songs for offline listening.
+- 🎵 **All-in-one Audio:** Seamlessly unifies YouTube Music and your open RSS podcasts into one elegant app, while keeping their libraries perfectly separated.
+- 🎙️ **Powerful Podcast Engine:** Discover shows via Apple Podcasts charts or direct RSS/Atom import. Features episode resume, playback speed controls, and a gradual sleep-timer fade.
+- 🪶 **Modern & Lightweight:** Built on the robust Media3 player. Fast, responsive, battery-friendly, and fully supports Android Auto.
 
 ### Project lineage
 
@@ -110,17 +107,16 @@ Release signing uses a private keystore that must never be committed. GitHub Act
 
 Downloads are published on the [Releases page](https://github.com/RizkLee/MetroVerse/releases). You may verify the attached SHA-256 file and APK signing certificate before installation.
 
-| Variant | Description | Download link |
-| --- | --- | --- |
+| Variant  | Description                                | Download link                                                                                        |
+| -------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
 | FOSS APK | MetroVerse app without Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.1/MetroVerse-v0.5.1-foss.apk) |
-| GMS APK | The same app, but with Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.1/MetroVerse-v0.5.1-gms.apk) |
+| GMS APK  | The same app, but with Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.1/MetroVerse-v0.5.1-gms.apk)  |
 
 ### Pending Issues
 
 - Podcast refresh is foreground-driven; periodic WorkManager refresh is not included yet.
 - OPML, private-feed authentication, chapters, and transcripts are not included yet.
 - DRM, login-protected, expiring, or unsupported media URLs may fail.
-- FOSS builds do not include Google Cast; the GMS flavor provides Cast support.
 
 ### Contributing
 
@@ -148,17 +144,13 @@ MetroVerse 是一个独立维护的修改版 [Metrolist](https://github.com/Metr
 
 应用延续了 Metrolist 熟悉的 Material 3 Expressive 交互方式，并原生加入播客发现、订阅、直链播放、断点续播和播客专用控制。此外，修改了原 Metrolist 应用部分操作逻辑，使之更加顺手好用。使用 Apple Podcasts 发现公开订阅源，不需要 Apple 账号。
 
-### 主要能力
+### 亮点
 
-- YouTube Music 浏览、搜索、歌单、资料库、队列、后台播放、歌词和本地历史。
-- 去除烦人的广告和各类播放限制，提供歌曲下载。
-- 手机、平板和横屏布局中的独立 Podcast 主入口。
-- Apple Podcasts 榜单、地区切换、搜索和按类别发现播客。
-- RSS/Atom 地址导入、订阅、手动刷新、分集封面、简介和发布日期。
-- 音乐与播客共用 Media3 播放器、通知、Android Auto、缓存、下载和持久队列。
-- 播客断点续播、前后 10 秒、倍速播放和睡眠计时渐弱暂停。
-- 明确区分来源，RSS 播客不会误入 YouTube 电台、歌词、Last.fm 或同步路径。
-- 自动检查 GitHub Release，由用户确认并验签后下载、安装对应的 FOSS/GMS 更新。
+- 🎨 **极佳颜值：** 采用 Material Design 3 Expressive 风格并全面支持动态配色，完美适配手机、平板及横屏布局。
+- 🔓 **纯净体验：** 彻底告别烦人的广告！解除各种播放限制，支持后台播放，并提供音乐与播客下载功能。
+- 🎵 **聚合播放：** 无缝融合 YouTube Music 与开源 RSS 播客。两者逻辑清晰独立，播客内容绝不会误入你的 YouTube 电台或 Last.fm 记录。
+- 🎙️ **强大播客引擎：** 内置 Apple Podcasts 榜单发现与 RSS/Atom 直连订阅，支持断点续播、倍速控制与睡眠渐弱暂停。
+- 🪶 **极致轻量：** 基于先进的 Media3 播放器打造，响应迅速、流畅省电，且原生支持 Android Auto。
 
 ### 项目来源
 
@@ -204,17 +196,16 @@ MetroVerse 不是 Metrolist 或 Podium 的官方版本，与 Apple、Google 或 
 
 APK 发布在 [Releases 页面](https://github.com/RizkLee/MetroVerse/releases)。安装前可核对随附 SHA-256 文件和 APK 签名证书。
 
-| App 版本 | 适用场景 | 下载链接 |
-| --- | --- | --- |
+| App 版本 | 适用场景                            | 下载链接                                                                                                    |
+| -------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | FOSS APK | 音乐与播客，不包含 Google Cast 功能 | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.1/MetroVerse-v0.5.1-foss.apk) |
-| GMS APK | 音乐与播客，包含 Google Cast 功能 | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.1/MetroVerse-v0.5.1-gms.apk) |
+| GMS APK  | 音乐与播客，包含 Google Cast 功能   | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.1/MetroVerse-v0.5.1-gms.apk)  |
 
 ### 待解决
 
 - 播客刷新目前由前台页面和手动下拉触发，尚未加入 WorkManager 周期刷新。
 - 尚未加入 OPML、私人订阅认证、章节和转录文本。
 - DRM、登录保护、过期或设备不支持的媒体地址可能无法播放。
-- FOSS 构建不包含 Google Cast，GMS flavor 才包含 Cast。
 
 ### 参与开发
 
