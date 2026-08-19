@@ -163,7 +163,7 @@
     <string name="lyrics_not_found">Letras no encontradas</string>
     <string name="sleep_timer">Temporizador de apagado</string>
     <string name="end_of_song">Al finalizar la canción</string>
-    <string name="end_of_album_or_playlist">Fin del álbum/lista</string>
+    <string name="end_of_album_or_playlist">Fin de la cola</string>
     <string name="normal_speed">Velocidad normal</string>
     <plurals name="minute">
         <item quantity="one">1 minuto</item>

@@ -260,6 +260,21 @@ import java.util.Collections
 private const val INSTANT_SILENCE_SKIP_STEP_MS = 15_000L
 private const val INSTANT_SILENCE_SKIP_SETTLE_MS = 350L
 
+internal fun collectionEndBoundaryIndex(
+    originalQueueSize: Int,
+    itemCount: Int,
+    currentIndex: Int,
+): Int? {
+    if (itemCount <= 0) return null
+    val collectionEndIndex =
+        if (originalQueueSize > 0) {
+            (originalQueueSize - 1).coerceAtMost(itemCount - 1)
+        } else {
+            itemCount - 1
+        }
+    return collectionEndIndex.coerceAtLeast(currentIndex.coerceAtLeast(0))
+}
+
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @androidx.annotation.OptIn(UnstableApi::class)
 @AndroidEntryPoint
@@ -1848,6 +1863,19 @@ class MusicService :
         }
     }
 
+    fun startSleepTimerAtEndOfCurrentCollection() {
+        val itemCount = player.mediaItemCount
+        if (itemCount == 0) return
+
+        val boundaryIndex =
+            collectionEndBoundaryIndex(
+                originalQueueSize = originalQueueSize,
+                itemCount = itemCount,
+                currentIndex = player.currentMediaItemIndex,
+            ) ?: return
+        sleepTimer?.startAtEndOfQueue(boundaryIndex)
+    }
+
     fun adoptQueue(queue: Queue, title: String? = null, initialQueueSize: Int = 0) {
         currentQueue = queue
         queueTitle = title
@@ -2588,6 +2616,10 @@ class MusicService :
                     }
                 if (player.playbackState != STATE_IDLE && mediaItems.isNotEmpty()) {
                     player.addMediaItems(mediaItems)
+                    if (currentQueue.continuationBelongsToCurrentCollection) {
+                        originalQueueSize += mediaItems.size
+                        sleepTimer?.updateQueueEndBoundary(originalQueueSize - 1)
+                    }
                     if (player.shuffleModeEnabled) {
                         applyShuffleOrder(player.currentMediaItemIndex, player.mediaItemCount, cachedShufflePlaylistFirst)
                     }

@@ -175,7 +175,7 @@
     <string name="lyrics_not_found">Текст песни не найден</string>
     <string name="sleep_timer">Таймер сна</string>
     <string name="end_of_song">Конец песни</string>
-    <string name="end_of_album_or_playlist">Конец альбома/плейлиста</string>
+    <string name="end_of_album_or_playlist">Конец очереди</string>
     <string name="normal_speed">Обычная скорость</string>
     <plurals name="minute">
         <item quantity="one">%d минута</item>

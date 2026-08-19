@@ -1,0 +1,7 @@
+MetroVerse 0.5.3 corrective build
+
+- Shortened the collection sleep-timer label and removed it from podcast playback.
+- Fixed End of queue so already-loaded and in-flight Similar content does not extend album playback.
+- Automatic timed sleep timers now honor Finish current item when timer expires.
+- End-based timers use a unique queue occurrence boundary and temporarily disable repeat and shuffle.
+- Added the maintainer profile image to About and removed personal-learning wording from that page.

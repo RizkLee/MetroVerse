@@ -308,8 +308,8 @@
     <string name="sleep_timer_friday">Friday</string>
     <string name="sleep_timer_saturday">Saturday</string>
     <string name="sleep_timer_sunday">Sunday</string>
-    <string name="sleep_timer_stop_after_current_song_title">Stop at the end of current song</string>
-    <string name="sleep_timer_stop_after_current_song_description">Waits for the currently playing song to finish before stopping</string>
+    <string name="sleep_timer_stop_after_current_song_title">Finish current item when timer expires</string>
+    <string name="sleep_timer_stop_after_current_song_description">When a timed sleep timer expires, wait for the current song or episode to finish before pausing</string>
     <string name="sleep_timer_fade_out_title">Fade out</string>
     <string name="sleep_timer_fade_out_description">Gradually fades out the volume in the final minute</string>
 
@@ -907,9 +907,8 @@
     <string name="buy_mo_a_coffee">Buy me a coffee!</string>
     <string name="community_and_info">Community &amp; Info</string>
     <string name="metrolist">METROVERSE</string>
-    <string name="metroverse_learning_label">Learning project</string>
-    <string name="metroverse_summary">A personal learning fork that brings music and open RSS podcasts into one Android app.</string>
-    <string name="metroverse_unofficial_notice">MetroVerse is an independent learning project. It is not an official release of, endorsed by, or supported by Metrolist, Podium, Apple, or YouTube.</string>
+    <string name="metroverse_summary">An independent Android app that brings music and open RSS podcasts together.</string>
+    <string name="metroverse_unofficial_notice">MetroVerse is independently maintained. It is not an official release of, endorsed by, or supported by Metrolist, Podium, Apple, or YouTube.</string>
     <string name="metroverse_project">MetroVerse project</string>
     <string name="metroverse_maintainer">Maintainer</string>
     <string name="metroverse_releases">Project releases</string>
@@ -920,7 +919,7 @@
     <string name="metroverse_metrolist_relationship">MetroVerse is based on Metrolist and retains its music architecture, interface foundations, contributors, and GPL history.</string>
     <string name="metroverse_podium_relationship">The RSS and Apple Podcasts integration was developed by studying and adapting concepts from Podium under GPL-3.0.</string>
     <string name="metroverse_apple_podcasts_attribution">Apple Podcasts provides public discovery, charts, search metadata, and artwork. MetroVerse plays public RSS feeds independently and is not affiliated with Apple.</string>
-    <string name="metroverse_changelog_body">MetroVerse 0.5.3\n\n• Added End of album/playlist sleep timer and a Normal speed action\n• End-based sleep timers no longer fade out; timed countdowns retain the twenty-second fade\n• Repeat settings are restored after end-based sleep timers complete or are cancelled\n• Added the new light adaptive launcher, monochrome themed icon, fallback round icon, and notification icon\n• Preserved query parameters when resizing YouTube artwork URLs</string>
+    <string name="metroverse_changelog_body">MetroVerse 0.5.3\n\n• Added End of queue for music and a Normal speed action\n• End-based timers no longer fade and restore repeat/shuffle when finished or cancelled\n• Fixed collection boundaries when Similar content is already loaded or still loading\n• Automatic timed sleep timers now honor Finish current item when timer expires\n• Podcast playback omits the collection queue action\n• Added the maintainer profile image and removed personal-learning wording from About\n• Added the new light launcher, monochrome themed icon, round fallback, and notification icon</string>
     <string name="wanna_play_favorite_song">Want to play their favorite song?</string>
     <string name="yeah">Yeah!</string>
     <string name="stands_with_palestine">This project stands with Palestine 🇵🇸</string>

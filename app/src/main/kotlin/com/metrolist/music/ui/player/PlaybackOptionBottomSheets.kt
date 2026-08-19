@@ -227,37 +227,39 @@ fun PlaybackSleepTimerBottomSheet(
                     modifier = Modifier.weight(1f),
                 )
 
-                FilterChip(
-                    selected = endOfQueue,
-                    onClick = {
-                        if (endOfQueue) {
-                            endOfQueue = false
-                            timer.clear()
-                        } else {
-                            endOfQueue = true
-                            endOfMedia = false
-                            sliderStep = 0f
-                            timer.startAtEndOfQueue()
-                        }
-                    },
-                    leadingIcon = {
-                        Icon(
-                            painter = painterResource(R.drawable.queue_music),
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                    },
-                    label = {
-                        Text(
-                            text = stringResource(R.string.end_of_album_or_playlist),
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    },
-                    modifier = Modifier.weight(1f),
-                )
+                if (!isEpisode) {
+                    FilterChip(
+                        selected = endOfQueue,
+                        onClick = {
+                            if (endOfQueue) {
+                                endOfQueue = false
+                                timer.clear()
+                            } else {
+                                endOfQueue = true
+                                endOfMedia = false
+                                sliderStep = 0f
+                                playerConnection.service.startSleepTimerAtEndOfCurrentCollection()
+                            }
+                        },
+                        leadingIcon = {
+                            Icon(
+                                painter = painterResource(R.drawable.queue_music),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        },
+                        label = {
+                            Text(
+                                text = stringResource(R.string.end_of_album_or_playlist),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
         }
     }

@@ -130,7 +130,7 @@
     <string name="lyrics_not_found">가사를 찾을 수 없음</string>
     <string name="sleep_timer">수면 타이머</string>
     <string name="end_of_song">노래 끝</string>
-    <string name="end_of_album_or_playlist">앨범/재생목록 끝</string>
+    <string name="end_of_album_or_playlist">대기열 끝</string>
     <string name="normal_speed">기본 속도</string>
     <plurals name="minute">
         <item quantity="other">%d분</item>

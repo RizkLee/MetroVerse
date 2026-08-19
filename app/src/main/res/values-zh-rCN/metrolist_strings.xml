@@ -619,9 +619,8 @@
     <string name="buy_mo_a_coffee">请我喝杯咖啡！</string>
     <string name="community_and_info">社区与信息</string>
     <string name="metrolist">METROVERSE</string>
-    <string name="metroverse_learning_label">学习练手项目</string>
-    <string name="metroverse_summary">一个把音乐与开放 RSS 播客整合到同一 Android 应用中的个人学习分支。</string>
-    <string name="metroverse_unofficial_notice">MetroVerse 是独立学习项目，并非 Metrolist、Podium、Apple 或 YouTube 的官方版本，也未得到这些项目或服务的认可与支持。</string>
+    <string name="metroverse_summary">一个将音乐与开放 RSS 播客整合在一起的独立 Android 应用。</string>
+    <string name="metroverse_unofficial_notice">MetroVerse 由开发者独立维护，并非 Metrolist、Podium、Apple 或 YouTube 的官方版本，也未得到这些项目或服务的认可与支持。</string>
     <string name="metroverse_project">MetroVerse 项目</string>
     <string name="metroverse_maintainer">维护者</string>
     <string name="metroverse_releases">项目版本发布</string>
@@ -632,7 +631,7 @@
     <string name="metroverse_metrolist_relationship">MetroVerse 基于 Metrolist，保留其音乐架构、界面基础、贡献者历史和 GPL 授权关系。</string>
     <string name="metroverse_podium_relationship">RSS 与 Apple Podcasts 整合功能是在 GPL-3.0 下研究并适配 Podium 实现思路后开发的。</string>
     <string name="metroverse_apple_podcasts_attribution">Apple Podcasts 提供公开的发现、榜单、搜索元数据和封面。MetroVerse 独立播放公开 RSS 订阅源，与 Apple 无隶属或合作关系。</string>
-    <string name="metroverse_changelog_body">MetroVerse 0.5.3\n\n• 新增“专辑/歌单播放完毕”睡眠计时模式和“恢复原速”操作\n• 结束模式不再渐隐，手动倒计时仍保留最后二十秒渐隐\n• 结束模式完成或取消后会恢复原循环设置\n• 使用新的浅色自适应图标、主题单色图标、圆形回退图标和通知图标\n• 修复 YouTube 封面缩放时查询参数丢失</string>
+    <string name="metroverse_changelog_body">MetroVerse 0.5.3\n\n• 为音乐新增“队列结束”睡眠计时和“恢复原速”操作\n• 结束模式不再渐隐，并会在完成或取消后恢复循环与随机播放\n• 修复 Similar content 已加载或仍在加载时的集合边界\n• 自动睡眠计时现会遵守“倒计时结束后播完当前内容”设置\n• 播客播放器不再显示集合队列结束按钮\n• About 增加维护者头像并移除个人学习相关表述\n• 使用新的浅色启动图标、主题单色图标、圆形回退图标和通知图标</string>
     <string name="wanna_play_favorite_song">想播放他们最喜欢的歌曲吗？</string>
     <string name="yeah">是的！</string>
     <string name="stands_with_palestine">本项目声援巴勒斯坦 🇵🇸</string>
@@ -788,8 +787,8 @@
     <string name="monthly_most_playlist_name">本月最常播放</string>
     <string name="enable_song_cache">启用音频缓存</string>
     <string name="enable_song_cache_desc">缓存音乐与播客音频，以便以后更快播放</string>
-    <string name="sleep_timer_stop_after_current_song_title">播放完当前歌曲就停止</string>
-    <string name="sleep_timer_stop_after_current_song_description">等待当前播放的歌曲播放结束后再停止</string>
+    <string name="sleep_timer_stop_after_current_song_title">倒计时结束后播完当前内容</string>
+    <string name="sleep_timer_stop_after_current_song_description">定时倒计时结束时，等待当前歌曲或播客单集播放完毕后再暂停</string>
     <string name="sleep_timer_fade_out_title">渐隐效果</string>
     <string name="sleep_timer_fade_out_description">在播放结束前逐渐降低音量</string>
     <string name="sort_ascending">升序</string>

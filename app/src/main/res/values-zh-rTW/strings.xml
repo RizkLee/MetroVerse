@@ -151,7 +151,7 @@
     <string name="lyrics_not_found">沒有歌詞</string>
     <string name="sleep_timer">睡眠定時器</string>
     <string name="end_of_song">這首歌曲播放完畢</string>
-    <string name="end_of_album_or_playlist">專輯/播放清單播放完畢</string>
+    <string name="end_of_album_or_playlist">佇列結束</string>
     <string name="normal_speed">恢復原速</string>
     <plurals name="minute">
         <item quantity="other">%d 分鐘</item>

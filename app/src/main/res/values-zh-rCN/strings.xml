@@ -130,7 +130,7 @@
     <string name="lyrics_not_found">未找到歌词</string>
     <string name="sleep_timer">睡眠定时器</string>
     <string name="end_of_song">这首歌曲播放完毕</string>
-    <string name="end_of_album_or_playlist">专辑/歌单播放完毕</string>
+    <string name="end_of_album_or_playlist">队列结束</string>
     <string name="normal_speed">恢复原速</string>
     <plurals name="minute">
         <item quantity="other">%d 分钟</item>

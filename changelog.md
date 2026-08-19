@@ -6,19 +6,23 @@ All notable MetroVerse-specific changes are recorded here. Upstream Metrolist hi
 
 ### Added
 
-- Added an End of album/playlist sleep-timer mode that stops when the current collection queue finishes.
-- Added a Normal speed action to restore playback speed to 1.00x.
+- Added an End of queue sleep-timer mode for music collections and a Normal speed action to restore playback speed to 1.00x.
 - Added a complete light adaptive launcher icon set, themed monochrome icon, fallback round icon, and notification icon.
+- Added the maintainer profile image to About.
 
 ### Changed
 
-- End of song/episode and End of album/playlist modes no longer apply the final twenty-second sleep-timer fade; only direct timed countdowns fade out.
-- End-based sleep timers temporarily disable repeat and restore the previous repeat mode when completed or cancelled.
-- Album sleep timers stop before radio recommendations, while playlist pagination remains part of the current collection.
+- End of song/episode and End of queue modes no longer apply the final twenty-second sleep-timer fade; only direct timed countdowns fade out.
+- End-based sleep timers temporarily disable repeat and shuffle, restoring both when completed or cancelled.
+- Podcast playback omits the collection queue sleep-timer action.
+- Removed personal-learning wording from About while preserving independent-project and upstream attribution notices.
 - Launcher installation now consistently uses the light icon instead of selecting a color variant from install-time night mode.
 
 ### Fixed
 
+- End of queue now stops at the original album/playlist boundary even when Similar content was already appended or finishes loading in flight.
+- Playlist continuation extends the collection boundary, while album radio recommendations do not.
+- Automatic timed sleep timers now honor Finish current item when timer expires.
 - Preserved query parameters while resizing googleusercontent and ggpht artwork URLs.
 
 ## 0.5.2 - 2026

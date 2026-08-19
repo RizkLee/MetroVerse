@@ -23,6 +23,7 @@ import com.metrolist.music.constants.SleepTimerEnabledKey
 import com.metrolist.music.constants.SleepTimerEndTimeKey
 import com.metrolist.music.constants.SleepTimerRepeatKey
 import com.metrolist.music.constants.SleepTimerStartTimeKey
+import com.metrolist.music.constants.SleepTimerStopAfterCurrentSongKey
 import com.metrolist.music.db.MusicDatabase
 import com.metrolist.music.extensions.currentMetadata
 import com.metrolist.music.extensions.getCurrentQueueIndex
@@ -505,6 +506,8 @@ class PlayerConnection(
             val sleepTimerDefaultMinutes = (service.applicationContext.dataStore.get(SleepTimerDefaultKey) ?: 30f).roundToInt()
             val sleepTimerCustomDaysStr = service.applicationContext.dataStore.get(SleepTimerCustomDaysKey) ?: "0,1,2,3,4"
             val sleepTimerDayTimesStr = service.applicationContext.dataStore.get(SleepTimerDayTimesKey) ?: ""
+            val stopAfterCurrentSong =
+                service.applicationContext.dataStore.get(SleepTimerStopAfterCurrentSongKey) ?: false
 
             Timber
                 .tag(
@@ -582,8 +585,16 @@ class PlayerConnection(
             Timber.tag(TAG).d("Time check: $currentTime between $startStr-$endStr? $isTimeInRange")
 
             if (isTimeInRange) {
-                Timber.tag(TAG).i("AUTO SLEEP TIMER STARTED: $sleepTimerDefaultMinutes minutes")
-                service.sleepTimer?.start(sleepTimerDefaultMinutes)
+                Timber
+                    .tag(TAG)
+                    .i(
+                        "AUTO SLEEP TIMER STARTED: $sleepTimerDefaultMinutes minutes, " +
+                            "finishCurrentItem=$stopAfterCurrentSong",
+                    )
+                service.sleepTimer?.start(
+                    minute = sleepTimerDefaultMinutes,
+                    stopAfterCurrentSong = stopAfterCurrentSong,
+                )
                 return true
             }
 

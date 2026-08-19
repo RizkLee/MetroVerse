@@ -109,8 +109,8 @@ Downloads are published on the [Releases page](https://github.com/RizkLee/MetroV
 
 | Variant  | Description                                | Download link                                                                                        |
 | -------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| FOSS APK | MetroVerse app without Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.2/MetroVerse-v0.5.2-foss.apk) |
-| GMS APK  | The same app, but with Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.2/MetroVerse-v0.5.2-gms.apk)  |
+| FOSS APK | MetroVerse app without Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.3/MetroVerse-v0.5.3-foss.apk) |
+| GMS APK  | The same app, but with Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.3/MetroVerse-v0.5.3-gms.apk)  |
 
 ### Pending Issues
 
@@ -198,8 +198,8 @@ APK 发布在 [Releases 页面](https://github.com/RizkLee/MetroVerse/releases)�
 
 | App 版本 | 适用场景                            | 下载链接                                                                                                    |
 | -------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| FOSS APK | 音乐与播客，不包含 Google Cast 功能 | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.2/MetroVerse-v0.5.2-foss.apk) |
-| GMS APK  | 音乐与播客，包含 Google Cast 功能   | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.2/MetroVerse-v0.5.2-gms.apk)  |
+| FOSS APK | 音乐与播客，不包含 Google Cast 功能 | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.3/MetroVerse-v0.5.3-foss.apk) |
+| GMS APK  | 音乐与播客，包含 Google Cast 功能   | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v0.5.3/MetroVerse-v0.5.3-gms.apk)  |
 
 ### 待解决
 

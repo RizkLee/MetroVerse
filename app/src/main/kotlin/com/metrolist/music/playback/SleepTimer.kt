@@ -49,6 +49,9 @@ class SleepTimer(
 
     private var sleepTimerJob: Job? = null
     private var repeatModeBeforeEndTimer: Int? = null
+    private var shuffleModeBeforeEndTimer: Boolean? = null
+    private var queueEndMediaIndex: Int = C.INDEX_UNSET
+    private var lastObservedMediaIndex: Int = C.INDEX_UNSET
     var triggerTime by mutableLongStateOf(-1L)
         private set
     var mode by mutableStateOf(SleepTimerMode.OFF)
@@ -112,15 +115,25 @@ class SleepTimer(
         startEndMode(SleepTimerMode.END_OF_MEDIA)
     }
 
-    fun startAtEndOfQueue() {
+    fun startAtEndOfQueue(boundaryIndex: Int) {
         startEndMode(SleepTimerMode.END_OF_QUEUE)
+        queueEndMediaIndex = boundaryIndex
+        lastObservedMediaIndex = player.currentMediaItemIndex
+    }
+
+    fun updateQueueEndBoundary(boundaryIndex: Int) {
+        if (mode == SleepTimerMode.END_OF_QUEUE && boundaryIndex >= 0) {
+            queueEndMediaIndex = boundaryIndex
+        }
     }
 
     private fun startEndMode(newMode: SleepTimerMode) {
         require(newMode == SleepTimerMode.END_OF_MEDIA || newMode == SleepTimerMode.END_OF_QUEUE)
         resetTimerState()
         repeatModeBeforeEndTimer = player.repeatMode
+        shuffleModeBeforeEndTimer = player.shuffleModeEnabled
         player.repeatMode = Player.REPEAT_MODE_OFF
+        player.shuffleModeEnabled = false
         mode = newMode
     }
 
@@ -143,8 +156,18 @@ class SleepTimer(
         mediaItem: MediaItem?,
         reason: Int,
     ) {
-        if (mode == SleepTimerMode.END_OF_MEDIA && reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
-            completeTimerAndPause()
+        val previousMediaIndex = lastObservedMediaIndex
+        lastObservedMediaIndex = player.currentMediaItemIndex
+
+        if (reason != Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) return
+        when (mode) {
+            SleepTimerMode.END_OF_MEDIA -> completeTimerAndPause()
+            SleepTimerMode.END_OF_QUEUE -> {
+                if (previousMediaIndex != C.INDEX_UNSET && previousMediaIndex == queueEndMediaIndex) {
+                    completeTimerAndPause()
+                }
+            }
+            else -> Unit
         }
     }
 
@@ -194,7 +217,11 @@ class SleepTimer(
         sleepTimerJob?.cancel()
         sleepTimerJob = null
         repeatModeBeforeEndTimer?.let { player.repeatMode = it }
+        shuffleModeBeforeEndTimer?.let { player.shuffleModeEnabled = it }
         repeatModeBeforeEndTimer = null
+        shuffleModeBeforeEndTimer = null
+        queueEndMediaIndex = C.INDEX_UNSET
+        lastObservedMediaIndex = C.INDEX_UNSET
         stopAfterCurrentSongOnTimeout = false
         triggerTime = -1L
         updateVolumeMultiplier(1f)

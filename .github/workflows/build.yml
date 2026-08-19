@@ -59,6 +59,7 @@ jobs:
           --tests com.metrolist.music.podcast.PodcastParsingTest
           --tests com.metrolist.music.podcast.PodcastCategoriesTest
           --tests com.metrolist.music.playback.SleepTimerTest
+          --tests com.metrolist.music.playback.SleepTimerBehaviorTest
           --tests com.metrolist.music.playback.QueueSleepTimerBoundaryTest
           --tests com.metrolist.music.listentogether.ListenTogetherServersTest
           --tests com.metrolist.music.utils.UpdaterTest
