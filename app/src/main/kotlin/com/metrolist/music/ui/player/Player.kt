@@ -80,7 +80,6 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -119,9 +118,6 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.datastore.preferences.core.edit
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.Player.STATE_ENDED
@@ -133,7 +129,6 @@ import coil3.imageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
-import com.metrolist.music.LocalDatabase
 import com.metrolist.music.LocalDownloadUtil
 import com.metrolist.music.LocalListenTogetherManager
 import com.metrolist.music.LocalPlayerConnection
@@ -180,12 +175,9 @@ import com.metrolist.music.utils.dataStore
 import com.metrolist.music.utils.makeTimeString
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
-import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.max
 import com.metrolist.music.ui.component.Icon as MIcon
@@ -397,7 +389,8 @@ fun BottomSheetPlayer(
     }
     val gradientColorsCache = remember { mutableMapOf<String, List<Color>>() }
 
-    if (!canSkipNext && automix.isNotEmpty()) {
+    val endOfQueueTimerActive = playerConnection.service.sleepTimer?.pauseWhenQueueEnd == true
+    if (!canSkipNext && automix.isNotEmpty() && !endOfQueueTimerActive) {
         playerConnection.service.addToQueueAutomix(automix[0], 0)
     }
 
@@ -1885,94 +1878,12 @@ fun InlineLyricsView(
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val currentLyrics by playerConnection.currentLyrics.collectAsStateWithLifecycle(initialValue = null)
-    val queueWindows by playerConnection.queueWindows.collectAsStateWithLifecycle(initialValue = emptyList())
-    val currentWindowIndex by playerConnection.currentWindowIndex.collectAsStateWithLifecycle(initialValue = -1)
     val lyrics = remember(currentLyrics) { currentLyrics?.lyrics?.trim() }
-    val context = LocalContext.current
-    val database = LocalDatabase.current
-    val coroutineScope = rememberCoroutineScope()
-
-    var appInForeground by remember {
-        mutableStateOf(
-            ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED),
-        )
-    }
-    DisposableEffect(Unit) {
-        val lifecycle = ProcessLifecycleOwner.get().lifecycle
-        val observer =
-            LifecycleEventObserver { _, _ ->
-                appInForeground = lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
-            }
-        lifecycle.addObserver(observer)
-        onDispose { lifecycle.removeObserver(observer) }
-    }
-
-    val nextMetadata =
-        remember(queueWindows, currentWindowIndex) {
-            if (currentWindowIndex >= 0 && currentWindowIndex + 1 < queueWindows.size) {
-                queueWindows[currentWindowIndex + 1].mediaItem.metadata
-            } else {
-                null
-            }
-        }
 
     LaunchedEffect(mediaMetadata?.id, currentLyrics) {
         if (mediaMetadata != null && currentLyrics == null) {
             delay(500)
-            coroutineScope.launch(Dispatchers.IO) {
-                try {
-                    val entryPoint =
-                        EntryPointAccessors.fromApplication(
-                            context.applicationContext,
-                            com.metrolist.music.di.LyricsHelperEntryPoint::class.java,
-                        )
-                    val lyricsHelper = entryPoint.lyricsHelper()
-                    val fetchedLyricsWithProvider = lyricsHelper.getLyrics(mediaMetadata)
-                    database.query {
-                        upsert(LyricsEntity(mediaMetadata.id, fetchedLyricsWithProvider.lyrics, fetchedLyricsWithProvider.provider))
-                    }
-                } catch (e: Exception) {
-                    // Handle error
-                }
-            }
-        }
-    }
-
-    // Prefetch lyrics for the next queue item only while the lyrics pane is visible, the app is in the
-    // foreground, and the current track's lyrics row has finished loading (avoids competing with the
-    // active fetch).
-    LaunchedEffect(
-        nextMetadata?.id,
-        showLyrics,
-        appInForeground,
-        mediaMetadata?.id,
-        currentLyrics,
-    ) {
-        if (!showLyrics || !appInForeground || nextMetadata == null) return@LaunchedEffect
-        val loadedForCurrent =
-            currentLyrics?.let { lyrics ->
-                mediaMetadata == null || lyrics.id == mediaMetadata.id
-            } == true
-        if (mediaMetadata != null && !loadedForCurrent) return@LaunchedEffect
-        val nextId = nextMetadata.id
-        delay(400)
-        if (!showLyrics || !appInForeground || !isActive) return@LaunchedEffect
-        withContext(Dispatchers.IO) {
-            try {
-                val existing = database.lyrics(nextId).first()
-                if (existing != null) return@withContext
-                val entryPoint =
-                    EntryPointAccessors.fromApplication(
-                        context.applicationContext,
-                        com.metrolist.music.di.LyricsHelperEntryPoint::class.java,
-                    )
-                val lyricsHelper = entryPoint.lyricsHelper()
-                val fetched = lyricsHelper.getLyrics(nextMetadata)
-                database.query {
-                    upsert(LyricsEntity(nextId, fetched.lyrics, fetched.provider))
-                }
-            } catch (_: Exception) {
-            }
+            playerConnection.service.ensureLyricsLoaded(mediaMetadata)
         }
     }
 

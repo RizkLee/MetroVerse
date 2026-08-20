@@ -38,6 +38,17 @@ internal fun sleepTimerFadeOutEnabled(
     stopAfterCurrentSongOnTimeout: Boolean,
 ): Boolean = mode == SleepTimerMode.TIMED && !stopAfterCurrentSongOnTimeout
 
+internal fun queueRemainingDurationRange(
+    currentIndex: Int,
+    boundaryIndex: Int,
+    itemCount: Int,
+): IntRange? {
+    if (currentIndex == C.INDEX_UNSET || itemCount <= 0) return null
+    val lastIndex = boundaryIndex.coerceIn(currentIndex, itemCount - 1)
+    if (lastIndex <= currentIndex) return null
+    return (currentIndex + 1)..lastIndex
+}
+
 class SleepTimer(
     private val scope: CoroutineScope,
     var player: Player,
@@ -198,8 +209,12 @@ class SleepTimer(
         if (currentIndex == C.INDEX_UNSET) return 0L
 
         var remainingMs = currentMediaRemainingMs()
-        for (index in currentIndex + 1 until player.mediaItemCount) {
-            val durationSeconds = player.getMediaItemAt(index).metadata?.duration ?: continue
+        queueRemainingDurationRange(
+            currentIndex = currentIndex,
+            boundaryIndex = queueEndMediaIndex,
+            itemCount = player.mediaItemCount,
+        )?.forEach { index ->
+            val durationSeconds = player.getMediaItemAt(index).metadata?.duration ?: return@forEach
             if (durationSeconds > 0) {
                 remainingMs += durationSeconds * 1000L
             }

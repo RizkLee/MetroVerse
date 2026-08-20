@@ -65,6 +65,7 @@ import com.metrolist.music.constants.EnableLrcLibKey
 import com.metrolist.music.constants.EnablePaxsenixKey
 import com.metrolist.music.constants.EnableLyricsPlus
 import com.metrolist.music.constants.HideExplicitKey
+import com.metrolist.music.constants.LoadLyricsInBackgroundKey
 import com.metrolist.music.constants.HideVideoSongsKey
 import com.metrolist.music.constants.HideYoutubeShortsKey
 import com.metrolist.music.constants.LanguageCodeToName
@@ -124,6 +125,10 @@ fun ContentSettings(
     val (enableBetterLyrics, onEnableBetterLyricsChange) = rememberPreference(key = EnableBetterLyricsKey, defaultValue = true)
     val (enablePaxsenix, onEnablePaxsenixChange) = rememberPreference(key = EnablePaxsenixKey, defaultValue = true)
     val (enableLyricsPlus, onEnableLyricsPlusChange) = rememberPreference(key = EnableLyricsPlus, defaultValue = true)
+    val (loadLyricsInBackground, onLoadLyricsInBackgroundChange) = rememberPreference(
+        key = LoadLyricsInBackgroundKey,
+        defaultValue = true,
+    )
     val (lyricsProviderOrder, onLyricsProviderOrderChange) = rememberPreference(
         key = LyricsProviderOrderKey,
         defaultValue = LyricsProviderRegistry.serializeProviderOrder(LyricsProviderRegistry.getDefaultProviderOrder())
@@ -905,6 +910,27 @@ fun ContentSettings(
         Material3SettingsGroup(
             title = stringResource(R.string.lyrics),
             items = listOf(
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.lyrics),
+                    title = { Text(stringResource(R.string.lyrics_background_loading)) },
+                    description = { Text(stringResource(R.string.lyrics_background_loading_desc)) },
+                    trailingContent = {
+                        Switch(
+                            checked = loadLyricsInBackground,
+                            onCheckedChange = onLoadLyricsInBackgroundChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (loadLyricsInBackground) R.drawable.check else R.drawable.close,
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                                )
+                            },
+                        )
+                    },
+                    onClick = { onLoadLyricsInBackgroundChange(!loadLyricsInBackground) },
+                ),
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.lyrics),
                     title = { Text(stringResource(R.string.lyrics_provider_selection)) },

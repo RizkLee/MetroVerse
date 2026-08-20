@@ -192,7 +192,12 @@ fun PlaybackSleepTimerBottomSheet(
             )
 
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement =
+                    if (isEpisode) {
+                        Arrangement.Center
+                    } else {
+                        Arrangement.spacedBy(8.dp)
+                    },
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 FilterChip(
@@ -216,15 +221,23 @@ fun PlaybackSleepTimerBottomSheet(
                         )
                     },
                     label = {
-                        Text(
-                            text = stringResource(if (isEpisode) R.string.end_of_episode else R.string.end_of_song),
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
+                        if (isEpisode) {
+                            Text(
+                                text = stringResource(R.string.end_of_episode),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        } else {
+                            Text(
+                                text = stringResource(R.string.end_of_song),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
                     },
-                    modifier = Modifier.weight(1f),
+                    modifier = if (isEpisode) Modifier else Modifier.weight(1f),
                 )
 
                 if (!isEpisode) {

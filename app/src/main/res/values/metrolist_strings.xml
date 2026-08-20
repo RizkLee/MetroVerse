@@ -139,6 +139,8 @@
     <string name="enable_paxsenix_desc">High-quality synchronized lyrics from Paxsenix API</string>
     <string name="enable_lyricsplus">Enable LyricsPlus</string>
     <string name="enable_lyricsplus_desc">Synchronized lyrics from multiple sources</string>
+    <string name="lyrics_background_loading">Load lyrics in background</string>
+    <string name="lyrics_background_loading_desc">Fetch lyrics while a song is playing, even when the lyrics view is hidden</string>
     <string name="lyrics_provider_selection">Provider selection</string>
     <string name="lyrics_provider_selection_desc">Choose which lyrics providers are enabled</string>
     <string name="auto_scroll">Re-sync</string>
@@ -919,7 +921,7 @@
     <string name="metroverse_metrolist_relationship">MetroVerse is based on Metrolist and retains its music architecture, interface foundations, contributors, and GPL history.</string>
     <string name="metroverse_podium_relationship">The RSS and Apple Podcasts integration was developed by studying and adapting concepts from Podium under GPL-3.0.</string>
     <string name="metroverse_apple_podcasts_attribution">Apple Podcasts provides public discovery, charts, search metadata, and artwork. MetroVerse plays public RSS feeds independently and is not affiliated with Apple.</string>
-    <string name="metroverse_changelog_body">MetroVerse 0.5.3\n\n• Added End of queue for music and a Normal speed action\n• End-based timers no longer fade and restore repeat/shuffle when finished or cancelled\n• Fixed collection boundaries when Similar content is already loaded or still loading\n• Automatic timed sleep timers now honor Finish current item when timer expires\n• Podcast playback omits the collection queue action\n• Added the maintainer profile image and removed personal-learning wording from About\n• Added the new light launcher, monochrome themed icon, round fallback, and notification icon</string>
+    <string name="metroverse_changelog_body">MetroVerse 0.5.4\n\n• End of queue now restores Similar content after cancellation or completion\n• Lyrics can load in the background for the current and next song\n• Update notifications now ignore pre-releases\n• The podcast End of episode action now fits its translated text</string>
     <string name="wanna_play_favorite_song">Want to play their favorite song?</string>
     <string name="yeah">Yeah!</string>
     <string name="stands_with_palestine">This project stands with Palestine 🇵🇸</string>

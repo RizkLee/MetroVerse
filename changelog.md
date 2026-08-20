@@ -2,6 +2,21 @@
 
 All notable MetroVerse-specific changes are recorded here. Upstream Metrolist history remains available in Git history.
 
+## 0.5.4 - 2026
+
+### Added
+
+- Added optional background lyrics loading for the current and next song, enabled by default.
+
+### Changed
+
+- Update notifications now follow only GitHub's stable Latest Release and ignore pre-releases.
+
+### Fixed
+
+- End of queue now pauses Similar content only while active and restores it after cancellation or completion.
+- Made the podcast End of episode sleep-timer action compact and responsive to translated text.
+
 ## 0.5.3 - 2026
 
 ### Added

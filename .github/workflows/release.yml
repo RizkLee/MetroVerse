@@ -126,6 +126,13 @@ jobs:
           body: |
             MetroVerse unifies YouTube Music and open RSS podcasts in one Android app.
 
+            ## What's changed
+
+            - End of queue restores Similar content after cancellation or completion.
+            - Lyrics can load in the background for the current and next song.
+            - Update notifications ignore pre-releases.
+            - The podcast End of episode action now fits translated text.
+
             ## Downloads
 
             | Variant | Description | Download link |
@@ -135,11 +142,18 @@ jobs:
 
             ## Verification
 
-            Review the attached checksum file and APK signing certificate before installation.
+            A SHA-256 checksum file is included for users who want to verify their downloads.
 
             ---
 
             MetroVerse 将 YouTube Music 与开放 RSS 播客整合在同一个 Android 应用中。
+
+            ## 主要变化
+
+            - “队列结束”取消或完成后会恢复相似内容。
+            - 支持后台加载当前歌曲和下一首歌曲的歌词。
+            - 更新通知会忽略预发布版本。
+            - 播客“单集结束”按钮会根据翻译文本自适应宽度。
 
             ## 下载
 
@@ -150,6 +164,7 @@ jobs:
 
             ## 文件校验
 
-            安装前请核对附件中的校验和文件与 APK 签名证书。
+            附件中提供 SHA-256 校验和文件，供需要核验下载完整性的用户使用。
           prerelease: ${{ inputs.prerelease }}
+          make_latest: ${{ !inputs.prerelease }}
           files: release-files/*

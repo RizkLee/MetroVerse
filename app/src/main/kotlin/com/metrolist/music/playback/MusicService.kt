@@ -157,7 +157,7 @@ import com.metrolist.music.constants.ResumeOnBluetoothConnectKey
 import com.metrolist.music.constants.ScrobbleDelayPercentKey
 import com.metrolist.music.constants.ScrobbleDelaySecondsKey
 import com.metrolist.music.constants.ScrobbleMinSongDurationKey
-import com.metrolist.music.constants.ShowLyricsKey
+import com.metrolist.music.constants.LoadLyricsInBackgroundKey
 import com.metrolist.music.constants.ShuffleModeKey
 import com.metrolist.music.constants.ShufflePlaylistFirstKey
 import com.metrolist.music.constants.SimilarContent
@@ -189,6 +189,7 @@ import com.metrolist.music.extensions.toMediaItem
 import com.metrolist.music.extensions.toPersistQueue
 import com.metrolist.music.extensions.toQueue
 import com.metrolist.music.lyrics.LyricsHelper
+import com.metrolist.music.models.MediaMetadata
 import com.metrolist.music.models.PersistPlayerState
 import com.metrolist.music.models.PersistQueue
 import com.metrolist.music.models.toMediaMetadata
@@ -225,6 +226,7 @@ import kotlinx.coroutines.CancellationException
 import kotlin.coroutines.coroutineContext
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -273,6 +275,40 @@ internal fun collectionEndBoundaryIndex(
             itemCount - 1
         }
     return collectionEndIndex.coerceAtLeast(currentIndex.coerceAtLeast(0))
+}
+
+internal fun shouldAppendQueueContinuation(
+    endOfQueueTimerActive: Boolean,
+    continuationBelongsToCurrentCollection: Boolean,
+): Boolean = !endOfQueueTimerActive || continuationBelongsToCurrentCollection
+
+internal fun shouldLoadLyricsInBackground(
+    enabled: Boolean,
+    isEpisode: Boolean,
+): Boolean = enabled && !isEpisode
+
+internal fun shouldCancelLyricsLoadWhenBackgroundDisabled(
+    loadLyricsInBackground: Boolean,
+    userInitiated: Boolean,
+): Boolean = !loadLyricsInBackground && !userInitiated
+
+internal fun shouldAcceptAutomixAction(
+    endOfQueueTimerActive: Boolean,
+    displayedItemId: String?,
+    requestedItemId: String,
+): Boolean = !endOfQueueTimerActive && displayedItemId == requestedItemId
+
+internal fun shouldStoreAutomixResponse(
+    requestGeneration: Long,
+    currentGeneration: Long,
+): Boolean = requestGeneration == currentGeneration
+
+internal fun nextLyricsPrefetchIndex(
+    currentIndex: Int,
+    itemCount: Int,
+): Int? {
+    if (currentIndex < 0) return null
+    return (currentIndex + 1).takeIf { it in 0 until itemCount }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
@@ -475,6 +511,14 @@ class MusicService :
     private var scrobbleManager: ScrobbleManager? = null
 
     val automixItems = MutableStateFlow<List<MediaItem>>(emptyList())
+    private var automixRequestGeneration = 0L
+    private val lyricsLoadJobs = mutableMapOf<String, LyricsLoadRequest>()
+    private var nextLyricsPrefetchJob: Job? = null
+
+    private data class LyricsLoadRequest(
+        val job: Job,
+        var userInitiated: Boolean,
+    )
 
     // Tracks the original queue size to distinguish original items from auto-added ones
     private var originalQueueSize: Int = 0
@@ -877,24 +921,23 @@ class MusicService :
 
         combine(
             currentMediaMetadata.distinctUntilChangedBy { it?.id },
-            dataStore.data.map { it[ShowLyricsKey] ?: false }.distinctUntilChanged(),
-        ) { mediaMetadata, showLyrics ->
-            mediaMetadata to showLyrics
-        }.collectLatest(scope) { (mediaMetadata, showLyrics) ->
-            if (showLyrics && mediaMetadata != null && !mediaMetadata.isEpisode && database
-                    .lyrics(mediaMetadata.id)
-                    .first() == null
+            dataStore.data.map { it[LoadLyricsInBackgroundKey] ?: true }.distinctUntilChanged(),
+        ) { mediaMetadata, loadLyricsInBackground ->
+            mediaMetadata to loadLyricsInBackground
+        }.collectLatest(scope) { (mediaMetadata, loadLyricsInBackground) ->
+            nextLyricsPrefetchJob?.cancel()
+            nextLyricsPrefetchJob = null
+            cancelLyricsLoadsExcept(mediaMetadata?.id)
+            cancelBackgroundLyricsLoadsIfDisabled(loadLyricsInBackground)
+            if (
+                mediaMetadata != null &&
+                shouldLoadLyricsInBackground(
+                    enabled = loadLyricsInBackground,
+                    isEpisode = mediaMetadata.isEpisode,
+                )
             ) {
-                val lyricsWithProvider = lyricsHelper.getLyrics(mediaMetadata)
-                database.query {
-                    upsert(
-                        LyricsEntity(
-                            id = mediaMetadata.id,
-                            lyrics = lyricsWithProvider.lyrics,
-                            provider = lyricsWithProvider.provider,
-                        ),
-                    )
-                }
+                ensureLyricsLoaded(mediaMetadata, userInitiated = false)
+                scheduleNextLyricsPrefetch(mediaMetadata)
             }
         }
 
@@ -1863,6 +1906,97 @@ class MusicService :
         }
     }
 
+    fun ensureLyricsLoaded(
+        mediaMetadata: MediaMetadata,
+        userInitiated: Boolean = true,
+    ) {
+        if (mediaMetadata.isEpisode) return
+
+        val mediaId = mediaMetadata.id
+        synchronized(lyricsLoadJobs) {
+            lyricsLoadJobs[mediaId]?.takeIf { it.job.isActive }?.let { request ->
+                if (userInitiated) request.userInitiated = true
+                return
+            }
+
+            val job =
+                scope.launch(
+                    context = Dispatchers.IO + SilentHandler,
+                    start = CoroutineStart.LAZY,
+                ) {
+                    if (database.lyrics(mediaId).first() != null) return@launch
+
+                    val lyricsWithProvider = lyricsHelper.getLyrics(mediaMetadata)
+                    database.withTransaction {
+                        upsert(
+                            LyricsEntity(
+                                id = mediaId,
+                                lyrics = lyricsWithProvider.lyrics,
+                                provider = lyricsWithProvider.provider,
+                            ),
+                        )
+                    }
+                }
+            lyricsLoadJobs[mediaId] = LyricsLoadRequest(job, userInitiated)
+            job.invokeOnCompletion {
+                synchronized(lyricsLoadJobs) {
+                    if (lyricsLoadJobs[mediaId]?.job === job) {
+                        lyricsLoadJobs.remove(mediaId)
+                    }
+                }
+            }
+            job.start()
+        }
+    }
+
+    private fun scheduleNextLyricsPrefetch(currentMetadata: MediaMetadata) {
+        nextLyricsPrefetchJob =
+            scope.launch(Dispatchers.IO + SilentHandler) {
+                database.lyrics(currentMetadata.id).first { it != null }
+                delay(500)
+
+                withContext(Dispatchers.Main.immediate) {
+                    if (player.currentMetadata?.id != currentMetadata.id) return@withContext
+                    val nextIndex =
+                        nextLyricsPrefetchIndex(
+                            currentIndex = player.currentMediaItemIndex,
+                            itemCount = player.mediaItemCount,
+                        ) ?: return@withContext
+                    val nextMetadata = player.getMediaItemAt(nextIndex).metadata ?: return@withContext
+                    if (!nextMetadata.isEpisode) {
+                        ensureLyricsLoaded(nextMetadata, userInitiated = false)
+                    }
+                }
+            }
+    }
+
+    private fun cancelLyricsLoadsExcept(mediaId: String?) {
+        synchronized(lyricsLoadJobs) {
+            lyricsLoadJobs
+                .filterKeys { it != mediaId }
+                .values
+                .map(LyricsLoadRequest::job)
+                .toList()
+                .forEach(Job::cancel)
+        }
+    }
+
+    private fun cancelBackgroundLyricsLoadsIfDisabled(loadLyricsInBackground: Boolean) {
+        synchronized(lyricsLoadJobs) {
+            lyricsLoadJobs
+                .values
+                .filter { request ->
+                    shouldCancelLyricsLoadWhenBackgroundDisabled(
+                        loadLyricsInBackground = loadLyricsInBackground,
+                        userInitiated = request.userInitiated,
+                    )
+                }
+                .map(LyricsLoadRequest::job)
+                .toList()
+                .forEach(Job::cancel)
+        }
+    }
+
     fun startSleepTimerAtEndOfCurrentCollection() {
         val itemCount = player.mediaItemCount
         if (itemCount == 0) return
@@ -1873,6 +2007,7 @@ class MusicService :
                 itemCount = itemCount,
                 currentIndex = player.currentMediaItemIndex,
             ) ?: return
+
         sleepTimer?.startAtEndOfQueue(boundaryIndex)
     }
 
@@ -1988,9 +2123,11 @@ class MusicService :
     }
 
     fun getAutomix(playlistId: String) {
+        clearAutomix()
         if (dataStore.get(SimilarContent, true) &&
             !(dataStore.get(DisableLoadMoreWhenRepeatAllKey, false) && player.repeatMode == REPEAT_MODE_ALL)
         ) {
+            val requestGeneration = automixRequestGeneration
             scope.launch(SilentHandler) {
                 try {
                     YouTube
@@ -1999,16 +2136,20 @@ class MusicService :
                             YouTube
                                 .next(WatchEndpoint(playlistId = firstResult.endpoint.playlistId))
                                 .onSuccess { secondResult ->
-                                    automixItems.value =
+                                    setAutomixItemsIfAllowed(
+                                        requestGeneration,
                                         secondResult.items.map { song ->
                                             song.toMediaItem()
-                                        }
+                                        },
+                                    )
                                 }.onFailure {
                                     if (firstResult.items.isNotEmpty()) {
-                                        automixItems.value =
+                                        setAutomixItemsIfAllowed(
+                                            requestGeneration,
                                             firstResult.items.map { song ->
                                                 song.toMediaItem()
-                                            }
+                                            },
+                                        )
                                     }
                                 }
                         }.onFailure {
@@ -2026,7 +2167,7 @@ class MusicService :
                                                 .filter { it.id != currentSong.id }
                                                 .map { it.toMediaItem() }
                                         if (filteredItems.isNotEmpty()) {
-                                            automixItems.value = filteredItems
+                                            setAutomixItemsIfAllowed(requestGeneration, filteredItems)
                                         }
                                     }.onFailure {
                                         YouTube
@@ -2040,7 +2181,7 @@ class MusicService :
                                                             .filter { it.id != currentSong.id }
                                                             .map { it.toMediaItem() }
                                                     if (relatedItems.isNotEmpty()) {
-                                                        automixItems.value = relatedItems
+                                                        setAutomixItemsIfAllowed(requestGeneration, relatedItems)
                                                     }
                                                 }
                                             }
@@ -2057,10 +2198,17 @@ class MusicService :
         item: MediaItem,
         position: Int,
     ) {
-        automixItems.value =
-            automixItems.value.toMutableList().apply {
-                removeAt(position)
-            }
+        val currentItems = automixItems.value
+        if (
+            !shouldAcceptAutomixAction(
+                endOfQueueTimerActive = sleepTimer?.pauseWhenQueueEnd == true,
+                displayedItemId = currentItems.getOrNull(position)?.mediaId,
+                requestedItemId = item.mediaId,
+            )
+        ) {
+            return
+        }
+        automixItems.value = currentItems.toMutableList().apply { removeAt(position) }
         addToQueue(listOf(item))
     }
 
@@ -2068,15 +2216,38 @@ class MusicService :
         item: MediaItem,
         position: Int,
     ) {
-        automixItems.value =
-            automixItems.value.toMutableList().apply {
-                removeAt(position)
-            }
+        val currentItems = automixItems.value
+        if (
+            !shouldAcceptAutomixAction(
+                endOfQueueTimerActive = sleepTimer?.pauseWhenQueueEnd == true,
+                displayedItemId = currentItems.getOrNull(position)?.mediaId,
+                requestedItemId = item.mediaId,
+            )
+        ) {
+            return
+        }
+        automixItems.value = currentItems.toMutableList().apply { removeAt(position) }
         playNext(listOf(item))
     }
 
+    private fun setAutomixItemsIfAllowed(
+        requestGeneration: Long,
+        items: List<MediaItem>,
+    ) {
+        if (shouldStoreAutomixResponse(requestGeneration, automixRequestGeneration)) {
+            automixItems.value = items
+            if (cachedPersistentQueue) {
+                saveQueueToDisk()
+            }
+        }
+    }
+
     fun clearAutomix() {
+        automixRequestGeneration++
         automixItems.value = emptyList()
+        if (cachedPersistentQueue) {
+            saveQueueToDisk()
+        }
     }
 
     fun playNext(items: List<MediaItem>) {
@@ -2603,20 +2774,33 @@ class MusicService :
             reason != Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT &&
             player.mediaItemCount - player.currentMediaItemIndex <= 5 &&
             currentQueue.hasNextPage() &&
-            (sleepTimer?.pauseWhenQueueEnd != true || currentQueue.continuationBelongsToCurrentCollection) &&
+            shouldAppendQueueContinuation(
+                endOfQueueTimerActive = sleepTimer?.pauseWhenQueueEnd == true,
+                continuationBelongsToCurrentCollection = currentQueue.continuationBelongsToCurrentCollection,
+            ) &&
             !(cachedDisableLoadMoreWhenRepeatAll && player.repeatMode == REPEAT_MODE_ALL)
         ) {
+            val queueToLoad = currentQueue
+            val continuationBelongsToCollection = queueToLoad.continuationBelongsToCurrentCollection
             scope.launch(SilentHandler) {
                 val mediaItems =
                     withContext(Dispatchers.IO) {
-                        currentQueue
+                        queueToLoad
                             .nextPage()
                             .filterExplicit(cachedHideExplicit)
                             .filterVideoSongs(cachedHideVideoSongs)
                     }
-                if (player.playbackState != STATE_IDLE && mediaItems.isNotEmpty()) {
+                if (
+                    currentQueue === queueToLoad &&
+                    shouldAppendQueueContinuation(
+                        endOfQueueTimerActive = sleepTimer?.pauseWhenQueueEnd == true,
+                        continuationBelongsToCurrentCollection = continuationBelongsToCollection,
+                    ) &&
+                    player.playbackState != STATE_IDLE &&
+                    mediaItems.isNotEmpty()
+                ) {
                     player.addMediaItems(mediaItems)
-                    if (currentQueue.continuationBelongsToCurrentCollection) {
+                    if (continuationBelongsToCollection) {
                         originalQueueSize += mediaItems.size
                         sleepTimer?.updateQueueEndBoundary(originalQueueSize - 1)
                     }

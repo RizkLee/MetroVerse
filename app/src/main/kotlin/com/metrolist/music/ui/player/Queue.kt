@@ -526,6 +526,7 @@ fun Queue(
         val queueTitle by playerConnection.queueTitle.collectAsStateWithLifecycle()
         val queueWindows by playerConnection.queueWindows.collectAsStateWithLifecycle()
         val automix by playerConnection.service.automixItems.collectAsStateWithLifecycle()
+        val endOfQueueTimerActive = playerConnection.service.sleepTimer?.pauseWhenQueueEnd == true
         val mutableQueueWindows = remember { mutableStateListOf<Timeline.Window>() }
         val queueLength =
             remember(queueWindows) {
@@ -812,7 +813,7 @@ fun Queue(
                     }
                 }
 
-                if (automix.isNotEmpty()) {
+                if (automix.isNotEmpty() && !endOfQueueTimerActive) {
                     item(key = "automix_divider") {
                         HorizontalDivider(
                             modifier =

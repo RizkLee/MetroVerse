@@ -68,6 +68,11 @@ internal fun parseReleaseAssetName(name: String): ParsedReleaseAssetName? {
     )
 }
 
+internal fun isPublishedStableRelease(
+    draft: Boolean,
+    prerelease: Boolean,
+): Boolean = !draft && !prerelease
+
 internal fun parseSha256Checksum(
     checksumText: String,
     fileName: String,
@@ -245,13 +250,25 @@ object Updater {
                     return@cancellableResult requireNotNull(cachedReleaseInfo)
                 }
 
-                val variant = currentVariant()
-                val latest =
-                    getAllReleases(forceRefresh = forceRefresh)
-                        .getOrThrow()
-                        .filter { release -> release.assets.any { it.variant == variant } }
-                        .maxWithOrNull { first, second -> compareVersions(first.tagName, second.tagName) }
-                        ?: error("No compatible MetroVerse release was found")
+                val response =
+                    client.get("$GITHUB_API_BASE/releases/latest") {
+                        header(HttpHeaders.Accept, "application/vnd.github+json")
+                        header(HttpHeaders.UserAgent, "MetroVerse/${BuildConfig.VERSION_NAME}")
+                    }
+                check(response.status.isSuccess()) { "GitHub returned HTTP ${response.status.value}" }
+
+                val releaseObject = JSONObject(response.bodyAsText())
+                check(
+                    isPublishedStableRelease(
+                        draft = releaseObject.optBoolean("draft"),
+                        prerelease = releaseObject.optBoolean("prerelease"),
+                    ),
+                ) { "GitHub Latest is not a published stable release" }
+
+                val latest = parseRelease(releaseObject)
+                check(latest.assets.any { it.variant == currentVariant() }) {
+                    "GitHub Latest has no compatible MetroVerse APK"
+                }
 
                 cachedReleaseInfo = latest
                 lastCheckTime = System.currentTimeMillis()

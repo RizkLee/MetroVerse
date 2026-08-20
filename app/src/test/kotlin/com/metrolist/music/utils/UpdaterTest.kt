@@ -32,6 +32,13 @@ class UpdaterTest {
     }
 
     @Test
+    fun `updater accepts only published stable releases`() {
+        assertTrue(isPublishedStableRelease(draft = false, prerelease = false))
+        assertFalse(isPublishedStableRelease(draft = true, prerelease = false))
+        assertFalse(isPublishedStableRelease(draft = false, prerelease = true))
+    }
+
+    @Test
     fun `checksum parser selects the exact apk`() {
         val expected = "a".repeat(64)
         val checksums =

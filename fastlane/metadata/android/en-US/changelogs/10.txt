@@ -1,0 +1,6 @@
+MetroVerse 0.5.4
+
+- End of queue restores Similar content after cancellation or completion.
+- Lyrics can load in the background for the current and next song.
+- Update notifications ignore pre-releases.
+- The podcast End of episode action now fits translated text.
