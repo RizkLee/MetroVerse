@@ -21,7 +21,7 @@
 
 <p align="center">
   <b>
-    <a href="#releases-and-verification">Download</a> · <a href="#下载与校验">下载</a>
+    <a href="#releases-and-verification">Download</a> · <a href="#下载与校验">下载</a><span style="display:inline-block; width:2.5em;"></span><a href="#support">Support</a> · <a href="#support">支持</a>
   </b>
 </p>
 
@@ -211,8 +211,14 @@ MetroVerse 使用 [GNU GPL v3.0](LICENSE)。分发修改后的 APK 时，必须�
 
 ---
 
+<a id="support"></a>
+
+#### Support the Development
+
+You can buy me a coffee to support the development of MetroVerse. Thank you for your generosity!
+
 <p align="center">
   <a href="https://buymeacoffee.com/rizklee">
-    <img src="assets/bmc-button.svg" width="285" alt="Buy me a coffee" />
+    <img src="assets/bmc-button.svg" width="260" alt="Buy me a coffee" />
   </a>
 </p>
