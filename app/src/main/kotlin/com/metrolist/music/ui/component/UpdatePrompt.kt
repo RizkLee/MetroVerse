@@ -165,10 +165,7 @@ fun UpdateDownloadDialog(
                     )
                 }
                 releaseInfo.description.takeIf(String::isNotBlank)?.let { description ->
-                    Text(
-                        text = description,
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
+                    ReleaseNotesMarkdown(markdown = description)
                 }
                 if (!context.packageManager.canRequestPackageInstalls()) {
                     Text(

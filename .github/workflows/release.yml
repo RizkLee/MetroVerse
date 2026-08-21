@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag, for example v0.5.3"
+        description: "Release tag, for example v0.5.5"
         required: true
         type: string
       publish:
@@ -124,14 +124,21 @@ jobs:
           tag_name: ${{ inputs.tag }}
           name: MetroVerse ${{ inputs.tag }}
           body: |
+            IMPORTANT: UPDATE IMMEDIATELY. DO NOT CONTINUE USING V0.5.4 OR EARLIER.
+
+            重要：请立即下载更新，不要继续使用 v0.5.4 或更早版本。
+
+            > [!IMPORTANT]
+            > Earlier versions can remove Open RSS podcast subscriptions during a Library refresh. Update now, then re-add any shows that were already removed.
+            >
+            > 旧版本可能会在刷新 Library 时错误取消 Open RSS 播客订阅。请立即更新；已经消失的节目需要在更新后重新添加。
+
             MetroVerse unifies YouTube Music and open RSS podcasts in one Android app.
 
             ## What's changed
 
-            - End of queue restores Similar content after cancellation or completion.
-            - Lyrics can load in the background for the current and next song.
-            - Update notifications ignore pre-releases.
-            - The podcast End of episode action now fits translated text.
+            - Open RSS podcast subscriptions no longer disappear after Library refresh.
+            - Update notices now render headings, lists, links, compact tables, and important warnings.
 
             ## Downloads
 
@@ -150,10 +157,8 @@ jobs:
 
             ## 主要变化
 
-            - “队列结束”取消或完成后会恢复相似内容。
-            - 支持后台加载当前歌曲和下一首歌曲的歌词。
-            - 更新通知会忽略预发布版本。
-            - 播客“单集结束”按钮会根据翻译文本自适应宽度。
+            - Open RSS 播客订阅不再因 Library 刷新而消失。
+            - 更新提示现在可以正确显示标题、列表、链接、紧凑表格和重要警告。
 
             ## 下载
 

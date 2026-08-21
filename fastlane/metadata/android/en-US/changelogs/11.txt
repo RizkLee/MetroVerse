@@ -1,0 +1,6 @@
+MetroVerse 0.5.5
+
+IMPORTANT: Update immediately. Do not continue using v0.5.4 or earlier.
+
+- Fixed Open RSS podcast subscriptions disappearing after Library refresh.
+- Update notices now render Markdown headings, lists, links, compact tables, and important warnings.

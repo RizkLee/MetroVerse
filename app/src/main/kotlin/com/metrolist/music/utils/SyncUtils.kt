@@ -108,6 +108,14 @@ data class SyncState(
     val currentOperation: String = ""
 )
 
+internal fun youtubePodcastSubscriptionRemovalCandidates(
+    localPodcasts: List<PodcastEntity>,
+    remoteIds: Set<String>,
+): List<PodcastEntity> =
+    localPodcasts.filter { podcast ->
+        podcast.feedUrl == null && podcast.id !in remoteIds
+    }
+
 @Singleton
 class SyncUtils @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -1299,27 +1307,30 @@ class SyncUtils @Inject constructor(
             Timber.e(e, "[PODCAST_SYNC] Failed to sync subscribed podcast channels after retries")
         }
 
-        // Cleanup: Remove local podcasts that are no longer subscribed on YouTube Music
+        // Only YouTube-managed podcasts participate in remote subscription cleanup. Open RSS
+        // subscriptions share this table but never appear in either YouTube response.
         try {
             if (fetchedSavedShows && fetchedSubscribedChannels) {
                 val localPodcasts = database.subscribedPodcasts().first()
-                val localOnlyPodcasts = localPodcasts.filterNot { it.id in allRemoteIds }
-                Timber.d("[PODCAST_SYNC] Cleanup: removing ${localOnlyPodcasts.size} podcasts not on YTM")
+                val removalCandidates = youtubePodcastSubscriptionRemovalCandidates(
+                    localPodcasts = localPodcasts,
+                    remoteIds = allRemoteIds,
+                )
+                Timber.d("[PODCAST_SYNC] Cleanup: removing ${removalCandidates.size} YTM podcasts not on YTM")
 
-                localOnlyPodcasts.forEach { podcast ->
+                removalCandidates.forEach { podcast ->
                     try {
-                        // Remove subscription (set bookmarkedAt to null)
                         database.withTransaction {
                             update(podcast.copy(bookmarkedAt = null))
                         }
-                        Timber.d("[PODCAST_SYNC] Unsubscribed from local podcast: ${podcast.id}")
+                        Timber.d("[PODCAST_SYNC] Unsubscribed from local YTM podcast: ${podcast.id}")
                     } catch (e: Exception) {
-                        Timber.e(e, "[PODCAST_SYNC] Failed to cleanup podcast: ${podcast.id}")
+                        Timber.e(e, "[PODCAST_SYNC] Failed to cleanup YTM podcast: ${podcast.id}")
                     }
                 }
             }
         } catch (e: Exception) {
-            Timber.e(e, "[PODCAST_SYNC] Error during cleanup")
+            Timber.e(e, "[PODCAST_SYNC] Error during YTM podcast cleanup")
         }
     }
 
