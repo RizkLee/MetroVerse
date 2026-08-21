@@ -21,7 +21,7 @@
 
 <p align="center">
   <b>
-    <a href="#releases-and-verification">Download</a> · <a href="#下载与校验">下载</a><span style="display:inline-block; width:2.5em;"></span><a href="#support">Support</a> · <a href="#support">支持</a>
+    <a href="#releases-and-verification">Download</a> · <a href="#下载与校验">下载</a>&emsp;&emsp;<a href="#support">Support</a> · <a href="#support">支持</a>
   </b>
 </p>
 
