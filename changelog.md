@@ -2,6 +2,21 @@
 
 All notable MetroVerse-specific changes are recorded here. Upstream Metrolist history remains available in Git history.
 
+## 0.5.5 - 2026
+
+### Important
+
+- Update immediately and do not continue using v0.5.4 or earlier because those versions can remove Open RSS podcast subscriptions during a Library refresh.
+- Shows already removed by an earlier version must be added to the library again after updating.
+
+### Changed
+
+- Update notices now render Markdown headings, lists, links, compact tables, and important warnings.
+
+### Fixed
+
+- Open RSS podcast subscriptions no longer disappear after Library initialization or refresh.
+
 ## 0.5.4 - 2026
 
 ### Added
