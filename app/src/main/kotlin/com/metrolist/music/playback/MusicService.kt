@@ -303,6 +303,11 @@ internal fun shouldStoreAutomixResponse(
     currentGeneration: Long,
 ): Boolean = requestGeneration == currentGeneration
 
+internal fun shouldResetPlaybackParameters(
+    previousItemWasEpisode: Boolean,
+    currentItemIsEpisode: Boolean?,
+): Boolean = previousItemWasEpisode && currentItemIsEpisode == false
+
 internal fun nextLyricsPrefetchIndex(
     currentIndex: Int,
     itemCount: Int,
@@ -731,9 +736,16 @@ class MusicService :
         player = createExoPlayer(prefs = startupPrefs!!)
         player.addListener(this@MusicService)
         sleepTimer =
-            SleepTimer(scope, player) { multiplier ->
-                sleepTimerVolumeMultiplier.value = multiplier
-            }
+            SleepTimer(
+                scope = scope,
+                player = player,
+                onVolumeMultiplierChanged = { multiplier ->
+                    sleepTimerVolumeMultiplier.value = multiplier
+                },
+                onPauseAtEndOfMediaItemsChanged = { targetPlayer, enabled ->
+                    (targetPlayer as? ExoPlayer)?.setPauseAtEndOfMediaItems(enabled)
+                },
+            )
         player.addListener(sleepTimer!!)
 
         playerInitialized.value = true
@@ -2692,6 +2704,8 @@ class MusicService :
         mediaItem: MediaItem?,
         reason: Int,
     ) {
+        val previousItemWasEpisode = previousEpisodeId != null
+
         // The track that was playing before this transition only gets marked as
         // "fully cached" if it advanced AUTOmatically (i.e. it actually finished),
         // never on a manual skip/seek. lastTransitionedMediaId must be read BEFORE
@@ -2718,6 +2732,9 @@ class MusicService :
         previousEpisodePosition = 0L
 
         val newMetadata = mediaItem?.metadata
+        if (shouldResetPlaybackParameters(previousItemWasEpisode, newMetadata?.isEpisode)) {
+            player.playbackParameters = PlaybackParameters.DEFAULT
+        }
         newMetadata?.mediaUrl?.let { mediaUrl ->
             directMediaUrlCache[newMetadata.id] = mediaUrl
             scope.launch(Dispatchers.IO) {
@@ -5001,7 +5018,7 @@ class MusicService :
 
         crossfadeMessage = player.createMessage { _, _ ->
             val timer = sleepTimer
-            if (player.isPlaying && player.currentMediaItem?.mediaId == targetMediaId && (timer == null || !timer.pauseWhenSongEnd)) {
+            if (player.isPlaying && player.currentMediaItem?.mediaId == targetMediaId && timer?.pausesAtCurrentMediaEnd != true) {
                 startCrossfade()
             }
         }.apply {

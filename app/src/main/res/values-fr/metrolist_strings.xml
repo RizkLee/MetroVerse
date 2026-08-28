@@ -446,6 +446,8 @@
     <string name="enter_room_code">Entrez un code de salle</string>
     <string name="listen_together_settings_desc">Configurer le serveur, le nom d\'utilisateur, et plus encore</string>
     <string name="ai_lyrics_translation">Traduction des paroles par IA</string>
+    <string name="ai_always_translate">Toujours utiliser la traduction par IA</string>
+    <string name="ai_always_translate_desc">Traduit automatiquement lorsque les paroles sont affichées. Le préchargement en arrière-plan n’utilise pas l’IA.</string>
     <string name="ai_translating_lyrics">Traduction des paroles…</string>
     <string name="ai_lyrics_translated">Paroles traduites</string>
     <string name="ai_provider">Fournisseur</string>

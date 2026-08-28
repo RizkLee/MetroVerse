@@ -446,6 +446,8 @@
     <string name="enter_room_code">Introduce un código de sala</string>
     <string name="listen_together_settings_desc">Configurar servidor, nombre de usuario y más</string>
     <string name="ai_lyrics_translation">Traducción de letras con IA</string>
+    <string name="ai_always_translate">Usar siempre la traducción con IA</string>
+    <string name="ai_always_translate_desc">Traduce automáticamente al mostrar las letras. La precarga en segundo plano no utiliza la IA.</string>
     <string name="ai_translating_lyrics">Traduciendo letras…</string>
     <string name="ai_lyrics_translated">Letras traducidas</string>
     <string name="ai_provider">Proveedor</string>

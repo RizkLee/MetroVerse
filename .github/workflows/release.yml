@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag, for example v0.5.5"
+        description: "Release tag, for example v0.5.6"
         required: true
         type: string
       publish:
@@ -124,21 +124,13 @@ jobs:
           tag_name: ${{ inputs.tag }}
           name: MetroVerse ${{ inputs.tag }}
           body: |
-            IMPORTANT: UPDATE IMMEDIATELY. DO NOT CONTINUE USING V0.5.4 OR EARLIER.
-
-            重要：请立即下载更新，不要继续使用 v0.5.4 或更早版本。
-
-            > [!IMPORTANT]
-            > Earlier versions can remove Open RSS podcast subscriptions during a Library refresh. Update now, then re-add any shows that were already removed.
-            >
-            > 旧版本可能会在刷新 Library 时错误取消 Open RSS 播客订阅。请立即更新；已经消失的节目需要在更新后重新添加。
-
-            MetroVerse unifies YouTube Music and open RSS podcasts in one Android app.
-
             ## What's changed
 
-            - Open RSS podcast subscriptions no longer disappear after Library refresh.
-            - Update notices now render headings, lists, links, compact tables, and important warnings.
+            - Added an optional setting to translate lyrics automatically when the lyrics view is open.
+            - Added 1.15x, 1.30x, 1.40x, and 1.60x podcast playback speeds.
+            - Songs now return to 1.0x speed after switching from a podcast.
+            - Sleep timers now stop at the correct end of a song, episode, album, or playlist.
+            - Fixed automatic lyrics translation using the wrong song or turning itself back on.
 
             ## Downloads
 
@@ -153,12 +145,13 @@ jobs:
 
             ---
 
-            MetroVerse 将 YouTube Music 与开放 RSS 播客整合在同一个 Android 应用中。
-
             ## 主要变化
 
-            - Open RSS 播客订阅不再因 Library 刷新而消失。
-            - 更新提示现在可以正确显示标题、列表、链接、紧凑表格和重要警告。
+            - 新增可选的自动 AI 歌词翻译开关，仅在打开歌词界面时使用。
+            - 播客倍速新增 1.15x、1.30x、1.40x 和 1.60x。
+            - 从播客切换到歌曲时，播放速度会恢复为 1.0x。
+            - 睡眠定时现在会在歌曲、单集、专辑或播放列表结束时准确停止。
+            - 修复自动歌词翻译串歌或关闭后立即重新开启的问题。
 
             ## 下载
 

@@ -434,6 +434,8 @@
     <string name="unblock">Desbloquear</string>
     <string name="user_blocked_by_host">Bloqueado pelo anfitrião</string>
     <string name="ai_lyrics_translation">Tradução de letras por IA</string>
+    <string name="ai_always_translate">Sempre usar tradução por IA</string>
+    <string name="ai_always_translate_desc">Traduz automaticamente quando as letras são exibidas. O pré-carregamento em segundo plano não usa IA.</string>
     <string name="ai_translating_lyrics">Traduzindo letras…</string>
     <string name="ai_lyrics_translated">Letra traduzida</string>
     <string name="ai_provider">Fornecedor</string>

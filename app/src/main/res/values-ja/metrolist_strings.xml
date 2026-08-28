@@ -449,6 +449,8 @@
     <string name="audio_offload_disabled_by_crossfade">クロスフェードを使用中はこの機能を使用できません</string>
     <string name="together">Together</string>
     <string name="ai_lyrics_translation">AI歌詞翻訳</string>
+    <string name="ai_always_translate">常にAI翻訳を使用</string>
+    <string name="ai_always_translate_desc">歌詞を表示したときに自動で翻訳します。バックグラウンドでの歌詞の事前読み込みではAIを使用しません。</string>
     <string name="ai_translating_lyrics">歌詞を翻訳中…</string>
     <string name="ai_lyrics_translated">翻訳しました</string>
     <string name="ai_provider">提供元</string>

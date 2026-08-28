@@ -440,6 +440,8 @@
     <string name="enter_room_code">Raum-Code eingeben</string>
     <string name="listen_together_settings_desc">Server, Benutzernamen und mehr konfigurieren</string>
     <string name="ai_lyrics_translation">KI-Song-Text-Übersetzung</string>
+    <string name="ai_always_translate">KI-Übersetzung immer verwenden</string>
+    <string name="ai_always_translate_desc">Übersetzt automatisch, wenn Liedtexte angezeigt werden. Beim Vorladen im Hintergrund wird keine KI verwendet.</string>
     <string name="ai_translating_lyrics">Songtexte übersetzen…</string>
     <string name="ai_lyrics_translated">Songtext übersetzt</string>
     <string name="ai_provider">Anbieter</string>

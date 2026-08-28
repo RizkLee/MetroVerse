@@ -483,6 +483,8 @@
     <string name="ai_lyrics_translated">歌詞翻譯</string>
     <string name="ai_translating_lyrics">翻譯歌詞…</string>
     <string name="ai_lyrics_translation">AI歌詞翻譯</string>
+    <string name="ai_always_translate">一律使用 AI 翻譯</string>
+    <string name="ai_always_translate_desc">開啟歌詞顯示時自動翻譯。背景預載歌詞時不會呼叫 AI。</string>
     <string name="user_blocked_by_host">使用者已被主持人封鎖</string>
     <string name="unblock">解除封鎖</string>
     <string name="listen_together_no_blocked_users">沒有被封鎖的用戶</string>

@@ -1,0 +1,7 @@
+MetroVerse 0.5.6
+
+- Added optional automatic AI lyrics translation when lyrics are shown.
+- Added 1.15x, 1.30x, 1.40x, and 1.60x podcast speeds.
+- Songs now return to 1.0x after switching from a podcast.
+- Sleep timers now stop at the correct end of a song, episode, album, or playlist.
+- Fixed automatic lyrics translation using the wrong song or turning itself back on.

@@ -446,6 +446,8 @@
     <string name="enter_room_code">Inserisci un codice stanza</string>
     <string name="listen_together_settings_desc">Configura server, nome utente e altro</string>
     <string name="ai_lyrics_translation">Traduzione testi AI</string>
+    <string name="ai_always_translate">Usa sempre la traduzione AI</string>
+    <string name="ai_always_translate_desc">Traduce automaticamente quando vengono mostrati i testi. Il precaricamento in background non usa l’AI.</string>
     <string name="ai_translating_lyrics">Traduzione del testo…</string>
     <string name="ai_lyrics_translated">Testo tradotto</string>
     <string name="ai_provider">Fornitore</string>

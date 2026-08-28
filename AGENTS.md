@@ -1,12 +1,23 @@
-# Working with Metrolist as an AI agent
+# Working with MetroVerse as an AI agent
 
-Metrolist is a 3rd party YouTube Music client written in Kotlin. It follows material 3 design guidelines closely.
+MetroVerse is an independently maintained Android music and podcast app based on Metrolist. It keeps Metrolist's Kotlin, Jetpack Compose, Material 3, Media3, Room, Hilt, download, and queue foundations while integrating Open RSS podcast discovery and playback. MetroVerse is not an official Metrolist release and is not affiliated with Apple, Google, or YouTube.
+
+## Project basics
+
+- App name: MetroVerse
+- Application ID: `com.rizklee.metroverse` (`com.rizklee.metroverse.debug` for Debug builds)
+- Inherited Kotlin namespace: `com.metrolist.music`
+- Supported variants: FOSS (without Google Cast) and GMS (with Google Cast)
+- Android baseline: minimum API 26, target API 36, compile SDK 37
+- Primary stack: Kotlin, Jetpack Compose, Material 3, Media3, Room, Hilt, OkHttp, and WorkManager
+- Podcast support: YouTube podcasts plus public RSS/Atom feeds, with Apple Podcasts used only for public discovery metadata
+- License and lineage: GPL-3.0; preserve inherited source headers, attribution, contribution history, and MetroVerse's independent package identity
 
 ## Rules for working on the project
 
 1. Always pull the latest changes from `main` before starting your work to minimize merge conflicts.
 2. Commit names should be clear and follow the format: `type(scope): short description`. For example: `feat(ui): add dark mode support`. Including the scope is optional.
-3. All string edits should be made to the `Metrolist/app/src/main/res/values/metrolist_strings.xml` file, NOT `Metrolist/app/src/main/res/values/strings.xml`. Do not touch other `strings.xml` or `metrolist_strings.xml` files in the project. ONLY edit the default (English) `metrolist_strings.xml` file, DO NOT EDIT OTHER LANGUAGES.
+3. Add or edit App-owned strings in `Metrolist/app/src/main/res/values*/metrolist_strings.xml`, never in any `strings.xml` file. New user-visible text outside the Changelog and About screens must be localized in the default English resources plus Simplified Chinese (`values-zh-rCN`), Traditional Chinese (`values-zh-rTW`), German (`values-de`), Spanish (`values-es`), French (`values-fr`), Italian (`values-it`), Japanese (`values-ja`), Korean (`values-ko`), Brazilian Portuguese (`values-pt-rBR`), and Russian (`values-ru`). Do not add the new string to other locale files; those locales must fall back to English.
 4. You are to follow best practices for Kotlin and Android development.
 5. DO NOT EDIT THE APP'S DATABASE SCHEMA.
 
@@ -86,7 +97,7 @@ Only perform this section after a human authorizes a release. Keep all version r
 5. Add `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt`.
 6. Update every version number and FOSS/GMS download URL in `README.md`.
 7. Update `.github/workflows/release.yml`: input examples, concise user-visible changes, download links, and any urgent notices.
-8. Keep changelogs and release notes short and user-visible. Do not include internal implementation details unless they affect installation, compatibility, privacy, or data safety.
+8. Keep the App changelog, `changelog.md`, Fastlane notes, README release summaries, GitHub Release notes, and workflow release text short, factual, and limited to changes users can notice. Use plain language; do not use decorative, promotional, or exaggerated wording. Include internal details only when they affect installation, compatibility, privacy, or data safety.
 9. For an urgent updater notice that must be readable by older Apps, put a plain-text warning at the very beginning of the GitHub Release body before Markdown. A new renderer cannot change the UI code already installed on older versions.
 10. Run `git diff --check`, validate workflow YAML, search for stale version strings, and inspect the complete staged file list.
 

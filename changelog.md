@@ -2,6 +2,23 @@
 
 All notable MetroVerse-specific changes are recorded here. Upstream Metrolist history remains available in Git history.
 
+## 0.5.6 - 2026-08-29
+
+### Added
+
+- Added an optional setting to translate lyrics automatically when the lyrics view is open. It is off by default and does not run during background lyrics loading.
+- Added 1.15x, 1.30x, 1.40x, and 1.60x podcast playback speeds.
+
+### Changed
+
+- Removed the 2.75x, 3.25x, 3.50x, and 3.75x podcast playback speeds.
+
+### Fixed
+
+- Songs now return to 1.0x speed after switching from a podcast played at a different speed.
+- End-of-song, end-of-episode, and end-of-collection sleep timers now stop at the correct time without briefly playing the next item.
+- Automatic AI lyrics translation now follows the current song and can be turned off for the current song without immediately turning itself back on.
+
 ## 0.5.5 - 2026
 
 ### Important

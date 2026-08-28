@@ -51,8 +51,9 @@ internal fun queueRemainingDurationRange(
 
 class SleepTimer(
     private val scope: CoroutineScope,
-    var player: Player,
+    player: Player,
     private val onVolumeMultiplierChanged: (Float) -> Unit = {},
+    private val onPauseAtEndOfMediaItemsChanged: (Player, Boolean) -> Unit = { _, _ -> },
 ) : Player.Listener {
     private companion object {
         private const val TIMER_TICK_MS = 1000L
@@ -63,6 +64,11 @@ class SleepTimer(
     private var shuffleModeBeforeEndTimer: Boolean? = null
     private var queueEndMediaIndex: Int = C.INDEX_UNSET
     private var lastObservedMediaIndex: Int = C.INDEX_UNSET
+    var player: Player = player
+        set(value) {
+            field = value
+            updatePauseAtEndOfMediaItems()
+        }
     var triggerTime by mutableLongStateOf(-1L)
         private set
     var mode by mutableStateOf(SleepTimerMode.OFF)
@@ -78,6 +84,8 @@ class SleepTimer(
         get() = mode != SleepTimerMode.OFF
     val stopsAtPlaybackEnd: Boolean
         get() = mode == SleepTimerMode.END_OF_MEDIA || mode == SleepTimerMode.END_OF_QUEUE
+    val pausesAtCurrentMediaEnd: Boolean
+        get() = shouldCompleteAtCurrentMediaBoundary()
 
     fun start(minute: Int) {
         start(
@@ -130,11 +138,13 @@ class SleepTimer(
         startEndMode(SleepTimerMode.END_OF_QUEUE)
         queueEndMediaIndex = boundaryIndex
         lastObservedMediaIndex = player.currentMediaItemIndex
+        updatePauseAtEndOfMediaItems()
     }
 
     fun updateQueueEndBoundary(boundaryIndex: Int) {
         if (mode == SleepTimerMode.END_OF_QUEUE && boundaryIndex >= 0) {
             queueEndMediaIndex = boundaryIndex
+            updatePauseAtEndOfMediaItems()
         }
     }
 
@@ -146,6 +156,7 @@ class SleepTimer(
         player.repeatMode = Player.REPEAT_MODE_OFF
         player.shuffleModeEnabled = false
         mode = newMode
+        updatePauseAtEndOfMediaItems()
     }
 
     /**
@@ -169,6 +180,7 @@ class SleepTimer(
     ) {
         val previousMediaIndex = lastObservedMediaIndex
         lastObservedMediaIndex = player.currentMediaItemIndex
+        updatePauseAtEndOfMediaItems()
 
         if (reason != Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) return
         when (mode) {
@@ -186,6 +198,19 @@ class SleepTimer(
         @Player.State playbackState: Int,
     ) {
         if (playbackState == Player.STATE_ENDED && stopsAtPlaybackEnd) {
+            completeTimerAndPause()
+        }
+    }
+
+    override fun onPlayWhenReadyChanged(
+        playWhenReady: Boolean,
+        reason: Int,
+    ) {
+        if (
+            !playWhenReady &&
+            reason == Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM &&
+            shouldCompleteAtCurrentMediaBoundary()
+        ) {
             completeTimerAndPause()
         }
     }
@@ -240,9 +265,21 @@ class SleepTimer(
         stopAfterCurrentSongOnTimeout = false
         triggerTime = -1L
         updateVolumeMultiplier(1f)
+        onPauseAtEndOfMediaItemsChanged(player, false)
     }
 
     private fun updateVolumeMultiplier(multiplier: Float) {
         onVolumeMultiplierChanged(multiplier)
+    }
+
+    private fun shouldCompleteAtCurrentMediaBoundary(): Boolean =
+        when (mode) {
+            SleepTimerMode.END_OF_MEDIA -> true
+            SleepTimerMode.END_OF_QUEUE -> player.currentMediaItemIndex == queueEndMediaIndex
+            else -> false
+        }
+
+    private fun updatePauseAtEndOfMediaItems() {
+        onPauseAtEndOfMediaItemsChanged(player, shouldCompleteAtCurrentMediaBoundary())
     }
 }

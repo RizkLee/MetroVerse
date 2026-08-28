@@ -118,9 +118,23 @@ fun LyricsMenu(
 
     val hasApiKey = if (aiProvider == "DeepL") deeplApiKey.isNotBlank() else openRouterApiKey.isNotBlank()
     
-    // Observe the authoritative translation-active state from the singleton; this persists
-    // correctly across menu open/close cycles and avoids the lyricsProvider() race condition.
-    val hasTranslations by LyricsTranslationHelper.hasActiveTranslations.collectAsStateWithLifecycle()
+    val activeTranslationSongId by LyricsTranslationHelper.activeTranslationSongId.collectAsStateWithLifecycle()
+    val currentMediaId = mediaMetadataProvider().id
+    val hasTranslations = activeTranslationSongId == currentMediaId
+    val enableTranslation = {
+        LyricsTranslationHelper.allowAutomaticTranslation(currentMediaId)
+        LyricsTranslationHelper.triggerManualTranslation()
+    }
+    val disableTranslation = {
+        LyricsTranslationHelper.suppressAutomaticTranslation(currentMediaId)
+        lyricsProvider()
+            ?.takeIf { lyrics -> lyrics.id == currentMediaId }
+            ?.let { lyrics ->
+                val clearedLyrics = LyricsTranslationHelper.clearTranslations(lyrics)
+                database.query { upsert(clearedLyrics) }
+            }
+        LyricsTranslationHelper.triggerClearTranslations(currentMediaId)
+    }
 
     var showEditDialog by rememberSaveable {
         mutableStateOf(false)
@@ -488,38 +502,13 @@ fun LyricsMenu(
                                     )
                                 },
                                 onClick = {
-                                    if (hasTranslations) {
-                                        // Remove translations
-                                        lyricsProvider()?.let { lyrics ->
-                                            val clearedLyrics = LyricsTranslationHelper.clearTranslations(lyrics)
-                                            database.query {
-                                                upsert(clearedLyrics)
-                                            }
-                                            // Resets hasActiveTranslations and clears in-memory translations
-                                            LyricsTranslationHelper.triggerClearTranslations()
-                                        }
-                                    } else {
-                                        // Trigger translation
-                                        LyricsTranslationHelper.triggerManualTranslation()
-                                    }
+                                    if (hasTranslations) disableTranslation() else enableTranslation()
                                 },
                                 trailingContent = {
                                     Switch(
                                         checked = hasTranslations,
-                                        onCheckedChange = { newCheckedState ->
-                                            if (newCheckedState) {
-                                                // Enable translations – hasActiveTranslations updates when done
-                                                LyricsTranslationHelper.triggerManualTranslation()
-                                            } else {
-                                                // Disable translations – triggerClearTranslations resets hasActiveTranslations
-                                                lyricsProvider()?.let { lyrics ->
-                                                    val clearedLyrics = LyricsTranslationHelper.clearTranslations(lyrics)
-                                                    database.query {
-                                                        upsert(clearedLyrics)
-                                                    }
-                                                    LyricsTranslationHelper.triggerClearTranslations()
-                                                }
-                                            }
+                                        onCheckedChange = { enabled ->
+                                            if (enabled) enableTranslation() else disableTranslation()
                                         },
                                         thumbContent = {
                                             Icon(

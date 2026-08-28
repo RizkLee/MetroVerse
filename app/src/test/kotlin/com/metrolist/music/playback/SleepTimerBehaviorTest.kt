@@ -35,14 +35,57 @@ class SleepTimerBehaviorTest {
     @Test
     fun `manual transition does not complete end of current item`() {
         val state = FakePlayerState(currentIndex = 0)
-        val timer = SleepTimer(CoroutineScope(Dispatchers.Unconfined), state.player)
+        val timer = state.createTimer()
         timer.startAtEndOfCurrentMedia()
+
+        assertTrue(state.pauseAtEndOfMediaItems)
 
         state.currentIndex = 1
         timer.onMediaItemTransition(null, Player.MEDIA_ITEM_TRANSITION_REASON_SEEK)
 
         assertFalse(state.paused)
         assertTrue(timer.pauseWhenSongEnd)
+        assertTrue(state.pauseAtEndOfMediaItems)
+    }
+
+    @Test
+    fun `end of current item pauses at the media boundary`() {
+        val state = FakePlayerState(currentIndex = 0)
+        val timer = state.createTimer()
+        timer.startAtEndOfCurrentMedia()
+
+        timer.onPlayWhenReadyChanged(
+            false,
+            Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM,
+        )
+
+        assertTrue(state.paused)
+        assertFalse(state.pauseAtEndOfMediaItems)
+        assertFalse(timer.isActive)
+    }
+
+    @Test
+    fun `end of queue enables precise pause only on boundary item`() {
+        val state = FakePlayerState(currentIndex = 1)
+        val timer = state.createTimer()
+        timer.startAtEndOfQueue(boundaryIndex = 2)
+
+        assertFalse(state.pauseAtEndOfMediaItems)
+        assertFalse(timer.pausesAtCurrentMediaEnd)
+
+        state.currentIndex = 2
+        timer.onMediaItemTransition(null, Player.MEDIA_ITEM_TRANSITION_REASON_AUTO)
+        assertTrue(state.pauseAtEndOfMediaItems)
+        assertTrue(timer.pausesAtCurrentMediaEnd)
+
+        timer.onPlayWhenReadyChanged(
+            false,
+            Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM,
+        )
+
+        assertTrue(state.paused)
+        assertFalse(state.pauseAtEndOfMediaItems)
+        assertFalse(timer.isActive)
     }
 
     private class FakePlayerState(
@@ -51,6 +94,7 @@ class SleepTimerBehaviorTest {
         var shuffleEnabled: Boolean = false,
     ) {
         var paused: Boolean = false
+        var pauseAtEndOfMediaItems: Boolean = false
 
         val player: Player =
             Proxy.newProxyInstance(
@@ -79,6 +123,15 @@ class SleepTimerBehaviorTest {
                     else -> defaultValue(method.returnType)
                 }
             } as Player
+
+        fun createTimer(): SleepTimer =
+            SleepTimer(
+                scope = CoroutineScope(Dispatchers.Unconfined),
+                player = player,
+                onPauseAtEndOfMediaItemsChanged = { _, enabled ->
+                    pauseAtEndOfMediaItems = enabled
+                },
+            )
 
         private fun defaultValue(type: Class<*>): Any? =
             when (type) {

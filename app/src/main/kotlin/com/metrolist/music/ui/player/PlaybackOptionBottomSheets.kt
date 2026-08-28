@@ -40,15 +40,41 @@ import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 
+internal val PODCAST_PLAYBACK_SPEEDS =
+    listOf(
+        0.25f,
+        0.5f,
+        0.75f,
+        1f,
+        1.15f,
+        1.25f,
+        1.3f,
+        1.4f,
+        1.5f,
+        1.6f,
+        1.75f,
+        2f,
+        2.25f,
+        2.5f,
+        3f,
+        4f,
+    )
+
+internal fun nearestPodcastPlaybackSpeedIndex(speed: Float): Int =
+    PODCAST_PLAYBACK_SPEEDS.indices.minBy { index -> abs(PODCAST_PLAYBACK_SPEEDS[index] - speed) }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaybackSpeedBottomSheet(
     onDismiss: () -> Unit,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
-    var speed by remember {
-        mutableFloatStateOf(playerConnection.player.playbackParameters.speed)
+    var speedSliderPosition by remember {
+        mutableFloatStateOf(
+            nearestPodcastPlaybackSpeedIndex(playerConnection.player.playbackParameters.speed).toFloat(),
+        )
     }
+    val speed = PODCAST_PLAYBACK_SPEEDS[speedSliderPosition.roundToInt()]
 
     ModalBottomSheet(
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -76,20 +102,23 @@ fun PlaybackSpeedBottomSheet(
                 )
             }
             Slider(
-                value = speed,
+                value = speedSliderPosition,
                 onValueChange = { value ->
-                    speed = value
-                    playerConnection.player.playbackParameters = PlaybackParameters(value)
+                    speedSliderPosition = value
+                    val selectedSpeed = PODCAST_PLAYBACK_SPEEDS[value.roundToInt()]
+                    if (playerConnection.player.playbackParameters.speed != selectedSpeed) {
+                        playerConnection.player.playbackParameters = PlaybackParameters(selectedSpeed)
+                    }
                 },
-                valueRange = 0.25f..4f,
-                steps = 14,
+                valueRange = 0f..PODCAST_PLAYBACK_SPEEDS.lastIndex.toFloat(),
+                steps = PODCAST_PLAYBACK_SPEEDS.size - 2,
                 modifier = Modifier.fillMaxWidth(),
             )
 
             FilterChip(
                 selected = abs(speed - NORMAL_PLAYBACK_SPEED) < 0.001f,
                 onClick = {
-                    speed = NORMAL_PLAYBACK_SPEED
+                    speedSliderPosition = nearestPodcastPlaybackSpeedIndex(NORMAL_PLAYBACK_SPEED).toFloat()
                     playerConnection.player.playbackParameters = PlaybackParameters(NORMAL_PLAYBACK_SPEED)
                 },
                 leadingIcon = {

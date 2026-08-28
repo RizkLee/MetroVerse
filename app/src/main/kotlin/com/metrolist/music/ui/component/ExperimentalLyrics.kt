@@ -90,6 +90,7 @@ import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
 import com.metrolist.music.constants.AiProviderKey
 import com.metrolist.music.constants.AiSystemPromptKey
+import com.metrolist.music.constants.AlwaysUseAiTranslationKey
 import com.metrolist.music.constants.DeeplApiKey
 import com.metrolist.music.constants.DeeplFormalityKey
 import com.metrolist.music.constants.LyricsClickKey
@@ -111,6 +112,9 @@ import com.metrolist.music.constants.TranslateModeKey
 import com.metrolist.music.db.entities.LyricsEntity.Companion.LYRICS_NOT_FOUND
 import com.metrolist.music.lyrics.LyricsResyncHelper
 import com.metrolist.music.lyrics.LyricsTranslationHelper
+import com.metrolist.music.lyrics.hasMatchingStoredLyricsTranslation
+import com.metrolist.music.lyrics.shouldRequestAutomaticLyricsTranslation
+import com.metrolist.music.lyrics.verifiedLyricsSongId
 import com.metrolist.music.lyrics.LyricsUtils.findActiveLineIndices
 import com.metrolist.music.lyrics.lyricsTextLooksSynced
 import com.metrolist.music.ui.component.shimmer.ShimmerHost
@@ -123,6 +127,7 @@ import com.metrolist.music.utils.ComposeToImage
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.viewmodels.LyricsViewModel
+import com.metrolist.music.viewmodels.processedLyricsBelongToCurrentMedia
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
@@ -181,6 +186,7 @@ fun ExperimentalLyrics(
     val translateMode by rememberPreference(TranslateModeKey, "Literal")
     val deeplFormality by rememberPreference(DeeplFormalityKey, "default")
     val aiSystemPrompt by rememberPreference(AiSystemPromptKey, "")
+    val alwaysUseAiTranslation by rememberPreference(AlwaysUseAiTranslationKey, false)
     
     val scope = rememberCoroutineScope()
 
@@ -223,8 +229,17 @@ fun ExperimentalLyrics(
         }.filter { it.second }.map { it.first }
     }
 
-    val lines by lyricsViewModel.lines.collectAsStateWithLifecycle()
-    val mergedLyricsList by lyricsViewModel.mergedLyricsList.collectAsStateWithLifecycle()
+    val processedLyricsState by lyricsViewModel.processedLyricsState.collectAsStateWithLifecycle()
+    val processedLyricsMatchesCurrent =
+        processedLyricsBelongToCurrentMedia(
+            processedSourceLyrics = processedLyricsState.sourceLyrics,
+            currentLyrics = lyrics,
+            lyricsEntityId = lyricsEntity?.id,
+            mediaId = mediaMetadata?.id,
+        )
+    val lines = if (processedLyricsMatchesCurrent) processedLyricsState.lines else emptyList()
+    val mergedLyricsList =
+        if (processedLyricsMatchesCurrent) processedLyricsState.mergedLyricsList else emptyList()
 
     LaunchedEffect(lyrics, enabledLanguages, romanizeCyrillicByLine, showIntervalIndicator) {
         lyricsViewModel.processLyrics(lyrics, enabledLanguages, romanizeCyrillicByLine, showIntervalIndicator)
@@ -248,6 +263,74 @@ fun ExperimentalLyrics(
                 lyricsEntity = lyricsEntity,
                 targetLanguage = translateLanguage,
                 mode = translateMode
+            )
+        }
+    }
+
+    LaunchedEffect(
+        alwaysUseAiTranslation,
+        showLyrics,
+        lines,
+        lyricsEntity,
+        aiProvider,
+        openRouterApiKey,
+        deeplApiKey,
+        openRouterBaseUrl,
+        openRouterModel,
+        translateLanguage,
+        translateMode,
+        deeplFormality,
+        aiSystemPrompt,
+        mediaMetadata?.id,
+    ) {
+        val mediaSongId = mediaMetadata?.id.orEmpty()
+        LyricsTranslationHelper.updateCurrentLyricsSong(mediaSongId)
+        if (!showLyrics || !alwaysUseAiTranslation) {
+            LyricsTranslationHelper.cancelAutomaticTranslation()
+            return@LaunchedEffect
+        }
+        LyricsTranslationHelper.cancelAutomaticTranslationForOtherSong(mediaSongId)
+
+        val effectiveApiKey = if (aiProvider == "DeepL") deeplApiKey else openRouterApiKey
+        val songId = verifiedLyricsSongId(mediaSongId, lyricsEntity?.id).orEmpty()
+        val requiredLineCount = lines.count { it.text.isNotBlank() }
+        val hasMatchingStoredTranslation =
+            hasMatchingStoredLyricsTranslation(
+                lyricsEntity = lyricsEntity,
+                targetLanguage = translateLanguage,
+                mode = translateMode,
+                requiredLineCount = requiredLineCount,
+            )
+        if (
+            shouldRequestAutomaticLyricsTranslation(
+                alwaysUseAiTranslation = alwaysUseAiTranslation,
+                showLyrics = showLyrics,
+                hasLyrics = requiredLineCount > 0,
+                hasApiKey = effectiveApiKey.isNotBlank(),
+                hasVerifiedSongId = songId.isNotBlank(),
+                hasMatchingStoredTranslation = hasMatchingStoredTranslation,
+                translationInProgress = LyricsTranslationHelper.isTranslationInProgress(),
+                automaticTranslationSuppressed =
+                    LyricsTranslationHelper.isAutomaticTranslationSuppressed(songId),
+            )
+        ) {
+            LyricsTranslationHelper.translateLyrics(
+                lyrics = lines,
+                targetLanguage = translateLanguage,
+                apiKey = openRouterApiKey,
+                baseUrl = openRouterBaseUrl,
+                model = openRouterModel,
+                mode = translateMode,
+                scope = scope,
+                context = context,
+                provider = aiProvider,
+                deeplApiKey = deeplApiKey,
+                deeplFormality = deeplFormality,
+                useStreaming = true,
+                songId = songId,
+                database = database,
+                systemPrompt = aiSystemPrompt,
+                automaticRequest = true,
             )
         }
     }

@@ -440,6 +440,8 @@
     <string name="enter_room_code">输入房间邀请码</string>
     <string name="listen_together_settings_desc">配置用户名、房间行为和诊断选项</string>
     <string name="ai_lyrics_translation">AI 歌词翻译</string>
+    <string name="ai_always_translate">始终使用 AI 翻译</string>
+    <string name="ai_always_translate_desc">打开歌词显示时自动翻译。后台预加载歌词时不会调用 AI。</string>
     <string name="ai_translating_lyrics">正在翻译歌词…</string>
     <string name="ai_lyrics_translated">歌词已翻译</string>
     <string name="ai_provider">提供商</string>

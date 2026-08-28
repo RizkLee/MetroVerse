@@ -23,6 +23,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -46,6 +48,7 @@ import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
 import com.metrolist.music.constants.AiProviderKey
 import com.metrolist.music.constants.AiSystemPromptKey
+import com.metrolist.music.constants.AlwaysUseAiTranslationKey
 import com.metrolist.music.constants.DEFAULT_AI_SYSTEM_PROMPT
 import com.metrolist.music.constants.DeeplApiKey
 import com.metrolist.music.constants.DeeplFormalityKey
@@ -75,6 +78,7 @@ fun AiSettings(navController: NavController) {
     var deeplApiKey by rememberPreference(DeeplApiKey, "")
     var deeplFormality by rememberPreference(DeeplFormalityKey, "default")
     var aiSystemPrompt by rememberPreference(AiSystemPromptKey, "")
+    var alwaysUseAiTranslation by rememberPreference(AlwaysUseAiTranslationKey, false)
 
     val aiProviders =
         mapOf(
@@ -592,6 +596,29 @@ fun AiSettings(navController: NavController) {
             title = stringResource(R.string.ai_translation_mode),
             items =
                 buildList {
+                    add(
+                        Material3SettingsItem(
+                            icon = painterResource(R.drawable.translate),
+                            title = { Text(stringResource(R.string.ai_always_translate)) },
+                            description = { Text(stringResource(R.string.ai_always_translate_desc)) },
+                            trailingContent = {
+                                Switch(
+                                    checked = alwaysUseAiTranslation,
+                                    onCheckedChange = { alwaysUseAiTranslation = it },
+                                    thumbContent = {
+                                        Icon(
+                                            painter = painterResource(
+                                                if (alwaysUseAiTranslation) R.drawable.check else R.drawable.close,
+                                            ),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(SwitchDefaults.IconSize),
+                                        )
+                                    },
+                                )
+                            },
+                            onClick = { alwaysUseAiTranslation = !alwaysUseAiTranslation },
+                        ),
+                    )
                     if (aiProvider != "DeepL") {
                         add(
                             Material3SettingsItem(

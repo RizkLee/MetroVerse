@@ -450,6 +450,8 @@
     <string name="enter_room_code">Введите код комнаты</string>
     <string name="listen_together_settings_desc">Настройка сервера, имени пользователя и прочего</string>
     <string name="ai_lyrics_translation">ИИ-перевод текста</string>
+    <string name="ai_always_translate">Всегда использовать ИИ-перевод</string>
+    <string name="ai_always_translate_desc">Автоматически переводит текст при открытии экрана с текстом песни. Фоновая предзагрузка текста не использует ИИ.</string>
     <string name="ai_translating_lyrics">Перевод текста…</string>
     <string name="ai_lyrics_translated">Текст переведён</string>
     <string name="ai_provider">Провайдер</string>

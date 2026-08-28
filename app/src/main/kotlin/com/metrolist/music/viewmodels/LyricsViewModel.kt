@@ -20,8 +20,24 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+internal fun processedLyricsBelongToCurrentMedia(
+    processedSourceLyrics: String?,
+    currentLyrics: String?,
+    lyricsEntityId: String?,
+    mediaId: String?,
+): Boolean =
+    lyricsEntityId != null &&
+        lyricsEntityId == mediaId &&
+        processedSourceLyrics == currentLyrics
+
 @HiltViewModel
 class LyricsViewModel @Inject constructor() : ViewModel() {
+    data class ProcessedLyricsState(
+        val sourceLyrics: String? = null,
+        val lines: List<LyricsEntry> = emptyList(),
+        val mergedLyricsList: List<LyricsListItem> = emptyList(),
+    )
+
     companion object {
         private val timestampRegex = Regex("\\[\\d{1,2}:\\d{2}")
     }
@@ -33,6 +49,9 @@ class LyricsViewModel @Inject constructor() : ViewModel() {
 
     private val _mergedLyricsList = MutableStateFlow<List<LyricsListItem>>(emptyList())
     val mergedLyricsList: StateFlow<List<LyricsListItem>> = _mergedLyricsList.asStateFlow()
+
+    private val _processedLyricsState = MutableStateFlow(ProcessedLyricsState())
+    val processedLyricsState: StateFlow<ProcessedLyricsState> = _processedLyricsState.asStateFlow()
 
     fun processLyrics(
         lyrics: String?,
@@ -63,8 +82,15 @@ class LyricsViewModel @Inject constructor() : ViewModel() {
                 }
             }
             
+            val mergedLyricsList = buildMergedList(processedLines, showIntervalIndicator)
+            _processedLyricsState.value =
+                ProcessedLyricsState(
+                    sourceLyrics = lyrics,
+                    lines = processedLines,
+                    mergedLyricsList = mergedLyricsList,
+                )
             _lines.value = processedLines
-            updateMergedList(processedLines, showIntervalIndicator)
+            _mergedLyricsList.value = mergedLyricsList
 
             // Romanize in the background after the UI has been updated
             if (lyrics != null && lyrics != LYRICS_NOT_FOUND && enabledLanguages.isNotEmpty()) {
@@ -83,12 +109,12 @@ class LyricsViewModel @Inject constructor() : ViewModel() {
         }
     }
 
-    private fun updateMergedList(lines: List<LyricsEntry>, showIntervalIndicator: Boolean) {
+    private fun buildMergedList(
+        lines: List<LyricsEntry>,
+        showIntervalIndicator: Boolean,
+    ): List<LyricsListItem> {
         val result = mutableListOf<LyricsListItem>()
-        if (lines.isEmpty()) {
-            _mergedLyricsList.value = result
-            return
-        }
+        if (lines.isEmpty()) return result
         lines.forEachIndexed { i, entry ->
             if (entry.text.isNotBlank()) {
                 result.add(LyricsListItem.Line(i, entry))
@@ -111,6 +137,6 @@ class LyricsViewModel @Inject constructor() : ViewModel() {
                 }
             }
         }
-        _mergedLyricsList.value = result
+        return result
     }
 }
