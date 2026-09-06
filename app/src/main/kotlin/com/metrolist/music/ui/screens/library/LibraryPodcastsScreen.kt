@@ -84,11 +84,9 @@ import com.metrolist.music.ui.component.LocalMenuState
 import com.metrolist.music.ui.component.Material3MenuGroup
 import com.metrolist.music.ui.component.Material3MenuItemData
 import com.metrolist.music.ui.component.PlaylistListItem
-import com.metrolist.music.ui.component.SongListItem
 import com.metrolist.music.ui.component.SortHeader
 import com.metrolist.music.ui.menu.SongMenu
-import com.metrolist.music.utils.joinByBullet
-import com.metrolist.music.utils.makeTimeString
+import com.metrolist.music.ui.screens.podcast.PodcastEpisodeRow
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.viewmodels.LibraryPodcastsViewModel
@@ -408,58 +406,32 @@ fun LibraryPodcastsScreen(
                         key = { index, item -> "${item.song.id}_$index" },
                         contentType = { _, _ -> CONTENT_TYPE_SONG },
                     ) { index, episode ->
-                        // Always show channel name: use artists if available,
-                        // else fall back to song.albumName (podcast show title stored during sync)
-                        val channelName =
-                            episode.artists
-                                .joinToString { it.name }
-                                .ifEmpty { episode.song.albumName ?: "" }
-                        val subtitle =
-                            joinByBullet(
-                                channelName,
-                                makeTimeString(episode.song.duration.toLong() * 1000L),
-                            )
-                        SongListItem(
+                        PodcastEpisodeRow(
                             song = episode,
-                            showInLibraryIcon = false,
                             isActive = episode.id == mediaMetadata?.id,
                             isPlaying = isPlaying,
-                            showLikedIcon = false,
-                            showDownloadIcon = true,
-                            subtitleOverride = subtitle.ifEmpty { null },
-                            trailingContent = {
-                                IconButton(
-                                    onClick = {
-                                        menuState.show {
-                                            SongMenu(
-                                                originalSong = episode,
-                                                onDismiss = menuState::dismiss,
-                                            )
-                                        }
-                                    },
-                                ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.more_vert),
-                                    contentDescription = stringResource(R.string.more_options),
-                                )
+                            onClick = {
+                                if (episode.id == mediaMetadata?.id) {
+                                    playerConnection.togglePlayPause()
+                                } else {
+                                    playerConnection.playQueue(
+                                        ListQueue(
+                                            title = downloadedEpisodesStr,
+                                            items = downloadedEpisodes.map { it.toMediaItem() },
+                                            startIndex = index,
+                                        ),
+                                    )
                                 }
                             },
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        if (episode.id == mediaMetadata?.id) {
-                                            playerConnection.togglePlayPause()
-                                        } else {
-                                            playerConnection.playQueue(
-                                                ListQueue(
-                                                    title = downloadedEpisodesStr,
-                                                    items = downloadedEpisodes.map { it.toMediaItem() },
-                                                    startIndex = index,
-                                                ),
-                                            )
-                                        }
-                                    }.animateItem(),
+                            onMenuClick = {
+                                menuState.show {
+                                    SongMenu(
+                                        originalSong = episode,
+                                        onDismiss = menuState::dismiss,
+                                    )
+                                }
+                            },
+                            modifier = Modifier.animateItem(),
                         )
                     }
 

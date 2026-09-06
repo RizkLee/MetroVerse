@@ -12,15 +12,21 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -424,73 +430,78 @@ fun SongMenu(
         }
     }
 
-    SongListItem(
-        song = song,
-        badges = {},
-        trailingContent = {
-            // For episodes, show saved state and toggle save for later
-            val isEpisode = song.song.isEpisode
-            val isFavorite = if (isEpisode) song.song.inLibrary != null else song.song.liked
-            IconButton(
-                onClick = {
-                    if (isEpisode) {
-                        // Episode: toggle save for later (same pattern as songs)
-                        val isCurrentlySaved = song.song.inLibrary != null
-                        database.query {
-                            update(
-                                song.song.copy(
-                                    inLibrary = if (isCurrentlySaved) null else LocalDateTime.now(),
-                                    isEpisode = true,
-                                ),
-                            )
-                        }
-                        if (!isDirectPodcast) coroutineScope.launch(Dispatchers.IO) {
-                            if (isCurrentlySaved) {
-                                val setVideoIdEntity = database.getSetVideoId(song.id)
-                                val setVideoId = setVideoIdEntity?.setVideoId
-                                if (setVideoId != null) {
-                                    YouTube
-                                        .removeEpisodeFromSavedEpisodes(song.id, setVideoId)
-                                        .onSuccess {
-                                            Timber.d("[EPISODE_SAVE] Removed episode from Episodes for Later: ${song.id}")
-                                        }.onFailure { e ->
-                                            Timber.e(e, "[EPISODE_SAVE] Failed to remove episode: ${song.id}")
-                                            withContext(Dispatchers.Main) {
-                                                Toast.makeText(context, R.string.error_episode_remove, Toast.LENGTH_SHORT).show()
-                                            }
-                                        }
-                                }
-                            } else {
-                                YouTube
-                                    .addEpisodeToSavedEpisodes(song.id)
-                                    .onSuccess {
-                                        Timber.d("[EPISODE_SAVE] Saved episode to Episodes for Later: ${song.id}")
-                                    }.onFailure { e ->
-                                        Timber.e(e, "[EPISODE_SAVE] Failed to save episode: ${song.id}")
-                                        withContext(Dispatchers.Main) {
-                                            Toast.makeText(context, R.string.error_episode_save, Toast.LENGTH_SHORT).show()
-                                        }
-                                    }
-                            }
-                        }
-                    } else {
-                        // Regular song: toggle like
-                        val s = song.song.toggleLike()
-                        database.query {
-                            update(s)
-                        }
-                        syncUtils.likeSong(s)
-                    }
-                },
-            ) {
-                Icon(
-                    painter = painterResource(if (isFavorite) R.drawable.favorite else R.drawable.favorite_border),
-                    tint = if (isFavorite) MaterialTheme.colorScheme.error else LocalContentColor.current,
-                    contentDescription = null,
+    val isEpisode = song.song.isEpisode
+    val isFavorite = if (isEpisode) song.song.inLibrary != null else song.song.liked
+    val onFavoriteClick: () -> Unit = {
+        if (isEpisode) {
+            val isCurrentlySaved = song.song.inLibrary != null
+            database.query {
+                update(
+                    song.song.copy(
+                        inLibrary = if (isCurrentlySaved) null else LocalDateTime.now(),
+                        isEpisode = true,
+                    ),
                 )
             }
-        },
-    )
+            if (!isDirectPodcast) coroutineScope.launch(Dispatchers.IO) {
+                if (isCurrentlySaved) {
+                    val setVideoIdEntity = database.getSetVideoId(song.id)
+                    val setVideoId = setVideoIdEntity?.setVideoId
+                    if (setVideoId != null) {
+                        YouTube
+                            .removeEpisodeFromSavedEpisodes(song.id, setVideoId)
+                            .onSuccess {
+                                Timber.d("[EPISODE_SAVE] Removed episode from Episodes for Later: ${song.id}")
+                            }.onFailure { e ->
+                                Timber.e(e, "[EPISODE_SAVE] Failed to remove episode: ${song.id}")
+                                withContext(Dispatchers.Main) {
+                                    Toast.makeText(context, R.string.error_episode_remove, Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                    }
+                } else {
+                    YouTube
+                        .addEpisodeToSavedEpisodes(song.id)
+                        .onSuccess {
+                            Timber.d("[EPISODE_SAVE] Saved episode to Episodes for Later: ${song.id}")
+                        }.onFailure { e ->
+                            Timber.e(e, "[EPISODE_SAVE] Failed to save episode: ${song.id}")
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(context, R.string.error_episode_save, Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                }
+            }
+        } else {
+            val updatedSong = song.song.toggleLike()
+            database.query {
+                update(updatedSong)
+            }
+            syncUtils.likeSong(updatedSong)
+        }
+    }
+    val headerAction: @Composable () -> Unit = {
+        IconButton(onClick = onFavoriteClick) {
+            Icon(
+                painter = painterResource(if (isFavorite) R.drawable.favorite else R.drawable.favorite_border),
+                tint = if (isFavorite) MaterialTheme.colorScheme.error else LocalContentColor.current,
+                contentDescription = null,
+            )
+        }
+    }
+
+    if (isDirectPodcast) {
+        RssPodcastMenuHeader(
+            song = song,
+            trailingContent = headerAction,
+        )
+    } else {
+        SongListItem(
+            song = song,
+            badges = {},
+            trailingContent = { headerAction() },
+        )
+    }
 
     HorizontalDivider()
 
@@ -1158,6 +1169,83 @@ fun SongMenu(
                             ),
                         )
                     },
+            )
+        }
+    }
+}
+
+@Composable
+private fun RssPodcastMenuHeader(
+    song: Song,
+    trailingContent: @Composable () -> Unit,
+) {
+    val description = song.song.description?.takeIf(String::isNotBlank)
+    var descriptionOverflows by remember(song.id, description) { mutableStateOf(false) }
+    var showFullDescription by rememberSaveable(song.id) { mutableStateOf(false) }
+
+    Column {
+        SongListItem(
+            song = song,
+            badges = {},
+            isSwipeable = false,
+            itemHeight = 80.dp,
+            thumbnailSize = 64.dp,
+            titleMaxLines = Int.MAX_VALUE,
+            trailingContent = { trailingContent() },
+        )
+
+        if (description != null) {
+            Column(
+                modifier = Modifier.padding(start = 14.dp, end = 14.dp, bottom = 8.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.description),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
+                )
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                    onTextLayout = { descriptionOverflows = it.hasVisualOverflow },
+                )
+                if (descriptionOverflows) {
+                    TextButton(
+                        onClick = { showFullDescription = true },
+                        contentPadding = PaddingValues(horizontal = 0.dp),
+                    ) {
+                        Text(stringResource(R.string.show_more))
+                    }
+                }
+            }
+        }
+    }
+
+    if (showFullDescription && description != null) {
+        val maxDescriptionHeight = LocalConfiguration.current.screenHeightDp.dp * 0.55f
+        DefaultDialog(
+            onDismiss = { showFullDescription = false },
+            title = { Text(song.song.title) },
+            buttons = {
+                TextButton(onClick = { showFullDescription = false }) {
+                    Text(stringResource(R.string.close))
+                }
+            },
+            horizontalAlignment = Alignment.Start,
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = 560.dp),
+        ) {
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .heightIn(max = maxDescriptionHeight)
+                    .verticalScroll(rememberScrollState()),
             )
         }
     }

@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -295,12 +296,14 @@ inline fun ListItem(
     isSelected: Boolean? = false,
     isActive: Boolean = false,
     isAvailable: Boolean = true,
+    itemHeight: Dp = ListItemHeight,
+    titleMaxLines: Int = 1,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = if (isActive) {
             modifier // playing highlight
-                .height(ListItemHeight)
+                .heightIn(min = itemHeight)
                 .padding(horizontal = 8.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .background(
@@ -310,13 +313,13 @@ inline fun ListItem(
                 )
         } else if (isSelected == true) {
             modifier // inactive selected
-                .height(ListItemHeight)
+                .heightIn(min = itemHeight)
                 .padding(horizontal = 8.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .background(color = MaterialTheme.colorScheme.inversePrimary.copy(alpha = 0.4f))
         } else {
             modifier // default
-                .height(ListItemHeight)
+                .heightIn(min = itemHeight)
                 .padding(horizontal = 8.dp)
         }
     ) {
@@ -356,7 +359,7 @@ inline fun ListItem(
                 text = title,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
-                maxLines = 1,
+                maxLines = titleMaxLines,
                 overflow = TextOverflow.Ellipsis
             )
 
@@ -381,6 +384,8 @@ fun ListItem(
     trailingContent: @Composable RowScope.() -> Unit = {},
     isSelected: Boolean? = false,
     isActive: Boolean = false,
+    itemHeight: Dp = ListItemHeight,
+    titleMaxLines: Int = 1,
 ) = ListItem(
     title = title,
     subtitle = {
@@ -399,7 +404,9 @@ fun ListItem(
     trailingContent = trailingContent,
     modifier = modifier,
     isSelected = isSelected,
-    isActive = isActive
+    isActive = isActive,
+    itemHeight = itemHeight,
+    titleMaxLines = titleMaxLines,
 )
 
 @Composable
@@ -412,6 +419,8 @@ fun ListItem(
     trailingContent: @Composable RowScope.() -> Unit = {},
     isSelected: Boolean? = false,
     isActive: Boolean = false,
+    itemHeight: Dp = ListItemHeight,
+    titleMaxLines: Int = 1,
 ) = ListItem(
     title = title,
     subtitle = {
@@ -431,7 +440,9 @@ fun ListItem(
     trailingContent = trailingContent,
     modifier = modifier,
     isSelected = isSelected,
-    isActive = isActive
+    isActive = isActive,
+    itemHeight = itemHeight,
+    titleMaxLines = titleMaxLines,
 )
 
 @Composable
@@ -545,6 +556,9 @@ fun SongListItem(
     isActive: Boolean = false,
     isPlaying: Boolean = false,
     isSwipeable: Boolean = true,
+    itemHeight: Dp = ListItemHeight,
+    thumbnailSize: Dp = ListThumbnailSize,
+    titleMaxLines: Int = 1,
     trailingContent: @Composable RowScope.() -> Unit = {},
 ) {
     val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = false)
@@ -583,13 +597,15 @@ fun SongListItem(
                      isActive = isActive,
                      isPlaying = isPlaying,
                      shape = RoundedCornerShape(ThumbnailCornerRadius),
-                     modifier = Modifier.size(ListThumbnailSize)
+                     modifier = Modifier.size(thumbnailSize)
                  )
              },
              trailingContent = trailingContent,
              modifier = modifier,
              isSelected = isSelected,
-             isActive = isActive
+             isActive = isActive,
+             itemHeight = itemHeight,
+             titleMaxLines = titleMaxLines,
          )
      }
 

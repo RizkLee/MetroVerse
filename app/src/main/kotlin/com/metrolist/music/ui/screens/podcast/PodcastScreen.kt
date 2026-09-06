@@ -213,7 +213,7 @@ fun PodcastScreen(
                     NavigationTitle(title = stringResource(R.string.continue_listening))
                 }
                 itemsIndexed(
-                    items = continueListening.take(5),
+                    items = continueListening.take(3),
                     key = { _, song -> "continue_${song.id}" },
                 ) { index, song ->
                     PodcastEpisodeRow(
@@ -520,6 +520,9 @@ internal fun PodcastEpisodeRow(
         subtitleOverride = subtitle.ifBlank { null },
         isActive = isActive,
         isPlaying = isPlaying,
+        itemHeight = 80.dp,
+        thumbnailSize = 64.dp,
+        titleMaxLines = 2,
         trailingContent = {
             IconButton(onClick = onMenuClick) {
                 Icon(
