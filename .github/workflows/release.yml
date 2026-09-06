@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag, for example v0.5.6"
+        description: "Release tag, for example v0.5.7"
         required: true
         type: string
       publish:
@@ -126,11 +126,11 @@ jobs:
           body: |
             ## What's changed
 
-            - Added an optional setting to translate lyrics automatically when the lyrics view is open.
-            - Added 1.15x, 1.30x, 1.40x, and 1.60x podcast playback speeds.
-            - Songs now return to 1.0x speed after switching from a podcast.
-            - Sleep timers now stop at the correct end of a song, episode, album, or playlist.
-            - Fixed automatic lyrics translation using the wrong song or turning itself back on.
+            - Podcast episode rows now show two-line titles with larger artwork across podcast views.
+            - Podcast Continue listening now shows three episodes.
+            - RSS episode menus now show full titles and expandable descriptions.
+            - Added translations for the background lyrics loading setting in ten major locales.
+            - Fixed alignment of short Show more labels in RSS episode menus.
 
             ## Downloads
 
@@ -147,11 +147,11 @@ jobs:
 
             ## 主要变化
 
-            - 新增可选的自动 AI 歌词翻译开关，仅在打开歌词界面时使用。
-            - 播客倍速新增 1.15x、1.30x、1.40x 和 1.60x。
-            - 从播客切换到歌曲时，播放速度会恢复为 1.0x。
-            - 睡眠定时现在会在歌曲、单集、专辑或播放列表结束时准确停止。
-            - 修复自动歌词翻译串歌或关闭后立即重新开启的问题。
+            - 播客单集行现在支持两行标题与更大的封面，并统一应用于各播客页面。
+            - Podcast Continue listening 现在仅显示三条单集。
+            - RSS 单集菜单现在显示完整标题、Description 预览及可展开的完整内容。
+            - 为后台加载歌词设置补充了十种主要语言翻译。
+            - 修复 RSS 单集菜单中较短“展开”标签未与 Description 左对齐的问题。
 
             ## 下载
 

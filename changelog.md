@@ -2,6 +2,22 @@
 
 All notable MetroVerse-specific changes are recorded here. Upstream Metrolist history remains available in Git history.
 
+## 0.5.7 - 2026-09-06
+
+### Added
+
+- Added translations for the background lyrics loading setting in Simplified Chinese, Traditional Chinese, German, Spanish, French, Italian, Japanese, Korean, Brazilian Portuguese, and Russian.
+
+### Changed
+
+- RSS podcast episode rows now show two-line titles with larger artwork across podcast details, Continue listening, Latest episodes, and Liked/Downloaded collections.
+- Podcast Continue listening now shows three episodes.
+- RSS episode menus now show full titles and a three-line description preview with an expandable, scrollable full view.
+
+### Fixed
+
+- Aligned short Show more labels with the description heading while preserving a full touch target.
+
 ## 0.5.6 - 2026-08-29
 
 ### Added

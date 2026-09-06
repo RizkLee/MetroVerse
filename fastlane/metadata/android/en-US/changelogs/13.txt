@@ -1,0 +1,7 @@
+MetroVerse 0.5.7
+
+- Podcast episode rows now show two-line titles with larger artwork.
+- Continue listening now shows three podcast episodes.
+- RSS episode menus now show full titles and expandable descriptions.
+- Added translations for background lyrics loading.
+- Fixed alignment of short Show more labels.
