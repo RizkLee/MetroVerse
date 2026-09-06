@@ -557,6 +557,8 @@
     <string name="youtube_music_lyrics_note">ПРИМЕЧАНИЕ: Тексты из YouTube Music отображаются автоматически при отсутствии других источников. Обычно они не синхронизированы</string>
     <string name="enable_lyricsplus">Включить LyricsPlus</string>
     <string name="enable_lyricsplus_desc">Синхронизированные тексты из нескольких источников</string>
+    <string name="lyrics_background_loading">Загружать тексты в фоне</string>
+    <string name="lyrics_background_loading_desc">Загружает текст во время воспроизведения, даже если экран текста скрыт</string>
     <string name="lyrics_provider_selection">Выбор источников</string>
     <string name="lyrics_provider_selection_desc">Выберите, какие источники текстов использовать</string>
     <string name="lyrics_provider_priority">Приоритет источников текстов</string>

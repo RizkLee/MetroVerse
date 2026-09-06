@@ -555,6 +555,8 @@
     <string name="youtube_music_lyrics_note">HINWEIS: Songtexte von YouTube Music werden automatisch angezeigt, wenn keine andere Quelle verfügbar ist. Sie sind in der Regel nicht synchronisiert</string>
     <string name="enable_lyricsplus">LyricsPlus-Song-Text-Anbieter aktivieren</string>
     <string name="enable_lyricsplus_desc">Synchronisierte Songtexte aus mehreren Quellen</string>
+    <string name="lyrics_background_loading">Songtexte im Hintergrund laden</string>
+    <string name="lyrics_background_loading_desc">Songtexte während der Wiedergabe abrufen, auch wenn die Songtextansicht ausgeblendet ist</string>
     <string name="lyrics_provider_selection">Auswahl des Anbieters</string>
     <string name="lyrics_provider_selection_desc">Wählen Sie aus, welche Anbieter von Songtexten aktiviert werden sollen</string>
     <string name="lyrics_provider_priority">Liedtext-Anbieter-Priorität</string>

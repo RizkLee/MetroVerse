@@ -307,6 +307,8 @@
     <string name="monthly_most_playlist_name">本月最常播放</string>
     <string name="enable_lyricsplus">啟用 LyricsPlus 提供歌詞</string>
     <string name="enable_lyricsplus_desc">來自多個來源的同步歌詞</string>
+    <string name="lyrics_background_loading">在背景載入歌詞</string>
+    <string name="lyrics_background_loading_desc">歌曲播放時擷取歌詞，即使歌詞畫面已隱藏</string>
     <string name="lyrics_provider_selection">選擇歌詞提供者</string>
     <string name="lyrics_provider_selection_desc">選擇要啟用的歌詞提供者</string>
     <string name="enable_song_cache">啟用歌曲快取</string>

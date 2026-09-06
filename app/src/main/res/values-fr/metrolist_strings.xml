@@ -574,6 +574,8 @@
     <string name="youtube_music_lyrics_note">REMARQUE : les paroles de YouTube Music s\'affichent automatiquement lorsqu\'aucune autre source n\'est disponible. Elles ne sont généralement pas synchronisées</string>
     <string name="enable_lyricsplus">Activer LyricsPlus</string>
     <string name="enable_lyricsplus_desc">Paroles synchronisées provenant de plusieurs sources</string>
+    <string name="lyrics_background_loading">Charger les paroles en arrière-plan</string>
+    <string name="lyrics_background_loading_desc">Récupère les paroles pendant la lecture, même lorsque l\'affichage des paroles est masqué</string>
     <string name="lyrics_provider_selection">Sélection du fournisseur</string>
     <string name="lyrics_provider_selection_desc">Choisissez les fournisseurs de paroles activés</string>
     <string name="lyrics_provider_priority">Priorité du fournisseur de paroles</string>

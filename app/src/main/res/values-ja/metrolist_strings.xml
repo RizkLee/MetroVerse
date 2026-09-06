@@ -556,6 +556,8 @@
     <string name="youtube_music_lyrics_note">使用できる歌詞ソースがない場合は、YouTube Musicの歌詞が自動的に表示されます。YouTube Musicの歌詞は通常、再生に合わせて表示されません</string>
     <string name="enable_lyricsplus">歌詞の提供元にLyricsPlusを使用</string>
     <string name="enable_lyricsplus_desc">複数のソースの歌詞を提供する提供元です</string>
+    <string name="lyrics_background_loading">バックグラウンドで歌詞を読み込む</string>
+    <string name="lyrics_background_loading_desc">歌詞画面を開いていないときも、曲の再生中に歌詞を取得します</string>
     <string name="lyrics_provider_selection">歌詞の提供元</string>
     <string name="lyrics_provider_selection_desc">使用する歌詞の提供元を選択します</string>
     <string name="lyrics_provider_priority">歌詞の提供元の優先順位</string>

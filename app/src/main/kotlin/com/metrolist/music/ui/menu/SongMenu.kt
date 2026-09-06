@@ -60,6 +60,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
@@ -1213,11 +1214,18 @@ private fun RssPodcastMenuHeader(
                     onTextLayout = { descriptionOverflows = it.hasVisualOverflow },
                 )
                 if (descriptionOverflows) {
-                    TextButton(
-                        onClick = { showFullDescription = true },
-                        contentPadding = PaddingValues(horizontal = 0.dp),
+                    Box(
+                        contentAlignment = Alignment.CenterStart,
+                        modifier = Modifier
+                            .widthIn(min = 48.dp)
+                            .heightIn(min = 48.dp)
+                            .clickable(role = Role.Button) { showFullDescription = true },
                     ) {
-                        Text(stringResource(R.string.show_more))
+                        Text(
+                            text = stringResource(R.string.show_more),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
                     }
                 }
             }

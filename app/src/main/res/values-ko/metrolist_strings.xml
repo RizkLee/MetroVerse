@@ -140,6 +140,8 @@
     <string name="enable_paxsenix_desc">Paxsenix API 기반 고품질 동기화 가사</string>
     <string name="enable_lyricsplus">LyricsPlus 활성화</string>
     <string name="enable_lyricsplus_desc">여러 출처의 동기화 가사 불러오기</string>
+    <string name="lyrics_background_loading">백그라운드에서 가사 불러오기</string>
+    <string name="lyrics_background_loading_desc">가사 화면이 숨겨져 있어도 곡 재생 중에 가사를 불러옵니다</string>
     <string name="lyrics_provider_selection">가사 제공자 선택</string>
     <string name="lyrics_provider_selection_desc">사용할 가사 제공자를 선택하여 활성화</string>
     <string name="auto_scroll">재동기화</string>

@@ -548,6 +548,8 @@
     <string name="youtube_music_lyrics_note">注意：当没有其他可用来源时，YouTube Music 的歌词将自动显示，这些歌词通常不同步</string>
     <string name="enable_lyricsplus">启用 LyricsPlus 提供歌词</string>
     <string name="enable_lyricsplus_desc">多源同步歌词支持</string>
+    <string name="lyrics_background_loading">后台加载歌词</string>
+    <string name="lyrics_background_loading_desc">歌曲播放时获取歌词，即使歌词界面处于隐藏状态</string>
     <string name="lyrics_provider_selection">提供商选择</string>
     <string name="lyrics_provider_selection_desc">选择要启用的歌词提供商</string>
     <string name="lyrics_provider_priority">歌词提供商优先级</string>

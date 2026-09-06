@@ -566,6 +566,8 @@
     <string name="youtube_music_lyrics_note">NOTA: Las letras de YouTube Music se mostrarán automáticamente cuando no haya otras letras disponibles. Las letras de YTM no suelen estar sincronizadas</string>
     <string name="enable_lyricsplus">Activar LyricsPlus</string>
     <string name="enable_lyricsplus_desc">Letras sincronizadas de múltiples fuentes</string>
+    <string name="lyrics_background_loading">Cargar letras en segundo plano</string>
+    <string name="lyrics_background_loading_desc">Obtiene letras durante la reproducción, incluso si la vista de letras está oculta</string>
     <string name="lyrics_provider_selection">Selección de proveedor</string>
     <string name="lyrics_provider_selection_desc">Elige qué proveedores de letras están activados</string>
     <string name="lyrics_provider_priority">Prioridad de proveedores de letras</string>

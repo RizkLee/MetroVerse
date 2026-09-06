@@ -553,6 +553,8 @@
     <string name="youtube_music_lyrics_note">NOTA: i testi tratti da YouTube Music saranno mostrati automaticamente quando nessun\'altra fonte è disponibile. Solitamente non sono sincronizzati</string>
     <string name="enable_lyricsplus">Attiva LyricsPlus</string>
     <string name="enable_lyricsplus_desc">Testi sincronizzati da più fonti</string>
+    <string name="lyrics_background_loading">Carica i testi in background</string>
+    <string name="lyrics_background_loading_desc">Recupera i testi durante la riproduzione, anche quando la schermata dei testi è nascosta</string>
     <string name="lyrics_provider_selection">Selezione del fornitore</string>
     <string name="lyrics_provider_selection_desc">Scegli quali fornitori di testi utilizzare</string>
     <string name="lyrics_provider_priority">Priorità dei fornitori di testi</string>
