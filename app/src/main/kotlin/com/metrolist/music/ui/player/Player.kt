@@ -381,6 +381,9 @@ fun BottomSheetPlayer(
     var sliderPosition by remember {
         mutableStateOf<Long?>(null)
     }
+    var pendingSeekPosition by remember {
+        mutableStateOf<Long?>(null)
+    }
     // Track when we last manually set position to avoid Cast overwriting it
     var lastManualSeekTime by remember { mutableLongStateOf(0L) }
 
@@ -600,31 +603,51 @@ fun BottomSheetPlayer(
         mutableStateOf(false)
     }
 
-    // Position update - only for local playback
-    // When casting, we use castPosition directly to avoid sync issues
-    // Use isPlaying instead of playbackState to ensure continuous updates during playback
-    LaunchedEffect(isPlaying, isCasting) {
-        if (!isCasting && isPlaying) {
+    val metadataDuration = mediaMetadata?.duration
+        ?.takeIf { it > 0 }
+        ?.toLong()
+        ?.times(1000L)
+
+    // Position and duration are polled from the local player. Metadata is only a fallback until
+    // the media source exposes its real duration, which can differ for RSS episode streams.
+    LaunchedEffect(isPlaying, isCasting, mediaMetadata?.id) {
+        if (!isCasting) {
             while (isActive) {
-                delay(100) // Update more frequently for smoother progress bar
-                if (sliderPosition == null) { // Only update if user isn't dragging
-                    position = playerConnection.player.currentPosition
-                    // Don't clobber a valid (metadata-derived) duration with 0/UNSET mid-resolve.
+                if (sliderPosition == null && pendingSeekPosition == null) {
+                    if (isPlaying) {
+                        position = playerConnection.player.currentPosition
+                    }
                     playerConnection.player.duration.takeIf { it > 0 }?.let { duration = it }
                 }
+                delay(if (isPlaying) 100L else 500L)
             }
         }
     }
 
-    // Also update position when playback state changes (e.g., song change, seek)
-    LaunchedEffect(playbackState, mediaMetadata?.id) {
+    // Use metadata while a stream is unresolved, then switch to the player's authoritative values.
+    LaunchedEffect(isCasting, mediaMetadata?.id) {
         if (!isCasting) {
-            position = playerConnection.player.currentPosition
-            // Prefer the song's known duration (from metadata, available instantly from the restored
-            // queue) so the slider range is right even when restored paused / before the stream
-            // resolves; fall back to the player's duration once it is known.
-            duration = (mediaMetadata?.duration?.takeIf { it > 0 }?.toLong()?.times(1000L))
-                ?: playerConnection.player.duration
+            position = playerConnection.player.currentPosition.coerceAtLeast(0L)
+            duration = playerConnection.player.duration.takeIf { it > 0 } ?: (metadataDuration ?: 0L)
+        }
+    }
+
+    // ExoPlayer applies seeks asynchronously. Keep the requested position visible until the player
+    // catches up so a buffering/state callback cannot briefly restore the old position.
+    LaunchedEffect(pendingSeekPosition, isCasting) {
+        val target = pendingSeekPosition ?: return@LaunchedEffect
+        repeat(40) {
+            delay(50L)
+            val actualPosition = if (isCasting) castPosition else playerConnection.player.currentPosition
+            if (actualPosition >= 0L && kotlin.math.abs(actualPosition - target) <= 1_500L) {
+                position = actualPosition
+                pendingSeekPosition = null
+                return@LaunchedEffect
+            }
+        }
+        if (pendingSeekPosition == target) {
+            position = if (isCasting) castPosition else playerConnection.player.currentPosition
+            pendingSeekPosition = null
         }
     }
 
@@ -1234,6 +1257,22 @@ fun BottomSheetPlayer(
 
             Spacer(Modifier.height(24.dp))
 
+            fun seekToPosition(target: Long) {
+                val clampedTarget = target.coerceIn(0L, duration.takeIf { it > 0L } ?: Long.MAX_VALUE)
+                pendingSeekPosition = clampedTarget
+                if (isCasting) {
+                    castHandler?.seekTo(clampedTarget)
+                    lastManualSeekTime = System.currentTimeMillis()
+                } else {
+                    playerConnection.player.seekTo(clampedTarget)
+                }
+                position = clampedTarget
+            }
+
+            fun seekByPodcast(deltaMs: Long) {
+                seekToPosition(effectivePosition + deltaMs)
+            }
+
             when (sliderStyle) {
                 SliderStyle.DEFAULT -> {
                     Slider(
@@ -1246,15 +1285,7 @@ fun BottomSheetPlayer(
                         },
                         onValueChangeFinished = {
                             if (!isListenTogetherGuest) {
-                                sliderPosition?.let {
-                                    if (isCasting) {
-                                        castHandler?.seekTo(it)
-                                        lastManualSeekTime = System.currentTimeMillis()
-                                    } else {
-                                        playerConnection.player.seekTo(it)
-                                    }
-                                    position = it
-                                }
+                                sliderPosition?.let(::seekToPosition)
                                 sliderPosition = null
                             }
                         },
@@ -1273,15 +1304,7 @@ fun BottomSheetPlayer(
                                 sliderPosition = it.toLong()
                             },
                             onValueChangeFinished = {
-                                sliderPosition?.let {
-                                    if (isCasting) {
-                                        castHandler?.seekTo(it)
-                                        lastManualSeekTime = System.currentTimeMillis()
-                                    } else {
-                                        playerConnection.player.seekTo(it)
-                                    }
-                                    position = it
-                                }
+                                sliderPosition?.let(::seekToPosition)
                                 sliderPosition = null
                             },
                             modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
@@ -1296,15 +1319,7 @@ fun BottomSheetPlayer(
                                 sliderPosition = it.toLong()
                             },
                             onValueChangeFinished = {
-                                sliderPosition?.let {
-                                    if (isCasting) {
-                                        castHandler?.seekTo(it)
-                                        lastManualSeekTime = System.currentTimeMillis()
-                                    } else {
-                                        playerConnection.player.seekTo(it)
-                                    }
-                                    position = it
-                                }
+                                sliderPosition?.let(::seekToPosition)
                                 sliderPosition = null
                             },
                             colors = PlayerSliderColors.getSliderColors(textButtonColor, playerBackground, useDarkTheme),
@@ -1325,15 +1340,7 @@ fun BottomSheetPlayer(
                         },
                         onValueChangeFinished = {
                             if (!isListenTogetherGuest) {
-                                sliderPosition?.let {
-                                    if (isCasting) {
-                                        castHandler?.seekTo(it)
-                                        lastManualSeekTime = System.currentTimeMillis()
-                                    } else {
-                                        playerConnection.player.seekTo(it)
-                                    }
-                                    position = it
-                                }
+                                sliderPosition?.let(::seekToPosition)
                                 sliderPosition = null
                             }
                         },
@@ -1455,7 +1462,7 @@ fun BottomSheetPlayer(
 
                             FilledIconButton(
                                 onClick = {
-                                    if (mediaMetadata.isEpisode) playerConnection.seekBy(-PODCAST_SEEK_MS)
+                                    if (mediaMetadata.isEpisode) seekByPodcast(-PODCAST_SEEK_MS)
                                     else playerConnection.seekToPrevious()
                                 },
                                 enabled = (mediaMetadata.isEpisode || canSkipPrevious) && !isListenTogetherGuest,
@@ -1550,7 +1557,7 @@ fun BottomSheetPlayer(
 
                             FilledIconButton(
                                 onClick = {
-                                    if (mediaMetadata.isEpisode) playerConnection.seekBy(PODCAST_SEEK_MS)
+                                    if (mediaMetadata.isEpisode) seekByPodcast(PODCAST_SEEK_MS)
                                     else playerConnection.seekToNext()
                                 },
                                 enabled = (mediaMetadata.isEpisode || canSkipNext) && !isListenTogetherGuest,
@@ -1616,7 +1623,7 @@ fun BottomSheetPlayer(
                                             .align(Alignment.Center)
                                             .alpha(if (isListenTogetherGuest) 0.5f else 1f),
                                     onClick = {
-                                        if (mediaMetadata.isEpisode) playerConnection.seekBy(-PODCAST_SEEK_MS)
+                                        if (mediaMetadata.isEpisode) seekByPodcast(-PODCAST_SEEK_MS)
                                         else playerConnection.seekToPrevious()
                                     },
                                 )
@@ -1687,7 +1694,7 @@ fun BottomSheetPlayer(
                                             .align(Alignment.Center)
                                             .alpha(if (isListenTogetherGuest) 0.5f else 1f),
                                     onClick = {
-                                        if (mediaMetadata.isEpisode) playerConnection.seekBy(PODCAST_SEEK_MS)
+                                        if (mediaMetadata.isEpisode) seekByPodcast(PODCAST_SEEK_MS)
                                         else playerConnection.seekToNext()
                                     },
                                 )

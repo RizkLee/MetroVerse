@@ -270,6 +270,7 @@ fun RssPodcastScreen(
                                 }
                             },
                             modifier = Modifier.animateItem(),
+                            showPodcastName = false,
                         )
                     }
                 }

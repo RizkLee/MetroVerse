@@ -505,10 +505,11 @@ internal fun PodcastEpisodeRow(
     onClick: () -> Unit,
     onMenuClick: () -> Unit,
     modifier: Modifier = Modifier,
+    showPodcastName: Boolean = true,
 ) {
     val date = song.song.date?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)).orEmpty()
     val subtitle = joinByBullet(
-        song.song.albumName.orEmpty(),
+        song.song.albumName.orEmpty().takeIf { showPodcastName },
         date,
         song.song.duration.takeIf { it > 0 }?.let { makeTimeString(it * 1000L) }.orEmpty(),
     )
