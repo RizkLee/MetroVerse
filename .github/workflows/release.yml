@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag, for example v0.5.7"
+        description: "Release tag, for example v0.5.8"
         required: true
         type: string
       publish:
@@ -126,11 +126,9 @@ jobs:
           body: |
             ## What's changed
 
-            - Podcast episode rows now show two-line titles with larger artwork across podcast views.
-            - Podcast Continue listening now shows three episodes.
-            - RSS episode menus now show full titles and expandable descriptions.
-            - Added translations for the background lyrics loading setting in ten major locales.
-            - Fixed alignment of short Show more labels in RSS episode menus.
+            - Fixed RSS podcast progress and seeking in the player.
+            - RSS episode details now keep the publication date and duration visible.
+            - Podcast playback controls now stay at the requested position while seeking.
 
             ## Downloads
 
@@ -147,11 +145,9 @@ jobs:
 
             ## 主要变化
 
-            - 播客单集行现在支持两行标题与更大的封面，并统一应用于各播客页面。
-            - Podcast Continue listening 现在仅显示三条单集。
-            - RSS 单集菜单现在显示完整标题、Description 预览及可展开的完整内容。
-            - 为后台加载歌词设置补充了十种主要语言翻译。
-            - 修复 RSS 单集菜单中较短“展开”标签未与 Description 左对齐的问题。
+            - 修复 RSS 播客播放器进度条和前进/后退、拖动 seek 的位置闪回问题。
+            - RSS 播客节目详情页不再重复显示节目名，播出时间和单集时长更容易查看。
+            - 播客播放控制现在会保持用户请求的目标位置，直到 seek 完成。
 
             ## 下载
 

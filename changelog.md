@@ -2,6 +2,17 @@
 
 All notable MetroVerse-specific changes are recorded here. Upstream Metrolist history remains available in Git history.
 
+## 0.5.8 - 2026-09-13
+
+### Changed
+
+- RSS podcast episode details no longer repeat the podcast name in the metadata row, keeping the publication date and duration visible.
+
+### Fixed
+
+- RSS podcast playback now uses the resolved stream duration instead of stale feed metadata when available.
+- Podcast seek buttons and progress-bar seeking now keep the requested position while ExoPlayer applies the seek.
+
 ## 0.5.7 - 2026-09-06
 
 ### Added

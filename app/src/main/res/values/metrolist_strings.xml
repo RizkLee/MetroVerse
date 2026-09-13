@@ -923,7 +923,7 @@
     <string name="metroverse_metrolist_relationship">MetroVerse is based on Metrolist and retains its music architecture, interface foundations, contributors, and GPL history.</string>
     <string name="metroverse_podium_relationship">The RSS and Apple Podcasts integration was developed by studying and adapting concepts from Podium under GPL-3.0.</string>
     <string name="metroverse_apple_podcasts_attribution">Apple Podcasts provides public discovery, charts, search metadata, and artwork. MetroVerse plays public RSS feeds independently and is not affiliated with Apple.</string>
-    <string name="metroverse_changelog_body">MetroVerse 0.5.7\n\n• Podcast episode rows now show longer titles with larger artwork\n• Continue listening now shows three podcast episodes\n• RSS episode menus now show full titles and expandable descriptions\n• Added translations for background lyrics loading\n• Fixed alignment of short Show more labels</string>
+    <string name="metroverse_changelog_body">MetroVerse 0.5.8\n\n• Fixed RSS podcast progress and seeking in the player\n• RSS episode details now keep date and duration visible\n• Podcast playback controls now stay at the requested position</string>
     <string name="wanna_play_favorite_song">Want to play their favorite song?</string>
     <string name="yeah">Yeah!</string>
     <string name="stands_with_palestine">This project stands with Palestine 🇵🇸</string>

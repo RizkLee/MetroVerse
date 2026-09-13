@@ -1,0 +1,4 @@
+MetroVerse 0.5.8
+
+- Fixed RSS podcast progress and seeking in the player.
+- RSS episode details now keep the publication date and duration visible.
