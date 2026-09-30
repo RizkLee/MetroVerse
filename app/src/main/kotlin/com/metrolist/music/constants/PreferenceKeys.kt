@@ -464,7 +464,7 @@ val OpenRouterBaseUrlKey = stringPreferencesKey("openRouterBaseUrl")
 val OpenRouterModelKey = stringPreferencesKey("openRouterModel")
 
 const val OpenRouterDefaultBaseUrl = "https://openrouter.ai/api/v1/chat/completions"
-const val OpenRouterDefaultModel = "google/gemini-2.5-flash-lite"
+const val OpenRouterDefaultModel = "google/gemini-3.5-flash-lite"
 
 val TranslateModeKey = stringPreferencesKey("translateMode")
 val TranslateLanguageKey = stringPreferencesKey("translateLanguage")
@@ -501,6 +501,19 @@ val LyricsLineSpacingKey = floatPreferencesKey("lyricsLineSpacing")
 val RespectAgentPositioningKey = booleanPreferencesKey("respectAgentPositioning")
 val ShowIntervalIndicatorKey = booleanPreferencesKey("showIntervalIndicator")
 val ExperimentalLyricsKey = booleanPreferencesKey("experimentalLyrics")
+
+// Podcast subtitles (podcast:transcript display, AI translation, on-device recognition)
+val ShowPodcastSubtitlesKey = booleanPreferencesKey("showPodcastSubtitles")
+val PodcastSubtitleTranslationEnabledKey = booleanPreferencesKey("podcastSubtitleTranslation")
+val PodcastSubtitleBilingualKey = booleanPreferencesKey("podcastSubtitleBilingual")
+val PodcastAsrLanguageKey = stringPreferencesKey("podcastAsrLanguage")
+val PodcastAsrDisclaimerSeenKey = booleanPreferencesKey("podcastAsrDisclaimerSeen")
+
+enum class PodcastAsrLanguage {
+    AUTO,
+    ZH,
+    EN,
+}
 
 val PlayerVolumeKey = floatPreferencesKey("playerVolume")
 val SleepTimerDefaultKey = floatPreferencesKey("sleepTimerDefault")

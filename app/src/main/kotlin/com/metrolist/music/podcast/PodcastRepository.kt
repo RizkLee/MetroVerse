@@ -4,6 +4,9 @@ import android.content.Context
 import com.metrolist.music.db.MusicDatabase
 import com.metrolist.music.db.entities.PodcastEntity
 import com.metrolist.music.models.MediaMetadata
+import com.metrolist.music.podcast.transcript.PodcastFeedTranscripts
+import com.metrolist.music.podcast.transcript.PodcastTranscriptParser
+import com.metrolist.music.podcast.transcript.TranscriptRepository
 import com.prof18.rssparser.RssParser
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.ktor.client.HttpClient
@@ -32,6 +35,7 @@ const val PODCAST_USER_AGENT = "MetroVerse/0.5.8 (Android; Podcast)"
 class PodcastRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val database: MusicDatabase,
+    private val transcriptRepository: TranscriptRepository,
 ) {
     private val json = Json {
         ignoreUnknownKeys = true
@@ -127,7 +131,10 @@ class PodcastRepository @Inject constructor(
         }
         check(response.status.isSuccess()) { "Podcast feed failed (${response.status.value})" }
 
-        val rss = RssParser().parse(response.bodyAsText())
+        val body = response.bodyAsText()
+        val rss = RssParser().parse(body)
+        val feedTranscripts = runCatching { PodcastTranscriptParser.extractFeedTranscripts(body) }
+            .getOrDefault(PodcastFeedTranscripts())
         val existing = database.podcastByFeedUrl(feedUrl)
         val podcastId = existing?.id ?: podcastIdForFeed(feedUrl)
         val title = rss.title?.trim().orEmpty().ifBlank { existing?.title ?: feedUrl }
@@ -142,7 +149,7 @@ class PodcastRepository @Inject constructor(
             feedUrl = feedUrl,
             description = cleanText(rss.description).ifBlank { existing?.description },
             websiteUrl = rss.link?.trim()?.takeIf { it.isNotEmpty() } ?: existing?.websiteUrl,
-            language = existing?.language,
+            language = existing?.language ?: feedTranscripts.channelLanguage,
             bookmarkedAt = when (subscribe) {
                 true -> existing?.bookmarkedAt ?: now
                 false, null -> existing?.bookmarkedAt
@@ -187,7 +194,20 @@ class PodcastRepository @Inject constructor(
                 }
             }
 
+        persistTranscriptRefs(feedUrl, feedTranscripts)
+
         return podcast
+    }
+
+    private suspend fun persistTranscriptRefs(feedUrl: String, refs: PodcastFeedTranscripts) {
+        transcriptRepository.updateFeedTranscripts(feedUrl, refs.channelLanguage, refs.episodes) { episode ->
+            if (episode.guid == null && episode.audioUrl == null) {
+                null
+            } else {
+                // Same identity rule as episode creation: guid wins, otherwise the media URL.
+                episodeIdForFeed(feedUrl, episode.guid, episode.audioUrl.orEmpty())
+            }
+        }
     }
 
     suspend fun setSubscribed(podcastId: String, subscribed: Boolean) {
