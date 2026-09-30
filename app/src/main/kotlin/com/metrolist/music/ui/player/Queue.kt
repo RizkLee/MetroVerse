@@ -144,6 +144,8 @@ fun Queue(
     lyricsEnabled: Boolean = true,
     playerBackground: PlayerBackgroundStyle = PlayerBackgroundStyle.DEFAULT,
     onToggleLyrics: () -> Unit = {},
+    podcastSubtitlesActive: Boolean = false,
+    onTogglePodcastSubtitles: () -> Unit = {},
 ) {
     val navController = LocalNavController.current
     val context = LocalContext.current
@@ -324,10 +326,11 @@ fun Queue(
                             playerBackground = playerBackground,
                         )
                     } else {
+                        // Podcast episodes: the lyrics slot becomes the subtitle toggle.
                         PlayerQueueButton(
-                            icon = R.drawable.speed,
-                            onClick = { showPlaybackSpeedSheet = true },
-                            isActive = playerConnection.player.playbackParameters.speed != 1f,
+                            icon = R.drawable.subtitles,
+                            onClick = onTogglePodcastSubtitles,
+                            isActive = podcastSubtitlesActive,
                             shape = middleShape,
                             modifier = Modifier.size(buttonSize),
                             textButtonColor = textButtonColor,
@@ -338,26 +341,42 @@ fun Queue(
                         )
                     }
 
-                    PlayerQueueButton(
-                        icon =
-                            when (repeatMode) {
-                                Player.REPEAT_MODE_ALL -> R.drawable.repeat
-                                Player.REPEAT_MODE_ONE -> R.drawable.repeat_one
-                                else -> R.drawable.repeat
+                    if (lyricsEnabled) {
+                        PlayerQueueButton(
+                            icon =
+                                when (repeatMode) {
+                                    Player.REPEAT_MODE_ALL -> R.drawable.repeat
+                                    Player.REPEAT_MODE_ONE -> R.drawable.repeat_one
+                                    else -> R.drawable.repeat
+                                },
+                            onClick = {
+                                playerConnection.player.toggleRepeatMode()
                             },
-                        onClick = {
-                            playerConnection.player.toggleRepeatMode()
-                        },
-                        isActive = repeatMode != Player.REPEAT_MODE_OFF,
-                        enabled = !isListenTogetherGuest,
-                        shape = repeatShape,
-                        modifier = Modifier.size(buttonSize),
-                        textButtonColor = textButtonColor,
-                        iconButtonColor = iconButtonColor,
-                        iconSize = iconSize,
-                        textBackgroundColor = TextBackgroundColor,
-                        playerBackground = playerBackground,
-                    )
+                            isActive = repeatMode != Player.REPEAT_MODE_OFF,
+                            enabled = !isListenTogetherGuest,
+                            shape = repeatShape,
+                            modifier = Modifier.size(buttonSize),
+                            textButtonColor = textButtonColor,
+                            iconButtonColor = iconButtonColor,
+                            iconSize = iconSize,
+                            textBackgroundColor = TextBackgroundColor,
+                            playerBackground = playerBackground,
+                        )
+                    } else {
+                        // Podcast episodes: the repeat slot is given to the speed button.
+                        PlayerQueueButton(
+                            icon = R.drawable.speed,
+                            onClick = { showPlaybackSpeedSheet = true },
+                            isActive = playerConnection.player.playbackParameters.speed != 1f,
+                            shape = repeatShape,
+                            modifier = Modifier.size(buttonSize),
+                            textButtonColor = textButtonColor,
+                            iconButtonColor = iconButtonColor,
+                            iconSize = iconSize,
+                            textBackgroundColor = TextBackgroundColor,
+                            playerBackground = playerBackground,
+                        )
+                    }
 
                     Spacer(modifier = Modifier.weight(1f))
 
@@ -481,7 +500,7 @@ fun Queue(
                     }
 
                     TextButton(
-                        onClick = if (lyricsEnabled) onToggleLyrics else ({ showPlaybackSpeedSheet = true }),
+                        onClick = if (lyricsEnabled) onToggleLyrics else onTogglePodcastSubtitles,
                         modifier = Modifier.weight(1f),
                     ) {
                         Row(
@@ -490,14 +509,14 @@ fun Queue(
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Icon(
-                                painter = painterResource(id = if (lyricsEnabled) R.drawable.lyrics else R.drawable.speed),
+                                painter = painterResource(id = if (lyricsEnabled) R.drawable.lyrics else R.drawable.subtitles),
                                 contentDescription = null,
                                 modifier = Modifier.size(20.dp),
                                 tint = TextBackgroundColor,
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = stringResource(if (lyricsEnabled) R.string.lyrics else R.string.speed),
+                                text = stringResource(if (lyricsEnabled) R.string.lyrics else R.string.podcast_subtitles),
                                 color = TextBackgroundColor,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,

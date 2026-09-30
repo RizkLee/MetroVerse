@@ -920,4 +920,36 @@
     <string name="android_auto_search_options">Настройки поиска</string>
     <string name="android_auto_search_local_songs_limit">Лимит поиска треков</string>
     <string name="android_auto_search_local_songs_limit_desc">Ограничение количества локальных треков, отображаемых в результатах поиска. Не рекомендуется устанавливать значение \"Неограниченно\" во избежание сбоев из-за нехватки памяти</string>
+
+    <!-- Podcast subtitles -->
+    <string name="podcast_subtitles">Субтитры</string>
+    <string name="podcast_subtitle_loading">Загрузка субтитров…</string>
+    <string name="podcast_subtitle_unavailable">Для этого эпизода нет транскрипта</string>
+    <string name="podcast_subtitle_translation_missing_key">Настройте сервис ИИ-перевода в «Настройки → ИИ», чтобы переводить субтитры</string>
+    <string name="podcast_subtitle_asr_start">Создать субтитры на устройстве</string>
+    <string name="podcast_subtitle_asr_retry">Повторить распознавание</string>
+    <string name="podcast_subtitle_asr_cancel">Отмена</string>
+    <string name="podcast_subtitle_asr_running">Распознавание… %1$d%%</string>
+    <string name="podcast_subtitle_asr_failed">Не удалось распознать субтитры</string>
+    <string name="podcast_subtitle_asr_empty">Речь не распознана</string>
+    <string name="podcast_subtitle_asr_download_model">Скачать модель распознавания (~230 МБ)</string>
+    <string name="podcast_subtitle_asr_model_downloading">Загрузка модели… %1$d%%</string>
+
+    <!-- Podcast subtitle settings -->
+    <string name="settings_title_podcast_subtitles">Субтитры подкастов</string>
+    <string name="podcast_subtitles_show">Показывать субтитры</string>
+    <string name="podcast_subtitles_show_desc">Показывать в плеере доступные синхронизированные субтитры podcast:transcript</string>
+    <string name="podcast_subtitles_translation">ИИ-перевод субтитров</string>
+    <string name="podcast_subtitles_translation_desc">Переводит субтитры тем же ИИ-сервисом, что и тексты песен. По умолчанию выключено</string>
+    <string name="podcast_subtitles_bilingual">Двуязычные субтитры</string>
+    <string name="podcast_subtitles_bilingual_desc">Показывать оригинальную строку вместе с переводом</string>
+    <string name="podcast_asr_experimental">Распознавание субтитров на устройстве</string>
+    <string name="podcast_asr_experimental_desc">Экспериментально. Позволяет вручную создавать субтитры для эпизодов без транскрипта. Распознавание выполняется полностью на этом устройстве, аудио никуда не передаётся. Высокая нагрузка на ЦП — рекомендуется зарядка. Сначала загружается языковая модель ~230 МБ</string>
+    <string name="podcast_asr_language">Язык распознавания</string>
+    <string name="podcast_asr_language_auto">Автоопределение</string>
+    <string name="podcast_asr_language_zh">Китайский</string>
+    <string name="podcast_asr_language_en">Английский</string>
+
+    <string name="podcast_subtitle_asr_model_corrupt">Модель распознавания отсутствует или повреждена. Скачайте её заново</string>
+    <string name="podcast_subtitle_asr_dialog_confirm">Продолжить</string>
 </resources>

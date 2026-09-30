@@ -909,4 +909,36 @@
     <string name="kmp_upgrade_title">Metrolist KMP %s está disponible!</string>
     <string name="kmp_upgrade_warning">Metrolist KMP está en etapa temprana. Puede que funciones estén dañadas, incompletas, o cambiadas sin previo aviso.</string>
     <string name="kmp_upgrade_action">Mejora a KMP</string>
+
+    <!-- Podcast subtitles -->
+    <string name="podcast_subtitles">Subtítulos</string>
+    <string name="podcast_subtitle_loading">Cargando subtítulos…</string>
+    <string name="podcast_subtitle_unavailable">No hay transcripción disponible para este episodio</string>
+    <string name="podcast_subtitle_translation_missing_key">Configura un servicio de traducción de IA en Ajustes → IA para traducir subtítulos</string>
+    <string name="podcast_subtitle_asr_start">Generar subtítulos en el dispositivo</string>
+    <string name="podcast_subtitle_asr_retry">Reintentar reconocimiento</string>
+    <string name="podcast_subtitle_asr_cancel">Cancelar</string>
+    <string name="podcast_subtitle_asr_running">Reconociendo… %1$d%%</string>
+    <string name="podcast_subtitle_asr_failed">Error en el reconocimiento de subtítulos</string>
+    <string name="podcast_subtitle_asr_empty">No se reconoció ninguna voz</string>
+    <string name="podcast_subtitle_asr_download_model">Descargar modelo de reconocimiento (~230 MB)</string>
+    <string name="podcast_subtitle_asr_model_downloading">Descargando modelo… %1$d%%</string>
+
+    <!-- Podcast subtitle settings -->
+    <string name="settings_title_podcast_subtitles">Subtítulos de podcasts</string>
+    <string name="podcast_subtitles_show">Mostrar subtítulos</string>
+    <string name="podcast_subtitles_show_desc">Muestra en el reproductor los subtítulos podcast:transcript sincronizados disponibles</string>
+    <string name="podcast_subtitles_translation">Traducción de subtítulos con IA</string>
+    <string name="podcast_subtitles_translation_desc">Traduce los subtítulos con el servicio de IA configurado para letras. Desactivado por defecto</string>
+    <string name="podcast_subtitles_bilingual">Subtítulos bilingües</string>
+    <string name="podcast_subtitles_bilingual_desc">Muestra la línea original junto con su traducción</string>
+    <string name="podcast_asr_experimental">Reconocimiento de subtítulos en el dispositivo</string>
+    <string name="podcast_asr_experimental_desc">Experimental. Permite generar subtítulos manualmente para episodios sin transcripción. El reconocimiento ocurre íntegramente en este dispositivo; el audio nunca sale del teléfono. Uso intensivo de CPU: se recomienda tenerlo cargando. Primero descarga un modelo de idioma de ~230 MB</string>
+    <string name="podcast_asr_language">Idioma de reconocimiento</string>
+    <string name="podcast_asr_language_auto">Detección automática</string>
+    <string name="podcast_asr_language_zh">Chino</string>
+    <string name="podcast_asr_language_en">Inglés</string>
+
+    <string name="podcast_subtitle_asr_model_corrupt">El modelo de reconocimiento falta o está dañado. Descárgalo de nuevo</string>
+    <string name="podcast_subtitle_asr_dialog_confirm">Continuar</string>
 </resources>

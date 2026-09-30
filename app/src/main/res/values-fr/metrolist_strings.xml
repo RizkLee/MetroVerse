@@ -913,4 +913,36 @@
     <string name="android_auto_search_options">Options de recherche</string>
     <string name="android_auto_search_local_songs_limit">Limite de recherche de titres</string>
     <string name="android_auto_search_local_songs_limit_desc">Limitez le nombre de morceaux locaux affichés dans les résultats de recherche. Il est recommandé de ne pas choisir l\'option « illimité » afin d\'éviter les plantages liés à la mémoire.</string>
+
+    <!-- Podcast subtitles -->
+    <string name="podcast_subtitles">Sous-titres</string>
+    <string name="podcast_subtitle_loading">Chargement des sous-titres…</string>
+    <string name="podcast_subtitle_unavailable">Aucune transcription disponible pour cet épisode</string>
+    <string name="podcast_subtitle_translation_missing_key">Configurez un service de traduction IA dans Réglages → IA pour traduire les sous-titres</string>
+    <string name="podcast_subtitle_asr_start">Générer les sous-titres sur l\'appareil</string>
+    <string name="podcast_subtitle_asr_retry">Réessayer la reconnaissance</string>
+    <string name="podcast_subtitle_asr_cancel">Annuler</string>
+    <string name="podcast_subtitle_asr_running">Reconnaissance… %1$d%%</string>
+    <string name="podcast_subtitle_asr_failed">Échec de la reconnaissance des sous-titres</string>
+    <string name="podcast_subtitle_asr_empty">Aucune parole reconnue</string>
+    <string name="podcast_subtitle_asr_download_model">Télécharger le modèle de reconnaissance (~230 Mo)</string>
+    <string name="podcast_subtitle_asr_model_downloading">Téléchargement du modèle… %1$d%%</string>
+
+    <!-- Podcast subtitle settings -->
+    <string name="settings_title_podcast_subtitles">Sous-titres de podcasts</string>
+    <string name="podcast_subtitles_show">Afficher les sous-titres</string>
+    <string name="podcast_subtitles_show_desc">Affiche dans le lecteur les sous-titres podcast:transcript synchronisés disponibles</string>
+    <string name="podcast_subtitles_translation">Traduction des sous-titres par IA</string>
+    <string name="podcast_subtitles_translation_desc">Traduit les sous-titres avec le service IA configuré pour les paroles. Désactivé par défaut</string>
+    <string name="podcast_subtitles_bilingual">Sous-titres bilingues</string>
+    <string name="podcast_subtitles_bilingual_desc">Affiche la ligne originale avec sa traduction</string>
+    <string name="podcast_asr_experimental">Reconnaissance vocale sur l\'appareil</string>
+    <string name="podcast_asr_experimental_desc">Expérimental. Permet de générer manuellement des sous-titres pour les épisodes sans transcription. La reconnaissance s\'exécute entièrement sur cet appareil, l\'audio ne quitte jamais le téléphone. Charge CPU élevée — recharge recommandée. Télécharge d\'abord un modèle de langue d\'environ 230 Mo</string>
+    <string name="podcast_asr_language">Langue de reconnaissance</string>
+    <string name="podcast_asr_language_auto">Détection automatique</string>
+    <string name="podcast_asr_language_zh">Chinois</string>
+    <string name="podcast_asr_language_en">Anglais</string>
+
+    <string name="podcast_subtitle_asr_model_corrupt">Le modèle de reconnaissance est absent ou endommagé. Veuillez le retélécharger</string>
+    <string name="podcast_subtitle_asr_dialog_confirm">Continuer</string>
 </resources>

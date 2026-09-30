@@ -132,22 +132,40 @@ import coil3.toBitmap
 import com.metrolist.music.LocalDownloadUtil
 import com.metrolist.music.LocalListenTogetherManager
 import com.metrolist.music.LocalPlayerConnection
+import com.metrolist.music.LocalPodcastSubtitleManager
 import com.metrolist.music.R
+import com.metrolist.music.constants.AiProviderKey
+import com.metrolist.music.constants.AiSystemPromptKey
 import com.metrolist.music.constants.CropAlbumArtKey
 import com.metrolist.music.constants.DarkModeKey
+import com.metrolist.music.constants.DeeplApiKey
+import com.metrolist.music.constants.DeeplFormalityKey
 import com.metrolist.music.constants.HidePlayerThumbnailKey
 import com.metrolist.music.constants.HideStatusBarOnFullscreenKey
 import com.metrolist.music.constants.KeepScreenOn
+import com.metrolist.music.constants.OpenRouterApiKey
+import com.metrolist.music.constants.OpenRouterBaseUrlKey
+import com.metrolist.music.constants.OpenRouterDefaultBaseUrl
+import com.metrolist.music.constants.OpenRouterDefaultModel
+import com.metrolist.music.constants.OpenRouterModelKey
 import com.metrolist.music.constants.PlayerBackgroundStyle
 import com.metrolist.music.constants.PlayerBackgroundStyleKey
 import com.metrolist.music.constants.PlayerButtonsStyle
 import com.metrolist.music.constants.PlayerButtonsStyleKey
 import com.metrolist.music.constants.PlayerHorizontalPadding
+import com.metrolist.music.constants.PodcastAsrDisclaimerSeenKey
+import com.metrolist.music.constants.PodcastAsrLanguage
+import com.metrolist.music.constants.PodcastAsrLanguageKey
+import com.metrolist.music.constants.PodcastSubtitleBilingualKey
+import com.metrolist.music.constants.PodcastSubtitleTranslationEnabledKey
 import com.metrolist.music.constants.QueuePeekHeight
+import com.metrolist.music.constants.ShowPodcastSubtitlesKey
 import com.metrolist.music.constants.SliderStyle
 import com.metrolist.music.constants.SliderStyleKey
 import com.metrolist.music.constants.SquigglySliderKey
 import com.metrolist.music.constants.ThumbnailCornerRadius
+import com.metrolist.music.constants.TranslateLanguageKey
+import com.metrolist.music.constants.TranslateModeKey
 import com.metrolist.music.constants.UseNewPlayerDesignKey
 import com.metrolist.music.db.entities.LyricsEntity
 import com.metrolist.music.extensions.metadata
@@ -155,6 +173,8 @@ import com.metrolist.music.extensions.togglePlayPause
 import com.metrolist.music.extensions.toggleRepeatMode
 import com.metrolist.music.listentogether.RoomRole
 import com.metrolist.music.models.MediaMetadata
+import com.metrolist.music.podcast.transcript.PodcastSubtitleState
+import com.metrolist.music.podcast.transcript.SubtitleTranslationConfig
 import com.metrolist.music.ui.component.BottomSheet
 import com.metrolist.music.ui.component.BottomSheetState
 import com.metrolist.music.ui.component.LocalBottomSheetPageState
@@ -171,6 +191,7 @@ import com.metrolist.music.ui.theme.PlayerColorExtractor
 import com.metrolist.music.ui.theme.PlayerSliderColors
 import com.metrolist.music.ui.utils.ShowMediaInfo
 import com.metrolist.music.ui.utils.ShowOffsetDialog
+import com.metrolist.music.ui.utils.rememberEffectiveAppLanguageCode
 import com.metrolist.music.utils.dataStore
 import com.metrolist.music.utils.makeTimeString
 import com.metrolist.music.utils.rememberEnumPreference
@@ -307,6 +328,64 @@ fun BottomSheetPlayer(
     LaunchedEffect(mediaMetadata?.id) {
         if (mediaMetadata?.isEpisode == true) showInlineLyrics = false
     }
+
+    // Podcast subtitles: transcript display, optional AI translation, optional on-device ASR.
+    val podcastSubtitleManager = LocalPodcastSubtitleManager.current
+    val (showPodcastSubtitles, onShowPodcastSubtitlesChange) = rememberPreference(ShowPodcastSubtitlesKey, true)
+    val podcastSubtitleTranslation by rememberPreference(PodcastSubtitleTranslationEnabledKey, false)
+    val podcastSubtitleBilingual by rememberPreference(PodcastSubtitleBilingualKey, true)
+    val podcastAsrLanguage by rememberEnumPreference(PodcastAsrLanguageKey, PodcastAsrLanguage.AUTO)
+
+    val appLanguageCode = rememberEffectiveAppLanguageCode()
+    val openRouterApiKey by rememberPreference(OpenRouterApiKey, "")
+    val deeplApiKey by rememberPreference(DeeplApiKey, "")
+    val aiProvider by rememberPreference(AiProviderKey, "OpenRouter")
+    val translateLanguage by rememberPreference(TranslateLanguageKey, appLanguageCode)
+    val translateMode by rememberPreference(TranslateModeKey, "Literal")
+    val openRouterBaseUrl by rememberPreference(OpenRouterBaseUrlKey, OpenRouterDefaultBaseUrl)
+    val openRouterModel by rememberPreference(OpenRouterModelKey, OpenRouterDefaultModel)
+    val deeplFormality by rememberPreference(DeeplFormalityKey, "default")
+    val aiSystemPrompt by rememberPreference(AiSystemPromptKey, "")
+
+    val subtitleState =
+        podcastSubtitleManager?.state?.collectAsStateWithLifecycle()?.value ?: PodcastSubtitleState.Idle
+    val subtitleTranslations =
+        podcastSubtitleManager?.translations?.collectAsStateWithLifecycle()?.value ?: emptyMap()
+    val subtitleModelDownloadProgress =
+        podcastSubtitleManager?.modelDownloadProgress?.collectAsStateWithLifecycle()?.value
+
+    val subtitleTranslationConfig = remember(aiProvider, openRouterApiKey, deeplApiKey, translateLanguage) {
+        SubtitleTranslationConfig(
+            provider = aiProvider,
+            apiKey = openRouterApiKey,
+            deeplApiKey = deeplApiKey,
+            deeplFormality = deeplFormality,
+            baseUrl = openRouterBaseUrl,
+            model = openRouterModel,
+            mode = translateMode,
+            targetLanguage = translateLanguage.ifBlank { appLanguageCode },
+            systemPrompt = aiSystemPrompt,
+        )
+    }
+
+    LaunchedEffect(mediaMetadata) {
+        podcastSubtitleManager?.onEpisodeChanged(mediaMetadata)
+    }
+
+    val subtitleViewVisible =
+        mediaMetadata?.isEpisode == true &&
+            showPodcastSubtitles &&
+            subtitleState != PodcastSubtitleState.Idle
+    val playerContentMode =
+        when {
+            subtitleViewVisible -> PlayerContentMode.SUBTITLES
+            showInlineLyrics -> PlayerContentMode.LYRICS
+            else -> PlayerContentMode.THUMBNAIL
+        }
+
+    val (asrDisclaimerSeen, onAsrDisclaimerSeenChange) = rememberPreference(PodcastAsrDisclaimerSeenKey, false)
+    var showAsrDisclaimerDialog by rememberSaveable { mutableStateOf(false) }
+
     val automix by playerConnection.service.automixItems.collectAsStateWithLifecycle()
     val repeatMode by playerConnection.repeatMode.collectAsStateWithLifecycle()
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsStateWithLifecycle()
@@ -367,6 +446,28 @@ fun BottomSheetPlayer(
     // Convenience accessors for local use
     var position by positionState
     var duration by durationState
+
+    fun launchOnDeviceTranscription() {
+        val manager = podcastSubtitleManager ?: return
+        val metadata = mediaMetadata ?: return
+        if (manager.isAsrModelReady()) {
+            manager.startTranscription(
+                metadata = metadata,
+                durationMs = duration,
+                languageMode = podcastAsrLanguage.name.lowercase(),
+            )
+        } else {
+            manager.downloadAsrModel { result ->
+                if (result.isSuccess) {
+                    manager.startTranscription(
+                        metadata = metadata,
+                        durationMs = duration,
+                        languageMode = podcastAsrLanguage.name.lowercase(),
+                    )
+                }
+            }
+        }
+    }
 
     val effectivePosition by remember {
         derivedStateOf {
@@ -1753,24 +1854,55 @@ fun BottomSheetPlayer(
                         val sliderPositionProvider = remember { { currentSliderPosition } }
                         val isExpandedProvider = remember(state) { { state.isExpanded } }
                         AnimatedContent(
-                            targetState = showInlineLyrics,
-                            label = "Lyrics",
+                            targetState = playerContentMode,
+                            label = "PlayerContent",
                             transitionSpec = { fadeIn() togetherWith fadeOut() },
-                        ) { showLyrics ->
-                            if (showLyrics) {
-                                InlineLyricsView(
-                                    mediaMetadata = mediaMetadata,
-                                    showLyrics = showLyrics,
-                                    positionProvider = { effectivePosition },
-                                )
-                            } else {
-                                Thumbnail(
-                                    sliderPositionProvider = sliderPositionProvider,
-                                    modifier = Modifier.animateContentSize(),
-                                    isPlayerExpanded = isExpandedProvider,
-                                    isLandscape = true,
-                                    isListenTogetherGuest = isListenTogetherGuest,
-                                )
+                        ) { mode ->
+                            when (mode) {
+                                PlayerContentMode.LYRICS -> {
+                                    InlineLyricsView(
+                                        mediaMetadata = mediaMetadata,
+                                        showLyrics = true,
+                                        positionProvider = { effectivePosition },
+                                    )
+                                }
+                                PlayerContentMode.SUBTITLES -> {
+                                    PodcastSubtitleView(
+                                        state = subtitleState,
+                                        translations = subtitleTranslations,
+                                        positionProvider = { effectivePosition },
+                                        showTranslation = podcastSubtitleTranslation && podcastSubtitleBilingual,
+                                        translationMissingCredentials =
+                                            podcastSubtitleTranslation && !subtitleTranslationConfig.hasCredentials,
+                                        textColor = TextBackgroundColor,
+                                        asrDownloadProgress = subtitleModelDownloadProgress,
+                                        onSeek = { target ->
+                                            if (!isListenTogetherGuest) playerConnection.player.seekTo(target)
+                                        },
+                                        onStartTranscription = { launchOnDeviceTranscription() },
+                                        onCancelTranscription = {
+                                            podcastSubtitleManager?.cancelTranscription()
+                                        },
+                                        onDownloadModel = { launchOnDeviceTranscription() },
+                                        onCurrentCueChanged = { index ->
+                                            if (podcastSubtitleTranslation) {
+                                                podcastSubtitleManager?.requestTranslations(
+                                                    centerIndex = index,
+                                                    config = subtitleTranslationConfig,
+                                                )
+                                            }
+                                        },
+                                    )
+                                }
+                                else -> {
+                                    Thumbnail(
+                                        sliderPositionProvider = sliderPositionProvider,
+                                        modifier = Modifier.animateContentSize(),
+                                        isPlayerExpanded = isExpandedProvider,
+                                        isLandscape = true,
+                                        isListenTogetherGuest = isListenTogetherGuest,
+                                    )
+                                }
                             }
                         }
                     }
@@ -1779,7 +1911,7 @@ fun BottomSheetPlayer(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier =
                             Modifier
-                                .weight(if (showInlineLyrics) 0.65f else 1f, false)
+                                .weight(if (playerContentMode == PlayerContentMode.LYRICS) 0.65f else 1f, false)
                                 .animateContentSize()
                                 .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top)),
                     ) {
@@ -1816,23 +1948,54 @@ fun BottomSheetPlayer(
                         val sliderPositionProvider = remember { { currentSliderPosition } }
                         val isExpandedProvider = remember(state) { { state.isExpanded } }
                         AnimatedContent(
-                            targetState = showInlineLyrics,
-                            label = "Lyrics",
+                            targetState = playerContentMode,
+                            label = "PlayerContent",
                             transitionSpec = { fadeIn() togetherWith fadeOut() },
-                        ) { showLyrics ->
-                            if (showLyrics) {
-                                InlineLyricsView(
-                                    mediaMetadata = mediaMetadata,
-                                    showLyrics = showLyrics,
-                                    positionProvider = { effectivePosition },
-                                )
-                            } else {
-                                Thumbnail(
-                                    sliderPositionProvider = sliderPositionProvider,
-                                    modifier = Modifier.nestedScroll(state.preUpPostDownNestedScrollConnection),
-                                    isPlayerExpanded = isExpandedProvider,
-                                    isListenTogetherGuest = isListenTogetherGuest,
-                                )
+                        ) { mode ->
+                            when (mode) {
+                                PlayerContentMode.LYRICS -> {
+                                    InlineLyricsView(
+                                        mediaMetadata = mediaMetadata,
+                                        showLyrics = true,
+                                        positionProvider = { effectivePosition },
+                                    )
+                                }
+                                PlayerContentMode.SUBTITLES -> {
+                                    PodcastSubtitleView(
+                                        state = subtitleState,
+                                        translations = subtitleTranslations,
+                                        positionProvider = { effectivePosition },
+                                        showTranslation = podcastSubtitleTranslation && podcastSubtitleBilingual,
+                                        translationMissingCredentials =
+                                            podcastSubtitleTranslation && !subtitleTranslationConfig.hasCredentials,
+                                        textColor = TextBackgroundColor,
+                                        asrDownloadProgress = subtitleModelDownloadProgress,
+                                        onSeek = { target ->
+                                            if (!isListenTogetherGuest) playerConnection.player.seekTo(target)
+                                        },
+                                        onStartTranscription = { launchOnDeviceTranscription() },
+                                        onCancelTranscription = {
+                                            podcastSubtitleManager?.cancelTranscription()
+                                        },
+                                        onDownloadModel = { launchOnDeviceTranscription() },
+                                        onCurrentCueChanged = { index ->
+                                            if (podcastSubtitleTranslation) {
+                                                podcastSubtitleManager?.requestTranslations(
+                                                    centerIndex = index,
+                                                    config = subtitleTranslationConfig,
+                                                )
+                                            }
+                                        },
+                                    )
+                                }
+                                else -> {
+                                    Thumbnail(
+                                        sliderPositionProvider = sliderPositionProvider,
+                                        modifier = Modifier.nestedScroll(state.preUpPostDownNestedScrollConnection),
+                                        isPlayerExpanded = isExpandedProvider,
+                                        isListenTogetherGuest = isListenTogetherGuest,
+                                    )
+                                }
                             }
                         }
                     }
@@ -1871,9 +2034,43 @@ fun BottomSheetPlayer(
                 onToggleLyrics = {
                     if (mediaMetadata?.isEpisode != true) showInlineLyrics = !showInlineLyrics
                 },
+                podcastSubtitlesActive = subtitleViewVisible,
+                onTogglePodcastSubtitles = {
+                    onShowPodcastSubtitlesChange(!showPodcastSubtitles)
+                },
+            )
+        }
+
+        if (showAsrDisclaimerDialog) {
+            AlertDialog(
+                onDismissRequest = { showAsrDisclaimerDialog = false },
+                title = { Text(stringResource(R.string.podcast_asr_experimental)) },
+                text = { Text(stringResource(R.string.podcast_asr_experimental_desc)) },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showAsrDisclaimerDialog = false
+                            onAsrDisclaimerSeenChange(true)
+                            launchOnDeviceTranscription()
+                        },
+                    ) {
+                        Text(stringResource(R.string.podcast_subtitle_asr_dialog_confirm))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showAsrDisclaimerDialog = false }) {
+                        Text(stringResource(R.string.podcast_subtitle_asr_cancel))
+                    }
+                },
             )
         }
     }
+}
+
+private enum class PlayerContentMode {
+    THUMBNAIL,
+    LYRICS,
+    SUBTITLES,
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)

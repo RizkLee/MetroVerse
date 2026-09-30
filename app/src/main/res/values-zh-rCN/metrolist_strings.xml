@@ -988,4 +988,36 @@
     <string name="android_auto_search_options">搜索选项</string>
     <string name="android_auto_search_local_songs_limit">歌曲搜索限制</string>
     <string name="android_auto_search_local_songs_limit_desc">限制搜索结果中显示的本地歌曲数量。建议不要设置为无限制，以防止内存崩溃</string>
+
+    <!-- Podcast subtitles -->
+    <string name="podcast_subtitles">字幕</string>
+    <string name="podcast_subtitle_loading">正在加载字幕…</string>
+    <string name="podcast_subtitle_unavailable">此单集没有可用的字幕</string>
+    <string name="podcast_subtitle_translation_missing_key">请先在“设置 → AI”中配置 AI 翻译服务，才能翻译字幕</string>
+    <string name="podcast_subtitle_asr_start">在本机生成字幕</string>
+    <string name="podcast_subtitle_asr_retry">重新识别</string>
+    <string name="podcast_subtitle_asr_cancel">取消</string>
+    <string name="podcast_subtitle_asr_running">识别中… %1$d%%</string>
+    <string name="podcast_subtitle_asr_failed">字幕识别失败</string>
+    <string name="podcast_subtitle_asr_empty">未识别到语音内容</string>
+    <string name="podcast_subtitle_asr_download_model">下载识别模型（约 230 MB）</string>
+    <string name="podcast_subtitle_asr_model_downloading">模型下载中… %1$d%%</string>
+
+    <!-- Podcast subtitle settings -->
+    <string name="settings_title_podcast_subtitles">播客字幕</string>
+    <string name="podcast_subtitles_show">显示字幕</string>
+    <string name="podcast_subtitles_show_desc">播放器中显示可用的 podcast:transcript 同步字幕</string>
+    <string name="podcast_subtitles_translation">AI 字幕翻译</string>
+    <string name="podcast_subtitles_translation_desc">使用与歌词翻译相同的 AI 服务翻译字幕。默认关闭</string>
+    <string name="podcast_subtitles_bilingual">双语字幕</string>
+    <string name="podcast_subtitles_bilingual_desc">在译文旁同时显示原文</string>
+    <string name="podcast_asr_experimental">端侧字幕识别</string>
+    <string name="podcast_asr_experimental_desc">实验性功能。为没有字幕的单集在本机手动生成字幕。识别完全在本机完成，音频不会上传。CPU 占用较高，建议充电时使用。首次需下载约 230 MB 的识别模型</string>
+    <string name="podcast_asr_language">识别语言</string>
+    <string name="podcast_asr_language_auto">自动检测</string>
+    <string name="podcast_asr_language_zh">中文</string>
+    <string name="podcast_asr_language_en">英语</string>
+
+    <string name="podcast_subtitle_asr_model_corrupt">识别模型缺失或已损坏，请重新下载</string>
+    <string name="podcast_subtitle_asr_dialog_confirm">继续</string>
 </resources>

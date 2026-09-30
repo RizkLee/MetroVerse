@@ -902,4 +902,36 @@
     <string name="stream_source_web_creator">WEB_CREATOR</string>
     <string name="stream_source_android_creator">ANDROID_CREATOR</string>
     <string name="stream_source_android_creator_desc">Cliente de criador Android. Desativado por padrão; requer DroidGuard.</string>
+
+    <!-- Podcast subtitles -->
+    <string name="podcast_subtitles">Legendas</string>
+    <string name="podcast_subtitle_loading">Carregando legendas…</string>
+    <string name="podcast_subtitle_unavailable">Não há transcrição disponível para este episódio</string>
+    <string name="podcast_subtitle_translation_missing_key">Configure um serviço de tradução de IA em Configurações → IA para traduzir legendas</string>
+    <string name="podcast_subtitle_asr_start">Gerar legendas no dispositivo</string>
+    <string name="podcast_subtitle_asr_retry">Tentar reconhecimento novamente</string>
+    <string name="podcast_subtitle_asr_cancel">Cancelar</string>
+    <string name="podcast_subtitle_asr_running">Reconhecendo… %1$d%%</string>
+    <string name="podcast_subtitle_asr_failed">Falha no reconhecimento das legendas</string>
+    <string name="podcast_subtitle_asr_empty">Nenhuma fala reconhecida</string>
+    <string name="podcast_subtitle_asr_download_model">Baixar modelo de reconhecimento (~230 MB)</string>
+    <string name="podcast_subtitle_asr_model_downloading">Baixando modelo… %1$d%%</string>
+
+    <!-- Podcast subtitle settings -->
+    <string name="settings_title_podcast_subtitles">Legendas de podcasts</string>
+    <string name="podcast_subtitles_show">Mostrar legendas</string>
+    <string name="podcast_subtitles_show_desc">Exibe no player as legendas podcast:transcript sincronizadas quando disponíveis</string>
+    <string name="podcast_subtitles_translation">Tradução de legendas com IA</string>
+    <string name="podcast_subtitles_translation_desc">Traduz legendas com o mesmo serviço de IA das letras. Desativado por padrão</string>
+    <string name="podcast_subtitles_bilingual">Legendas bilíngues</string>
+    <string name="podcast_subtitles_bilingual_desc">Mostra a linha original junto com a tradução</string>
+    <string name="podcast_asr_experimental">Reconhecimento de legendas no dispositivo</string>
+    <string name="podcast_asr_experimental_desc">Experimental. Permite gerar legendas manualmente para episódios sem transcrição. O reconhecimento acontece inteiramente neste dispositivo e o áudio nunca sai do telefone. Alto uso de CPU — recomenda-se carregar. Antes, baixa um modelo de idioma de ~230 MB</string>
+    <string name="podcast_asr_language">Idioma do reconhecimento</string>
+    <string name="podcast_asr_language_auto">Detecção automática</string>
+    <string name="podcast_asr_language_zh">Chinês</string>
+    <string name="podcast_asr_language_en">Inglês</string>
+
+    <string name="podcast_subtitle_asr_model_corrupt">O modelo de reconhecimento está ausente ou corrompido. Baixe-o novamente</string>
+    <string name="podcast_subtitle_asr_dialog_confirm">Continuar</string>
 </resources>
