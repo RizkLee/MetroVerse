@@ -55,6 +55,7 @@ import com.metrolist.music.constants.DeeplFormalityKey
 import com.metrolist.music.constants.LanguageCodeToName
 import com.metrolist.music.constants.OpenRouterApiKey
 import com.metrolist.music.constants.OpenRouterBaseUrlKey
+import com.metrolist.music.constants.OpenRouterDefaultModel
 import com.metrolist.music.constants.OpenRouterModelKey
 import com.metrolist.music.constants.TranslateLanguageKey
 import com.metrolist.music.constants.TranslateModeKey
@@ -72,7 +73,7 @@ fun AiSettings(navController: NavController) {
     var aiProvider by rememberPreference(AiProviderKey, "OpenRouter")
     var openRouterApiKey by rememberPreference(OpenRouterApiKey, "")
     var openRouterBaseUrl by rememberPreference(OpenRouterBaseUrlKey, "https://openrouter.ai/api/v1/chat/completions")
-    var openRouterModel by rememberPreference(OpenRouterModelKey, "google/gemini-2.5-flash-lite")
+    var openRouterModel by rememberPreference(OpenRouterModelKey, OpenRouterDefaultModel)
     var translateLanguage by rememberPreference(TranslateLanguageKey, appLanguageCode)
     var translateMode by rememberPreference(TranslateModeKey, "Literal")
     var deeplApiKey by rememberPreference(DeeplApiKey, "")
@@ -108,37 +109,39 @@ fun AiSettings(navController: NavController) {
 
     val modelsByProvider =
         mapOf(
+            // Fast, high-traffic models from OpenRouter usage rankings (data through 2026-09-28).
             "OpenRouter" to
                 listOf(
-                    "google/gemini-2.5-flash-lite",
-                    "google/gemini-2.5-flash",
-                    "x-ai/grok-4.1-fast",
-                    "deepseek/deepseek-v3.1-terminus:exacto",
-                    "openai/gpt-4o-mini",
-                    "meta-llama/llama-4-scout",
-                    "openai/gpt-5-nano",
-                    "openai/gpt-oss-120b",
-                    "google/gemini-3-flash-preview",
+                    "openrouter/free",
+                    "deepseek/deepseek-v4.1-flash",
+                    "google/gemini-3.5-flash-lite",
+                    "google/gemini-3.8-flash",
+                    "openai/gpt-5.6-luna",
+                    "openai/gpt-6-luna",
+                    "xiaomi/mimo-v2.6-flash",
+                    "z-ai/glm-5.3-flash",
+                    "x-ai/grok-4.7",
+                    "qwen/qwen3.8-flash",
                 ),
             "OpenAI" to
                 listOf(
-                    "gpt-4o-mini",
-                    "gpt-4o",
-                    "gpt-4-turbo",
+                    "gpt-5.6-luna",
+                    "gpt-6-luna",
+                    "gpt-5.4-nano",
+                    "gpt-5.4-mini",
                 ),
             "Claude" to
                 listOf(
-                    "claude-opus-4-6",
-                    "claude-sonnet-4-6",
                     "claude-haiku-4-5-20251001",
+                    "claude-sonnet-5.5",
+                    "claude-opus-5.5",
                 ),
             "Gemini" to
                 listOf(
                     "gemini-flash-lite-latest",
-                    "gemini-2.5-flash-lite",
+                    "gemini-3.5-flash-lite",
                     "gemini-flash-latest",
-                    "gemini-2.5-flash",
-                    "gemini-3-flash-preview",
+                    "gemini-3.8-flash",
                 ),
             "Perplexity" to
                 listOf(
@@ -148,15 +151,13 @@ fun AiSettings(navController: NavController) {
                 ),
             "XAi" to
                 listOf(
-                    "grok-4-1-fast",
-                    "grok-vision-beta",
+                    "grok-4.7",
+                    "grok-4.6",
                 ),
             "Mistral" to
                 listOf(
-                    "mistral-large-latest",
                     "mistral-medium-latest",
                     "mistral-small-latest",
-                    "mistral-tiny-latest",
                 ),
             "DeepL" to listOf(),
             "Custom" to listOf(),

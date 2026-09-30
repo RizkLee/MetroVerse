@@ -80,6 +80,52 @@ private data class HyphenGroupWord(
     val groupEndMs: Long
 )
 
+/**
+ * Horizontal/vertical extra scale for a hyphen-group segment.
+ *
+ * [layoutDelta] is the only part that may push neighbouring glyphs (smooth crescendo spread).
+ * [visualDelta] additionally carries the post-group spring, which must stay visual-only:
+ * feeding the spring into layout makes the whole current line shake left/right.
+ */
+internal data class HyphenCrescendo(
+    val layoutDelta: Float,
+    val visualDelta: Float,
+)
+
+internal fun hyphenCrescendoDeltas(
+    pos: Int,
+    isLast: Boolean,
+    groupEndMs: Long,
+    sungFactor: Float,
+    smoothPositionMs: Long,
+): HyphenCrescendo {
+    val p = sungFactor
+    val timeSinceEnd = (smoothPositionMs - groupEndMs).toFloat()
+    val exitDuration = 600f
+    val pOut = (timeSinceEnd / exitDuration).coerceIn(0f, 1f)
+    val peakScale = 0.06f
+    val decay = 3.5f
+    val freq = 5.0f
+    val baseScalePerSegment = 0.012f
+
+    return if (pOut > 0f) {
+        val baseAtEnd = pos * baseScalePerSegment
+        val totalAtEnd = baseAtEnd + peakScale
+        val springOut = totalAtEnd * exp(-decay * pOut) * cos(freq * pOut * PI.toFloat()) * (1f - pOut)
+        // Layout releases smoothly; only the spring residual is visual.
+        val layout = baseAtEnd * (1f - pOut)
+        HyphenCrescendo(layoutDelta = layout, visualDelta = springOut)
+    } else if (isLast) {
+        val base = pos * baseScalePerSegment
+        val springPart = peakScale * (1f - exp(-decay * p) * cos(freq * p * PI.toFloat()) * (1f - p))
+        HyphenCrescendo(layoutDelta = base, visualDelta = base + springPart)
+    } else {
+        val boost = if (p > 0f) 0.02f * (1f - p) else 0f
+        val base = (pos * baseScalePerSegment) + boost
+        HyphenCrescendo(layoutDelta = base, visualDelta = base)
+    }
+}
+
 private fun String.containsRtl(): Boolean {
     for (c in this) {
         val directionality = Character.getDirectionality(c).toInt()
@@ -601,56 +647,30 @@ private fun WordLevelLyrics(
                 
                 // Pre-calculate total pushes per line to handle alignment correctly.
                 // Iterate over cluster indices so each visual glyph unit is one slot.
+                // Only the smooth hyphen crescendo base may push neighbours. The per-letter
+                // nudge and the word-start wobble are visual-only: with multiple words on a
+                // line each wobble used to shove the rest of the row and jitter word positions.
                 for (i in 0 until clusterCount) {
                     val charOffset = clusterCharOffsets[i]
                     val lineIdx = layoutResult.getLineForOffset(charOffset)
                     val wordIdx = wordIdxMap[i]
-                    val originalWordIdx = if (wordIdx != -1) effectiveToOriginalIdx[wordIdx] else -1
-                    
-                    val (sungFactor, wordItem, isWordSung) = if (wordIdx != -1) wordFactors[wordIdx] else Triple(0f, null, false)
-                    val wobble = if (originalWordIdx != -1) wordWobbles[originalWordIdx] else 0f
-                    
-                    var crescendoDeltaX = 0f
+
+                    val sungFactor = if (wordIdx != -1) wordFactors[wordIdx].first else 0f
+
+                    var crescendoLayout = 0f
                     val groupWord = if (wordIdx != -1) hyphenGroupData[wordIdx] else null
                     if (groupWord != null) {
-                        val p = sungFactor
-                        val timeSinceEnd = (smoothPosition - groupWord.groupEndMs).toFloat()
-                        val exitDuration = 600f
-                        val pOut = (timeSinceEnd / exitDuration).coerceIn(0f, 1f)
-                        val peakScale = 0.06f
-                        val decay = 2.5f
-                        val freq = 10.0f
-                        val baseScalePerSegment = 0.012f
-                        if (pOut > 0f) {
-                            val baseAtEnd = groupWord.pos * baseScalePerSegment
-                            val totalAtEnd = baseAtEnd + peakScale
-                            crescendoDeltaX = totalAtEnd * exp(-decay * pOut) * cos(freq * pOut * PI.toFloat()) * (1f - pOut)
-                        } else if (groupWord.isLast) {
-                            val base = groupWord.pos * baseScalePerSegment
-                            val springPart = peakScale * (1f - exp(-decay * p) * cos(freq * p * PI.toFloat()) * (1f - p))
-                            crescendoDeltaX = base + springPart
-                        } else {
-                            val boost = if (p > 0f) 0.02f * (1f - p) else 0f
-                            crescendoDeltaX = (groupWord.pos * baseScalePerSegment) + boost
-                        }
+                        crescendoLayout = hyphenCrescendoDeltas(
+                            pos = groupWord.pos,
+                            isLast = groupWord.isLast,
+                            groupEndMs = groupWord.groupEndMs,
+                            sungFactor = sungFactor,
+                            smoothPositionMs = smoothPosition,
+                        ).layoutDelta
                     }
 
-                    val charLp = if (wordItem != null) {
-                        val sMs = wordItem.startTime * 1000
-                        val dur = (wordItem.endTime * 1000 - wordItem.startTime * 1000).coerceAtLeast(100.0)
-                        val wProg = (smoothPosition.toDouble() - sMs) / dur
-                        val cInW = charInWordMap[i].toDouble()
-                        val wLen = wordLenMap[i].toDouble()
-                        ((wProg - cInW / wLen) * wLen).coerceIn(0.0, 1.0).toFloat()
-                    } else 0f
-
-                    val nudgeScale = if (wordItem != null && !isWordSung && sungFactor > 0f) {
-                        0.038f * sin(charLp * PI.toFloat()) * exp(-3f * charLp)
-                    } else 0f
-
-                    val charScaleX = 1f + (wobble * 0.025f) + crescendoDeltaX + (nudgeScale * 0.3f)
                     val charBounds = layoutResult.getBoundingBox(charOffset)
-                    lineTotalPushes[lineIdx] += charBounds.width * (charScaleX - 1f)
+                    lineTotalPushes[lineIdx] += charBounds.width * crescendoLayout
                 }
 
                 // Main drawing loop: iterate over cluster indices so each visual
@@ -684,44 +704,31 @@ private fun WordLevelLyrics(
 
                     val shouldGlow = wordItem != null && !isWordSung && sungFactor > 0.001f
 
-                    var crescendoDeltaX = 0f
-                    var crescendoDeltaY = 0f
+                    var crescendoLayout = 0f
+                    var crescendoVisual = 0f
                     val groupWord = if (wordIdx != -1) hyphenGroupData[wordIdx] else null
                     if (groupWord != null) {
-                        val p = sungFactor
-                        val timeSinceEnd = (smoothPosition - groupWord.groupEndMs).toFloat()
-                        val exitDuration = 600f
-                        val pOut = (timeSinceEnd / exitDuration).coerceIn(0f, 1f)
-                        val peakScale = 0.06f
-                        val decay = 3.5f
-                        val freq = 5.0f
-                        val baseScalePerSegment = 0.012f
-                        if (pOut > 0f) {
-                            val baseAtEnd = groupWord.pos * baseScalePerSegment
-                            val totalAtEnd = baseAtEnd + peakScale
-                            val springOut = totalAtEnd * exp(-decay * pOut) * cos(freq * pOut * PI.toFloat()) * (1f - pOut)
-                            crescendoDeltaX = springOut
-                            crescendoDeltaY = springOut
-                        } else if (groupWord.isLast) {
-                            val base = groupWord.pos * baseScalePerSegment
-                            val springPart = peakScale * (1f - exp(-decay * p) * cos(freq * p * PI.toFloat()) * (1f - p))
-                            crescendoDeltaX = base + springPart
-                            crescendoDeltaY = base + springPart
-                        } else {
-                            val boost = if (p > 0f) 0.02f * (1f - p) else 0f
-                            val base = (groupWord.pos * baseScalePerSegment) + boost
-                            crescendoDeltaX = base
-                            crescendoDeltaY = base
-                        }
+                        val crescendo = hyphenCrescendoDeltas(
+                            pos = groupWord.pos,
+                            isLast = groupWord.isLast,
+                            groupEndMs = groupWord.groupEndMs,
+                            sungFactor = sungFactor,
+                            smoothPositionMs = smoothPosition,
+                        )
+                        crescendoLayout = crescendo.layoutDelta
+                        crescendoVisual = crescendo.visualDelta
                     }
 
                     val nudgeStrength = 0.038f
                     val nudgeScale = if (wordItem != null && !isWordSung && sungFactor > 0f) {
                         nudgeStrength * sin(charLp * PI.toFloat()) * exp(-3f * charLp)
                     } else 0f
-                    
-                    val charScaleX = 1f + wobbleX + crescendoDeltaX + nudgeScale * 0.3f
-                    val charScaleY = 1f + wobbleY + crescendoDeltaY + nudgeScale
+
+                    // Layout advance is hyphen-base only. Wobble/nudge/spring stay visual so
+                    // multi-word lines keep stable letter and word positions while singing.
+                    val layoutAdvance = crescendoLayout
+                    val charScaleX = 1f + wobbleX + crescendoVisual
+                    val charScaleY = 1f + wobbleY + crescendoVisual + nudgeScale
 
                     withTransform({
                         var waveOffset = 0f
@@ -758,7 +765,7 @@ private fun WordLevelLyrics(
                             val impactFactor = (((impactRatio - 100f) / 250f).coerceIn(0f, 1f) * 0.6f + ((dur.toFloat() - 300f) / 1500f).coerceIn(0f, 1f) * 0.4f).coerceIn(0f, 1f) * fadeFactor
                             if (impactFactor > 0.01f) {
                                 val glowAlpha = (0.35f * impactFactor).coerceIn(0f, 0.4f)
-                                val baseGlowRadius = 12.dp.toPx() * impactFactor                                                                                    
+                                val baseGlowRadius = 12.dp.toPx() * impactFactor
                                 drawIntoCanvas { canvas ->
                                     glowPaint.maskFilter = BlurMaskFilter(baseGlowRadius, BlurMaskFilter.Blur.NORMAL)
                                     glowPaint.color = expressiveAccent.copy(alpha = glowAlpha).toArgb()
@@ -786,7 +793,7 @@ private fun WordLevelLyrics(
                             }
                         }
                     }
-                    lineCurrentPushes[lineIdx] += charBounds.width * (charScaleX - 1f)
+                    lineCurrentPushes[lineIdx] += charBounds.width * layoutAdvance
                 }
             }
         }

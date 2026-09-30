@@ -142,6 +142,80 @@ private val LYRICS_ITEM_FALLBACK_HEIGHT_DP = 68.dp
 private val LYRICS_ITEM_GAP_DP = 16.dp
 private val LYRICS_FADE_TOP_DP = 130.dp
 private val LYRICS_FADE_BOTTOM_DP = 160.dp
+private val LYRICS_SCROLL_TOP_PADDING_DP = 100.dp
+private val LYRICS_SCROLL_BOTTOM_PADDING_DP = 130.dp
+
+/**
+ * Scroll clamp for the lyrics list.
+ *
+ * Item i sits at y = anchorY + positions[i] + offset, where positions are relative to the
+ * active line (positions[active] == 0). `contentAbove` is the stacked height of every item
+ * above the active line (-positions[0]); `contentBelow` is positions[last] (active through
+ * the item before the last).
+ *
+ * - maxOffset (drag toward the beginning) stops with the first item's top at [topPadding].
+ * - minOffset (drag toward the end) stops with the last item's bottom at viewport-[bottomPadding].
+ *
+ * These two are the only legal extremes. Auto-scroll does NOT rest at 0: near either end of
+ * the song the rest offset is whatever keeps the first/last line inside the padded viewport
+ * (see [computeAutoRestOffset]); forcing 0 here is what left a blank slab past the last line.
+ */
+internal data class LyricsScrollBounds(val minOffset: Float, val maxOffset: Float) {
+    val clampMin: Float get() = minOf(minOffset, maxOffset)
+    val clampMax: Float get() = maxOf(minOffset, maxOffset)
+}
+
+internal fun computeLyricsScrollBounds(
+    contentAbove: Float,
+    contentBelow: Float,
+    lastItemHeight: Float,
+    viewportHeight: Float,
+    anchorY: Float,
+    topPadding: Float,
+    bottomPadding: Float,
+): LyricsScrollBounds {
+    val maxOffset = topPadding - anchorY + contentAbove
+    val minOffset = viewportHeight - bottomPadding - lastItemHeight - anchorY - contentBelow
+    return LyricsScrollBounds(minOffset = minOffset, maxOffset = maxOffset)
+}
+
+/**
+ * Offset auto-scroll should rest at for the current active line.
+ *
+ * Mid-song this is 0 (active line on the anchor). Near the end it shifts so the last line
+ * sits on the bottom padding instead of leaving blank space below. Near the start it shifts
+ * so the first line sits on the top padding.
+ */
+internal fun computeAutoRestOffset(
+    contentAbove: Float,
+    contentBelow: Float,
+    lastItemHeight: Float,
+    viewportHeight: Float,
+    anchorY: Float,
+    topPadding: Float,
+    bottomPadding: Float,
+): Float {
+    val bounds = computeLyricsScrollBounds(
+        contentAbove = contentAbove,
+        contentBelow = contentBelow,
+        lastItemHeight = lastItemHeight,
+        viewportHeight = viewportHeight,
+        anchorY = anchorY,
+        topPadding = topPadding,
+        bottomPadding = bottomPadding,
+    )
+    val firstY0 = anchorY - contentAbove
+    val lastBottom0 = anchorY + contentBelow + lastItemHeight
+    val bottomLimit = viewportHeight - bottomPadding
+    val rest = when {
+        // Not enough content below the anchor: pin the last line to the bottom padding.
+        lastBottom0 < bottomLimit -> bottomLimit - lastBottom0
+        // Not enough content above the anchor: pin the first line to the top padding.
+        firstY0 > topPadding -> topPadding - firstY0
+        else -> 0f
+    }
+    return rest.coerceIn(bounds.clampMin, bounds.clampMax)
+}
 private const val LYRICS_STAGGER_DELAY_PER_DISTANCE = 20
 private const val LYRICS_STAGGER_DELAY_MAX_MS = 200
 private const val LYRICS_PREVIEW_TIME = 8000L
@@ -589,6 +663,25 @@ fun ExperimentalLyrics(
         
         // Use a more permissive fallback for constraints to prevent "locks" if items are not measured yet
         val constraintLineHeightPx = with(density) { 120.dp.toPx() }
+        // Single height resolver so positions and scroll clamps agree on unmeasured items.
+        // Prefer the average of already-measured heights so translated/romanized lines
+        // (which are taller) do not get an underestimated fallback while they stream in.
+        val resolveItemHeight: (Int) -> Float = remember(itemHeights.toMap(), mergedLyricsList) {
+            val measuredAverage = if (itemHeights.isEmpty()) {
+                null
+            } else {
+                itemHeights.values.average().toFloat().coerceAtLeast(lineHeightPx)
+            }
+            { index: Int ->
+                itemHeights[index]?.toFloat()
+                    ?: measuredAverage
+                    ?: if (mergedLyricsList.getOrNull(index) is LyricsListItem.Indicator) {
+                        indicatorHeightPx
+                    } else {
+                        constraintLineHeightPx
+                    }
+            }
+        }
 
         val positions = remember(itemHeights.toMap(), activeListIndex, mergedLyricsList) {
             val map = mutableMapOf<Int, Float>()
@@ -598,16 +691,15 @@ fun ExperimentalLyrics(
             var currentY = 0f
             for (i in activeListIndex - 1 downTo 0) {
                 val item = mergedLyricsList[i]
-                val height = itemHeights[i]?.toFloat() ?: (if (item is LyricsListItem.Indicator) indicatorHeightPx else lineHeightPx)
+                val height = resolveItemHeight(i)
                 val noGap = (item as? LyricsListItem.Line)?.entry?.isBackground == true || item is LyricsListItem.Indicator
                 currentY -= (height + if (noGap) 0f else with(density) { LYRICS_ITEM_GAP_DP.toPx() })
                 map[i] = currentY
             }
             currentY = 0f
             for (i in activeListIndex until mergedLyricsList.size - 1) {
-                val currentItem = mergedLyricsList[i]
                 val nextItem = mergedLyricsList[i + 1]
-                val height = itemHeights[i]?.toFloat() ?: (if (currentItem is LyricsListItem.Indicator) indicatorHeightPx else lineHeightPx)
+                val height = resolveItemHeight(i)
                 val nextNoGap = (nextItem as? LyricsListItem.Line)?.entry?.isBackground == true || nextItem is LyricsListItem.Indicator
                 currentY += (height + if (nextNoGap) 0f else with(density) { LYRICS_ITEM_GAP_DP.toPx() })
                 map[i + 1] = currentY
@@ -615,57 +707,75 @@ fun ExperimentalLyrics(
             map
         }
 
-        val minOffset = remember(itemHeights.toMap(), mergedLyricsList, activeListIndex, anchorY) {
-            if (mergedLyricsList.isEmpty() || activeListIndex == -1) return@remember 0f
-            val totalBelow = (activeListIndex until mergedLyricsList.size - 1).sumOf { i ->
-                val currentItem = mergedLyricsList[i]
-                val nextItem = mergedLyricsList[i + 1]
-                val height = itemHeights[i]?.toFloat() ?: (if (currentItem is LyricsListItem.Indicator) indicatorHeightPx else constraintLineHeightPx)
-                val nextNoGap = (nextItem as? LyricsListItem.Line)?.entry?.isBackground == true || nextItem is LyricsListItem.Indicator
-                (height + if (nextNoGap) 0f else with(density) { LYRICS_ITEM_GAP_DP.toPx() }).toDouble()
-            }.toFloat()
-            val lastItem = mergedLyricsList.last()
-            val lastHeight = itemHeights[mergedLyricsList.size - 1]?.toFloat() ?: (if (lastItem is LyricsListItem.Indicator) indicatorHeightPx else constraintLineHeightPx)
-            with(density) { 100.dp.toPx() } - anchorY - totalBelow - lastHeight
+        val scrollLayout = remember(itemHeights.toMap(), mergedLyricsList, activeListIndex, anchorY, maxHeightPx) {
+            if (mergedLyricsList.isEmpty() || activeListIndex == -1) {
+                LyricsScrollBounds(minOffset = 0f, maxOffset = 0f) to 0f
+            } else {
+                val gapPx = with(density) { LYRICS_ITEM_GAP_DP.toPx() }
+                val totalAbove = (0 until activeListIndex).sumOf { i ->
+                    val item = mergedLyricsList[i]
+                    val noGap = (item as? LyricsListItem.Line)?.entry?.isBackground == true || item is LyricsListItem.Indicator
+                    (resolveItemHeight(i) + if (noGap) 0f else gapPx).toDouble()
+                }.toFloat()
+                val totalBelow = (activeListIndex until mergedLyricsList.size - 1).sumOf { i ->
+                    val nextItem = mergedLyricsList[i + 1]
+                    val nextNoGap = (nextItem as? LyricsListItem.Line)?.entry?.isBackground == true || nextItem is LyricsListItem.Indicator
+                    (resolveItemHeight(i) + if (nextNoGap) 0f else gapPx).toDouble()
+                }.toFloat()
+                val lastHeight = resolveItemHeight(mergedLyricsList.size - 1)
+                val topPad = with(density) { LYRICS_SCROLL_TOP_PADDING_DP.toPx() }
+                val bottomPad = with(density) { LYRICS_SCROLL_BOTTOM_PADDING_DP.toPx() }
+                val bounds = computeLyricsScrollBounds(
+                    contentAbove = totalAbove,
+                    contentBelow = totalBelow,
+                    lastItemHeight = lastHeight,
+                    viewportHeight = maxHeightPx,
+                    anchorY = anchorY,
+                    topPadding = topPad,
+                    bottomPadding = bottomPad,
+                )
+                val rest = computeAutoRestOffset(
+                    contentAbove = totalAbove,
+                    contentBelow = totalBelow,
+                    lastItemHeight = lastHeight,
+                    viewportHeight = maxHeightPx,
+                    anchorY = anchorY,
+                    topPadding = topPad,
+                    bottomPadding = bottomPad,
+                )
+                bounds to rest
+            }
         }
+        val lyricsScrollBounds = scrollLayout.first
+        val autoRestOffset = scrollLayout.second
 
-        val maxOffset = remember(itemHeights.toMap(), mergedLyricsList, activeListIndex, maxHeightPx, anchorY) {
-            if (mergedLyricsList.isEmpty() || activeListIndex == -1) return@remember 0f
-            val totalAbove = (0 until activeListIndex).sumOf { i ->
-                val item = mergedLyricsList[i]
-                val height = itemHeights[i]?.toFloat() ?: (if (item is LyricsListItem.Indicator) indicatorHeightPx else constraintLineHeightPx)
-                val noGap = (item as? LyricsListItem.Line)?.entry?.isBackground == true || item is LyricsListItem.Indicator
-                (height + if (noGap) 0f else with(density) { LYRICS_ITEM_GAP_DP.toPx() }).toDouble()
-            }.toFloat()
-            maxHeightPx - with(density) { 150.dp.toPx() } - anchorY + totalAbove
-        }
+        // Manual scroll is clamped to the real first/last lyric positions only. Auto-scroll
+        // rests at autoRestOffset (0 mid-song; pinned to the last/first line near either end)
+        // instead of always 0, which used to leave a blank slab past the last line.
+        val scrollClampMin = lyricsScrollBounds.clampMin
+        val scrollClampMax = lyricsScrollBounds.clampMax
 
-        // Clamp to real content bounds only. minOffset/maxOffset already use conservative height
-        // fallbacks (constraintLineHeightPx) for items not yet measured; a large buffer here caused
-        // effectively unbounded overscroll away from the lyrics.
-        val scrollClampMin = minOf(minOffset, maxOffset)
-        val scrollClampMax = maxOf(minOffset, maxOffset)
-
-        LaunchedEffect(scrollClampMin, scrollClampMax) {
-            if (userManualOffset < scrollClampMin || userManualOffset > scrollClampMax) {
+        LaunchedEffect(scrollClampMin, scrollClampMax, isAutoScrollEnabled) {
+            if (!isAutoScrollEnabled && (userManualOffset < scrollClampMin || userManualOffset > scrollClampMax)) {
                 userManualOffset = userManualOffset.coerceIn(scrollClampMin, scrollClampMax)
             }
         }
 
-        LaunchedEffect(isAutoScrollEnabled, lines) {
+        LaunchedEffect(isAutoScrollEnabled, autoRestOffset, lines) {
             if (isAutoScrollEnabled) {
                 val start = userManualOffset
-                if (abs(start) < 1f) {
-                    userManualOffset = 0f
+                val target = autoRestOffset
+                if (abs(start - target) < 1f) {
+                    userManualOffset = target
                     return@LaunchedEffect
                 }
                 val anim = Animatable(start)
                 var lastValue = start
-                anim.animateTo(0f, tween((abs(start) / 4f).toInt().coerceIn(200, 600), easing = FastOutSlowInEasing)) {
+                anim.animateTo(target, tween((abs(start - target) / 4f).toInt().coerceIn(200, 600), easing = FastOutSlowInEasing)) {
                     userManualOffset += (value - lastValue)
                     lastValue = value
                 }
-                userManualOffset = 0f
+                userManualOffset = target
             }
         }
 
