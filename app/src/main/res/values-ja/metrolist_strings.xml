@@ -448,7 +448,7 @@
     <string name="crossfade_gapless_desc">曲間のない曲ではクロスフェードしません</string>
     <string name="audio_offload_disabled_by_crossfade">クロスフェードを使用中はこの機能を使用できません</string>
     <string name="together">Together</string>
-    <string name="ai_lyrics_translation">AI歌詞翻訳</string>
+    <string name="ai_lyrics_translation">AI歌詞とポッドキャスト字幕の翻訳</string>
     <string name="ai_always_translate">常にAI翻訳を使用</string>
     <string name="ai_always_translate_desc">歌詞を表示したときに自動で翻訳します。バックグラウンドでの歌詞の事前読み込みではAIを使用しません。</string>
     <string name="ai_translating_lyrics">歌詞を翻訳中…</string>
@@ -900,6 +900,9 @@
     <string name="podcast_asr_language_zh">中国語</string>
     <string name="podcast_asr_language_en">英語</string>
 
+    <string name="podcast_subtitle_model_ready">認識モデルをダウンロード済み</string>
+    <string name="podcast_subtitle_delete_model">認識モデルを削除</string>
+    <string name="podcast_subtitle_delete_model_confirm">端末の認識モデルを削除しますか？生成済みのエピソード字幕は保持されます</string>
     <string name="podcast_subtitle_asr_model_corrupt">認識モデルがないか破損しています。再ダウンロードしてください</string>
     <string name="podcast_subtitle_asr_dialog_confirm">続ける</string>
 </resources>

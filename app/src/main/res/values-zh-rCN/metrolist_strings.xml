@@ -439,7 +439,7 @@
     <string name="widget_turntable">虚拟打碟台</string>
     <string name="enter_room_code">输入房间邀请码</string>
     <string name="listen_together_settings_desc">配置用户名、房间行为和诊断选项</string>
-    <string name="ai_lyrics_translation">AI 歌词翻译</string>
+    <string name="ai_lyrics_translation">AI 歌词与播客字幕翻译</string>
     <string name="ai_always_translate">始终使用 AI 翻译</string>
     <string name="ai_always_translate_desc">打开歌词显示时自动翻译。后台预加载歌词时不会调用 AI。</string>
     <string name="ai_translating_lyrics">正在翻译歌词…</string>
@@ -1018,6 +1018,9 @@
     <string name="podcast_asr_language_zh">中文</string>
     <string name="podcast_asr_language_en">英语</string>
 
+    <string name="podcast_subtitle_model_ready">识别模型已下载</string>
+    <string name="podcast_subtitle_delete_model">删除识别模型</string>
+    <string name="podcast_subtitle_delete_model_confirm">删除端侧识别模型？已经生成的单集字幕会保留</string>
     <string name="podcast_subtitle_asr_model_corrupt">识别模型缺失或已损坏，请重新下载</string>
     <string name="podcast_subtitle_asr_dialog_confirm">继续</string>
 </resources>

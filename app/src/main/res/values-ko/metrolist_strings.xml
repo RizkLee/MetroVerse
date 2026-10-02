@@ -381,7 +381,7 @@
     <string name="lyrics_animation_style_title">단어 단위 애니메이션 스타일</string>
     <string name="wrapped_no_data">표시할 데이터가 없습니다</string>
     <string name="not_playing">재생 중인 노래 없음</string>
-    <string name="ai_lyrics_translation">AI 가사 번역</string>
+    <string name="ai_lyrics_translation">AI 가사 및 팟캐스트 자막 번역</string>
     <string name="ai_always_translate">항상 AI 번역 사용</string>
     <string name="ai_always_translate_desc">가사를 표시할 때 자동으로 번역합니다. 백그라운드 가사 미리 불러오기에는 AI를 사용하지 않습니다.</string>
     <string name="ai_translating_lyrics">가사를 번역하는 중…</string>
@@ -833,6 +833,9 @@
     <string name="podcast_asr_language_zh">중국어</string>
     <string name="podcast_asr_language_en">영어</string>
 
+    <string name="podcast_subtitle_model_ready">인식 모델 다운로드됨</string>
+    <string name="podcast_subtitle_delete_model">인식 모델 삭제</string>
+    <string name="podcast_subtitle_delete_model_confirm">기기에서 인식 모델을 삭제할까요? 생성된 에피소드 자막은 유지됩니다</string>
     <string name="podcast_subtitle_asr_model_corrupt">인식 모델이 없거나 손상되었습니다. 다시 다운로드하세요</string>
     <string name="podcast_subtitle_asr_dialog_confirm">계속</string>
 </resources>

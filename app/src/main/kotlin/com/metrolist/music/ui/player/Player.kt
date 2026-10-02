@@ -174,6 +174,7 @@ import com.metrolist.music.extensions.toggleRepeatMode
 import com.metrolist.music.listentogether.RoomRole
 import com.metrolist.music.models.MediaMetadata
 import com.metrolist.music.podcast.transcript.PodcastSubtitleState
+import com.metrolist.music.podcast.transcript.SubtitleCue
 import com.metrolist.music.podcast.transcript.SubtitleTranslationConfig
 import com.metrolist.music.ui.component.BottomSheet
 import com.metrolist.music.ui.component.BottomSheetState
@@ -186,6 +187,7 @@ import com.metrolist.music.ui.component.SquigglySlider
 import com.metrolist.music.ui.component.WavySlider
 import com.metrolist.music.ui.component.rememberBottomSheetState
 import com.metrolist.music.ui.menu.PlayerMenu
+import com.metrolist.music.ui.menu.PodcastSubtitleMenu
 import com.metrolist.music.ui.screens.settings.DarkMode
 import com.metrolist.music.ui.theme.PlayerColorExtractor
 import com.metrolist.music.ui.theme.PlayerSliderColors
@@ -354,7 +356,17 @@ fun BottomSheetPlayer(
     val subtitleModelDownloadProgress =
         podcastSubtitleManager?.modelDownloadProgress?.collectAsStateWithLifecycle()?.value
 
-    val subtitleTranslationConfig = remember(aiProvider, openRouterApiKey, deeplApiKey, translateLanguage) {
+    val subtitleTranslationConfig = remember(
+        aiProvider,
+        openRouterApiKey,
+        deeplApiKey,
+        deeplFormality,
+        openRouterBaseUrl,
+        openRouterModel,
+        translateMode,
+        translateLanguage,
+        aiSystemPrompt,
+    ) {
         SubtitleTranslationConfig(
             provider = aiProvider,
             apiKey = openRouterApiKey,
@@ -385,6 +397,7 @@ fun BottomSheetPlayer(
 
     val (asrDisclaimerSeen, onAsrDisclaimerSeenChange) = rememberPreference(PodcastAsrDisclaimerSeenKey, false)
     var showAsrDisclaimerDialog by rememberSaveable { mutableStateOf(false) }
+    var subtitleResyncToken by rememberSaveable { mutableStateOf(0) }
 
     val automix by playerConnection.service.automixItems.collectAsStateWithLifecycle()
     val repeatMode by playerConnection.repeatMode.collectAsStateWithLifecycle()
@@ -466,6 +479,14 @@ fun BottomSheetPlayer(
                     )
                 }
             }
+        }
+    }
+
+    fun requestOnDeviceTranscription() {
+        if (asrDisclaimerSeen) {
+            launchOnDeviceTranscription()
+        } else {
+            showAsrDisclaimerDialog = true
         }
     }
 
@@ -1185,40 +1206,66 @@ fun BottomSheetPlayer(
                             }
                         }
 
-                        AnimatedContent(targetState = showInlineLyrics, label = "LikeButton") { showLyrics ->
-                            if (showLyrics) {
-                                val currentLyrics by playerConnection.currentLyrics.collectAsStateWithLifecycle(initialValue = null)
-                                FilledIconButton(
-                                    onClick = {
-                                        menuState.show {
-                                            com.metrolist.music.ui.menu.LyricsMenu(
-                                                lyricsProvider = { currentLyrics },
-                                                songProvider = { currentSong?.song },
-                                                mediaMetadataProvider = { mediaMetadata },
-                                                onDismiss = menuState::dismiss,
-                                                onShowOffsetDialog = {
-                                                    bottomSheetPageState.show {
-                                                        ShowOffsetDialog(
-                                                            songProvider = { currentSong?.song },
-                                                        )
-                                                    }
-                                                },
-                                            )
-                                        }
-                                    },
-                                    shape = favShape,
-                                    colors =
-                                        IconButtonDefaults.filledIconButtonColors(
-                                            containerColor = textButtonColor,
-                                            contentColor = iconButtonColor,
-                                        ),
-                                    modifier = Modifier.size(42.dp),
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.more_horiz),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(24.dp),
-                                    )
+                        AnimatedContent(targetState = showInlineLyrics || subtitleViewVisible, label = "LikeButton") { showTextMenu ->
+                            if (showTextMenu) {
+                                if (subtitleViewVisible) {
+                                    FilledIconButton(
+                                        onClick = {
+                                            menuState.show {
+                                                PodcastSubtitleMenu(
+                                                    onDismiss = menuState::dismiss,
+                                                    onResync = { subtitleResyncToken++ },
+                                                )
+                                            }
+                                        },
+                                        shape = favShape,
+                                        colors =
+                                            IconButtonDefaults.filledIconButtonColors(
+                                                containerColor = textButtonColor,
+                                                contentColor = iconButtonColor,
+                                            ),
+                                        modifier = Modifier.size(42.dp),
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.more_horiz),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(24.dp),
+                                        )
+                                    }
+                                } else {
+                                    val currentLyrics by playerConnection.currentLyrics.collectAsStateWithLifecycle(initialValue = null)
+                                    FilledIconButton(
+                                        onClick = {
+                                            menuState.show {
+                                                com.metrolist.music.ui.menu.LyricsMenu(
+                                                    lyricsProvider = { currentLyrics },
+                                                    songProvider = { currentSong?.song },
+                                                    mediaMetadataProvider = { mediaMetadata },
+                                                    onDismiss = menuState::dismiss,
+                                                    onShowOffsetDialog = {
+                                                        bottomSheetPageState.show {
+                                                            ShowOffsetDialog(
+                                                                songProvider = { currentSong?.song },
+                                                            )
+                                                        }
+                                                    },
+                                                )
+                                            }
+                                        },
+                                        shape = favShape,
+                                        colors =
+                                            IconButtonDefaults.filledIconButtonColors(
+                                                containerColor = textButtonColor,
+                                                contentColor = iconButtonColor,
+                                            ),
+                                        modifier = Modifier.size(42.dp),
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.more_horiz),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(24.dp),
+                                        )
+                                    }
                                 }
                             } else {
                                 // For episodes, show saved state (inLibrary); for songs, show liked state
@@ -1307,9 +1354,8 @@ fun BottomSheetPlayer(
 
                     Spacer(modifier = Modifier.size(12.dp))
 
-                    AnimatedContent(targetState = showInlineLyrics, label = "LikeButton") { showLyrics ->
-                        if (showLyrics) {
-                            val currentLyrics by playerConnection.currentLyrics.collectAsStateWithLifecycle(initialValue = null)
+                    AnimatedContent(targetState = showInlineLyrics || subtitleViewVisible, label = "LikeButton") { showTextMenu ->
+                        if (showTextMenu) {
                             Box(
                                 modifier =
                                     Modifier
@@ -1318,19 +1364,27 @@ fun BottomSheetPlayer(
                                         .background(textButtonColor)
                                         .clickable {
                                             menuState.show {
-                                                com.metrolist.music.ui.menu.LyricsMenu(
-                                                    lyricsProvider = { currentLyrics },
-                                                    songProvider = { currentSong?.song },
-                                                    mediaMetadataProvider = { mediaMetadata },
-                                                    onDismiss = menuState::dismiss,
-                                                    onShowOffsetDialog = {
-                                                        bottomSheetPageState.show {
-                                                            ShowOffsetDialog(
-                                                                songProvider = { currentSong?.song },
-                                                            )
-                                                        }
-                                                    },
-                                                )
+                                                if (subtitleViewVisible) {
+                                                    PodcastSubtitleMenu(
+                                                        onDismiss = menuState::dismiss,
+                                                        onResync = { subtitleResyncToken++ },
+                                                    )
+                                                } else {
+                                                    val currentLyrics by playerConnection.currentLyrics.collectAsStateWithLifecycle(initialValue = null)
+                                                    com.metrolist.music.ui.menu.LyricsMenu(
+                                                        lyricsProvider = { currentLyrics },
+                                                        songProvider = { currentSong?.song },
+                                                        mediaMetadataProvider = { mediaMetadata },
+                                                        onDismiss = menuState::dismiss,
+                                                        onShowOffsetDialog = {
+                                                            bottomSheetPageState.show {
+                                                                ShowOffsetDialog(
+                                                                    songProvider = { currentSong?.song },
+                                                                )
+                                                            }
+                                                        },
+                                                    )
+                                                }
                                             }
                                         },
                             ) {
@@ -1876,14 +1930,15 @@ fun BottomSheetPlayer(
                                             podcastSubtitleTranslation && !subtitleTranslationConfig.hasCredentials,
                                         textColor = TextBackgroundColor,
                                         asrDownloadProgress = subtitleModelDownloadProgress,
+                                        asrModelReady = podcastSubtitleManager?.isAsrModelReady() == true,
                                         onSeek = { target ->
                                             if (!isListenTogetherGuest) playerConnection.player.seekTo(target)
                                         },
-                                        onStartTranscription = { launchOnDeviceTranscription() },
+                                        onStartTranscription = { requestOnDeviceTranscription() },
                                         onCancelTranscription = {
                                             podcastSubtitleManager?.cancelTranscription()
                                         },
-                                        onDownloadModel = { launchOnDeviceTranscription() },
+                                        onDownloadModel = { requestOnDeviceTranscription() },
                                         onCurrentCueChanged = { index ->
                                             if (podcastSubtitleTranslation) {
                                                 podcastSubtitleManager?.requestTranslations(
@@ -1892,6 +1947,8 @@ fun BottomSheetPlayer(
                                                 )
                                             }
                                         },
+                                        onShareCue = { cue -> sharePodcastSubtitle(context, mediaMetadata, cue) },
+                                        resyncToken = subtitleResyncToken,
                                     )
                                 }
                                 else -> {
@@ -1970,14 +2027,15 @@ fun BottomSheetPlayer(
                                             podcastSubtitleTranslation && !subtitleTranslationConfig.hasCredentials,
                                         textColor = TextBackgroundColor,
                                         asrDownloadProgress = subtitleModelDownloadProgress,
+                                        asrModelReady = podcastSubtitleManager?.isAsrModelReady() == true,
                                         onSeek = { target ->
                                             if (!isListenTogetherGuest) playerConnection.player.seekTo(target)
                                         },
-                                        onStartTranscription = { launchOnDeviceTranscription() },
+                                        onStartTranscription = { requestOnDeviceTranscription() },
                                         onCancelTranscription = {
                                             podcastSubtitleManager?.cancelTranscription()
                                         },
-                                        onDownloadModel = { launchOnDeviceTranscription() },
+                                        onDownloadModel = { requestOnDeviceTranscription() },
                                         onCurrentCueChanged = { index ->
                                             if (podcastSubtitleTranslation) {
                                                 podcastSubtitleManager?.requestTranslations(
@@ -1986,6 +2044,8 @@ fun BottomSheetPlayer(
                                                 )
                                             }
                                         },
+                                        onShareCue = { cue -> sharePodcastSubtitle(context, mediaMetadata, cue) },
+                                        resyncToken = subtitleResyncToken,
                                     )
                                 }
                                 else -> {
@@ -2071,6 +2131,26 @@ private enum class PlayerContentMode {
     THUMBNAIL,
     LYRICS,
     SUBTITLES,
+}
+
+private fun sharePodcastSubtitle(
+    context: Context,
+    metadata: MediaMetadata?,
+    cue: SubtitleCue,
+) {
+    val safeMetadata = metadata ?: return
+    val attribution = buildString {
+        append(safeMetadata.title)
+        safeMetadata.artists.joinToString(", ") { it.name }.takeIf { it.isNotBlank() }?.let {
+            append(" - ")
+            append(it)
+        }
+    }
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, "\"${cue.text}\"\n\n$attribution")
+    }
+    context.startActivity(Intent.createChooser(intent, context.getString(R.string.share)))
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)

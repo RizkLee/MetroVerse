@@ -189,7 +189,7 @@ object ComposeToImage {
             val padding = 28f * scale
 
             // --- Header Section ---
-            val coverArtSize = 64f * scale
+            val coverArtSize = 56f * scale
             val headerBottomPadding = 12f * scale
 
             val coverCornerRadius = 3f * scale
@@ -222,7 +222,7 @@ object ComposeToImage {
             val titlePaint =
                 TextPaint().apply {
                     color = mainTextColor
-                    textSize = 20f * scale
+                    textSize = 18f * scale
                     typeface = Typeface.DEFAULT_BOLD
                     isAntiAlias = true
                 }
@@ -230,7 +230,7 @@ object ComposeToImage {
             val artistPaint =
                 TextPaint().apply {
                     color = secondaryTxtColor
-                    textSize = 16f * scale
+                    textSize = 14f * scale
                     typeface = Typeface.DEFAULT
                     isAntiAlias = true
                 }
@@ -239,7 +239,7 @@ object ComposeToImage {
                 StaticLayout.Builder
                     .obtain(songTitle, 0, songTitle.length, titlePaint, textMaxWidth.toInt())
                     .setAlignment(Layout.Alignment.ALIGN_NORMAL)
-                    .setMaxLines(1)
+                    .setMaxLines(2)
                     .setEllipsize(android.text.TextUtils.TruncateAt.END)
                     .build()
 

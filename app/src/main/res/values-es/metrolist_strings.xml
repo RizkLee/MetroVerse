@@ -445,7 +445,7 @@
     <string name="together">Juntos</string>
     <string name="enter_room_code">Introduce un código de sala</string>
     <string name="listen_together_settings_desc">Configurar servidor, nombre de usuario y más</string>
-    <string name="ai_lyrics_translation">Traducción de letras con IA</string>
+    <string name="ai_lyrics_translation">Traducción con IA de letras y subtítulos de podcasts</string>
     <string name="ai_always_translate">Usar siempre la traducción con IA</string>
     <string name="ai_always_translate_desc">Traduce automáticamente al mostrar las letras. La precarga en segundo plano no utiliza la IA.</string>
     <string name="ai_translating_lyrics">Traduciendo letras…</string>
@@ -939,6 +939,9 @@
     <string name="podcast_asr_language_zh">Chino</string>
     <string name="podcast_asr_language_en">Inglés</string>
 
+    <string name="podcast_subtitle_model_ready">Modelo de reconocimiento descargado</string>
+    <string name="podcast_subtitle_delete_model">Eliminar modelo de reconocimiento</string>
+    <string name="podcast_subtitle_delete_model_confirm">¿Eliminar el modelo de reconocimiento del dispositivo? Se conservarán los subtítulos generados</string>
     <string name="podcast_subtitle_asr_model_corrupt">El modelo de reconocimiento falta o está dañado. Descárgalo de nuevo</string>
     <string name="podcast_subtitle_asr_dialog_confirm">Continuar</string>
 </resources>

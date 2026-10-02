@@ -14,10 +14,13 @@ import com.metrolist.music.podcast.PODCAST_USER_AGENT
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import java.io.File
 import java.nio.ByteOrder
+import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -44,6 +47,8 @@ class OnDeviceTranscriber @Inject constructor(
     private val modelFile: File get() = File(asrDir, MODEL_DIR).resolve(MODEL_FILE)
     private val tokensFile: File get() = File(asrDir, MODEL_DIR).resolve(TOKENS_FILE)
     private val vadFile: File get() = File(asrDir, VAD_FILE)
+    @Volatile
+    private var validatedModelKey: String? = null
 
     /**
      * sherpa-onnx loads models natively and calls exit(-1) inside C++ when a file cannot be
@@ -52,15 +57,41 @@ class OnDeviceTranscriber @Inject constructor(
      */
     fun isModelReady(): Boolean = hasValidModelFiles()
 
-    private fun hasValidModelFiles(): Boolean =
-        modelFile.length() >= MIN_MODEL_BYTES &&
-            tokensFile.length() >= MIN_TOKENS_BYTES &&
-            vadFile.length() >= MIN_VAD_BYTES
+    /** Returns the total storage used by the optional on-device recognition model. */
+    fun modelStorageBytes(): Long =
+        asrDir.takeIf { it.exists() }
+            ?.walkTopDown()
+            ?.filter { it.isFile }
+            ?.sumOf { it.length() }
+            ?: 0L
+
+    /** Removes the optional ASR model without touching generated episode transcripts. */
+    fun deleteModels(): Boolean {
+        validatedModelKey = null
+        return asrDir.exists() && asrDir.deleteRecursively()
+    }
+
+    private fun hasValidModelFiles(): Boolean {
+        val key = listOf(modelFile, tokensFile, vadFile)
+            .joinToString(separator = ":") { "${it.length()}:${it.lastModified()}" }
+        if (validatedModelKey == key) return true
+        if (modelFile.length() != EXPECTED_MODEL_BYTES ||
+            tokensFile.length() < MIN_TOKENS_BYTES ||
+            vadFile.length() < MIN_VAD_BYTES
+        ) {
+            validatedModelKey = null
+            return false
+        }
+        val valid = sha256(modelFile) == EXPECTED_MODEL_SHA256
+        validatedModelKey = key.takeIf { valid }
+        return valid
+    }
 
     /** Deletes invalid model artifacts so the download flow starts over cleanly. */
     fun invalidateInvalidModelFiles(): Boolean {
         val invalid = !hasValidModelFiles()
         if (invalid) {
+            validatedModelKey = null
             modelFile.delete()
             tokensFile.delete()
             vadFile.delete()
@@ -72,11 +103,19 @@ class OnDeviceTranscriber @Inject constructor(
     suspend fun downloadModels(onProgress: (bytes: Long, totalBytes: Long) -> Unit): Result<Unit> =
         withContext(Dispatchers.IO) {
             runCatching {
-                downloadToFile(MODEL_URLS, modelFile, MIN_MODEL_BYTES, onProgress)
+                downloadToFile(
+                    MODEL_URLS,
+                    modelFile,
+                    MIN_MODEL_BYTES,
+                    onProgress,
+                    expectedBytes = EXPECTED_MODEL_BYTES,
+                    expectedSha256 = EXPECTED_MODEL_SHA256,
+                )
                 downloadToFile(TOKENS_URLS, tokensFile, MIN_TOKENS_BYTES, onProgress)
                 downloadToFile(VAD_URLS, vadFile, MIN_VAD_BYTES, onProgress)
             }.onFailure { error ->
                 if (error is CancellationException) throw error
+                validatedModelKey = null
                 modelFile.delete()
                 tokensFile.delete()
                 vadFile.delete()
@@ -135,57 +174,65 @@ class OnDeviceTranscriber @Inject constructor(
                 ),
             )
 
-            val totalSamplesEstimate = if (totalDurationMs > 0) totalDurationMs * SAMPLE_RATE / 1000 else 0L
-            val cues = mutableListOf<SubtitleCue>()
-            var detectedLanguage: String? = null
-            var samplesFed = 0L
+            try {
+                val totalSamplesEstimate =
+                    if (totalDurationMs > 0) totalDurationMs * SAMPLE_RATE / 1000 else 0L
+                val coroutineContext = currentCoroutineContext()
+                val cues = mutableListOf<SubtitleCue>()
+                var detectedLanguage: String? = null
+                var samplesFed = 0L
 
-            fun drainSegments(finalFlush: Boolean) {
-                if (finalFlush) vad.flush()
-                while (!vad.empty()) {
-                    val segment = vad.front()
-                    vad.pop()
-                    val startMs = segment.start * 1000L / SAMPLE_RATE
-                    val endMs = startMs + segment.samples.size * 1000L / SAMPLE_RATE
-                    val stream = recognizer.createStream()
-                    stream.acceptWaveform(segment.samples, SAMPLE_RATE)
-                    recognizer.decode(stream)
-                    val result = recognizer.getResult(stream)
-                    stream.release()
+                fun drainSegments(finalFlush: Boolean) {
+                    coroutineContext.ensureActive()
+                    if (finalFlush) vad.flush()
+                    while (!vad.empty()) {
+                        coroutineContext.ensureActive()
+                        val segment = vad.front()
+                        vad.pop()
+                        val startMs = segment.start * 1000L / SAMPLE_RATE
+                        val endMs = startMs + segment.samples.size * 1000L / SAMPLE_RATE
+                        val stream = recognizer.createStream()
+                        stream.acceptWaveform(segment.samples, SAMPLE_RATE)
+                        recognizer.decode(stream)
+                        val result = recognizer.getResult(stream)
+                        stream.release()
 
-                    val text = result.text.trim()
-                    if (text.isNotEmpty()) {
-                        if (detectedLanguage == null) {
-                            detectedLanguage = PodcastAsrSupport.normalizeLanguageTag(result.lang)
+                        val text = result.text.trim()
+                        if (text.isNotEmpty()) {
+                            if (detectedLanguage == null) {
+                                detectedLanguage = PodcastAsrSupport.normalizeLanguageTag(result.lang)
+                            }
+                            cues.addAll(
+                                PodcastAsrSupport.splitLongCue(SubtitleCue(startMs, endMs, text)),
+                            )
                         }
-                        cues.addAll(
-                            PodcastAsrSupport.splitLongCue(SubtitleCue(startMs, endMs, text)),
-                        )
+                        onPartial(cues.toList(), progressPercent(samplesFed, totalSamplesEstimate))
                     }
-                    onPartial(cues.toList(), progressPercent(samplesFed, totalSamplesEstimate))
                 }
-            }
 
-            AudioDecoder.decodeToPcmChunks(
-                source = source,
-                chunkSamples = SAMPLE_RATE * 30,
-            ) { chunk, _ ->
-                vad.acceptWaveform(chunk)
-                samplesFed += chunk.size
-                drainSegments(finalFlush = false)
-            }
-            drainSegments(finalFlush = true)
+                AudioDecoder.decodeToPcmChunks(
+                    source = source,
+                    chunkSamples = SAMPLE_RATE * 30,
+                ) { chunk, _ ->
+                    coroutineContext.ensureActive()
+                    vad.acceptWaveform(chunk)
+                    samplesFed += chunk.size
+                    drainSegments(finalFlush = false)
+                }
+                drainSegments(finalFlush = true)
 
-            vad.release()
-            recognizer.release()
-
-            // Timestamps: segment starts are exact; assign each cue an end at the next cue's
-            // start (or start + a nominal display duration for the trailing one).
-            val normalized = cues.mapIndexed { index, cue ->
-                val end = cues.getOrNull(index + 1)?.startMs ?: (cue.startMs + DEFAULT_ASR_CUE_END_MS)
-                SubtitleCue(cue.startMs, maxOf(end, cue.startMs + 1000), cue.text)
+                // Timestamps: segment starts are exact; assign each cue an end at the next
+                // cue's start (or a nominal display duration for the trailing one).
+                val normalized = cues.mapIndexed { index, cue ->
+                    val end = cues.getOrNull(index + 1)?.startMs
+                        ?: (cue.startMs + DEFAULT_ASR_CUE_END_MS)
+                    SubtitleCue(cue.startMs, maxOf(end, cue.startMs + 1000), cue.text)
+                }
+                normalized to detectedLanguage
+            } finally {
+                vad.release()
+                recognizer.release()
             }
-            normalized to detectedLanguage
         }
     }
 
@@ -197,8 +244,15 @@ class OnDeviceTranscriber @Inject constructor(
         target: File,
         minBytes: Long,
         onProgress: (bytes: Long, totalBytes: Long) -> Unit,
+        expectedBytes: Long? = null,
+        expectedSha256: String? = null,
     ) {
-        if (target.exists() && target.length() >= minBytes) return
+        if (target.exists() && target.length() >= minBytes) {
+            val validSize = expectedBytes == null || target.length() == expectedBytes
+            val validHash = expectedSha256 == null || sha256(target) == expectedSha256
+            if (validSize && validHash) return
+            target.delete()
+        }
         target.parentFile?.mkdirs()
         val partial = File(target.absolutePath + ".part")
 
@@ -213,10 +267,11 @@ class OnDeviceTranscriber @Inject constructor(
                 val response = okHttpClient.newCall(request).execute()
                 response.use { httpResponse ->
                     check(httpResponse.isSuccessful) { "Model download failed (${httpResponse.code}): $url" }
-                    val total = httpResponse.body?.contentLength() ?: -1L
+                    val body = httpResponse.body
+                    val total = body.contentLength()
                     var written = 0L
                     var lastReport = 0L
-                    httpResponse.body?.byteStream()?.use { input ->
+                    body.byteStream().use { input ->
                         partial.outputStream().use { output ->
                             val buffer = ByteArray(DOWNLOAD_BUFFER_SIZE)
                             while (true) {
@@ -238,6 +293,12 @@ class OnDeviceTranscriber @Inject constructor(
                     check(total <= 0L || written == total) {
                         "Model download incomplete ($written of $total bytes): $url"
                     }
+                    check(expectedBytes == null || written == expectedBytes) {
+                        "Model download has unexpected size ($written bytes): $url"
+                    }
+                    check(expectedSha256 == null || sha256(partial) == expectedSha256) {
+                        "Model download checksum mismatch: $url"
+                    }
                     check(partial.renameTo(target)) { "Failed to finalize model file: $url" }
                     return
                 }
@@ -248,6 +309,19 @@ class OnDeviceTranscriber @Inject constructor(
             }
         }
         throw lastError ?: IllegalStateException("Model download failed: $urls")
+    }
+
+    private fun sha256(file: File): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { input ->
+            val buffer = ByteArray(DOWNLOAD_BUFFER_SIZE)
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                digest.update(buffer, 0, count)
+            }
+        }
+        return digest.digest().joinToString("") { byte -> "%02x".format(byte) }
     }
 
     /** Streams an audio URL into 16 kHz mono float chunks via the platform decoder. */
@@ -370,26 +444,30 @@ class OnDeviceTranscriber @Inject constructor(
         private const val PROGRESS_STEP_BYTES = 512 * 1024L
         private const val DEFAULT_ASR_CUE_END_MS = 5_000L
 
+        // SenseVoice int8 2025-09-09. The SHA-256 is the public Hugging Face LFS checksum.
+        const val EXPECTED_MODEL_BYTES = 237_115_547L
+        const val EXPECTED_MODEL_SHA256 = "12ca1a2ae7ecf3e0019ef2822307ee0b5cadc9196569e379b4c4026f8205276d"
+
         // Native model loading cannot report failures gracefully, so anything below these
         // sizes is treated as a corrupt download and re-fetched.
-        const val MIN_MODEL_BYTES = 200L * 1024 * 1024
-        const val MIN_TOKENS_BYTES = 512L * 1024
+        const val MIN_MODEL_BYTES = 220L * 1024 * 1024
+        const val MIN_TOKENS_BYTES = 128L * 1024
         const val MIN_VAD_BYTES = 512L * 1024
 
         /** Primary sources first, then mirrors reachable from mainland China. */
         val MODEL_URLS = listOf(
-            "https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/resolve/main/model.int8.onnx",
-            "https://hf-mirror.com/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/resolve/main/model.int8.onnx",
+            "https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09/resolve/main/model.int8.onnx",
+            "https://hf-mirror.com/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09/resolve/main/model.int8.onnx",
         )
         val TOKENS_URLS = listOf(
-            "https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/resolve/main/tokens.txt",
-            "https://hf-mirror.com/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/resolve/main/tokens.txt",
+            "https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09/resolve/main/tokens.txt",
+            "https://hf-mirror.com/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09/resolve/main/tokens.txt",
         )
         val VAD_URLS = listOf(
             "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx",
             "https://hf-mirror.com/csukuangfj/sherpa-onnx-silero-vad/resolve/main/silero_vad.onnx",
         )
 
-        fun approximateModelDownloadBytes(): Long = 239_233_841L + 643_854L + 2_500_000L
+        fun approximateModelDownloadBytes(): Long = EXPECTED_MODEL_BYTES + 320_000L + 2_500_000L
     }
 }

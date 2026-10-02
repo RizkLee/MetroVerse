@@ -705,7 +705,7 @@
     <string name="user_blocked_by_host">Blocked by host</string>
 
     <!-- AI Lyrics Translation -->
-    <string name="ai_lyrics_translation">AI lyrics translation</string>
+    <string name="ai_lyrics_translation">AI lyrics and podcast subtitle translation</string>
     <string name="ai_always_translate">Always use AI translation</string>
     <string name="ai_always_translate_desc">Automatically translate when lyrics are displayed. Background lyric loading never uses AI.</string>
     <string name="ai_translating_lyrics">Translating lyrics…</string>
@@ -1146,6 +1146,9 @@
     <string name="podcast_asr_language_zh">Chinese</string>
     <string name="podcast_asr_language_en">English</string>
 
+    <string name="podcast_subtitle_model_ready">Recognition model downloaded</string>
+    <string name="podcast_subtitle_delete_model">Delete recognition model</string>
+    <string name="podcast_subtitle_delete_model_confirm">Delete the on-device recognition model? Generated episode subtitles will be kept</string>
     <string name="podcast_subtitle_asr_model_corrupt">The recognition model is missing or corrupted. Please download it again</string>
     <string name="podcast_subtitle_asr_dialog_confirm">Continue</string>
 </resources>

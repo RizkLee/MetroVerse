@@ -153,7 +153,7 @@ class TranscriptRepository @Inject constructor(
 
     /** Loads a transcript: cached decoded cues first, otherwise downloads and parses. */
     suspend fun loadTranscript(episodeId: String): EpisodeTranscript? {
-        loadCachedTranscript(episodeId)?.let { return it }
+        loadCachedTranscript(episodeId)?.takeIf { it.source == TranscriptSource.FEED }?.let { return it }
 
         val refs = transcriptRefs(episodeId) ?: return null
         val ref = PodcastTranscriptParser.bestSyncedRef(refs) ?: return null
@@ -248,6 +248,12 @@ class TranscriptRepository @Inject constructor(
         withContext(Dispatchers.IO) {
             runCatching {
                 transcriptsDir.mkdirs()
+                val previous = loadCachedTranscript(episodeId)
+                if (previous != null && previous.cues != transcript.cues) {
+                    File(context.filesDir, "podcast/translations").listFiles()
+                        ?.filter { it.name.startsWith("${episodeId.takeLast(48)}_") }
+                        ?.forEach { it.delete() }
+                }
                 transcriptFile(episodeId).writeText(
                     json.encodeToString(
                         StoredTranscript(

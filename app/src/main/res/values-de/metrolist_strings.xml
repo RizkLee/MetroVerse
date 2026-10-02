@@ -439,7 +439,7 @@
     <string name="together">Gemeinsam</string>
     <string name="enter_room_code">Raum-Code eingeben</string>
     <string name="listen_together_settings_desc">Server, Benutzernamen und mehr konfigurieren</string>
-    <string name="ai_lyrics_translation">KI-Song-Text-Übersetzung</string>
+    <string name="ai_lyrics_translation">KI-Übersetzung von Liedtexten und Podcast-Untertiteln</string>
     <string name="ai_always_translate">KI-Übersetzung immer verwenden</string>
     <string name="ai_always_translate_desc">Übersetzt automatisch, wenn Liedtexte angezeigt werden. Beim Vorladen im Hintergrund wird keine KI verwendet.</string>
     <string name="ai_translating_lyrics">Songtexte übersetzen…</string>
@@ -936,6 +936,9 @@
     <string name="podcast_asr_language_zh">Chinesisch</string>
     <string name="podcast_asr_language_en">Englisch</string>
 
+    <string name="podcast_subtitle_model_ready">Erkennungsmodell heruntergeladen</string>
+    <string name="podcast_subtitle_delete_model">Erkennungsmodell löschen</string>
+    <string name="podcast_subtitle_delete_model_confirm">On-Device-Erkennungsmodell löschen? Bereits erzeugte Podcast-Untertitel bleiben erhalten</string>
     <string name="podcast_subtitle_asr_model_corrupt">Das Erkennungsmodell fehlt oder ist beschädigt. Bitte lade es erneut herunter</string>
     <string name="podcast_subtitle_asr_dialog_confirm">Weiter</string>
 </resources>

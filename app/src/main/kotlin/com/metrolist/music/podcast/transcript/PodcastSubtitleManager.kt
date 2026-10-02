@@ -68,6 +68,15 @@ class PodcastSubtitleManager @Inject constructor(
 
     fun isAsrModelReady(): Boolean = transcriber.isModelReady()
 
+    fun asrModelStorageBytes(): Long = transcriber.modelStorageBytes()
+
+    fun deleteAsrModel() {
+        transcriptionJob?.cancel()
+        transcriptionJob = null
+        transcriber.deleteModels()
+        _modelDownloadProgress.value = null
+    }
+
     /**
      * Notifies the manager that the displayed episode changed. Called from the player UI;
      * safe to call repeatedly for the same episode.
@@ -83,13 +92,8 @@ class PodcastSubtitleManager @Inject constructor(
         val episodeId = metadata.id
 
         scope.launch {
-            // 1. Cached transcript (feed or previously generated on-device one).
-            transcriptRepository.cachedTranscript(episodeId)?.let { cached ->
-                if (currentEpisodeId == episodeId) _state.value = PodcastSubtitleState.Ready(cached)
-                return@launch
-            }
-
-            // 2. Feed transcript advertised by podcast:transcript.
+            // Prefer a publisher transcript whenever the feed advertises one. A generated
+            // transcript is only a fallback, so it must never shadow a later feed refresh.
             var refs = transcriptRepository.transcriptRefs(episodeId)
             if (refs == null) {
                 // Subscriptions imported before this feature have no index entry yet;
@@ -97,18 +101,26 @@ class PodcastSubtitleManager @Inject constructor(
                 ensureFeedParsed(metadata)
                 refs = transcriptRepository.transcriptRefs(episodeId)
             }
-            if (refs == null) {
-                if (currentEpisodeId == episodeId) {
-                    _state.value = PodcastSubtitleState.Unavailable
+
+            if (refs != null) {
+                val loaded = runCatching { transcriptRepository.loadTranscript(episodeId) }.getOrNull()
+                if (currentEpisodeId != episodeId) return@launch
+                if (loaded != null) {
+                    _state.value = PodcastSubtitleState.Ready(loaded)
+                    return@launch
                 }
+            }
+
+            // No usable publisher transcript: restore a previously generated on-device one.
+            transcriptRepository.cachedTranscript(episodeId)
+                ?.takeIf { it.source == TranscriptSource.ON_DEVICE }
+                ?.let { cached ->
+                if (currentEpisodeId == episodeId) _state.value = PodcastSubtitleState.Ready(cached)
                 return@launch
             }
 
-            val loaded = runCatching { transcriptRepository.loadTranscript(episodeId) }.getOrNull()
-            if (currentEpisodeId != episodeId) return@launch
-            _state.value = when {
-                loaded != null -> PodcastSubtitleState.Ready(loaded)
-                else -> PodcastSubtitleState.Unavailable
+            if (currentEpisodeId == episodeId) {
+                _state.value = PodcastSubtitleState.Unavailable
             }
         }
     }
@@ -230,23 +242,30 @@ class PodcastSubtitleManager @Inject constructor(
             }
             if (stillMissing.isEmpty()) return@launch
 
-            val result = SubtitleTranslationHelper.translateLines(
-                lines = stillMissing.map { cues[it].text },
-                config = config,
-                context = context,
-            )
-            result.onSuccess { translatedLines ->
-                val updated = _translations.value.toMutableMap()
-                val forPersistence = mutableMapOf<Int, String>()
-                stillMissing.forEachIndexed { position, index ->
-                    val line = translatedLines.getOrNull(position).orEmpty()
-                    updated[index] = line
-                    forPersistence[index] = line
-                }
-                _translations.value = updated
-                transcriptRepository.storeTranslation(
-                    episodeId, config.targetLanguage, config.provider, forPersistence,
+            val batches = buildTranslationBatches(stillMissing, cues)
+            batches.forEach { batch ->
+                val result = SubtitleTranslationHelper.translateLines(
+                    lines = batch.map { cues[it].text },
+                    config = config,
+                    context = context,
                 )
+                result.onSuccess { translatedLines ->
+                    val updated = _translations.value.toMutableMap()
+                    val forPersistence = mutableMapOf<Int, String>()
+                    batch.forEachIndexed { position, index ->
+                        val line = translatedLines.getOrNull(position).orEmpty()
+                        if (line.isNotBlank()) {
+                            updated[index] = line
+                            forPersistence[index] = line
+                        }
+                    }
+                    _translations.value = updated
+                    if (forPersistence.isNotEmpty()) {
+                        transcriptRepository.storeTranslation(
+                            episodeId, config.targetLanguage, config.provider, forPersistence,
+                        )
+                    }
+                }
             }
         }
     }
@@ -267,6 +286,27 @@ class PodcastSubtitleManager @Inject constructor(
         runCatching { podcastRepository.fetchFeed(feedUrl) }
     }
 
+    private fun buildTranslationBatches(
+        indices: List<Int>,
+        cues: List<SubtitleCue>,
+    ): List<List<Int>> {
+        val batches = mutableListOf<MutableList<Int>>()
+        var current = mutableListOf<Int>()
+        var currentChars = 0
+        indices.forEach { index ->
+            val lineChars = cues[index].text.length
+            if (current.isNotEmpty() && currentChars + lineChars > MAX_TRANSLATION_CHARS) {
+                batches += current
+                current = mutableListOf()
+                currentChars = 0
+            }
+            current += index
+            currentChars += lineChars
+        }
+        if (current.isNotEmpty()) batches += current
+        return batches
+    }
+
     private fun currentTranscriptLanguage(): String? = when (val current = _state.value) {
         is PodcastSubtitleState.Ready -> current.transcript.language
         else -> null
@@ -284,5 +324,6 @@ class PodcastSubtitleManager @Inject constructor(
 
     private companion object {
         const val TRANSLATION_WINDOW_AHEAD = 5
+        const val MAX_TRANSLATION_CHARS = 2_800
     }
 }

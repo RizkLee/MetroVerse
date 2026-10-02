@@ -449,7 +449,7 @@
     <string name="together">Вместе</string>
     <string name="enter_room_code">Введите код комнаты</string>
     <string name="listen_together_settings_desc">Настройка сервера, имени пользователя и прочего</string>
-    <string name="ai_lyrics_translation">ИИ-перевод текста</string>
+    <string name="ai_lyrics_translation">ИИ-перевод текста песен и субтитров подкастов</string>
     <string name="ai_always_translate">Всегда использовать ИИ-перевод</string>
     <string name="ai_always_translate_desc">Автоматически переводит текст при открытии экрана с текстом песни. Фоновая предзагрузка текста не использует ИИ.</string>
     <string name="ai_translating_lyrics">Перевод текста…</string>
@@ -950,6 +950,9 @@
     <string name="podcast_asr_language_zh">Китайский</string>
     <string name="podcast_asr_language_en">Английский</string>
 
+    <string name="podcast_subtitle_model_ready">Модель распознавания загружена</string>
+    <string name="podcast_subtitle_delete_model">Удалить модель распознавания</string>
+    <string name="podcast_subtitle_delete_model_confirm">Удалить модель распознавания с устройства? Созданные субтитры эпизодов сохранятся</string>
     <string name="podcast_subtitle_asr_model_corrupt">Модель распознавания отсутствует или повреждена. Скачайте её заново</string>
     <string name="podcast_subtitle_asr_dialog_confirm">Продолжить</string>
 </resources>

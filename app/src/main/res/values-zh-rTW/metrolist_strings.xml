@@ -484,7 +484,7 @@
     <string name="ai_provider">Ai模型</string>
     <string name="ai_lyrics_translated">歌詞翻譯</string>
     <string name="ai_translating_lyrics">翻譯歌詞…</string>
-    <string name="ai_lyrics_translation">AI歌詞翻譯</string>
+    <string name="ai_lyrics_translation">AI 歌詞與 Podcast 字幕翻譯</string>
     <string name="ai_always_translate">一律使用 AI 翻譯</string>
     <string name="ai_always_translate_desc">開啟歌詞顯示時自動翻譯。背景預載歌詞時不會呼叫 AI。</string>
     <string name="user_blocked_by_host">使用者已被主持人封鎖</string>
@@ -873,6 +873,9 @@
     <string name="podcast_asr_language_zh">中文</string>
     <string name="podcast_asr_language_en">英語</string>
 
+    <string name="podcast_subtitle_model_ready">辨識模型已下載</string>
+    <string name="podcast_subtitle_delete_model">刪除辨識模型</string>
+    <string name="podcast_subtitle_delete_model_confirm">刪除裝置上的辨識模型？已產生的單集字幕會保留</string>
     <string name="podcast_subtitle_asr_model_corrupt">辨識模型缺失或已損壞，請重新下載</string>
     <string name="podcast_subtitle_asr_dialog_confirm">繼續</string>
 </resources>

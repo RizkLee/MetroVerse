@@ -7,6 +7,7 @@ package com.metrolist.music.ui.player
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -63,11 +64,14 @@ fun PodcastSubtitleView(
     textColor: Color,
     modifier: Modifier = Modifier,
     asrDownloadProgress: Pair<Long, Long>? = null,
+    asrModelReady: Boolean = false,
     onSeek: (Long) -> Unit = {},
     onStartTranscription: () -> Unit = {},
     onCancelTranscription: () -> Unit = {},
     onDownloadModel: () -> Unit = {},
     onCurrentCueChanged: (Int) -> Unit = {},
+    onShareCue: (SubtitleCue) -> Unit = {},
+    resyncToken: Int = 0,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         when (state) {
@@ -104,7 +108,7 @@ fun PodcastSubtitleView(
                     )
                     Spacer(Modifier.height(4.dp))
                     AsrEntry(
-                        asrModelReady = true,
+                        asrModelReady = asrModelReady,
                         asrDownloadProgress = asrDownloadProgress,
                         textColor = textColor,
                         onStartTranscription = onStartTranscription,
@@ -129,7 +133,7 @@ fun PodcastSubtitleView(
                     )
                     Spacer(Modifier.height(4.dp))
                     AsrEntry(
-                        asrModelReady = true,
+                        asrModelReady = asrModelReady,
                         asrDownloadProgress = asrDownloadProgress,
                         textColor = textColor,
                         label = stringResource(R.string.podcast_subtitle_asr_retry),
@@ -161,6 +165,8 @@ fun PodcastSubtitleView(
                             textColor = textColor,
                             onSeek = onSeek,
                             onCurrentCueChanged = onCurrentCueChanged,
+                            onShareCue = onShareCue,
+                            resyncToken = resyncToken,
                         )
                     }
                 }
@@ -177,6 +183,8 @@ fun PodcastSubtitleView(
                     textColor = textColor,
                     onSeek = onSeek,
                     onCurrentCueChanged = onCurrentCueChanged,
+                    onShareCue = onShareCue,
+                    resyncToken = resyncToken,
                 )
             }
         }
@@ -194,6 +202,8 @@ private fun SubtitleCueList(
     textColor: Color,
     onSeek: (Long) -> Unit,
     onCurrentCueChanged: (Int) -> Unit,
+    onShareCue: (SubtitleCue) -> Unit,
+    resyncToken: Int,
 ) {
     val listState = rememberLazyListState()
     var autoScroll by rememberSaveable { mutableStateOf(true) }
@@ -230,6 +240,10 @@ private fun SubtitleCueList(
         else -> activeIndex
     }
 
+    LaunchedEffect(resyncToken) {
+        autoScroll = true
+    }
+
     LaunchedEffect(currentIndex, autoScroll, cues.size) {
         if (autoScroll && currentIndex >= 0 && cues.isNotEmpty()) {
             listState.animateScrollToItem(currentIndex.coerceIn(0, cues.lastIndex))
@@ -239,7 +253,7 @@ private fun SubtitleCueList(
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             state = listState,
-            horizontalAlignment = Alignment.CenterHorizontally,
+            horizontalAlignment = Alignment.Start,
             contentPadding = PaddingValues(
                 horizontal = 24.dp,
                 vertical = maxHeight * 0.32f,
@@ -252,7 +266,7 @@ private fun SubtitleCueList(
                         text = stringResource(R.string.podcast_subtitle_translation_missing_key),
                         style = MaterialTheme.typography.labelSmall,
                         color = textColor.copy(alpha = 0.7f),
-                        textAlign = TextAlign.Center,
+                        textAlign = TextAlign.Start,
                         modifier = Modifier.padding(bottom = 12.dp),
                     )
                 }
@@ -266,7 +280,16 @@ private fun SubtitleCueList(
                     showTranslation = showTranslation,
                     textColor = textColor,
                     onClick = { onSeek(cue.startMs) },
+                    onLongClick = { onShareCue(cue) },
                 )
+            }
+        }
+        if (!autoScroll) {
+            TextButton(
+                onClick = { autoScroll = true },
+                modifier = Modifier.align(Alignment.BottomCenter),
+            ) {
+                Text(stringResource(R.string.resync))
             }
         }
     }
@@ -280,6 +303,7 @@ private fun SubtitleCueRow(
     showTranslation: Boolean,
     textColor: Color,
     onClick: () -> Unit,
+    onLongClick: () -> Unit,
 ) {
     // Lyrics-like emphasis, deliberately simpler: color/alpha animate, no scaling or glow.
     val lineColor by animateColorAsState(
@@ -287,11 +311,14 @@ private fun SubtitleCueRow(
         label = "subtitleLineColor",
     )
     Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
+        horizontalAlignment = Alignment.Start,
         modifier =
             Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onClick)
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = onLongClick,
+                )
                 .padding(vertical = 8.dp),
     ) {
         Text(
@@ -310,14 +337,14 @@ private fun SubtitleCueRow(
                     )
                 },
             color = lineColor,
-            textAlign = TextAlign.Center,
+            textAlign = TextAlign.Start,
         )
         if (showTranslation && !translation.isNullOrBlank()) {
             Text(
                 text = translation,
                 style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 19.sp),
                 color = lineColor.copy(alpha = if (active) 0.8f else 0.55f),
-                textAlign = TextAlign.Center,
+                textAlign = TextAlign.Start,
                 modifier = Modifier.padding(top = 2.dp),
             )
         }

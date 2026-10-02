@@ -88,15 +88,16 @@ object SubtitleTranslationHelper {
             )
         }
 
-        return result.map { translatedLines ->
-            val byIndex = mutableMapOf<Int, String>()
-            translatedLines.forEachIndexed { position, text ->
-                if (position < nonEmpty.size) {
-                    byIndex[nonEmpty[position]] = text
-                }
-            }
-            lines.mapIndexed { index, line -> if (line.isBlank()) "" else byIndex[index].orEmpty() }
+        return result.mapCatching { translatedLines ->
+            alignTranslations(lines, translatedLines)
         }
+    }
+
+    internal fun alignTranslations(lines: List<String>, translatedLines: List<String>): List<String> {
+        val nonEmpty = lines.indices.filter { lines[it].isNotBlank() }
+        require(translatedLines.size == nonEmpty.size) { "Translation line count mismatch" }
+        val byIndex = nonEmpty.zip(translatedLines).toMap()
+        return lines.indices.map { byIndex[it].orEmpty() }
     }
 
     private fun displayLanguageName(code: String): String =

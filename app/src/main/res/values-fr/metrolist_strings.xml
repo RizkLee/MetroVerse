@@ -445,7 +445,7 @@
     <string name="together">Ensemble</string>
     <string name="enter_room_code">Entrez un code de salle</string>
     <string name="listen_together_settings_desc">Configurer le serveur, le nom d\'utilisateur, et plus encore</string>
-    <string name="ai_lyrics_translation">Traduction des paroles par IA</string>
+    <string name="ai_lyrics_translation">Traduction IA des paroles et des sous-titres de podcasts</string>
     <string name="ai_always_translate">Toujours utiliser la traduction par IA</string>
     <string name="ai_always_translate_desc">Traduit automatiquement lorsque les paroles sont affichées. Le préchargement en arrière-plan n’utilise pas l’IA.</string>
     <string name="ai_translating_lyrics">Traduction des paroles…</string>
@@ -943,6 +943,9 @@
     <string name="podcast_asr_language_zh">Chinois</string>
     <string name="podcast_asr_language_en">Anglais</string>
 
+    <string name="podcast_subtitle_model_ready">Modèle de reconnaissance téléchargé</string>
+    <string name="podcast_subtitle_delete_model">Supprimer le modèle de reconnaissance</string>
+    <string name="podcast_subtitle_delete_model_confirm">Supprimer le modèle de reconnaissance sur l’appareil ? Les sous-titres déjà générés seront conservés</string>
     <string name="podcast_subtitle_asr_model_corrupt">Le modèle de reconnaissance est absent ou endommagé. Veuillez le retélécharger</string>
     <string name="podcast_subtitle_asr_dialog_confirm">Continuer</string>
 </resources>

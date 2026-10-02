@@ -433,7 +433,7 @@
     <string name="listen_together_no_blocked_users">Nenhum usuário bloqueado</string>
     <string name="unblock">Desbloquear</string>
     <string name="user_blocked_by_host">Bloqueado pelo anfitrião</string>
-    <string name="ai_lyrics_translation">Tradução de letras por IA</string>
+    <string name="ai_lyrics_translation">Tradução por IA de letras e legendas de podcasts</string>
     <string name="ai_always_translate">Sempre usar tradução por IA</string>
     <string name="ai_always_translate_desc">Traduz automaticamente quando as letras são exibidas. O pré-carregamento em segundo plano não usa IA.</string>
     <string name="ai_translating_lyrics">Traduzindo letras…</string>
@@ -932,6 +932,9 @@
     <string name="podcast_asr_language_zh">Chinês</string>
     <string name="podcast_asr_language_en">Inglês</string>
 
+    <string name="podcast_subtitle_model_ready">Modelo de reconhecimento baixado</string>
+    <string name="podcast_subtitle_delete_model">Excluir modelo de reconhecimento</string>
+    <string name="podcast_subtitle_delete_model_confirm">Excluir o modelo de reconhecimento do dispositivo? As legendas geradas serão mantidas</string>
     <string name="podcast_subtitle_asr_model_corrupt">O modelo de reconhecimento está ausente ou corrompido. Baixe-o novamente</string>
     <string name="podcast_subtitle_asr_dialog_confirm">Continuar</string>
 </resources>

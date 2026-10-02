@@ -445,7 +445,7 @@
     <string name="together">Insieme</string>
     <string name="enter_room_code">Inserisci un codice stanza</string>
     <string name="listen_together_settings_desc">Configura server, nome utente e altro</string>
-    <string name="ai_lyrics_translation">Traduzione testi AI</string>
+    <string name="ai_lyrics_translation">Traduzione IA di testi e sottotitoli dei podcast</string>
     <string name="ai_always_translate">Usa sempre la traduzione AI</string>
     <string name="ai_always_translate_desc">Traduce automaticamente quando vengono mostrati i testi. Il precaricamento in background non usa l’AI.</string>
     <string name="ai_translating_lyrics">Traduzione del testo…</string>
@@ -936,6 +936,9 @@
     <string name="podcast_asr_language_zh">Cinese</string>
     <string name="podcast_asr_language_en">Inglese</string>
 
+    <string name="podcast_subtitle_model_ready">Modello di riconoscimento scaricato</string>
+    <string name="podcast_subtitle_delete_model">Elimina modello di riconoscimento</string>
+    <string name="podcast_subtitle_delete_model_confirm">Eliminare il modello di riconoscimento sul dispositivo? I sottotitoli generati verranno conservati</string>
     <string name="podcast_subtitle_asr_model_corrupt">Il modello di riconoscimento manca o è danneggiato. Scaricalo di nuovo</string>
     <string name="podcast_subtitle_asr_dialog_confirm">Continua</string>
 </resources>
