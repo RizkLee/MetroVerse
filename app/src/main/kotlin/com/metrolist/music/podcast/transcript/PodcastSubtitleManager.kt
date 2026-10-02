@@ -40,6 +40,13 @@ sealed interface PodcastSubtitleState {
     data class TranscriptionFailed(val message: String) : PodcastSubtitleState
 }
 
+sealed interface PodcastTranslationStatus {
+    data object Idle : PodcastTranslationStatus
+    data object Translating : PodcastTranslationStatus
+    data object Success : PodcastTranslationStatus
+    data class Error(val message: String) : PodcastTranslationStatus
+}
+
 /**
  * Single source of truth for podcast subtitles in the player: resolves feed transcripts,
  * exposes on-device recognition, and produces windowed translations.
@@ -62,6 +69,9 @@ class PodcastSubtitleManager @Inject constructor(
     private val _modelDownloadProgress = MutableStateFlow<Pair<Long, Long>?>(null)
     val modelDownloadProgress: StateFlow<Pair<Long, Long>?> = _modelDownloadProgress.asStateFlow()
 
+    private val _translationStatus = MutableStateFlow<PodcastTranslationStatus>(PodcastTranslationStatus.Idle)
+    val translationStatus: StateFlow<PodcastTranslationStatus> = _translationStatus.asStateFlow()
+
     private var currentEpisodeId: String? = null
     private var transcriptionJob: Job? = null
     private var translationJob: Job? = null
@@ -69,6 +79,8 @@ class PodcastSubtitleManager @Inject constructor(
     fun isAsrModelReady(): Boolean = transcriber.isModelReady()
 
     fun asrModelStorageBytes(): Long = transcriber.modelStorageBytes()
+
+    fun asrModelDownloadBytes(): Long = OnDeviceTranscriber.approximateModelDownloadBytes()
 
     fun deleteAsrModel() {
         transcriptionJob?.cancel()
@@ -131,20 +143,37 @@ class PodcastSubtitleManager @Inject constructor(
         else -> emptyList()
     }
 
-    /** Starts manual on-device recognition for the given episode. */
+    /** Starts recognition, downloading the model first when needed. */
     fun startTranscription(metadata: MediaMetadata, durationMs: Long, languageMode: String) {
         if (transcriptionJob?.isActive == true) return
         val mediaUrl = metadata.mediaUrl ?: return
         val episodeId = metadata.id
         currentEpisodeId = episodeId
         transcriptionJob = scope.launch {
-            // A corrupt model would abort the process inside native code; re-fetch instead.
-            if (transcriber.invalidateInvalidModelFiles()) {
-                _state.value = PodcastSubtitleState.TranscriptionFailed(
-                    context.getString(R.string.podcast_subtitle_asr_model_corrupt),
-                )
-                return@launch
+            if (!transcriber.isModelReady()) {
+                transcriber.invalidateInvalidModelFiles()
+                _state.value = PodcastSubtitleState.Unavailable
+                _modelDownloadProgress.value = 0L to asrModelDownloadBytes()
+                val downloadResult = transcriber.downloadModels { bytes, total ->
+                    _modelDownloadProgress.value = bytes to total
+                }
+                if (downloadResult.isFailure) {
+                    _modelDownloadProgress.value = null
+                    if (currentEpisodeId == episodeId) {
+                        _state.value = PodcastSubtitleState.TranscriptionFailed(
+                            downloadResult.exceptionOrNull()?.message
+                                ?: context.getString(R.string.podcast_subtitle_asr_failed),
+                        )
+                    }
+                    return@launch
+                }
+                // Keep the completed state visible until native recognition starts; do not flash
+                // back to an empty download button while the final files are being validated.
+                _modelDownloadProgress.value = asrModelDownloadBytes() to
+                    asrModelDownloadBytes()
+                _modelDownloadProgress.value = null
             }
+
             _state.value = PodcastSubtitleState.Transcribing(emptyList(), 0)
             val result = transcriber.transcribe(
                 source = mediaUrl,
@@ -188,25 +217,9 @@ class PodcastSubtitleManager @Inject constructor(
     fun cancelTranscription() {
         transcriptionJob?.cancel()
         transcriptionJob = null
+        _modelDownloadProgress.value = null
         if (_state.value is PodcastSubtitleState.Transcribing) {
             _state.value = PodcastSubtitleState.Unavailable
-        }
-    }
-
-    fun downloadAsrModel(onDone: (Result<Unit>) -> Unit) {
-        if (_modelDownloadProgress.value != null) return
-        scope.launch {
-            val result = transcriber.downloadModels { bytes, total ->
-                _modelDownloadProgress.value = bytes to total
-            }
-            _modelDownloadProgress.value = null
-            if (result.isFailure && currentEpisodeId != null) {
-                _state.value = PodcastSubtitleState.TranscriptionFailed(
-                    result.exceptionOrNull()?.message
-                        ?: context.getString(R.string.podcast_subtitle_asr_failed),
-                )
-            }
-            onDone(result)
         }
     }
 
@@ -228,6 +241,7 @@ class PodcastSubtitleManager @Inject constructor(
 
         val episodeId = currentEpisodeId ?: return
         if (translationJob?.isActive == true) return
+        _translationStatus.value = PodcastTranslationStatus.Translating
         translationJob = scope.launch {
             if (_translations.value.isEmpty()) {
                 val persisted = transcriptRepository.loadTranslation(
@@ -240,10 +254,14 @@ class PodcastSubtitleManager @Inject constructor(
             val stillMissing = (windowStart..windowEnd).filter { index ->
                 _translations.value[index] == null && cues[index].text.isNotBlank()
             }
-            if (stillMissing.isEmpty()) return@launch
+            if (stillMissing.isEmpty()) {
+                _translationStatus.value = PodcastTranslationStatus.Success
+                return@launch
+            }
 
             val batches = buildTranslationBatches(stillMissing, cues)
-            batches.forEach { batch ->
+            var failedMessage: String? = null
+            for (batch in batches) {
                 val result = SubtitleTranslationHelper.translateLines(
                     lines = batch.map { cues[it].text },
                     config = config,
@@ -265,8 +283,13 @@ class PodcastSubtitleManager @Inject constructor(
                             episodeId, config.targetLanguage, config.provider, forPersistence,
                         )
                     }
+                }.onFailure { error ->
+                    failedMessage = error.message
                 }
+                if (failedMessage != null) break
             }
+            _translationStatus.value = failedMessage?.let { PodcastTranslationStatus.Error(it) }
+                ?: PodcastTranslationStatus.Success
         }
     }
 
@@ -274,6 +297,7 @@ class PodcastSubtitleManager @Inject constructor(
         translationJob?.cancel()
         translationJob = null
         _translations.value = emptyMap()
+        _translationStatus.value = PodcastTranslationStatus.Idle
     }
 
     fun reset() {
@@ -315,9 +339,11 @@ class PodcastSubtitleManager @Inject constructor(
     private fun reset(next: PodcastSubtitleState) {
         transcriptionJob?.cancel()
         transcriptionJob = null
+        _modelDownloadProgress.value = null
         translationJob?.cancel()
         translationJob = null
         _translations.value = emptyMap()
+        _translationStatus.value = PodcastTranslationStatus.Idle
         currentEpisodeId = null
         _state.value = next
     }

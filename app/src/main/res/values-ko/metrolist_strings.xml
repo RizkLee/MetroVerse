@@ -838,4 +838,11 @@
     <string name="podcast_subtitle_delete_model_confirm">기기에서 인식 모델을 삭제할까요? 생성된 에피소드 자막은 유지됩니다</string>
     <string name="podcast_subtitle_asr_model_corrupt">인식 모델이 없거나 손상되었습니다. 다시 다운로드하세요</string>
     <string name="podcast_subtitle_asr_dialog_confirm">계속</string>
+    <string name="ai_always_translate_lyrics">Always use AI translation for lyrics</string>
+    <string name="ai_always_translate_lyrics_desc">Automatically translate lyrics when they are displayed.</string>
+    <string name="ai_always_translate_podcast_subtitles">Always use AI translation for podcast subtitles</string>
+    <string name="ai_always_translate_podcast_subtitles_desc">Automatically translate podcast subtitles when they are displayed.</string>
+    <string name="podcast_subtitle_asr_performance_warning">Recognition uses substantial CPU, memory, battery, and storage. The phone may become warm or playback may stutter.</string>
+    <string name="podcast_subtitle_asr_accuracy_warning">Recognition is experimental. Results may contain errors, missing words, or imperfect timing and should not be treated as an official transcript.</string>
+    <string name="podcast_subtitle_share_failed">Could not create the subtitle image</string>
 </resources>

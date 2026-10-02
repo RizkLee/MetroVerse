@@ -103,16 +103,35 @@ class OnDeviceTranscriber @Inject constructor(
     suspend fun downloadModels(onProgress: (bytes: Long, totalBytes: Long) -> Unit): Result<Unit> =
         withContext(Dispatchers.IO) {
             runCatching {
+                val total = EXPECTED_MODEL_BYTES + EXPECTED_TOKENS_BYTES + EXPECTED_VAD_BYTES
+                var completed = 0L
+                fun report(bytes: Long) = onProgress((completed + bytes).coerceAtMost(total), total)
+
                 downloadToFile(
                     MODEL_URLS,
                     modelFile,
                     MIN_MODEL_BYTES,
-                    onProgress,
+                    { bytes, _ -> report(bytes) },
                     expectedBytes = EXPECTED_MODEL_BYTES,
                     expectedSha256 = EXPECTED_MODEL_SHA256,
                 )
-                downloadToFile(TOKENS_URLS, tokensFile, MIN_TOKENS_BYTES, onProgress)
-                downloadToFile(VAD_URLS, vadFile, MIN_VAD_BYTES, onProgress)
+                completed += EXPECTED_MODEL_BYTES
+                report(0L)
+                downloadToFile(
+                    TOKENS_URLS,
+                    tokensFile,
+                    MIN_TOKENS_BYTES,
+                    { bytes, _ -> report(bytes) },
+                )
+                completed += EXPECTED_TOKENS_BYTES
+                report(0L)
+                downloadToFile(
+                    VAD_URLS,
+                    vadFile,
+                    MIN_VAD_BYTES,
+                    { bytes, _ -> report(bytes) },
+                )
+                onProgress(total, total)
             }.onFailure { error ->
                 if (error is CancellationException) throw error
                 validatedModelKey = null
@@ -450,6 +469,8 @@ class OnDeviceTranscriber @Inject constructor(
 
         // Native model loading cannot report failures gracefully, so anything below these
         // sizes is treated as a corrupt download and re-fetched.
+        const val EXPECTED_TOKENS_BYTES = 320_000L
+        const val EXPECTED_VAD_BYTES = 2_500_000L
         const val MIN_MODEL_BYTES = 220L * 1024 * 1024
         const val MIN_TOKENS_BYTES = 128L * 1024
         const val MIN_VAD_BYTES = 512L * 1024

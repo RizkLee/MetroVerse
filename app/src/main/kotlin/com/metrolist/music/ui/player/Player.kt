@@ -80,6 +80,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -174,6 +175,7 @@ import com.metrolist.music.extensions.toggleRepeatMode
 import com.metrolist.music.listentogether.RoomRole
 import com.metrolist.music.models.MediaMetadata
 import com.metrolist.music.podcast.transcript.PodcastSubtitleState
+import com.metrolist.music.podcast.transcript.PodcastTranslationStatus
 import com.metrolist.music.podcast.transcript.SubtitleCue
 import com.metrolist.music.podcast.transcript.SubtitleTranslationConfig
 import com.metrolist.music.ui.component.BottomSheet
@@ -181,6 +183,7 @@ import com.metrolist.music.ui.component.BottomSheetState
 import com.metrolist.music.ui.component.LocalBottomSheetPageState
 import com.metrolist.music.ui.component.LocalMenuState
 import com.metrolist.music.ui.component.Lyrics
+import com.metrolist.music.ui.component.LyricsShareDialog
 import com.metrolist.music.ui.component.PlayerSliderTrack
 import com.metrolist.music.ui.component.ResizableIconButton
 import com.metrolist.music.ui.component.SquigglySlider
@@ -194,6 +197,7 @@ import com.metrolist.music.ui.theme.PlayerSliderColors
 import com.metrolist.music.ui.utils.ShowMediaInfo
 import com.metrolist.music.ui.utils.ShowOffsetDialog
 import com.metrolist.music.ui.utils.rememberEffectiveAppLanguageCode
+import com.metrolist.music.utils.ComposeToImage
 import com.metrolist.music.utils.dataStore
 import com.metrolist.music.utils.makeTimeString
 import com.metrolist.music.utils.rememberEnumPreference
@@ -201,6 +205,7 @@ import com.metrolist.music.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.max
 import com.metrolist.music.ui.component.Icon as MIcon
@@ -353,6 +358,9 @@ fun BottomSheetPlayer(
         podcastSubtitleManager?.state?.collectAsStateWithLifecycle()?.value ?: PodcastSubtitleState.Idle
     val subtitleTranslations =
         podcastSubtitleManager?.translations?.collectAsStateWithLifecycle()?.value ?: emptyMap()
+    val subtitleTranslationStatus =
+        podcastSubtitleManager?.translationStatus?.collectAsStateWithLifecycle()?.value
+            ?: PodcastTranslationStatus.Idle
     val subtitleModelDownloadProgress =
         podcastSubtitleManager?.modelDownloadProgress?.collectAsStateWithLifecycle()?.value
 
@@ -384,6 +392,7 @@ fun BottomSheetPlayer(
         podcastSubtitleManager?.onEpisodeChanged(mediaMetadata)
     }
 
+
     val subtitleViewVisible =
         mediaMetadata?.isEpisode == true &&
             showPodcastSubtitles &&
@@ -398,6 +407,24 @@ fun BottomSheetPlayer(
     val (asrDisclaimerSeen, onAsrDisclaimerSeenChange) = rememberPreference(PodcastAsrDisclaimerSeenKey, false)
     var showAsrDisclaimerDialog by rememberSaveable { mutableStateOf(false) }
     var subtitleResyncToken by rememberSaveable { mutableStateOf(0) }
+    var currentSubtitleIndex by rememberSaveable { mutableStateOf(-1) }
+    var podcastShareCues by remember { mutableStateOf<List<SubtitleCue>?>(null) }
+    val podcastShareScope = rememberCoroutineScope()
+
+    LaunchedEffect(mediaMetadata?.id) {
+        currentSubtitleIndex = -1
+        podcastShareCues = null
+    }
+
+    LaunchedEffect(podcastSubtitleTranslation, currentSubtitleIndex, subtitleState) {
+        if (podcastSubtitleTranslation && currentSubtitleIndex >= 0) {
+            podcastSubtitleManager?.requestTranslations(
+                centerIndex = currentSubtitleIndex,
+                config = subtitleTranslationConfig,
+            )
+        }
+    }
+
 
     val automix by playerConnection.service.automixItems.collectAsStateWithLifecycle()
     val repeatMode by playerConnection.repeatMode.collectAsStateWithLifecycle()
@@ -463,23 +490,11 @@ fun BottomSheetPlayer(
     fun launchOnDeviceTranscription() {
         val manager = podcastSubtitleManager ?: return
         val metadata = mediaMetadata ?: return
-        if (manager.isAsrModelReady()) {
-            manager.startTranscription(
-                metadata = metadata,
-                durationMs = duration,
-                languageMode = podcastAsrLanguage.name.lowercase(),
-            )
-        } else {
-            manager.downloadAsrModel { result ->
-                if (result.isSuccess) {
-                    manager.startTranscription(
-                        metadata = metadata,
-                        durationMs = duration,
-                        languageMode = podcastAsrLanguage.name.lowercase(),
-                    )
-                }
-            }
-        }
+        manager.startTranscription(
+            metadata = metadata,
+            durationMs = duration,
+            languageMode = podcastAsrLanguage.name.lowercase(),
+        )
     }
 
     fun requestOnDeviceTranscription() {
@@ -955,7 +970,7 @@ fun BottomSheetPlayer(
                         .padding(horizontal = PlayerHorizontalPadding),
             ) {
                 AnimatedContent(
-                    targetState = showInlineLyrics,
+                    targetState = showInlineLyrics || subtitleViewVisible,
                     label = "ThumbnailAnimation",
                 ) { showLyrics ->
                     if (showLyrics) {
@@ -1929,6 +1944,7 @@ fun BottomSheetPlayer(
                                         translationMissingCredentials =
                                             podcastSubtitleTranslation && !subtitleTranslationConfig.hasCredentials,
                                         textColor = TextBackgroundColor,
+                                        translationStatus = subtitleTranslationStatus,
                                         asrDownloadProgress = subtitleModelDownloadProgress,
                                         asrModelReady = podcastSubtitleManager?.isAsrModelReady() == true,
                                         onSeek = { target ->
@@ -1940,6 +1956,7 @@ fun BottomSheetPlayer(
                                         },
                                         onDownloadModel = { requestOnDeviceTranscription() },
                                         onCurrentCueChanged = { index ->
+                                            currentSubtitleIndex = index
                                             if (podcastSubtitleTranslation) {
                                                 podcastSubtitleManager?.requestTranslations(
                                                     centerIndex = index,
@@ -1947,7 +1964,7 @@ fun BottomSheetPlayer(
                                                 )
                                             }
                                         },
-                                        onShareCue = { cue -> sharePodcastSubtitle(context, mediaMetadata, cue) },
+                                        onShareCues = { cues -> podcastShareCues = cues },
                                         resyncToken = subtitleResyncToken,
                                     )
                                 }
@@ -2026,6 +2043,7 @@ fun BottomSheetPlayer(
                                         translationMissingCredentials =
                                             podcastSubtitleTranslation && !subtitleTranslationConfig.hasCredentials,
                                         textColor = TextBackgroundColor,
+                                        translationStatus = subtitleTranslationStatus,
                                         asrDownloadProgress = subtitleModelDownloadProgress,
                                         asrModelReady = podcastSubtitleManager?.isAsrModelReady() == true,
                                         onSeek = { target ->
@@ -2037,6 +2055,7 @@ fun BottomSheetPlayer(
                                         },
                                         onDownloadModel = { requestOnDeviceTranscription() },
                                         onCurrentCueChanged = { index ->
+                                            currentSubtitleIndex = index
                                             if (podcastSubtitleTranslation) {
                                                 podcastSubtitleManager?.requestTranslations(
                                                     centerIndex = index,
@@ -2044,7 +2063,7 @@ fun BottomSheetPlayer(
                                                 )
                                             }
                                         },
-                                        onShareCue = { cue -> sharePodcastSubtitle(context, mediaMetadata, cue) },
+                                        onShareCues = { cues -> podcastShareCues = cues },
                                         resyncToken = subtitleResyncToken,
                                     )
                                 }
@@ -2101,11 +2120,91 @@ fun BottomSheetPlayer(
             )
         }
 
+        if (podcastShareCues != null && mediaMetadata != null) {
+            val shareMetadata = checkNotNull(mediaMetadata)
+            val shareText = podcastShareCues!!.joinToString("\n") { it.text }
+            LyricsShareDialog(
+                txt = shareText,
+                title = shareMetadata.title,
+                arts = shareMetadata.artists.joinToString(", ") { it.name },
+                songId = shareMetadata.id,
+                shareLink = shareMetadata.shareUrl ?: shareMetadata.mediaUrl,
+                onDismiss = { podcastShareCues = null },
+                onShareAsImage = {
+                    val selectedText = shareText
+                    podcastShareCues = null
+                    podcastShareScope.launch {
+                        runCatching {
+                            val image = ComposeToImage.createLyricsImage(
+                                context = context,
+                                coverArtUrl = shareMetadata.thumbnailUrl,
+                                songTitle = shareMetadata.title,
+                                artistName = shareMetadata.artists.joinToString(", ") { it.name },
+                                lyrics = selectedText,
+                                width = 1080,
+                                height = 1080,
+                            )
+                            val uri = ComposeToImage.saveBitmapAsFile(
+                                context,
+                                image,
+                                "podcast_subtitles_${System.currentTimeMillis()}",
+                            )
+                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                type = "image/png"
+                                putExtra(Intent.EXTRA_STREAM, uri)
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(Intent.createChooser(intent, context.getString(R.string.share)))
+                        }.onFailure {
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.podcast_subtitle_share_failed),
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        }
+                    }
+                },
+            )
+        }
+
         if (showAsrDisclaimerDialog) {
             AlertDialog(
                 onDismissRequest = { showAsrDisclaimerDialog = false },
                 title = { Text(stringResource(R.string.podcast_asr_experimental)) },
-                text = { Text(stringResource(R.string.podcast_asr_experimental_desc)) },
+                icon = { Icon(painterResource(R.drawable.warning), contentDescription = null) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Row(verticalAlignment = Alignment.Top) {
+                            Icon(
+                                painterResource(R.drawable.speed),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(22.dp),
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(stringResource(R.string.podcast_subtitle_asr_performance_warning))
+                        }
+                        Row(verticalAlignment = Alignment.Top) {
+                            Icon(
+                                painterResource(R.drawable.warning),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(22.dp),
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(stringResource(R.string.podcast_subtitle_asr_accuracy_warning))
+                        }
+                        Row(verticalAlignment = Alignment.Top) {
+                            Icon(
+                                painterResource(R.drawable.download),
+                                contentDescription = null,
+                                modifier = Modifier.size(22.dp),
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(stringResource(R.string.podcast_asr_experimental_desc))
+                        }
+                    }
+                },
                 confirmButton = {
                     TextButton(
                         onClick = {
@@ -2131,26 +2230,6 @@ private enum class PlayerContentMode {
     THUMBNAIL,
     LYRICS,
     SUBTITLES,
-}
-
-private fun sharePodcastSubtitle(
-    context: Context,
-    metadata: MediaMetadata?,
-    cue: SubtitleCue,
-) {
-    val safeMetadata = metadata ?: return
-    val attribution = buildString {
-        append(safeMetadata.title)
-        safeMetadata.artists.joinToString(", ") { it.name }.takeIf { it.isNotBlank() }?.let {
-            append(" - ")
-            append(it)
-        }
-    }
-    val intent = Intent(Intent.ACTION_SEND).apply {
-        type = "text/plain"
-        putExtra(Intent.EXTRA_TEXT, "\"${cue.text}\"\n\n$attribution")
-    }
-    context.startActivity(Intent.createChooser(intent, context.getString(R.string.share)))
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)

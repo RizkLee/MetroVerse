@@ -5,7 +5,12 @@
 
 package com.metrolist.music.ui.player
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.DragInteraction
@@ -15,6 +20,11 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,10 +32,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,6 +50,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -45,8 +59,10 @@ import androidx.compose.ui.unit.sp
 import com.metrolist.music.R
 import com.metrolist.music.podcast.transcript.PodcastAsrSupport
 import com.metrolist.music.podcast.transcript.PodcastSubtitleState
+import com.metrolist.music.podcast.transcript.PodcastTranslationStatus
 import com.metrolist.music.podcast.transcript.SubtitleCue
 import kotlinx.coroutines.delay
+import com.metrolist.music.ui.utils.fadingEdge
 
 /**
  * Full-size podcast transcript view shown in the player's thumbnail slot (the same area the
@@ -62,6 +78,7 @@ fun PodcastSubtitleView(
     showTranslation: Boolean,
     translationMissingCredentials: Boolean,
     textColor: Color,
+    translationStatus: PodcastTranslationStatus = PodcastTranslationStatus.Idle,
     modifier: Modifier = Modifier,
     asrDownloadProgress: Pair<Long, Long>? = null,
     asrModelReady: Boolean = false,
@@ -70,7 +87,7 @@ fun PodcastSubtitleView(
     onCancelTranscription: () -> Unit = {},
     onDownloadModel: () -> Unit = {},
     onCurrentCueChanged: (Int) -> Unit = {},
-    onShareCue: (SubtitleCue) -> Unit = {},
+    onShareCues: (List<SubtitleCue>) -> Unit = {},
     resyncToken: Int = 0,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -151,7 +168,11 @@ fun PodcastSubtitleView(
                         onCancel = onCancelTranscription,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 32.dp),
+                            .padding(
+                                top = WindowInsets.systemBars.asPaddingValues().calculateTopPadding() + 16.dp,
+                                start = 32.dp,
+                                end = 32.dp,
+                            ),
                     )
                     if (state.cues.isNotEmpty()) {
                         Spacer(Modifier.height(12.dp))
@@ -163,9 +184,10 @@ fun PodcastSubtitleView(
                             showTranslation = showTranslation,
                             translationMissingCredentials = translationMissingCredentials,
                             textColor = textColor,
+                            translationStatus = translationStatus,
                             onSeek = onSeek,
                             onCurrentCueChanged = onCurrentCueChanged,
-                            onShareCue = onShareCue,
+                            onShareCues = onShareCues,
                             resyncToken = resyncToken,
                         )
                     }
@@ -181,9 +203,10 @@ fun PodcastSubtitleView(
                     showTranslation = showTranslation,
                     translationMissingCredentials = translationMissingCredentials,
                     textColor = textColor,
+                    translationStatus = translationStatus,
                     onSeek = onSeek,
                     onCurrentCueChanged = onCurrentCueChanged,
-                    onShareCue = onShareCue,
+                    onShareCues = onShareCues,
                     resyncToken = resyncToken,
                 )
             }
@@ -200,13 +223,21 @@ private fun SubtitleCueList(
     showTranslation: Boolean,
     translationMissingCredentials: Boolean,
     textColor: Color,
+    translationStatus: PodcastTranslationStatus,
     onSeek: (Long) -> Unit,
     onCurrentCueChanged: (Int) -> Unit,
-    onShareCue: (SubtitleCue) -> Unit,
+    onShareCues: (List<SubtitleCue>) -> Unit,
     resyncToken: Int,
 ) {
     val listState = rememberLazyListState()
     var autoScroll by rememberSaveable { mutableStateOf(true) }
+    var selectionMode by rememberSaveable { mutableStateOf(false) }
+    var selectedIndices by rememberSaveable { mutableStateOf<Set<Int>>(emptySet()) }
+
+    LaunchedEffect(cues) {
+        selectionMode = false
+        selectedIndices = emptySet()
+    }
 
     // Follow playback like the lyrics view, but pause while the user drags through the
     // transcript and resume a moment after they let go.
@@ -255,10 +286,14 @@ private fun SubtitleCueList(
             state = listState,
             horizontalAlignment = Alignment.Start,
             contentPadding = PaddingValues(
-                horizontal = 24.dp,
-                vertical = maxHeight * 0.32f,
+                start = 24.dp,
+                end = 24.dp,
+                top = maxHeight * 0.34f,
+                bottom = maxHeight * 0.42f,
             ),
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .fadingEdge(top = 88.dp, bottom = 112.dp),
         ) {
             if (translationMissingCredentials && showTranslation) {
                 item(key = "translation-hint") {
@@ -279,17 +314,122 @@ private fun SubtitleCueList(
                     active = index == currentIndex,
                     showTranslation = showTranslation,
                     textColor = textColor,
-                    onClick = { onSeek(cue.startMs) },
-                    onLongClick = { onShareCue(cue) },
+                    onClick = {
+                        if (selectionMode) {
+                            selectedIndices = selectedIndices.toMutableSet().also {
+                                if (!it.add(index)) it.remove(index)
+                            }
+                        } else {
+                            onSeek(cue.startMs)
+                        }
+                    },
+                    onLongClick = {
+                        selectionMode = true
+                        selectedIndices = selectedIndices + index
+                        autoScroll = false
+                    },
                 )
             }
         }
-        if (!autoScroll) {
-            TextButton(
+        PodcastTranslationHeader(
+            status = translationStatus,
+            textColor = textColor,
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = 16.dp),
+        )
+
+        AnimatedVisibility(
+            visible = selectionMode,
+            enter = slideInVertically { it } + fadeIn(),
+            exit = slideOutVertically { it } + fadeOut(),
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 20.dp),
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilledTonalButton(
+                    onClick = {
+                        selectionMode = false
+                        selectedIndices = emptySet()
+                    },
+                ) {
+                    Icon(painterResource(R.drawable.close), stringResource(R.string.cancel))
+                }
+                FilledTonalButton(
+                    enabled = selectedIndices.isNotEmpty(),
+                    onClick = {
+                        onShareCues(selectedIndices.sorted().mapNotNull(cues::getOrNull))
+                        selectionMode = false
+                        selectedIndices = emptySet()
+                    },
+                ) {
+                    Icon(painterResource(R.drawable.share), stringResource(R.string.share_selected))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.share))
+                }
+            }
+        }
+        if (!selectionMode && !autoScroll) {
+            FilledTonalButton(
                 onClick = { autoScroll = true },
-                modifier = Modifier.align(Alignment.BottomCenter),
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 20.dp),
             ) {
+                Icon(painterResource(R.drawable.sync), stringResource(R.string.auto_scroll))
+                Spacer(Modifier.width(8.dp))
                 Text(stringResource(R.string.resync))
+            }
+        }
+    }
+}
+
+@Composable
+private fun PodcastTranslationHeader(
+    status: PodcastTranslationStatus,
+    textColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    AnimatedVisibility(
+        visible = status !is PodcastTranslationStatus.Idle,
+        enter = fadeIn(),
+        exit = fadeOut(),
+        modifier = modifier,
+    ) {
+        val isTranslating = status == PodcastTranslationStatus.Translating
+        val containerColor = when (status) {
+            PodcastTranslationStatus.Translating -> MaterialTheme.colorScheme.primaryContainer
+            PodcastTranslationStatus.Success -> MaterialTheme.colorScheme.tertiaryContainer
+            is PodcastTranslationStatus.Error -> MaterialTheme.colorScheme.errorContainer
+            PodcastTranslationStatus.Idle -> Color.Transparent
+        }
+        val contentColor = when (status) {
+            PodcastTranslationStatus.Translating -> MaterialTheme.colorScheme.onPrimaryContainer
+            PodcastTranslationStatus.Success -> MaterialTheme.colorScheme.onTertiaryContainer
+            is PodcastTranslationStatus.Error -> MaterialTheme.colorScheme.onErrorContainer
+            PodcastTranslationStatus.Idle -> textColor
+        }
+        val label = when (status) {
+            PodcastTranslationStatus.Translating -> stringResource(R.string.ai_translating_lyrics)
+            PodcastTranslationStatus.Success -> stringResource(R.string.ai_lyrics_translated)
+            is PodcastTranslationStatus.Error -> status.message
+            PodcastTranslationStatus.Idle -> ""
+        }
+        Card(
+            colors = CardDefaults.cardColors(containerColor = containerColor, contentColor = contentColor),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (isTranslating) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = contentColor,
+                    )
+                } else {
+                    val icon = if (status == PodcastTranslationStatus.Success) R.drawable.check else R.drawable.error
+                    Icon(painterResource(icon), null, modifier = Modifier.size(16.dp))
+                }
+                Text(label, style = MaterialTheme.typography.labelMedium)
             }
         }
     }
@@ -418,7 +558,14 @@ private fun AsrEntry(
         }
 
         else -> {
-            TextButton(onClick = if (asrModelReady) onStartTranscription else onDownloadModel) {
+            FilledTonalButton(
+                onClick = if (asrModelReady) onStartTranscription else onDownloadModel,
+            ) {
+                Icon(
+                    painterResource(if (asrModelReady) R.drawable.mic else R.drawable.download),
+                    contentDescription = null,
+                )
+                Spacer(Modifier.width(8.dp))
                 Text(
                     text = label
                         ?: stringResource(
@@ -429,7 +576,6 @@ private fun AsrEntry(
                             },
                         ),
                     style = MaterialTheme.typography.labelLarge,
-                    color = textColor,
                 )
             }
         }

@@ -48,6 +48,7 @@ import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
 import com.metrolist.music.constants.AiProviderKey
 import com.metrolist.music.constants.AiSystemPromptKey
+import com.metrolist.music.constants.AlwaysUseAiPodcastSubtitleTranslationKey
 import com.metrolist.music.constants.AlwaysUseAiTranslationKey
 import com.metrolist.music.constants.DEFAULT_AI_SYSTEM_PROMPT
 import com.metrolist.music.constants.DeeplApiKey
@@ -57,6 +58,8 @@ import com.metrolist.music.constants.OpenRouterApiKey
 import com.metrolist.music.constants.OpenRouterBaseUrlKey
 import com.metrolist.music.constants.OpenRouterDefaultModel
 import com.metrolist.music.constants.OpenRouterModelKey
+import com.metrolist.music.constants.PodcastSubtitleBilingualKey
+import com.metrolist.music.constants.PodcastSubtitleTranslationEnabledKey
 import com.metrolist.music.constants.TranslateLanguageKey
 import com.metrolist.music.constants.TranslateModeKey
 import com.metrolist.music.ui.component.EnumDialog
@@ -80,6 +83,9 @@ fun AiSettings(navController: NavController) {
     var deeplFormality by rememberPreference(DeeplFormalityKey, "default")
     var aiSystemPrompt by rememberPreference(AiSystemPromptKey, "")
     var alwaysUseAiTranslation by rememberPreference(AlwaysUseAiTranslationKey, false)
+    var alwaysUseAiPodcastSubtitleTranslation by rememberPreference(AlwaysUseAiPodcastSubtitleTranslationKey, false)
+    var podcastSubtitleTranslation by rememberPreference(PodcastSubtitleTranslationEnabledKey, false)
+    var podcastSubtitleBilingual by rememberPreference(PodcastSubtitleBilingualKey, true)
 
     val aiProviders =
         mapOf(
@@ -600,17 +606,15 @@ fun AiSettings(navController: NavController) {
                     add(
                         Material3SettingsItem(
                             icon = painterResource(R.drawable.translate),
-                            title = { Text(stringResource(R.string.ai_always_translate)) },
-                            description = { Text(stringResource(R.string.ai_always_translate_desc)) },
+                            title = { Text(stringResource(R.string.ai_always_translate_lyrics)) },
+                            description = { Text(stringResource(R.string.ai_always_translate_lyrics_desc)) },
                             trailingContent = {
                                 Switch(
                                     checked = alwaysUseAiTranslation,
                                     onCheckedChange = { alwaysUseAiTranslation = it },
                                     thumbContent = {
                                         Icon(
-                                            painter = painterResource(
-                                                if (alwaysUseAiTranslation) R.drawable.check else R.drawable.close,
-                                            ),
+                                            painterResource(if (alwaysUseAiTranslation) R.drawable.check else R.drawable.close),
                                             contentDescription = null,
                                             modifier = Modifier.size(SwitchDefaults.IconSize),
                                         )
@@ -618,6 +622,55 @@ fun AiSettings(navController: NavController) {
                                 )
                             },
                             onClick = { alwaysUseAiTranslation = !alwaysUseAiTranslation },
+                        ),
+                    )
+                    add(
+                        Material3SettingsItem(
+                            icon = painterResource(R.drawable.subtitles),
+                            title = { Text(stringResource(R.string.ai_always_translate_podcast_subtitles)) },
+                            description = { Text(stringResource(R.string.ai_always_translate_podcast_subtitles_desc)) },
+                            trailingContent = {
+                                Switch(
+                                    checked = alwaysUseAiPodcastSubtitleTranslation,
+                                    onCheckedChange = {
+                                        alwaysUseAiPodcastSubtitleTranslation = it
+                                        podcastSubtitleTranslation = it
+                                    },
+                                    thumbContent = {
+                                        Icon(
+                                            painterResource(if (alwaysUseAiPodcastSubtitleTranslation) R.drawable.check else R.drawable.close),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(SwitchDefaults.IconSize),
+                                        )
+                                    },
+                                )
+                            },
+                            onClick = {
+                                val enabled = !alwaysUseAiPodcastSubtitleTranslation
+                                alwaysUseAiPodcastSubtitleTranslation = enabled
+                                podcastSubtitleTranslation = enabled
+                            },
+                        ),
+                    )
+                    add(
+                        Material3SettingsItem(
+                            icon = painterResource(R.drawable.translate),
+                            title = { Text(stringResource(R.string.podcast_subtitles_bilingual)) },
+                            description = { Text(stringResource(R.string.podcast_subtitles_bilingual_desc)) },
+                            trailingContent = {
+                                Switch(
+                                    checked = podcastSubtitleBilingual,
+                                    onCheckedChange = { podcastSubtitleBilingual = it },
+                                    thumbContent = {
+                                        Icon(
+                                            painterResource(if (podcastSubtitleBilingual) R.drawable.check else R.drawable.close),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(SwitchDefaults.IconSize),
+                                        )
+                                    },
+                                )
+                            },
+                            onClick = { podcastSubtitleBilingual = !podcastSubtitleBilingual },
                         ),
                     )
                     if (aiProvider != "DeepL") {

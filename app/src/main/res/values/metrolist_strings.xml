@@ -708,6 +708,10 @@
     <string name="ai_lyrics_translation">AI lyrics and podcast subtitle translation</string>
     <string name="ai_always_translate">Always use AI translation</string>
     <string name="ai_always_translate_desc">Automatically translate when lyrics are displayed. Background lyric loading never uses AI.</string>
+    <string name="ai_always_translate_lyrics">Always use AI translation for lyrics</string>
+    <string name="ai_always_translate_lyrics_desc">Automatically translate lyrics when they are displayed.</string>
+    <string name="ai_always_translate_podcast_subtitles">Always use AI translation for podcast subtitles</string>
+    <string name="ai_always_translate_podcast_subtitles_desc">Automatically translate podcast subtitles when they are displayed.</string>
     <string name="ai_translating_lyrics">Translating lyrics…</string>
     <string name="ai_lyrics_translated">Lyrics translated</string>
     <string name="ai_provider">Provider</string>
@@ -1141,6 +1145,9 @@
     <string name="podcast_subtitles_bilingual_desc">Show the original line together with its translation</string>
     <string name="podcast_asr_experimental">On-device subtitle recognition</string>
     <string name="podcast_asr_experimental_desc">Experimental. Lets you generate subtitles manually for episodes without transcripts. Recognition runs entirely on this device and audio never leaves the phone. High CPU usage — charging is recommended. Downloads a ~230 MB language model first</string>
+    <string name="podcast_subtitle_asr_performance_warning">Recognition uses substantial CPU, memory, battery, and storage. The phone may become warm or playback may stutter.</string>
+    <string name="podcast_subtitle_asr_accuracy_warning">Recognition is experimental. Results may contain errors, missing words, or imperfect timing and should not be treated as an official transcript.</string>
+    <string name="podcast_subtitle_share_failed">Could not create the subtitle image</string>
     <string name="podcast_asr_language">Recognition language</string>
     <string name="podcast_asr_language_auto">Auto detect</string>
     <string name="podcast_asr_language_zh">Chinese</string>

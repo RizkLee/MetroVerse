@@ -62,14 +62,11 @@ import com.metrolist.music.constants.PersistentQueueKey
 import com.metrolist.music.constants.PersistentShuffleAcrossQueuesKey
 import com.metrolist.music.constants.PodcastAsrLanguage
 import com.metrolist.music.constants.PodcastAsrLanguageKey
-import com.metrolist.music.constants.PodcastSubtitleBilingualKey
-import com.metrolist.music.constants.PodcastSubtitleTranslationEnabledKey
 import com.metrolist.music.constants.PreventDuplicateTracksInQueueKey
 import com.metrolist.music.constants.RememberShuffleAndRepeatKey
 import com.metrolist.music.constants.ResumeOnBluetoothConnectKey
 import com.metrolist.music.constants.SeekExtraSeconds
 import com.metrolist.music.constants.ShufflePlaylistFirstKey
-import com.metrolist.music.constants.ShowPodcastSubtitlesKey
 import com.metrolist.music.constants.SimilarContent
 import com.metrolist.music.constants.SkipSilenceInstantKey
 import com.metrolist.music.constants.SkipSilenceKey
@@ -245,19 +242,6 @@ fun PlayerSettings(
     val asrModelReady = podcastSubtitleManager?.isAsrModelReady() == true
     var showDeleteAsrModelDialog by remember { mutableStateOf(false) }
 
-    // Podcast subtitles
-    val (showPodcastSubtitles, onShowPodcastSubtitlesChange) = rememberPreference(
-        ShowPodcastSubtitlesKey,
-        defaultValue = true
-    )
-    val (podcastSubtitleTranslation, onPodcastSubtitleTranslationChange) = rememberPreference(
-        PodcastSubtitleTranslationEnabledKey,
-        defaultValue = false
-    )
-    val (podcastSubtitleBilingual, onPodcastSubtitleBilingualChange) = rememberPreference(
-        PodcastSubtitleBilingualKey,
-        defaultValue = true
-    )
     val (podcastAsrLanguage, onPodcastAsrLanguageChange) = rememberEnumPreference(
         PodcastAsrLanguageKey,
         defaultValue = PodcastAsrLanguage.AUTO
@@ -1140,77 +1124,6 @@ fun PlayerSettings(
         Material3SettingsGroup(
             title = stringResource(R.string.settings_title_podcast_subtitles),
             items = buildList {
-                add(
-                    Material3SettingsItem(
-                        icon = painterResource(R.drawable.subtitles),
-                        title = { Text(stringResource(R.string.podcast_subtitles_show)) },
-                        description = { Text(stringResource(R.string.podcast_subtitles_show_desc)) },
-                        trailingContent = {
-                            Switch(
-                                checked = showPodcastSubtitles,
-                                onCheckedChange = onShowPodcastSubtitlesChange,
-                                thumbContent = {
-                                    Icon(
-                                        painter = painterResource(
-                                            id = if (showPodcastSubtitles) R.drawable.check else R.drawable.close
-                                        ),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(SwitchDefaults.IconSize)
-                                    )
-                                }
-                            )
-                        },
-                        onClick = { onShowPodcastSubtitlesChange(!showPodcastSubtitles) }
-                    )
-                )
-                add(
-                    Material3SettingsItem(
-                        icon = painterResource(R.drawable.translate),
-                        title = { Text(stringResource(R.string.podcast_subtitles_translation)) },
-                        description = { Text(stringResource(R.string.podcast_subtitles_translation_desc)) },
-                        trailingContent = {
-                            Switch(
-                                checked = podcastSubtitleTranslation,
-                                onCheckedChange = onPodcastSubtitleTranslationChange,
-                                thumbContent = {
-                                    Icon(
-                                        painter = painterResource(
-                                            id = if (podcastSubtitleTranslation) R.drawable.check else R.drawable.close
-                                        ),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(SwitchDefaults.IconSize)
-                                    )
-                                }
-                            )
-                        },
-                        onClick = { onPodcastSubtitleTranslationChange(!podcastSubtitleTranslation) }
-                    )
-                )
-                if (podcastSubtitleTranslation) {
-                    add(
-                        Material3SettingsItem(
-                            icon = painterResource(R.drawable.translate),
-                            title = { Text(stringResource(R.string.podcast_subtitles_bilingual)) },
-                            description = { Text(stringResource(R.string.podcast_subtitles_bilingual_desc)) },
-                            trailingContent = {
-                                Switch(
-                                    checked = podcastSubtitleBilingual,
-                                    onCheckedChange = onPodcastSubtitleBilingualChange,
-                                    thumbContent = {
-                                        Icon(
-                                            painter = painterResource(
-                                                id = if (podcastSubtitleBilingual) R.drawable.check else R.drawable.close
-                                            ),
-                                            contentDescription = null,
-                                            modifier = Modifier.size(SwitchDefaults.IconSize)
-                                        )
-                                    }
-                                )
-                            },
-                            onClick = { onPodcastSubtitleBilingualChange(!podcastSubtitleBilingual) }
-                        )
-                    )
-                }
                 add(
                     Material3SettingsItem(
                         icon = painterResource(R.drawable.subtitles),

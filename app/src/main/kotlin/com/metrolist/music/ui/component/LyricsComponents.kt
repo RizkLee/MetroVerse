@@ -229,6 +229,7 @@ internal fun LyricsShareDialog(
     title: String,
     arts: String,
     songId: String,
+    shareLink: String? = null,
     onDismiss: () -> Unit,
     onShareAsImage: () -> Unit
 ) {
@@ -249,7 +250,10 @@ internal fun LyricsShareDialog(
                         val intent = Intent().apply {
                             action = Intent.ACTION_SEND
                             type = "text/plain"
-                            putExtra(Intent.EXTRA_TEXT, "\"$txt\"\n\n$title - $arts\nhttps://music.youtube.com/watch?v=$songId")
+                            putExtra(
+                                Intent.EXTRA_TEXT,
+                                "\"$txt\"\n\n$title - $arts\n${shareLink ?: "https://music.youtube.com/watch?v=$songId"}",
+                            )
                         }
                         context.startActivity(Intent.createChooser(intent, context.getString(R.string.share_lyrics)))
                         onDismiss()
