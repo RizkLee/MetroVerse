@@ -170,7 +170,7 @@ class OnDeviceTranscriber @Inject constructor(
                         numThreads = 2,
                         debug = false,
                     ),
-                    decodingMethod = "greedy",
+                    decodingMethod = "greedy_search",
                 ),
             )
 
