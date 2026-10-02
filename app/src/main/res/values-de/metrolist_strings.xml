@@ -906,4 +906,36 @@
     <string name="android_auto_search_options">Suchoptionen</string>
     <string name="android_auto_search_local_songs_limit">Suchlimit für Songs</string>
     <string name="android_auto_search_local_songs_limit_desc">Begrenzen Sie die Anzahl der lokalen Titel, die in den Suchergebnissen angezeigt werden. Es wird empfohlen, nicht „unbegrenzt“ einzustellen, um Speicherabstürze zu vermeiden.</string>
+
+    <!-- Podcast subtitles -->
+    <string name="podcast_subtitles">Untertitel</string>
+    <string name="podcast_subtitle_loading">Untertitel werden geladen…</string>
+    <string name="podcast_subtitle_unavailable">Für diese Folge ist kein Transkript verfügbar</string>
+    <string name="podcast_subtitle_translation_missing_key">Richte in „Einstellungen → KI“ einen KI-Übersetzungsdienst ein, um Untertitel zu übersetzen</string>
+    <string name="podcast_subtitle_asr_start">Untertitel auf dem Gerät erzeugen</string>
+    <string name="podcast_subtitle_asr_retry">Erkennung wiederholen</string>
+    <string name="podcast_subtitle_asr_cancel">Abbrechen</string>
+    <string name="podcast_subtitle_asr_running">Erkennung… %1$d%%</string>
+    <string name="podcast_subtitle_asr_failed">Untertitel-Erkennung fehlgeschlagen</string>
+    <string name="podcast_subtitle_asr_empty">Keine Sprache erkannt</string>
+    <string name="podcast_subtitle_asr_download_model">Erkennungsmodell laden (~230 MB)</string>
+    <string name="podcast_subtitle_asr_model_downloading">Modell wird geladen… %1$d%%</string>
+
+    <!-- Podcast subtitle settings -->
+    <string name="settings_title_podcast_subtitles">Podcast-Untertitel</string>
+    <string name="podcast_subtitles_show">Untertitel anzeigen</string>
+    <string name="podcast_subtitles_show_desc">Zeigt im Player verfügbare synchronisierte podcast:transcript-Untertitel</string>
+    <string name="podcast_subtitles_translation">KI-Untertitelübersetzung</string>
+    <string name="podcast_subtitles_translation_desc">Übersetzt Untertitel mit dem für Liedtexte konfigurierten KI-Dienst. Standardmäßig aus</string>
+    <string name="podcast_subtitles_bilingual">Zweisprachige Untertitel</string>
+    <string name="podcast_subtitles_bilingual_desc">Zeigt den Originaltext zusammen mit der Übersetzung</string>
+    <string name="podcast_asr_experimental">Untertitel-Erkennung auf dem Gerät</string>
+    <string name="podcast_asr_experimental_desc">Experimentell. Erzeugt Untertitel manuell für Folgen ohne Transkript. Die Erkennung läuft vollständig auf diesem Gerät, Audio verlässt das Telefon nie. Hohe CPU-Last — Laden empfohlen. Zunächst wird ein ~230-MB-Sprachmodell geladen</string>
+    <string name="podcast_asr_language">Erkennungssprache</string>
+    <string name="podcast_asr_language_auto">Automatisch</string>
+    <string name="podcast_asr_language_zh">Chinesisch</string>
+    <string name="podcast_asr_language_en">Englisch</string>
+
+    <string name="podcast_subtitle_asr_model_corrupt">Das Erkennungsmodell fehlt oder ist beschädigt. Bitte lade es erneut herunter</string>
+    <string name="podcast_subtitle_asr_dialog_confirm">Weiter</string>
 </resources>

@@ -502,6 +502,19 @@ val RespectAgentPositioningKey = booleanPreferencesKey("respectAgentPositioning"
 val ShowIntervalIndicatorKey = booleanPreferencesKey("showIntervalIndicator")
 val ExperimentalLyricsKey = booleanPreferencesKey("experimentalLyrics")
 
+// Podcast subtitles (podcast:transcript display, AI translation, on-device recognition)
+val ShowPodcastSubtitlesKey = booleanPreferencesKey("showPodcastSubtitles")
+val PodcastSubtitleTranslationEnabledKey = booleanPreferencesKey("podcastSubtitleTranslation")
+val PodcastSubtitleBilingualKey = booleanPreferencesKey("podcastSubtitleBilingual")
+val PodcastAsrLanguageKey = stringPreferencesKey("podcastAsrLanguage")
+val PodcastAsrDisclaimerSeenKey = booleanPreferencesKey("podcastAsrDisclaimerSeen")
+
+enum class PodcastAsrLanguage {
+    AUTO,
+    ZH,
+    EN,
+}
+
 val PlayerVolumeKey = floatPreferencesKey("playerVolume")
 val SleepTimerDefaultKey = floatPreferencesKey("sleepTimerDefault")
 val SleepTimerStopAfterCurrentSongKey = booleanPreferencesKey("sleepTimerStopAfterCurrentSong")

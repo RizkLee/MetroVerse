@@ -906,4 +906,36 @@
     <string name="dynamic_theme">Tema Dinamico</string>
     <string name="enable_dynamic_icon">Colori dinamici delle icone</string>
     <string name="enable_dynamic_icon_desc">Utilizza i colori del tema dinamico per l\'icona dell\'app. Quando disabilitata, l\'icona utilizza colori solidi.</string>
+
+    <!-- Podcast subtitles -->
+    <string name="podcast_subtitles">Sottotitoli</string>
+    <string name="podcast_subtitle_loading">Caricamento dei sottotitoli…</string>
+    <string name="podcast_subtitle_unavailable">Nessuna trascrizione disponibile per questo episodio</string>
+    <string name="podcast_subtitle_translation_missing_key">Configura un servizio di traduzione IA in Impostazioni → IA per tradurre i sottotitoli</string>
+    <string name="podcast_subtitle_asr_start">Genera sottotitoli sul dispositivo</string>
+    <string name="podcast_subtitle_asr_retry">Riprova il riconoscimento</string>
+    <string name="podcast_subtitle_asr_cancel">Annulla</string>
+    <string name="podcast_subtitle_asr_running">Riconoscimento… %1$d%%</string>
+    <string name="podcast_subtitle_asr_failed">Riconoscimento dei sottotitoli non riuscito</string>
+    <string name="podcast_subtitle_asr_empty">Nessun parlato riconosciuto</string>
+    <string name="podcast_subtitle_asr_download_model">Scarica il modello di riconoscimento (~230 MB)</string>
+    <string name="podcast_subtitle_asr_model_downloading">Download del modello… %1$d%%</string>
+
+    <!-- Podcast subtitle settings -->
+    <string name="settings_title_podcast_subtitles">Sottotitoli dei podcast</string>
+    <string name="podcast_subtitles_show">Mostra sottotitoli</string>
+    <string name="podcast_subtitles_show_desc">Mostra nel lettore i sottotitoli podcast:transcript sincronizzati disponibili</string>
+    <string name="podcast_subtitles_translation">Traduzione dei sottotitoli con IA</string>
+    <string name="podcast_subtitles_translation_desc">Traduce i sottotitoli con il servizio IA configurato per i testi. Disattivato per impostazione predefinita</string>
+    <string name="podcast_subtitles_bilingual">Sottotitoli bilingue</string>
+    <string name="podcast_subtitles_bilingual_desc">Mostra la riga originale insieme alla traduzione</string>
+    <string name="podcast_asr_experimental">Riconoscimento dei sottotitoli sul dispositivo</string>
+    <string name="podcast_asr_experimental_desc">Sperimentale. Consente di generare manualmente i sottotitoli per gli episodi senza trascrizione. Il riconoscimento avviene interamente su questo dispositivo e l\'audio non lascia mai il telefono. Uso intensivo della CPU: consigliata la ricarica. Prima scarica un modello linguistico di ~230 MB</string>
+    <string name="podcast_asr_language">Lingua di riconoscimento</string>
+    <string name="podcast_asr_language_auto">Rilevamento automatico</string>
+    <string name="podcast_asr_language_zh">Cinese</string>
+    <string name="podcast_asr_language_en">Inglese</string>
+
+    <string name="podcast_subtitle_asr_model_corrupt">Il modello di riconoscimento manca o è danneggiato. Scaricalo di nuovo</string>
+    <string name="podcast_subtitle_asr_dialog_confirm">Continua</string>
 </resources>

@@ -113,6 +113,32 @@ abstract class GenerateProtoTask : DefaultTask() {
     }
 }
 
+// Fetches the prebuilt sherpa-onnx Android AAR (used by on-device podcast subtitle
+// recognition) on first build. The binary is intentionally not committed (*.aar is ignored).
+val sherpaOnnxAarFile = file("libs/sherpa-onnx-1.13.8.aar")
+val sherpaOnnxAarUrl = "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.8/sherpa-onnx-1.13.8.aar"
+val downloadSherpaOnnx by tasks.registering {
+    val aarPath = sherpaOnnxAarFile.absolutePath
+    val aarUrl = sherpaOnnxAarUrl
+    outputs.file(sherpaOnnxAarFile)
+    onlyIf { !File(aarPath).exists() }
+    doLast {
+        val target = File(aarPath)
+        target.parentFile.mkdirs()
+        val partial = File(target.parentFile, target.name + ".part")
+        logger.lifecycle("Downloading sherpa-onnx AAR from $aarUrl")
+        URL(aarUrl).openStream().use { input ->
+            partial.outputStream().use { output -> input.copyTo(output) }
+        }
+        check(partial.length() > 0L) { "sherpa-onnx AAR download was empty" }
+        check(partial.renameTo(target)) { "Failed to finalize sherpa-onnx AAR" }
+        logger.lifecycle("sherpa-onnx AAR downloaded (${target.length()} bytes)")
+    }
+}
+tasks.named("preBuild") {
+    dependsOn(downloadSherpaOnnx)
+}
+
 android {
     namespace = "com.metrolist.music"
     compileSdk = 37
@@ -129,7 +155,9 @@ android {
         vectorDrawables.useSupportLibrary = true
 
         ndk {
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+            // The sherpa-onnx ML runtime dominates APK size; arm64-v8a covers all current
+            // physical devices. Revisit before a release build if 32-bit devices are needed.
+            abiFilters += listOf("arm64-v8a")
         }
 
         // LastFM API keys from GitHub Secrets
@@ -263,7 +291,8 @@ android {
 
     packaging {
         jniLibs {
-            useLegacyPackaging = false
+            // Compress the large ML runtime libs to keep the APK size reasonable.
+            useLegacyPackaging = true
             keepDebugSymbols +=
                 listOf(
                     "**/libandroidx.graphics.path.so",
@@ -409,6 +438,10 @@ dependencies {
     implementation(libs.hilt)
     implementation(libs.jsoup)
     implementation(libs.rssparser)
+
+    // On-device podcast subtitle recognition (sherpa-onnx: SenseVoice + Silero VAD).
+    // The prebuilt AAR is fetched on first build; *.aar stays gitignored.
+    implementation(files("libs/sherpa-onnx-1.13.8.aar"))
     ksp(libs.hilt.compiler)
 
     implementation(project(":innertube"))
@@ -430,11 +463,12 @@ dependencies {
     implementation(libs.protobuf.kotlin.lite)
 
     coreLibraryDesugaring(libs.desugaring)
-
     implementation(libs.timber)
 
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.ktor.client.mock)
+    // XmlPullParser implementation for JVM tests of the podcast transcript feed parser.
+    testImplementation("net.sf.kxml:kxml2:2.3.0")
 }

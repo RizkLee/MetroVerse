@@ -843,4 +843,36 @@
     <string name="discord_placeholder_song">歌曲名稱</string>
     <string name="discord_placeholder_artist">音樂人名稱</string>
     <string name="discord_placeholder_album">專輯名稱</string>
+
+    <!-- Podcast subtitles -->
+    <string name="podcast_subtitles">字幕</string>
+    <string name="podcast_subtitle_loading">正在載入字幕…</string>
+    <string name="podcast_subtitle_unavailable">此單集沒有可用的字幕</string>
+    <string name="podcast_subtitle_translation_missing_key">請先在「設定 → AI」中設定 AI 翻譯服務，才能翻譯字幕</string>
+    <string name="podcast_subtitle_asr_start">在本機產生字幕</string>
+    <string name="podcast_subtitle_asr_retry">重新辨識</string>
+    <string name="podcast_subtitle_asr_cancel">取消</string>
+    <string name="podcast_subtitle_asr_running">辨識中… %1$d%%</string>
+    <string name="podcast_subtitle_asr_failed">字幕辨識失敗</string>
+    <string name="podcast_subtitle_asr_empty">未辨識到語音內容</string>
+    <string name="podcast_subtitle_asr_download_model">下載辨識模型（約 230 MB）</string>
+    <string name="podcast_subtitle_asr_model_downloading">模型下載中… %1$d%%</string>
+
+    <!-- Podcast subtitle settings -->
+    <string name="settings_title_podcast_subtitles">播客字幕</string>
+    <string name="podcast_subtitles_show">顯示字幕</string>
+    <string name="podcast_subtitles_show_desc">播放器中顯示可用的 podcast:transcript 同步字幕</string>
+    <string name="podcast_subtitles_translation">AI 字幕翻譯</string>
+    <string name="podcast_subtitles_translation_desc">使用與歌詞翻譯相同的 AI 服務翻譯字幕。預設關閉</string>
+    <string name="podcast_subtitles_bilingual">雙語字幕</string>
+    <string name="podcast_subtitles_bilingual_desc">在譯文旁同時顯示原文</string>
+    <string name="podcast_asr_experimental">端側字幕辨識</string>
+    <string name="podcast_asr_experimental_desc">實驗性功能。為沒有字幕的單集在本機手動產生字幕。辨識完全在本機完成，音訊不會上傳。CPU 佔用較高，建議充電時使用。首次需下載約 230 MB 的辨識模型</string>
+    <string name="podcast_asr_language">辨識語言</string>
+    <string name="podcast_asr_language_auto">自動偵測</string>
+    <string name="podcast_asr_language_zh">中文</string>
+    <string name="podcast_asr_language_en">英語</string>
+
+    <string name="podcast_subtitle_asr_model_corrupt">辨識模型缺失或已損壞，請重新下載</string>
+    <string name="podcast_subtitle_asr_dialog_confirm">繼續</string>
 </resources>

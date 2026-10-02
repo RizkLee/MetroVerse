@@ -1117,4 +1117,35 @@
     <string name="stream_source_web_creator_desc">Creator web client.</string>
     <string name="stream_source_android_creator">ANDROID_CREATOR</string>
     <string name="stream_source_android_creator_desc">Android creator client. Off by default; needs DroidGuard.</string>
+    <!-- Podcast subtitles -->
+    <string name="podcast_subtitles">Subtitles</string>
+    <string name="podcast_subtitle_loading">Loading subtitles…</string>
+    <string name="podcast_subtitle_unavailable">No transcript is available for this episode</string>
+    <string name="podcast_subtitle_translation_missing_key">Configure an AI translation service in Settings → AI to translate subtitles</string>
+    <string name="podcast_subtitle_asr_start">Generate subtitles on-device</string>
+    <string name="podcast_subtitle_asr_retry">Retry recognition</string>
+    <string name="podcast_subtitle_asr_cancel">Cancel</string>
+    <string name="podcast_subtitle_asr_running">Recognizing… %1$d%%</string>
+    <string name="podcast_subtitle_asr_failed">Subtitle recognition failed</string>
+    <string name="podcast_subtitle_asr_empty">No speech was recognized</string>
+    <string name="podcast_subtitle_asr_download_model">Download recognition model (~230 MB)</string>
+    <string name="podcast_subtitle_asr_model_downloading">Downloading model… %1$d%%</string>
+
+    <!-- Podcast subtitle settings -->
+    <string name="settings_title_podcast_subtitles">Podcast subtitles</string>
+    <string name="podcast_subtitles_show">Show subtitles</string>
+    <string name="podcast_subtitles_show_desc">Display synchronized podcast:transcript subtitles in the player when available</string>
+    <string name="podcast_subtitles_translation">AI subtitle translation</string>
+    <string name="podcast_subtitles_translation_desc">Translate subtitle lines with the AI translation service configured for lyrics. Off by default</string>
+    <string name="podcast_subtitles_bilingual">Bilingual subtitles</string>
+    <string name="podcast_subtitles_bilingual_desc">Show the original line together with its translation</string>
+    <string name="podcast_asr_experimental">On-device subtitle recognition</string>
+    <string name="podcast_asr_experimental_desc">Experimental. Lets you generate subtitles manually for episodes without transcripts. Recognition runs entirely on this device and audio never leaves the phone. High CPU usage — charging is recommended. Downloads a ~230 MB language model first</string>
+    <string name="podcast_asr_language">Recognition language</string>
+    <string name="podcast_asr_language_auto">Auto detect</string>
+    <string name="podcast_asr_language_zh">Chinese</string>
+    <string name="podcast_asr_language_en">English</string>
+
+    <string name="podcast_subtitle_asr_model_corrupt">The recognition model is missing or corrupted. Please download it again</string>
+    <string name="podcast_subtitle_asr_dialog_confirm">Continue</string>
 </resources>
