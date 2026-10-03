@@ -918,7 +918,7 @@
     <string name="podcast_subtitle_asr_running">Erkennung… %1$d%%</string>
     <string name="podcast_subtitle_asr_failed">Untertitel-Erkennung fehlgeschlagen</string>
     <string name="podcast_subtitle_asr_empty">Keine Sprache erkannt</string>
-    <string name="podcast_subtitle_asr_download_model">Erkennungsmodell laden (~230 MB)</string>
+    <string name="podcast_subtitle_asr_download_model">Erkennungsmodell laden (~74 MB)</string>
     <string name="podcast_subtitle_asr_model_downloading">Modell wird geladen… %1$d%%</string>
 
     <!-- Podcast subtitle settings -->
@@ -930,7 +930,7 @@
     <string name="podcast_subtitles_bilingual">Zweisprachige Untertitel</string>
     <string name="podcast_subtitles_bilingual_desc">Zeigt den Originaltext zusammen mit der Übersetzung</string>
     <string name="podcast_asr_experimental">Untertitel-Erkennung auf dem Gerät</string>
-    <string name="podcast_asr_experimental_desc">Experimentell. Erzeugt Untertitel manuell für Folgen ohne Transkript. Die Erkennung läuft vollständig auf diesem Gerät, Audio verlässt das Telefon nie. Hohe CPU-Last — Laden empfohlen. Zunächst wird ein ~230-MB-Sprachmodell geladen</string>
+    <string name="podcast_asr_experimental_desc">Experimentell. Erzeugt Untertitel manuell für Folgen ohne Transkript. Die Erkennung läuft vollständig auf diesem Gerät, Audio verlässt das Telefon nie. Hohe CPU-Last — Laden empfohlen. Zunächst wird ein ~74-MB-Sprachmodell geladen</string>
     <string name="podcast_asr_language">Erkennungssprache</string>
     <string name="podcast_asr_language_auto">Automatisch</string>
     <string name="podcast_asr_language_zh">Chinesisch</string>

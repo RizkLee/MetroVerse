@@ -24,13 +24,13 @@ import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.sqrt
 
 /**
- * On-device podcast transcription with sherpa-onnx (SenseVoice-Small int8 + Silero VAD).
+ * On-device podcast transcription with sherpa-onnx's English streaming Zipformer2 model.
  *
- * Audio is decoded streaming in chunks; VAD cuts speech segments which are recognized
- * immediately, so memory stays bounded regardless of episode length and partial results
- * can be surfaced while the job runs.
+ * Audio is decoded in bounded chunks and split by a Kotlin-side RMS segmenter before it reaches
+ * the recognizer, so no native VAD queue can grow with the episode length.
  */
 @Singleton
 class OnDeviceTranscriber @Inject constructor(
@@ -44,9 +44,13 @@ class OnDeviceTranscriber @Inject constructor(
     private val asrDir: File
         get() = File(context.filesDir, "podcast/asr")
 
-    private val modelFile: File get() = File(asrDir, MODEL_DIR).resolve(MODEL_FILE)
-    private val tokensFile: File get() = File(asrDir, MODEL_DIR).resolve(TOKENS_FILE)
-    private val vadFile: File get() = File(asrDir, VAD_FILE)
+    private val modelDir: File
+        get() = File(asrDir, MODEL_DIR)
+
+    private val modelFile: File get() = modelDir.resolve(ENCODER_FILE)
+    private val decoderFile: File get() = modelDir.resolve(DECODER_FILE)
+    private val joinerFile: File get() = modelDir.resolve(JOINER_FILE)
+    private val tokensFile: File get() = modelDir.resolve(TOKENS_FILE)
     @Volatile
     private var validatedModelKey: String? = null
 
@@ -72,17 +76,15 @@ class OnDeviceTranscriber @Inject constructor(
     }
 
     private fun hasValidModelFiles(): Boolean {
-        val key = listOf(modelFile, tokensFile, vadFile)
-            .joinToString(separator = ":") { "${it.length()}:${it.lastModified()}" }
-        if (validatedModelKey == key) return true
-        if (modelFile.length() != EXPECTED_MODEL_BYTES ||
-            tokensFile.length() < MIN_TOKENS_BYTES ||
-            vadFile.length() < MIN_VAD_BYTES
-        ) {
-            validatedModelKey = null
-            return false
+        val artifacts = modelArtifacts()
+        val key = artifacts.joinToString(separator = ":") {
+            "${it.file.length()}:${it.file.lastModified()}"
         }
-        val valid = sha256(modelFile) == EXPECTED_MODEL_SHA256
+        if (validatedModelKey == key) return true
+        val valid = artifacts.all { artifact ->
+            artifact.file.length() == artifact.expectedBytes &&
+                sha256(artifact.file) == artifact.expectedSha256
+        }
         validatedModelKey = key.takeIf { valid }
         return valid
     }
@@ -92,103 +94,85 @@ class OnDeviceTranscriber @Inject constructor(
         val invalid = !hasValidModelFiles()
         if (invalid) {
             validatedModelKey = null
-            modelFile.delete()
-            tokensFile.delete()
-            vadFile.delete()
+            modelArtifacts().forEach { it.file.delete() }
+            modelDir.delete()
         }
         return invalid
     }
 
-    /** Downloads the SenseVoice int8 model and the Silero VAD model with progress reporting. */
+    /** Downloads the English streaming Zipformer2 model with cumulative progress. */
     suspend fun downloadModels(onProgress: (bytes: Long, totalBytes: Long) -> Unit): Result<Unit> =
         withContext(Dispatchers.IO) {
             runCatching {
-                val total = EXPECTED_MODEL_BYTES + EXPECTED_TOKENS_BYTES + EXPECTED_VAD_BYTES
+                val artifacts = modelArtifacts()
+                val total = artifacts.sumOf { it.expectedBytes }
                 var completed = 0L
                 fun report(bytes: Long) = onProgress((completed + bytes).coerceAtMost(total), total)
 
-                downloadToFile(
-                    MODEL_URLS,
-                    modelFile,
-                    MIN_MODEL_BYTES,
-                    { bytes, _ -> report(bytes) },
-                    expectedBytes = EXPECTED_MODEL_BYTES,
-                    expectedSha256 = EXPECTED_MODEL_SHA256,
-                )
-                completed += EXPECTED_MODEL_BYTES
-                report(0L)
-                downloadToFile(
-                    TOKENS_URLS,
-                    tokensFile,
-                    MIN_TOKENS_BYTES,
-                    { bytes, _ -> report(bytes) },
-                )
-                completed += EXPECTED_TOKENS_BYTES
-                report(0L)
-                downloadToFile(
-                    VAD_URLS,
-                    vadFile,
-                    MIN_VAD_BYTES,
-                    { bytes, _ -> report(bytes) },
-                )
+                artifacts.forEach { artifact ->
+                    downloadToFile(
+                        urls = artifact.urls,
+                        target = artifact.file,
+                        minBytes = artifact.expectedBytes,
+                        onProgress = { bytes, _ -> report(bytes) },
+                        expectedBytes = artifact.expectedBytes,
+                        expectedSha256 = artifact.expectedSha256,
+                    )
+                    completed += artifact.expectedBytes
+                    report(0L)
+                }
                 onProgress(total, total)
             }.onFailure { error ->
                 if (error is CancellationException) throw error
                 validatedModelKey = null
-                modelFile.delete()
-                tokensFile.delete()
-                vadFile.delete()
+                modelArtifacts().forEach { it.file.delete() }
+                modelDir.delete()
             }
         }
 
-    /**
-     * Transcribes the audio at [source] and reports cumulative cues as they are produced.
-     * [languageMode] is one of "auto", "zh" or "en".
-     */
+    private data class ModelArtifact(
+        val file: File,
+        val urls: List<String>,
+        val expectedBytes: Long,
+        val expectedSha256: String,
+    )
+
+    private fun modelArtifacts(): List<ModelArtifact> = listOf(
+        ModelArtifact(modelFile, ENCODER_URLS, ENCODER_BYTES, ENCODER_SHA256),
+        ModelArtifact(decoderFile, DECODER_URLS, DECODER_BYTES, DECODER_SHA256),
+        ModelArtifact(joinerFile, JOINER_URLS, JOINER_BYTES, JOINER_SHA256),
+        ModelArtifact(tokensFile, TOKENS_URLS, TOKENS_BYTES, TOKENS_SHA256),
+    )
+
+    /** Transcribes the audio at [source] and reports cumulative cues as they are produced. */
     suspend fun transcribe(
         source: String,
-        languageMode: String,
         totalDurationMs: Long,
         onPartial: (cues: List<SubtitleCue>, progressPercent: Int) -> Unit,
     ): Result<Pair<List<SubtitleCue>, String?>> = withContext(Dispatchers.Default) {
         runCatching {
             require(isModelReady()) { "ASR model is not downloaded" }
 
-            val vad = com.k2fsa.sherpa.onnx.Vad(
-                config = com.k2fsa.sherpa.onnx.VadModelConfig(
-                    sileroVadModelConfig = com.k2fsa.sherpa.onnx.SileroVadModelConfig(
-                        model = vadFile.absolutePath,
-                        threshold = 0.5f,
-                        minSilenceDuration = 0.5f,
-                        minSpeechDuration = 0.25f,
-                        windowSize = 512,
-                        maxSpeechDuration = 20f,
-                    ),
-                    sampleRate = SAMPLE_RATE,
-                    numThreads = 1,
-                    provider = "cpu",
-                    debug = false,
-                ),
-            )
-
-            val languageArg = if (languageMode == "zh" || languageMode == "en") languageMode else ""
-            val recognizer = com.k2fsa.sherpa.onnx.OfflineRecognizer(
+            val recognizer = com.k2fsa.sherpa.onnx.OnlineRecognizer(
                 assetManager = null,
-                config = com.k2fsa.sherpa.onnx.OfflineRecognizerConfig(
+                config = com.k2fsa.sherpa.onnx.OnlineRecognizerConfig(
                     featConfig = com.k2fsa.sherpa.onnx.FeatureConfig(
                         sampleRate = SAMPLE_RATE,
                         featureDim = 80,
                     ),
-                    modelConfig = com.k2fsa.sherpa.onnx.OfflineModelConfig(
-                        senseVoice = com.k2fsa.sherpa.onnx.OfflineSenseVoiceModelConfig(
-                            model = modelFile.absolutePath,
-                            language = languageArg,
-                            useInverseTextNormalization = true,
+                    modelConfig = com.k2fsa.sherpa.onnx.OnlineModelConfig(
+                        transducer = com.k2fsa.sherpa.onnx.OnlineTransducerModelConfig(
+                            encoder = modelFile.absolutePath,
+                            decoder = decoderFile.absolutePath,
+                            joiner = joinerFile.absolutePath,
                         ),
                         tokens = tokensFile.absolutePath,
-                        numThreads = 2,
+                        numThreads = 1,
+                        provider = "cpu",
+                        modelType = "zipformer2",
                         debug = false,
                     ),
+                    enableEndpoint = false,
                     decodingMethod = "greedy_search",
                 ),
             )
@@ -198,60 +182,122 @@ class OnDeviceTranscriber @Inject constructor(
                     if (totalDurationMs > 0) totalDurationMs * SAMPLE_RATE / 1000 else 0L
                 val coroutineContext = currentCoroutineContext()
                 val cues = mutableListOf<SubtitleCue>()
-                var detectedLanguage: String? = null
                 var samplesFed = 0L
 
-                fun drainSegments(finalFlush: Boolean) {
+                fun recognize(startSample: Long, samples: FloatArray) {
                     coroutineContext.ensureActive()
-                    if (finalFlush) vad.flush()
-                    while (!vad.empty()) {
-                        coroutineContext.ensureActive()
-                        val segment = vad.front()
-                        vad.pop()
-                        val startMs = segment.start * 1000L / SAMPLE_RATE
-                        val endMs = startMs + segment.samples.size * 1000L / SAMPLE_RATE
-                        val stream = recognizer.createStream()
-                        stream.acceptWaveform(segment.samples, SAMPLE_RATE)
-                        recognizer.decode(stream)
-                        val result = recognizer.getResult(stream)
-                        stream.release()
-
-                        val text = result.text.trim()
+                    val stream = recognizer.createStream()
+                    try {
+                        stream.acceptWaveform(samples, SAMPLE_RATE)
+                        while (recognizer.isReady(stream)) recognizer.decode(stream)
+                        stream.inputFinished()
+                        while (recognizer.isReady(stream)) recognizer.decode(stream)
+                        val text = recognizer.getResult(stream).text.trim()
                         if (text.isNotEmpty()) {
-                            if (detectedLanguage == null) {
-                                detectedLanguage = PodcastAsrSupport.normalizeLanguageTag(result.lang)
-                            }
+                            val startMs = startSample * 1000L / SAMPLE_RATE
+                            val endMs = (startSample + samples.size) * 1000L / SAMPLE_RATE
                             cues.addAll(
-                                PodcastAsrSupport.splitLongCue(SubtitleCue(startMs, endMs, text)),
+                                PodcastAsrSupport.splitLongCue(
+                                    SubtitleCue(startMs, maxOf(endMs, startMs + 1_000L), text),
+                                ),
                             )
                         }
-                        onPartial(cues.toList(), progressPercent(samplesFed, totalSamplesEstimate))
+                    } finally {
+                        stream.release()
                     }
+                    onPartial(cues.toList(), progressPercent(samplesFed, totalSamplesEstimate))
                 }
 
+                val segmenter = RmsSpeechSegmenter { startSample, samples ->
+                    recognize(startSample, samples)
+                }
                 AudioDecoder.decodeToPcmChunks(
                     source = source,
-                    chunkSamples = SAMPLE_RATE * 30,
+                    chunkSamples = SAMPLE_RATE * 2,
                 ) { chunk, _ ->
                     coroutineContext.ensureActive()
-                    vad.acceptWaveform(chunk)
                     samplesFed += chunk.size
-                    drainSegments(finalFlush = false)
+                    segmenter.accept(chunk)
+                    onPartial(cues.toList(), progressPercent(samplesFed, totalSamplesEstimate))
                 }
-                drainSegments(finalFlush = true)
-
-                // Timestamps: segment starts are exact; assign each cue an end at the next
-                // cue's start (or a nominal display duration for the trailing one).
-                val normalized = cues.mapIndexed { index, cue ->
-                    val end = cues.getOrNull(index + 1)?.startMs
-                        ?: (cue.startMs + DEFAULT_ASR_CUE_END_MS)
-                    SubtitleCue(cue.startMs, maxOf(end, cue.startMs + 1000), cue.text)
-                }
-                normalized to detectedLanguage
+                segmenter.flush()
+                onPartial(cues.toList(), 99)
+                cues to "en"
             } finally {
-                vad.release()
                 recognizer.release()
             }
+        }
+    }
+
+    private class RmsSpeechSegmenter(
+        private val onSegment: (startSample: Long, samples: FloatArray) -> Unit,
+    ) {
+        private val pending = FloatArray(RMS_FRAME_SAMPLES)
+        private val speech = FloatArray(MAX_SEGMENT_SAMPLES + RMS_FRAME_SAMPLES)
+        private var pendingSize = 0
+        private var frameStartSample = 0L
+        private var speechStartSample = 0L
+        private var speechSize = 0
+        private var silenceFrames = 0
+        private var inSpeech = false
+
+        fun accept(samples: FloatArray) {
+            var offset = 0
+            while (offset < samples.size) {
+                val count = minOf(RMS_FRAME_SAMPLES - pendingSize, samples.size - offset)
+                System.arraycopy(samples, offset, pending, pendingSize, count)
+                pendingSize += count
+                offset += count
+                if (pendingSize == RMS_FRAME_SAMPLES) {
+                    processFrame(pending)
+                    pendingSize = 0
+                    frameStartSample += RMS_FRAME_SAMPLES
+                }
+            }
+        }
+
+        fun flush() {
+            if (pendingSize > 0) {
+                pending.fill(0f, pendingSize, pending.size)
+                processFrame(pending)
+                pendingSize = 0
+                frameStartSample += RMS_FRAME_SAMPLES
+            }
+            finishSegment()
+        }
+
+        private fun processFrame(frame: FloatArray) {
+            val rms = sqrt(frame.sumOf { (it * it).toDouble() } / frame.size).toFloat()
+            if (rms >= RMS_SPEECH_THRESHOLD) {
+                if (!inSpeech) {
+                    inSpeech = true
+                    speechStartSample = frameStartSample
+                    speechSize = 0
+                }
+                silenceFrames = 0
+                append(frame)
+                if (speechSize >= MAX_SEGMENT_SAMPLES) finishSegment()
+            } else if (inSpeech) {
+                append(frame)
+                silenceFrames++
+                if (silenceFrames >= RMS_SILENCE_FRAMES) finishSegment()
+            }
+        }
+
+        private fun append(frame: FloatArray) {
+            val count = minOf(frame.size, speech.size - speechSize)
+            System.arraycopy(frame, 0, speech, speechSize, count)
+            speechSize += count
+        }
+
+        private fun finishSegment() {
+            if (!inSpeech) return
+            if (speechSize >= RMS_MIN_SPEECH_SAMPLES) {
+                onSegment(speechStartSample, speech.copyOf(speechSize))
+            }
+            inSpeech = false
+            speechSize = 0
+            silenceFrames = 0
         }
     }
 
@@ -374,10 +420,11 @@ class OnDeviceTranscriber @Inject constructor(
                 val mime = checkNotNull(format.getString(MediaFormat.KEY_MIME))
 
                 val codec = MediaCodec.createDecoderByType(mime)
-                codec.configure(format, null, null, 0)
-                codec.start()
+                try {
+                    codec.configure(format, null, null, 0)
+                    codec.start()
 
-                val bufferInfo = MediaCodec.BufferInfo()
+                    val bufferInfo = MediaCodec.BufferInfo()
                 var inputDone = false
                 var outputDone = false
                 val carry = FloatArray(chunkSamples)
@@ -445,8 +492,10 @@ class OnDeviceTranscriber @Inject constructor(
                     }
                 }
                 if (carrySize > 0) onChunk(carry.copyOf(carrySize), SAMPLE_RATE)
-                codec.stop()
-                codec.release()
+                } finally {
+                    runCatching { codec.stop() }
+                    codec.release()
+                }
             } finally {
                 extractor.release()
             }
@@ -455,40 +504,43 @@ class OnDeviceTranscriber @Inject constructor(
 
     companion object {
         const val SAMPLE_RATE = 16_000
-        private const val MODEL_DIR = "sense-voice"
-        private const val MODEL_FILE = "model.int8.onnx"
+        private const val MODEL_DIR = "zipformer-en"
+        private const val ENCODER_FILE = "encoder.int8.onnx"
+        private const val DECODER_FILE = "decoder.onnx"
+        private const val JOINER_FILE = "joiner.int8.onnx"
         private const val TOKENS_FILE = "tokens.txt"
-        private const val VAD_FILE = "silero_vad.onnx"
         private const val DOWNLOAD_BUFFER_SIZE = 256 * 1024
         private const val PROGRESS_STEP_BYTES = 512 * 1024L
-        private const val DEFAULT_ASR_CUE_END_MS = 5_000L
 
-        // SenseVoice int8 2025-09-09. The SHA-256 is the public Hugging Face LFS checksum.
-        const val EXPECTED_MODEL_BYTES = 237_115_547L
-        const val EXPECTED_MODEL_SHA256 = "12ca1a2ae7ecf3e0019ef2822307ee0b5cadc9196569e379b4c4026f8205276d"
+        // sherpa-onnx-streaming-zipformer-en-2023-06-26, Apache-2.0.
+        // The hashes are the public Hugging Face LFS SHA-256 values.
+        private const val ENCODER_BYTES = 71_083_163L
+        private const val ENCODER_SHA256 = "563fde436d16cf7607cf408cd6b30909819d03162652ef389c2450ced3f45ac1"
+        private const val DECODER_BYTES = 2_092_621L
+        private const val DECODER_SHA256 = "7bf787f90b194b307e5a4ad6a34fadb4e748304c35f78a8d66358a05b13ee6ef"
+        private const val JOINER_BYTES = 259_335L
+        private const val JOINER_SHA256 = "d944208d660d67c8d72cd2acaeac971fa5ceb8c80e76c1968148846fedd6e297"
+        private const val TOKENS_BYTES = 5_048L
+        private const val TOKENS_SHA256 = "49e3c2646595fd907228b3c6787069658f67b17377c60aeb8619c4551b2316fb"
 
-        // Native model loading cannot report failures gracefully, so anything below these
-        // sizes is treated as a corrupt download and re-fetched.
-        const val EXPECTED_TOKENS_BYTES = 320_000L
-        const val EXPECTED_VAD_BYTES = 2_500_000L
-        const val MIN_MODEL_BYTES = 220L * 1024 * 1024
-        const val MIN_TOKENS_BYTES = 128L * 1024
-        const val MIN_VAD_BYTES = 512L * 1024
+        // The 2023-06-26 model uses the chunk-16/left-128 streaming configuration.
+        private val ENCODER_URLS = modelUrls("encoder-epoch-99-avg-1-chunk-16-left-128.int8.onnx")
+        private val DECODER_URLS = modelUrls("decoder-epoch-99-avg-1-chunk-16-left-128.onnx")
+        private val JOINER_URLS = modelUrls("joiner-epoch-99-avg-1-chunk-16-left-128.int8.onnx")
+        private val TOKENS_URLS = modelUrls(TOKENS_FILE)
 
-        /** Primary sources first, then mirrors reachable from mainland China. */
-        val MODEL_URLS = listOf(
-            "https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09/resolve/main/model.int8.onnx",
-            "https://hf-mirror.com/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09/resolve/main/model.int8.onnx",
-        )
-        val TOKENS_URLS = listOf(
-            "https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09/resolve/main/tokens.txt",
-            "https://hf-mirror.com/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09/resolve/main/tokens.txt",
-        )
-        val VAD_URLS = listOf(
-            "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx",
-            "https://hf-mirror.com/csukuangfj/sherpa-onnx-silero-vad/resolve/main/silero_vad.onnx",
+        private fun modelUrls(file: String): List<String> = listOf(
+            "https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-en-2023-06-26/resolve/main/$file",
+            "https://hf-mirror.com/csukuangfj/sherpa-onnx-streaming-zipformer-en-2023-06-26/resolve/main/$file",
         )
 
-        fun approximateModelDownloadBytes(): Long = EXPECTED_MODEL_BYTES + 320_000L + 2_500_000L
+        private const val RMS_FRAME_SAMPLES = 1_600 // 100 ms at 16 kHz.
+        private const val RMS_SPEECH_THRESHOLD = 0.012f
+        private const val RMS_SILENCE_FRAMES = 5 // 500 ms.
+        private const val RMS_MIN_SPEECH_SAMPLES = 4_000 // 250 ms.
+        private const val MAX_SEGMENT_SAMPLES = SAMPLE_RATE * 20
+
+        fun approximateModelDownloadBytes(): Long =
+            ENCODER_BYTES + DECODER_BYTES + JOINER_BYTES + TOKENS_BYTES
     }
 }

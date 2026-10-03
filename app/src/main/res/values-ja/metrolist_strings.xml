@@ -882,7 +882,7 @@
     <string name="podcast_subtitle_asr_running">認識中… %1$d%%</string>
     <string name="podcast_subtitle_asr_failed">字幕の認識に失敗しました</string>
     <string name="podcast_subtitle_asr_empty">音声を認識できませんでした</string>
-    <string name="podcast_subtitle_asr_download_model">認識モデルをダウンロード（約 230 MB）</string>
+    <string name="podcast_subtitle_asr_download_model">認識モデルをダウンロード（約 74 MB）</string>
     <string name="podcast_subtitle_asr_model_downloading">モデルをダウンロード中… %1$d%%</string>
 
     <!-- Podcast subtitle settings -->
@@ -894,7 +894,7 @@
     <string name="podcast_subtitles_bilingual">バイリンガル字幕</string>
     <string name="podcast_subtitles_bilingual_desc">翻訳とともに原文を表示します</string>
     <string name="podcast_asr_experimental">端末内での字幕認識</string>
-    <string name="podcast_asr_experimental_desc">実験的機能。字幕のないエピソードに対して、端末内で手動的に字幕を生成できます。認識は完全に端末内で行われ、音声は端末の外に出ません。CPU 負荷が高いため、充電しながらの使用を推奨。初回に約 230 MB のモデルをダウンロードします</string>
+    <string name="podcast_asr_experimental_desc">実験的機能。字幕のないエピソードに対して、端末内で手動的に字幕を生成できます。認識は完全に端末内で行われ、音声は端末の外に出ません。CPU 負荷が高いため、充電しながらの使用を推奨。初回に約 74 MB のモデルをダウンロードします</string>
     <string name="podcast_asr_language">認識言語</string>
     <string name="podcast_asr_language_auto">自動検出</string>
     <string name="podcast_asr_language_zh">中国語</string>

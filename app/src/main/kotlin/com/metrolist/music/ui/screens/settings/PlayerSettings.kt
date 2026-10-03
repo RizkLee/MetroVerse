@@ -60,8 +60,6 @@ import com.metrolist.music.constants.LoudnessLevelKey
 import com.metrolist.music.constants.PauseOnMute
 import com.metrolist.music.constants.PersistentQueueKey
 import com.metrolist.music.constants.PersistentShuffleAcrossQueuesKey
-import com.metrolist.music.constants.PodcastAsrLanguage
-import com.metrolist.music.constants.PodcastAsrLanguageKey
 import com.metrolist.music.constants.PreventDuplicateTracksInQueueKey
 import com.metrolist.music.constants.RememberShuffleAndRepeatKey
 import com.metrolist.music.constants.ResumeOnBluetoothConnectKey
@@ -234,18 +232,9 @@ fun PlayerSettings(
         mutableStateOf(false)
     }
 
-    var showAsrLanguageDialog by remember {
-        mutableStateOf(false)
-    }
-
     val podcastSubtitleManager = LocalPodcastSubtitleManager.current
     val asrModelReady = podcastSubtitleManager?.isAsrModelReady() == true
     var showDeleteAsrModelDialog by remember { mutableStateOf(false) }
-
-    val (podcastAsrLanguage, onPodcastAsrLanguageChange) = rememberEnumPreference(
-        PodcastAsrLanguageKey,
-        defaultValue = PodcastAsrLanguage.AUTO
-    )
 
     if (showAudioQualityDialog) {
         EnumDialog(
@@ -278,26 +267,6 @@ fun PlayerSettings(
             current = loudnessLevel,
             values = LoudnessLevel.values().toList(),
             valueText = { getLoudnessLevelLabel(it) }
-        )
-    }
-
-    if (showAsrLanguageDialog) {
-        EnumDialog(
-            onDismiss = { showAsrLanguageDialog = false },
-            onSelect = {
-                onPodcastAsrLanguageChange(it)
-                showAsrLanguageDialog = false
-            },
-            title = stringResource(R.string.podcast_asr_language),
-            current = podcastAsrLanguage,
-            values = PodcastAsrLanguage.values().toList(),
-            valueText = {
-                when (it) {
-                    PodcastAsrLanguage.AUTO -> stringResource(R.string.podcast_asr_language_auto)
-                    PodcastAsrLanguage.ZH -> stringResource(R.string.podcast_asr_language_zh)
-                    PodcastAsrLanguage.EN -> stringResource(R.string.podcast_asr_language_en)
-                }
-            }
         )
     }
 
@@ -1124,22 +1093,6 @@ fun PlayerSettings(
         Material3SettingsGroup(
             title = stringResource(R.string.settings_title_podcast_subtitles),
             items = buildList {
-                add(
-                    Material3SettingsItem(
-                        icon = painterResource(R.drawable.subtitles),
-                        title = { Text(stringResource(R.string.podcast_asr_language)) },
-                        description = {
-                            Text(
-                                when (podcastAsrLanguage) {
-                                    PodcastAsrLanguage.ZH -> stringResource(R.string.podcast_asr_language_zh)
-                                    PodcastAsrLanguage.EN -> stringResource(R.string.podcast_asr_language_en)
-                                    PodcastAsrLanguage.AUTO -> stringResource(R.string.podcast_asr_language_auto)
-                                }
-                            )
-                        },
-                        onClick = { showAsrLanguageDialog = true }
-                    )
-                )
                 add(
                     Material3SettingsItem(
                         icon = painterResource(R.drawable.delete),

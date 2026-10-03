@@ -1132,7 +1132,7 @@
     <string name="podcast_subtitle_asr_running">Recognizing… %1$d%%</string>
     <string name="podcast_subtitle_asr_failed">Subtitle recognition failed</string>
     <string name="podcast_subtitle_asr_empty">No speech was recognized</string>
-    <string name="podcast_subtitle_asr_download_model">Download recognition model (~230 MB)</string>
+    <string name="podcast_subtitle_asr_download_model">Download recognition model (~74 MB)</string>
     <string name="podcast_subtitle_asr_model_downloading">Downloading model… %1$d%%</string>
 
     <!-- Podcast subtitle settings -->
@@ -1144,7 +1144,7 @@
     <string name="podcast_subtitles_bilingual">Bilingual subtitles</string>
     <string name="podcast_subtitles_bilingual_desc">Show the original line together with its translation</string>
     <string name="podcast_asr_experimental">On-device subtitle recognition</string>
-    <string name="podcast_asr_experimental_desc">Experimental. Lets you generate subtitles manually for episodes without transcripts. Recognition runs entirely on this device and audio never leaves the phone. High CPU usage — charging is recommended. Downloads a ~230 MB language model first</string>
+    <string name="podcast_asr_experimental_desc">Experimental. Lets you generate subtitles manually for episodes without transcripts. Recognition runs entirely on this device and audio never leaves the phone. High CPU usage — charging is recommended. Downloads a ~74 MB language model first</string>
     <string name="podcast_subtitle_asr_performance_warning">Recognition uses substantial CPU, memory, battery, and storage. The phone may become warm or playback may stutter.</string>
     <string name="podcast_subtitle_asr_accuracy_warning">Recognition is experimental. Results may contain errors, missing words, or imperfect timing and should not be treated as an official transcript.</string>
     <string name="podcast_subtitle_share_failed">Could not create the subtitle image</string>

@@ -914,7 +914,7 @@
     <string name="podcast_subtitle_asr_running">Reconhecendo… %1$d%%</string>
     <string name="podcast_subtitle_asr_failed">Falha no reconhecimento das legendas</string>
     <string name="podcast_subtitle_asr_empty">Nenhuma fala reconhecida</string>
-    <string name="podcast_subtitle_asr_download_model">Baixar modelo de reconhecimento (~230 MB)</string>
+    <string name="podcast_subtitle_asr_download_model">Baixar modelo de reconhecimento (~74 MB)</string>
     <string name="podcast_subtitle_asr_model_downloading">Baixando modelo… %1$d%%</string>
 
     <!-- Podcast subtitle settings -->
@@ -926,7 +926,7 @@
     <string name="podcast_subtitles_bilingual">Legendas bilíngues</string>
     <string name="podcast_subtitles_bilingual_desc">Mostra a linha original junto com a tradução</string>
     <string name="podcast_asr_experimental">Reconhecimento de legendas no dispositivo</string>
-    <string name="podcast_asr_experimental_desc">Experimental. Permite gerar legendas manualmente para episódios sem transcrição. O reconhecimento acontece inteiramente neste dispositivo e o áudio nunca sai do telefone. Alto uso de CPU — recomenda-se carregar. Antes, baixa um modelo de idioma de ~230 MB</string>
+    <string name="podcast_asr_experimental_desc">Experimental. Permite gerar legendas manualmente para episódios sem transcrição. O reconhecimento acontece inteiramente neste dispositivo e o áudio nunca sai do telefone. Alto uso de CPU — recomenda-se carregar. Antes, baixa um modelo de idioma de ~74 MB</string>
     <string name="podcast_asr_language">Idioma do reconhecimento</string>
     <string name="podcast_asr_language_auto">Detecção automática</string>
     <string name="podcast_asr_language_zh">Chinês</string>

@@ -932,7 +932,7 @@
     <string name="podcast_subtitle_asr_running">Распознавание… %1$d%%</string>
     <string name="podcast_subtitle_asr_failed">Не удалось распознать субтитры</string>
     <string name="podcast_subtitle_asr_empty">Речь не распознана</string>
-    <string name="podcast_subtitle_asr_download_model">Скачать модель распознавания (~230 МБ)</string>
+    <string name="podcast_subtitle_asr_download_model">Скачать модель распознавания (~74 МБ)</string>
     <string name="podcast_subtitle_asr_model_downloading">Загрузка модели… %1$d%%</string>
 
     <!-- Podcast subtitle settings -->
@@ -944,7 +944,7 @@
     <string name="podcast_subtitles_bilingual">Двуязычные субтитры</string>
     <string name="podcast_subtitles_bilingual_desc">Показывать оригинальную строку вместе с переводом</string>
     <string name="podcast_asr_experimental">Распознавание субтитров на устройстве</string>
-    <string name="podcast_asr_experimental_desc">Экспериментально. Позволяет вручную создавать субтитры для эпизодов без транскрипта. Распознавание выполняется полностью на этом устройстве, аудио никуда не передаётся. Высокая нагрузка на ЦП — рекомендуется зарядка. Сначала загружается языковая модель ~230 МБ</string>
+    <string name="podcast_asr_experimental_desc">Экспериментально. Позволяет вручную создавать субтитры для эпизодов без транскрипта. Распознавание выполняется полностью на этом устройстве, аудио никуда не передаётся. Высокая нагрузка на ЦП — рекомендуется зарядка. Сначала загружается языковая модель ~74 МБ</string>
     <string name="podcast_asr_language">Язык распознавания</string>
     <string name="podcast_asr_language_auto">Автоопределение</string>
     <string name="podcast_asr_language_zh">Китайский</string>

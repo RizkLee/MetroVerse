@@ -855,7 +855,7 @@
     <string name="podcast_subtitle_asr_running">辨識中… %1$d%%</string>
     <string name="podcast_subtitle_asr_failed">字幕辨識失敗</string>
     <string name="podcast_subtitle_asr_empty">未辨識到語音內容</string>
-    <string name="podcast_subtitle_asr_download_model">下載辨識模型（約 230 MB）</string>
+    <string name="podcast_subtitle_asr_download_model">下載辨識模型（約 74 MB）</string>
     <string name="podcast_subtitle_asr_model_downloading">模型下載中… %1$d%%</string>
 
     <!-- Podcast subtitle settings -->
@@ -867,7 +867,7 @@
     <string name="podcast_subtitles_bilingual">雙語字幕</string>
     <string name="podcast_subtitles_bilingual_desc">在譯文旁同時顯示原文</string>
     <string name="podcast_asr_experimental">端側字幕辨識</string>
-    <string name="podcast_asr_experimental_desc">實驗性功能。為沒有字幕的單集在本機手動產生字幕。辨識完全在本機完成，音訊不會上傳。CPU 佔用較高，建議充電時使用。首次需下載約 230 MB 的辨識模型</string>
+    <string name="podcast_asr_experimental_desc">實驗性功能。為沒有字幕的單集在本機手動產生字幕。辨識完全在本機完成，音訊不會上傳。CPU 佔用較高，建議充電時使用。首次需下載約 74 MB 的辨識模型</string>
     <string name="podcast_asr_language">辨識語言</string>
     <string name="podcast_asr_language_auto">自動偵測</string>
     <string name="podcast_asr_language_zh">中文</string>

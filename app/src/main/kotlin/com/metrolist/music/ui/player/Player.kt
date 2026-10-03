@@ -80,7 +80,6 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -155,8 +154,6 @@ import com.metrolist.music.constants.PlayerButtonsStyle
 import com.metrolist.music.constants.PlayerButtonsStyleKey
 import com.metrolist.music.constants.PlayerHorizontalPadding
 import com.metrolist.music.constants.PodcastAsrDisclaimerSeenKey
-import com.metrolist.music.constants.PodcastAsrLanguage
-import com.metrolist.music.constants.PodcastAsrLanguageKey
 import com.metrolist.music.constants.PodcastSubtitleBilingualKey
 import com.metrolist.music.constants.PodcastSubtitleTranslationEnabledKey
 import com.metrolist.music.constants.QueuePeekHeight
@@ -183,7 +180,6 @@ import com.metrolist.music.ui.component.BottomSheetState
 import com.metrolist.music.ui.component.LocalBottomSheetPageState
 import com.metrolist.music.ui.component.LocalMenuState
 import com.metrolist.music.ui.component.Lyrics
-import com.metrolist.music.ui.component.LyricsShareDialog
 import com.metrolist.music.ui.component.PlayerSliderTrack
 import com.metrolist.music.ui.component.ResizableIconButton
 import com.metrolist.music.ui.component.SquigglySlider
@@ -197,7 +193,6 @@ import com.metrolist.music.ui.theme.PlayerSliderColors
 import com.metrolist.music.ui.utils.ShowMediaInfo
 import com.metrolist.music.ui.utils.ShowOffsetDialog
 import com.metrolist.music.ui.utils.rememberEffectiveAppLanguageCode
-import com.metrolist.music.utils.ComposeToImage
 import com.metrolist.music.utils.dataStore
 import com.metrolist.music.utils.makeTimeString
 import com.metrolist.music.utils.rememberEnumPreference
@@ -341,7 +336,6 @@ fun BottomSheetPlayer(
     val (showPodcastSubtitles, onShowPodcastSubtitlesChange) = rememberPreference(ShowPodcastSubtitlesKey, true)
     val podcastSubtitleTranslation by rememberPreference(PodcastSubtitleTranslationEnabledKey, false)
     val podcastSubtitleBilingual by rememberPreference(PodcastSubtitleBilingualKey, true)
-    val podcastAsrLanguage by rememberEnumPreference(PodcastAsrLanguageKey, PodcastAsrLanguage.AUTO)
 
     val appLanguageCode = rememberEffectiveAppLanguageCode()
     val openRouterApiKey by rememberPreference(OpenRouterApiKey, "")
@@ -408,12 +402,27 @@ fun BottomSheetPlayer(
     var showAsrDisclaimerDialog by rememberSaveable { mutableStateOf(false) }
     var subtitleResyncToken by rememberSaveable { mutableStateOf(0) }
     var currentSubtitleIndex by rememberSaveable { mutableStateOf(-1) }
-    var podcastShareCues by remember { mutableStateOf<List<SubtitleCue>?>(null) }
-    val podcastShareScope = rememberCoroutineScope()
+
+    fun sharePodcastCues(cues: List<SubtitleCue>) {
+        val metadata = mediaMetadata ?: return
+        val shareText = buildString {
+            append(cues.joinToString("\n") { it.text })
+            append("\n\n")
+            append(metadata.title)
+            append(" - ")
+            append(metadata.artists.joinToString(", ") { it.name })
+            append("\n")
+            append(metadata.shareUrl ?: metadata.mediaUrl ?: "https://music.youtube.com/watch?v=${metadata.id}")
+        }
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, shareText)
+        }
+        context.startActivity(Intent.createChooser(intent, context.getString(R.string.share)))
+    }
 
     LaunchedEffect(mediaMetadata?.id) {
         currentSubtitleIndex = -1
-        podcastShareCues = null
     }
 
     LaunchedEffect(podcastSubtitleTranslation, currentSubtitleIndex, subtitleState) {
@@ -493,7 +502,6 @@ fun BottomSheetPlayer(
         manager.startTranscription(
             metadata = metadata,
             durationMs = duration,
-            languageMode = podcastAsrLanguage.name.lowercase(),
         )
     }
 
@@ -1964,7 +1972,7 @@ fun BottomSheetPlayer(
                                                 )
                                             }
                                         },
-                                        onShareCues = { cues -> podcastShareCues = cues },
+                                        onShareCues = { cues -> sharePodcastCues(cues) },
                                         resyncToken = subtitleResyncToken,
                                     )
                                 }
@@ -2063,7 +2071,7 @@ fun BottomSheetPlayer(
                                                 )
                                             }
                                         },
-                                        onShareCues = { cues -> podcastShareCues = cues },
+                                        onShareCues = { cues -> sharePodcastCues(cues) },
                                         resyncToken = subtitleResyncToken,
                                     )
                                 }
@@ -2116,53 +2124,6 @@ fun BottomSheetPlayer(
                 podcastSubtitlesActive = subtitleViewVisible,
                 onTogglePodcastSubtitles = {
                     onShowPodcastSubtitlesChange(!showPodcastSubtitles)
-                },
-            )
-        }
-
-        if (podcastShareCues != null && mediaMetadata != null) {
-            val shareMetadata = checkNotNull(mediaMetadata)
-            val shareText = podcastShareCues!!.joinToString("\n") { it.text }
-            LyricsShareDialog(
-                txt = shareText,
-                title = shareMetadata.title,
-                arts = shareMetadata.artists.joinToString(", ") { it.name },
-                songId = shareMetadata.id,
-                shareLink = shareMetadata.shareUrl ?: shareMetadata.mediaUrl,
-                onDismiss = { podcastShareCues = null },
-                onShareAsImage = {
-                    val selectedText = shareText
-                    podcastShareCues = null
-                    podcastShareScope.launch {
-                        runCatching {
-                            val image = ComposeToImage.createLyricsImage(
-                                context = context,
-                                coverArtUrl = shareMetadata.thumbnailUrl,
-                                songTitle = shareMetadata.title,
-                                artistName = shareMetadata.artists.joinToString(", ") { it.name },
-                                lyrics = selectedText,
-                                width = 1080,
-                                height = 1080,
-                            )
-                            val uri = ComposeToImage.saveBitmapAsFile(
-                                context,
-                                image,
-                                "podcast_subtitles_${System.currentTimeMillis()}",
-                            )
-                            val intent = Intent(Intent.ACTION_SEND).apply {
-                                type = "image/png"
-                                putExtra(Intent.EXTRA_STREAM, uri)
-                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                            }
-                            context.startActivity(Intent.createChooser(intent, context.getString(R.string.share)))
-                        }.onFailure {
-                            Toast.makeText(
-                                context,
-                                context.getString(R.string.podcast_subtitle_share_failed),
-                                Toast.LENGTH_SHORT,
-                            ).show()
-                        }
-                    }
                 },
             )
         }

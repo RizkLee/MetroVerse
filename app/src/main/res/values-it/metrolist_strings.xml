@@ -918,7 +918,7 @@
     <string name="podcast_subtitle_asr_running">Riconoscimento… %1$d%%</string>
     <string name="podcast_subtitle_asr_failed">Riconoscimento dei sottotitoli non riuscito</string>
     <string name="podcast_subtitle_asr_empty">Nessun parlato riconosciuto</string>
-    <string name="podcast_subtitle_asr_download_model">Scarica il modello di riconoscimento (~230 MB)</string>
+    <string name="podcast_subtitle_asr_download_model">Scarica il modello di riconoscimento (~74 MB)</string>
     <string name="podcast_subtitle_asr_model_downloading">Download del modello… %1$d%%</string>
 
     <!-- Podcast subtitle settings -->
@@ -930,7 +930,7 @@
     <string name="podcast_subtitles_bilingual">Sottotitoli bilingue</string>
     <string name="podcast_subtitles_bilingual_desc">Mostra la riga originale insieme alla traduzione</string>
     <string name="podcast_asr_experimental">Riconoscimento dei sottotitoli sul dispositivo</string>
-    <string name="podcast_asr_experimental_desc">Sperimentale. Consente di generare manualmente i sottotitoli per gli episodi senza trascrizione. Il riconoscimento avviene interamente su questo dispositivo e l\'audio non lascia mai il telefono. Uso intensivo della CPU: consigliata la ricarica. Prima scarica un modello linguistico di ~230 MB</string>
+    <string name="podcast_asr_experimental_desc">Sperimentale. Consente di generare manualmente i sottotitoli per gli episodi senza trascrizione. Il riconoscimento avviene interamente su questo dispositivo e l\'audio non lascia mai il telefono. Uso intensivo della CPU: consigliata la ricarica. Prima scarica un modello linguistico di ~74 MB</string>
     <string name="podcast_asr_language">Lingua di riconoscimento</string>
     <string name="podcast_asr_language_auto">Rilevamento automatico</string>
     <string name="podcast_asr_language_zh">Cinese</string>

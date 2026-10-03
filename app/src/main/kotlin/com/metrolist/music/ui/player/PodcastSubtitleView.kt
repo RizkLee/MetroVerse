@@ -11,6 +11,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.DragInteraction
@@ -273,6 +274,9 @@ private fun SubtitleCueList(
 
     LaunchedEffect(resyncToken) {
         autoScroll = true
+        if (currentIndex >= 0 && cues.isNotEmpty()) {
+            listState.animateScrollToItem(currentIndex.coerceIn(0, cues.lastIndex))
+        }
     }
 
     LaunchedEffect(currentIndex, autoScroll, cues.size) {
@@ -312,6 +316,7 @@ private fun SubtitleCueList(
                     cue = cue,
                     translation = translations[index],
                     active = index == currentIndex,
+                    selected = selectedIndices.contains(index),
                     showTranslation = showTranslation,
                     textColor = textColor,
                     onClick = {
@@ -440,6 +445,7 @@ private fun SubtitleCueRow(
     cue: SubtitleCue,
     translation: String?,
     active: Boolean,
+    selected: Boolean,
     showTranslation: Boolean,
     textColor: Color,
     onClick: () -> Unit,
@@ -459,7 +465,15 @@ private fun SubtitleCueRow(
                     onClick = onClick,
                     onLongClick = onLongClick,
                 )
-                .padding(vertical = 8.dp),
+                .background(
+                    color = when {
+                        selected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                        active -> textColor.copy(alpha = 0.12f)
+                        else -> Color.Transparent
+                    },
+                    shape = MaterialTheme.shapes.small,
+                )
+                .padding(horizontal = 10.dp, vertical = 8.dp),
     ) {
         Text(
             text = cue.text,

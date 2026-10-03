@@ -16,6 +16,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -143,8 +144,8 @@ class PodcastSubtitleManager @Inject constructor(
         else -> emptyList()
     }
 
-    /** Starts recognition, downloading the model first when needed. */
-    fun startTranscription(metadata: MediaMetadata, durationMs: Long, languageMode: String) {
+    /** Downloads and recognizes English speech on-device. */
+    fun startTranscription(metadata: MediaMetadata, durationMs: Long) {
         if (transcriptionJob?.isActive == true) return
         val mediaUrl = metadata.mediaUrl ?: return
         val episodeId = metadata.id
@@ -177,7 +178,6 @@ class PodcastSubtitleManager @Inject constructor(
             _state.value = PodcastSubtitleState.Transcribing(emptyList(), 0)
             val result = transcriber.transcribe(
                 source = mediaUrl,
-                languageMode = languageMode,
                 totalDurationMs = durationMs,
             ) { partial, percent ->
                 if (currentEpisodeId == episodeId) {
@@ -256,6 +256,10 @@ class PodcastSubtitleManager @Inject constructor(
             }
             if (stillMissing.isEmpty()) {
                 _translationStatus.value = PodcastTranslationStatus.Success
+                delay(3_000)
+                if (_translationStatus.value == PodcastTranslationStatus.Success) {
+                    _translationStatus.value = PodcastTranslationStatus.Idle
+                }
                 return@launch
             }
 
@@ -290,6 +294,12 @@ class PodcastSubtitleManager @Inject constructor(
             }
             _translationStatus.value = failedMessage?.let { PodcastTranslationStatus.Error(it) }
                 ?: PodcastTranslationStatus.Success
+            if (failedMessage == null) {
+                delay(3_000)
+                if (_translationStatus.value == PodcastTranslationStatus.Success) {
+                    _translationStatus.value = PodcastTranslationStatus.Idle
+                }
+            }
         }
     }
 
