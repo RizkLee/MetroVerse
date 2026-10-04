@@ -5,6 +5,8 @@
 
 package com.metrolist.music.podcast.transcript
 
+import java.util.Locale
+
 /** Pure helpers shared by the on-device podcast transcription pipeline. JVM-testable. */
 object PodcastAsrSupport {
 
@@ -106,6 +108,29 @@ object PodcastAsrSupport {
             cleaned.startsWith("yue") -> "yue"
             else -> cleaned.take(2)
         }
+    }
+
+    /** Converts Zipformer's uppercase English output to readable sentence case. */
+    fun normalizeAsrText(text: String): String {
+        val trimmed = text.trim()
+        if (trimmed.isEmpty() || trimmed.none { it.isLetter() }) return trimmed
+        if (trimmed != trimmed.uppercase(Locale.US)) return trimmed
+
+        val lower = trimmed.lowercase(Locale.US)
+        val result = StringBuilder(lower.length)
+        var capitalizeNext = true
+        lower.forEach { character ->
+            if (capitalizeNext && character.isLetter()) {
+                result.append(character.uppercaseChar())
+                capitalizeNext = false
+            } else {
+                result.append(character)
+            }
+            if (character == '.' || character == '!' || character == '?') {
+                capitalizeNext = true
+            }
+        }
+        return result.toString()
     }
 
     /** Index of the cue covering [positionMs], or -1 when playback is between cues. */

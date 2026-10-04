@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
@@ -179,7 +180,7 @@ fun PodcastSubtitleView(
                         Spacer(Modifier.height(12.dp))
                         SubtitleCueList(
                             cues = state.cues,
-                            activeIndex = state.cues.lastIndex,
+                            activeIndex = -2,
                             translations = translations,
                             positionProvider = positionProvider,
                             showTranslation = showTranslation,
@@ -325,6 +326,7 @@ private fun SubtitleCueList(
                                 if (!it.add(index)) it.remove(index)
                             }
                         } else {
+                            autoScroll = true
                             onSeek(cue.startMs)
                         }
                     },
@@ -339,7 +341,7 @@ private fun SubtitleCueList(
         PodcastTranslationHeader(
             status = translationStatus,
             textColor = textColor,
-            modifier = Modifier.align(Alignment.TopCenter).padding(top = 16.dp),
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = 56.dp),
         )
 
         AnimatedVisibility(
@@ -417,6 +419,7 @@ private fun PodcastTranslationHeader(
         }
         Card(
             colors = CardDefaults.cardColors(containerColor = containerColor, contentColor = contentColor),
+            shape = RoundedCornerShape(16.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         ) {
             Row(

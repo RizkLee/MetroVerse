@@ -425,7 +425,7 @@ fun BottomSheetPlayer(
         currentSubtitleIndex = -1
     }
 
-    LaunchedEffect(podcastSubtitleTranslation, currentSubtitleIndex, subtitleState) {
+    LaunchedEffect(podcastSubtitleTranslation, currentSubtitleIndex, subtitleState, subtitleTranslationConfig) {
         if (podcastSubtitleTranslation && currentSubtitleIndex >= 0) {
             podcastSubtitleManager?.requestTranslations(
                 centerIndex = currentSubtitleIndex,
@@ -1438,6 +1438,9 @@ fun BottomSheetPlayer(
             fun seekToPosition(target: Long) {
                 val clampedTarget = target.coerceIn(0L, duration.takeIf { it > 0L } ?: Long.MAX_VALUE)
                 pendingSeekPosition = clampedTarget
+                if (mediaMetadata.isEpisode) {
+                    subtitleResyncToken++
+                }
                 if (isCasting) {
                     castHandler?.seekTo(clampedTarget)
                     lastManualSeekTime = System.currentTimeMillis()
@@ -1956,7 +1959,10 @@ fun BottomSheetPlayer(
                                         asrDownloadProgress = subtitleModelDownloadProgress,
                                         asrModelReady = podcastSubtitleManager?.isAsrModelReady() == true,
                                         onSeek = { target ->
-                                            if (!isListenTogetherGuest) playerConnection.player.seekTo(target)
+                                            if (!isListenTogetherGuest) {
+                                                playerConnection.player.seekTo(target)
+                                                subtitleResyncToken++
+                                            }
                                         },
                                         onStartTranscription = { requestOnDeviceTranscription() },
                                         onCancelTranscription = {
@@ -1965,12 +1971,6 @@ fun BottomSheetPlayer(
                                         onDownloadModel = { requestOnDeviceTranscription() },
                                         onCurrentCueChanged = { index ->
                                             currentSubtitleIndex = index
-                                            if (podcastSubtitleTranslation) {
-                                                podcastSubtitleManager?.requestTranslations(
-                                                    centerIndex = index,
-                                                    config = subtitleTranslationConfig,
-                                                )
-                                            }
                                         },
                                         onShareCues = { cues -> sharePodcastCues(cues) },
                                         resyncToken = subtitleResyncToken,
@@ -2055,7 +2055,10 @@ fun BottomSheetPlayer(
                                         asrDownloadProgress = subtitleModelDownloadProgress,
                                         asrModelReady = podcastSubtitleManager?.isAsrModelReady() == true,
                                         onSeek = { target ->
-                                            if (!isListenTogetherGuest) playerConnection.player.seekTo(target)
+                                            if (!isListenTogetherGuest) {
+                                                playerConnection.player.seekTo(target)
+                                                subtitleResyncToken++
+                                            }
                                         },
                                         onStartTranscription = { requestOnDeviceTranscription() },
                                         onCancelTranscription = {
@@ -2064,12 +2067,6 @@ fun BottomSheetPlayer(
                                         onDownloadModel = { requestOnDeviceTranscription() },
                                         onCurrentCueChanged = { index ->
                                             currentSubtitleIndex = index
-                                            if (podcastSubtitleTranslation) {
-                                                podcastSubtitleManager?.requestTranslations(
-                                                    centerIndex = index,
-                                                    config = subtitleTranslationConfig,
-                                                )
-                                            }
                                         },
                                         onShareCues = { cues -> sharePodcastCues(cues) },
                                         resyncToken = subtitleResyncToken,

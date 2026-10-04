@@ -81,6 +81,18 @@ class PodcastAsrSupportTest {
     }
 
     @Test
+    fun `normalizeAsrText makes uppercase model output readable`() {
+        assertEquals(
+            "This is clear. It should read normally!",
+            PodcastAsrSupport.normalizeAsrText("THIS IS CLEAR. IT SHOULD READ NORMALLY!"),
+        )
+        assertEquals(
+            "iPhone works",
+            PodcastAsrSupport.normalizeAsrText("iPhone works"),
+        )
+    }
+
+    @Test
     fun `normalizeLanguageTag strips sensevoice markers`() {
         assertEquals("zh", PodcastAsrSupport.normalizeLanguageTag("<|zh|>"))
         assertEquals("en", PodcastAsrSupport.normalizeLanguageTag("EN"))

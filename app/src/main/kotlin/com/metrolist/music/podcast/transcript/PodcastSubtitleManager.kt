@@ -76,6 +76,8 @@ class PodcastSubtitleManager @Inject constructor(
     private var currentEpisodeId: String? = null
     private var transcriptionJob: Job? = null
     private var translationJob: Job? = null
+    private var translationConfigKey: String? = null
+    private var translationStatusShown = false
 
     fun isAsrModelReady(): Boolean = transcriber.isModelReady()
 
@@ -240,8 +242,21 @@ class PodcastSubtitleManager @Inject constructor(
         if (windowStart > windowEnd) return
 
         val episodeId = currentEpisodeId ?: return
+        val configKey = "${episodeId}|${config.provider}|${config.targetLanguage}|${config.model}"
+        if (translationConfigKey != configKey) {
+            translationJob?.cancel()
+            translationJob = null
+            translationConfigKey = configKey
+            translationStatusShown = false
+            _translations.value = emptyMap()
+            _translationStatus.value = PodcastTranslationStatus.Idle
+        }
         if (translationJob?.isActive == true) return
-        _translationStatus.value = PodcastTranslationStatus.Translating
+        val showStatus = !translationStatusShown
+        if (showStatus) {
+            translationStatusShown = true
+            _translationStatus.value = PodcastTranslationStatus.Translating
+        }
         translationJob = scope.launch {
             if (_translations.value.isEmpty()) {
                 val persisted = transcriptRepository.loadTranslation(
@@ -255,10 +270,12 @@ class PodcastSubtitleManager @Inject constructor(
                 _translations.value[index] == null && cues[index].text.isNotBlank()
             }
             if (stillMissing.isEmpty()) {
-                _translationStatus.value = PodcastTranslationStatus.Success
-                delay(3_000)
-                if (_translationStatus.value == PodcastTranslationStatus.Success) {
-                    _translationStatus.value = PodcastTranslationStatus.Idle
+                if (showStatus) {
+                    _translationStatus.value = PodcastTranslationStatus.Success
+                    delay(3_000)
+                    if (_translationStatus.value == PodcastTranslationStatus.Success) {
+                        _translationStatus.value = PodcastTranslationStatus.Idle
+                    }
                 }
                 return@launch
             }
@@ -292,13 +309,17 @@ class PodcastSubtitleManager @Inject constructor(
                 }
                 if (failedMessage != null) break
             }
-            _translationStatus.value = failedMessage?.let { PodcastTranslationStatus.Error(it) }
-                ?: PodcastTranslationStatus.Success
-            if (failedMessage == null) {
+            if (failedMessage != null) {
+                val message = failedMessage
+                _translationStatus.value = PodcastTranslationStatus.Error(message)
+            } else if (showStatus) {
+                _translationStatus.value = PodcastTranslationStatus.Success
                 delay(3_000)
                 if (_translationStatus.value == PodcastTranslationStatus.Success) {
                     _translationStatus.value = PodcastTranslationStatus.Idle
                 }
+            } else {
+                _translationStatus.value = PodcastTranslationStatus.Idle
             }
         }
     }
@@ -308,6 +329,8 @@ class PodcastSubtitleManager @Inject constructor(
         translationJob = null
         _translations.value = emptyMap()
         _translationStatus.value = PodcastTranslationStatus.Idle
+        translationConfigKey = null
+        translationStatusShown = false
     }
 
     fun reset() {
@@ -354,12 +377,14 @@ class PodcastSubtitleManager @Inject constructor(
         translationJob = null
         _translations.value = emptyMap()
         _translationStatus.value = PodcastTranslationStatus.Idle
+        translationConfigKey = null
+        translationStatusShown = false
         currentEpisodeId = null
         _state.value = next
     }
 
     private companion object {
-        const val TRANSLATION_WINDOW_AHEAD = 5
-        const val MAX_TRANSLATION_CHARS = 2_800
+        const val TRANSLATION_WINDOW_AHEAD = 80
+        const val MAX_TRANSLATION_CHARS = 12_000
     }
 }

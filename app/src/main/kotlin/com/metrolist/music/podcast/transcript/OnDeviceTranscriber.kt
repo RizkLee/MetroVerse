@@ -192,7 +192,9 @@ class OnDeviceTranscriber @Inject constructor(
                         while (recognizer.isReady(stream)) recognizer.decode(stream)
                         stream.inputFinished()
                         while (recognizer.isReady(stream)) recognizer.decode(stream)
-                        val text = recognizer.getResult(stream).text.trim()
+                        val text = PodcastAsrSupport.normalizeAsrText(
+                            recognizer.getResult(stream).text,
+                        )
                         if (text.isNotEmpty()) {
                             val startMs = startSample * 1000L / SAMPLE_RATE
                             val endMs = (startSample + samples.size) * 1000L / SAMPLE_RATE
