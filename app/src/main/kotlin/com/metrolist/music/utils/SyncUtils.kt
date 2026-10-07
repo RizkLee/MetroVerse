@@ -116,6 +116,14 @@ internal fun youtubePodcastSubscriptionRemovalCandidates(
         podcast.feedUrl == null && podcast.id !in remoteIds
     }
 
+internal fun youtubeSavedEpisodeRemovalCandidates(
+    localSavedEpisodes: List<SongEntity>,
+    remoteIds: Set<String>,
+): List<SongEntity> =
+    localSavedEpisodes.filter { episode ->
+        episode.mediaUrl == null && episode.id !in remoteIds
+    }
+
 @Singleton
 class SyncUtils @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -1417,8 +1425,8 @@ class SyncUtils @Inject constructor(
                         }
                     }
 
-                    // Cleanup: Remove local episodes that are no longer in Episodes for Later
-                    val localToRemove = localSavedEpisodes.filterNot { it.id in remoteIds }
+                    // RSS favorites share the song table but never appear in YouTube's VLSE response.
+                    val localToRemove = youtubeSavedEpisodeRemovalCandidates(localSavedEpisodes, remoteIds)
                     Timber.d("[EPISODES_SYNC] Cleanup: removing ${localToRemove.size} episodes not in VLSE")
                     localToRemove.forEach { song ->
                         try {
