@@ -77,7 +77,7 @@ fun StorageSettings(
 ) {
     val context = LocalContext.current
     val database = LocalDatabase.current
-    val imageDiskCache = context.imageLoader.diskCache ?: return
+    val imageDiskCache = context.imageLoader.diskCache
     val playerCache = LocalPlayerConnection.current?.service?.playerCache ?: return
     val downloadCache = LocalPlayerConnection.current?.service?.downloadCache ?: return
 
@@ -108,7 +108,7 @@ fun StorageSettings(
     var onConfirmAction by remember { mutableStateOf<() -> Unit>({}) }
 
     var imageCacheSize by remember {
-        androidx.compose.runtime.mutableLongStateOf(imageDiskCache.size)
+        androidx.compose.runtime.mutableLongStateOf(imageDiskCache?.size ?: 0L)
     }
     var playerCacheSize by remember {
         androidx.compose.runtime.mutableLongStateOf(tryOrNull { playerCache.cacheSpace } ?: 0)
@@ -137,7 +137,7 @@ fun StorageSettings(
         SingletonImageLoader.reset()
         if (maxImageCacheSize == 0) {
             coroutineScope.launch(Dispatchers.IO) {
-                imageDiskCache.clear()
+                imageDiskCache?.clear()
             }
         }
     }
@@ -154,7 +154,7 @@ fun StorageSettings(
     LaunchedEffect(imageDiskCache) {
         while (isActive) {
             delay(500)
-            imageCacheSize = imageDiskCache.size
+            imageCacheSize = imageDiskCache?.size ?: 0L
         }
     }
     LaunchedEffect(playerCache) {
@@ -223,8 +223,8 @@ fun StorageSettings(
                         song.song.thumbnailUrl?.let { urlsToPreserve.add(it.encodeUtf8().sha256().hex()) }
                         song.album?.thumbnailUrl?.let { urlsToPreserve.add(it.encodeUtf8().sha256().hex()) }
                     }
-                    val directory = imageDiskCache.directory.toFile()
-                    if (directory.exists() && directory.isDirectory) {
+                    val directory = imageDiskCache?.directory?.toFile()
+                    if (directory != null && directory.exists() && directory.isDirectory) {
                         directory.listFiles()?.forEach { file ->
                             if (file.isFile && !file.name.startsWith("journal")) {
                                 val isPreserved = urlsToPreserve.any { hash -> file.name.startsWith(hash) }
@@ -234,7 +234,7 @@ fun StorageSettings(
                             }
                         }
                     }
-                    imageDiskCache.clear()
+                    imageDiskCache?.clear()
                 }
                 clearImageCacheDialog = false
             },
@@ -473,6 +473,8 @@ fun StorageSettings(
                     ),
                 ),
         )
+
+        TextCacheSettings()
 
         Spacer(Modifier.size(24.dp))
     }

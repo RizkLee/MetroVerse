@@ -34,6 +34,7 @@ constructor(
     private val lyricsHelper: LyricsHelper,
     val database: MusicDatabase,
     private val networkConnectivity: NetworkConnectivityObserver,
+    private val textCacheManager: com.metrolist.music.cache.TextCacheManager,
 ) : ViewModel() {
     private var job: Job? = null
     val results = MutableStateFlow(emptyList<LyricsResult>())
@@ -100,6 +101,7 @@ constructor(
                     lyricsHelper.getLyrics(mediaMetadata)
                 }
             upsert(LyricsEntity(mediaMetadata.id, lyricsWithProvider.lyrics, lyricsWithProvider.provider))
+            textCacheManager.recordAutomaticallyFetched(mediaMetadata.id, lyricsWithProvider.lyrics)
         }
     }
 }

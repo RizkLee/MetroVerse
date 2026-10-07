@@ -26,7 +26,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.util.Locale
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 
 internal fun storedLyricsTranslationMode(
@@ -111,7 +110,9 @@ object LyricsTranslationHelper {
     private var isCompositionActive = true
 
     // Cache translations in memory to avoid redundant API calls during a session
-    private val translationCache = ConcurrentHashMap<String, List<String>>()
+    private val translationCache = TranslationMemoryCache()
+
+    fun clearMemoryCache() = translationCache.clear()
 
     // Map of language codes to full names for better AI understanding
     private val LanguageCodeToName = mapOf(

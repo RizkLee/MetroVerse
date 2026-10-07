@@ -330,6 +330,9 @@ class MusicService :
     lateinit var lyricsHelper: LyricsHelper
 
     @Inject
+    lateinit var textCacheManager: com.metrolist.music.cache.TextCacheManager
+
+    @Inject
     lateinit var syncUtils: SyncUtils
 
     @Inject
@@ -1948,6 +1951,7 @@ class MusicService :
                             ),
                         )
                     }
+                    textCacheManager.recordAutomaticallyFetched(mediaId, lyricsWithProvider.lyrics)
                 }
             lyricsLoadJobs[mediaId] = LyricsLoadRequest(job, userInitiated)
             job.invokeOnCompletion {
@@ -2704,6 +2708,8 @@ class MusicService :
         mediaItem: MediaItem?,
         reason: Int,
     ) {
+        com.metrolist.music.cache.TextCacheSignals.protect("playback", mediaItem?.mediaId)
+        textCacheManager.recordUse(mediaItem?.mediaId)
         val previousItemWasEpisode = previousEpisodeId != null
 
         // The track that was playing before this transition only gets marked as
@@ -4472,6 +4478,7 @@ class MusicService :
         }
 
     override fun onDestroy() {
+        com.metrolist.music.cache.TextCacheSignals.protect("playback", null)
         isRunning = false
 
         if (!::player.isInitialized) {

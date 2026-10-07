@@ -6,6 +6,7 @@
 package com.metrolist.music.podcast.transcript
 
 import android.content.Context
+import com.metrolist.music.cache.TextCacheSignals
 import com.metrolist.music.podcast.PODCAST_USER_AGENT
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.ktor.client.HttpClient
@@ -42,6 +43,12 @@ data class EpisodeTranscript(
     val source: TranscriptSource,
     val cues: List<SubtitleCue>,
     val language: String? = null,
+)
+
+data class PodcastTextCacheEntry(
+    val key: String,
+    val bytes: Long,
+    val lastAccessMs: Long,
 )
 
 @Serializable
@@ -101,7 +108,7 @@ class TranscriptRepository @Inject constructor(
         }
     }
 
-    private val indexMutex = Mutex()
+    private val fileMutex = Mutex()
     private var cachedIndex: TranscriptIndex? = null
 
     private val indexFile: File
@@ -110,13 +117,16 @@ class TranscriptRepository @Inject constructor(
     private val transcriptsDir: File
         get() = File(context.filesDir, "podcast").resolve("transcripts")
 
+    private val translationsDir: File
+        get() = File(context.filesDir, "podcast").resolve("translations")
+
     /** Records transcript links discovered while parsing a feed (replaces previous entries). */
     suspend fun updateFeedTranscripts(
         feedUrl: String,
         channelLanguage: String?,
         episodes: List<EpisodeTranscriptRefs>,
         episodeIdOf: (EpisodeTranscriptRefs) -> String?,
-    ) = indexMutex.withLock {
+    ) = fileMutex.withLock {
         val index = loadIndex()
         val feed = index.feeds.getOrPut(feedUrl) { TranscriptIndexFeed() }
         feed.language = channelLanguage ?: feed.language
@@ -136,12 +146,12 @@ class TranscriptRepository @Inject constructor(
         persistIndex(index)
     }
 
-    suspend fun feedLanguage(feedUrl: String): String? = indexMutex.withLock {
+    suspend fun feedLanguage(feedUrl: String): String? = fileMutex.withLock {
         loadIndex().feeds[feedUrl]?.language
     }
 
     /** Returns the stored transcript refs for an episode, or null when the feed has none. */
-    suspend fun transcriptRefs(episodeId: String): List<TranscriptRef>? = indexMutex.withLock {
+    suspend fun transcriptRefs(episodeId: String): List<TranscriptRef>? = fileMutex.withLock {
         loadIndex()
             .feeds
             .values
@@ -192,16 +202,44 @@ class TranscriptRepository @Inject constructor(
         loadCachedTranscript(episodeId)
 
     /** Removes every transcript artifact of one episode (index entry, decoded cues, translations). */
-    suspend fun clearEpisode(episodeId: String) = indexMutex.withLock {
+    suspend fun clearEpisode(episodeId: String) = fileMutex.withLock {
         val index = loadIndex()
         index.feeds.values.forEach { feed -> feed.episodes.remove(episodeId) }
         persistIndex(index)
         withContext(Dispatchers.IO) {
-            transcriptFile(episodeId).delete()
-            File(File(context.filesDir, "podcast"), "translations")
-                .listFiles()
-                ?.filter { it.name.startsWith("${episodeId.takeLast(48)}_") }
-                ?.forEach { it.delete() }
+            cachedFilesForKey(episodeId.takeLast(48)).forEach { it.delete() }
+            TextCacheSignals.notifyChanged()
+        }
+    }
+
+    suspend fun cachedTextEntries(): List<PodcastTextCacheEntry> = withContext(Dispatchers.IO) {
+        fileMutex.withLock {
+            val transcripts = transcriptsDir.listFiles().orEmpty().filter { it.isFile && it.extension == "json" }
+            val knownKeys = transcripts.map { it.nameWithoutExtension }.toHashSet()
+            val filesByKey = transcripts.groupBy { it.nameWithoutExtension }.mapValues { it.value.toMutableList() }.toMutableMap()
+            translationsDir.listFiles().orEmpty().filter { it.isFile && it.extension == "json" }.forEach { file ->
+                val key = file.name.takeIf { it.length > 49 && it[48] == '_' }?.take(48)
+                    ?: file.name.indices.asSequence().take(48)
+                        .filter { file.name[it] == '_' }
+                        .map { file.name.take(it) }
+                        .lastOrNull { it in knownKeys }
+                if (key != null && isSafeCacheKey(key)) filesByKey.getOrPut(key) { mutableListOf() }.add(file)
+            }
+            filesByKey.mapNotNull { (key, files) ->
+                key.takeIf(::isSafeCacheKey)?.let {
+                    PodcastTextCacheEntry(key, files.sumOf { it.length() }, files.maxOf { it.lastModified() })
+                }
+            }
+        }
+    }
+
+    /** Cache eviction never changes discovery metadata or an episode currently displayed. */
+    suspend fun removeCachedText(key: String): Boolean = withContext(Dispatchers.IO) {
+        fileMutex.withLock {
+            if (!isSafeCacheKey(key) || TextCacheSignals.isProtected(key)) return@withLock false
+            val results = cachedFilesForKey(key).map { !it.exists() || it.delete() }
+            if (results.isNotEmpty()) TextCacheSignals.notifyChanged()
+            results.all { it }
         }
     }
 
@@ -211,13 +249,16 @@ class TranscriptRepository @Inject constructor(
         provider: String,
         translations: Map<Int, String>,
     ) = withContext(Dispatchers.IO) {
-        runCatching {
-            val dir = File(context.filesDir, "podcast/translations").apply { mkdirs() }
-            val existing = loadTranslation(episodeId, targetLanguage, provider).toMutableMap()
-            existing.putAll(translations)
-            dir.resolve(translationFileName(episodeId, targetLanguage, provider))
-                .writeText(json.encodeToString(existing))
-        }.isSuccess
+        fileMutex.withLock {
+            runCatching {
+                translationsDir.mkdirs()
+                val file = translationsDir.resolve(translationFileName(episodeId, targetLanguage, provider))
+                val existing = readTranslation(file).toMutableMap()
+                existing.putAll(translations)
+                file.writeText(json.encodeToString(existing))
+                TextCacheSignals.notifyChanged()
+            }.isSuccess
+        }
     }
 
     suspend fun loadTranslation(
@@ -225,14 +266,18 @@ class TranscriptRepository @Inject constructor(
         targetLanguage: String,
         provider: String,
     ): Map<Int, String> = withContext(Dispatchers.IO) {
+        fileMutex.withLock {
+            readTranslation(translationsDir.resolve(translationFileName(episodeId, targetLanguage, provider)))
+        }
+    }
+
+    private fun readTranslation(file: File): Map<Int, String> =
         runCatching {
-            val file = File(context.filesDir, "podcast/translations")
-                .resolve(translationFileName(episodeId, targetLanguage, provider))
             if (!file.exists()) return@runCatching emptyMap()
             json.decodeFromString<Map<String, String>>(file.readText())
                 .mapKeys { entry -> entry.key.toInt() }
+                .also { touch(file) }
         }.getOrDefault(emptyMap())
-    }
 
     private suspend fun download(url: String): String? = withContext(Dispatchers.IO) {
         runCatching {
@@ -246,40 +291,59 @@ class TranscriptRepository @Inject constructor(
 
     private suspend fun storeTranscript(episodeId: String, transcript: EpisodeTranscript) =
         withContext(Dispatchers.IO) {
-            runCatching {
-                transcriptsDir.mkdirs()
-                val previous = loadCachedTranscript(episodeId)
-                if (previous != null && previous.cues != transcript.cues) {
-                    File(context.filesDir, "podcast/translations").listFiles()
-                        ?.filter { it.name.startsWith("${episodeId.takeLast(48)}_") }
-                        ?.forEach { it.delete() }
-                }
-                transcriptFile(episodeId).writeText(
-                    json.encodeToString(
-                        StoredTranscript(
-                            source = transcript.source,
-                            language = transcript.language,
-                            cues = transcript.cues.map { StoredCue(it.startMs, it.endMs, it.text) },
+            fileMutex.withLock {
+                runCatching {
+                    transcriptsDir.mkdirs()
+                    val previous = readCachedTranscript(episodeId)
+                    if (previous != null && previous.cues != transcript.cues) {
+                        cachedFilesForKey(episodeId.takeLast(48)).filter { it.parentFile == translationsDir }
+                            .forEach { it.delete() }
+                    }
+                    transcriptFile(episodeId).writeText(
+                        json.encodeToString(
+                            StoredTranscript(
+                                source = transcript.source,
+                                language = transcript.language,
+                                cues = transcript.cues.map { StoredCue(it.startMs, it.endMs, it.text) },
+                            ),
                         ),
-                    ),
-                )
+                    )
+                    TextCacheSignals.notifyChanged()
+                }
             }
         }
 
     private suspend fun loadCachedTranscript(episodeId: String): EpisodeTranscript? =
         withContext(Dispatchers.IO) {
-            runCatching {
-                val file = transcriptFile(episodeId)
-                if (!file.exists()) return@runCatching null
-                val stored = json.decodeFromString<StoredTranscript>(file.readText())
-                EpisodeTranscript(
-                    episodeId = episodeId,
-                    source = stored.source,
-                    language = stored.language,
-                    cues = stored.cues.map { SubtitleCue(it.s, it.e, it.t) },
-                )
-            }.getOrNull()
+            fileMutex.withLock { readCachedTranscript(episodeId) }
         }
+
+    private fun readCachedTranscript(episodeId: String): EpisodeTranscript? = runCatching {
+        val file = transcriptFile(episodeId)
+        if (!file.exists()) return@runCatching null
+        val stored = json.decodeFromString<StoredTranscript>(file.readText())
+        EpisodeTranscript(
+            episodeId = episodeId,
+            source = stored.source,
+            language = stored.language,
+            cues = stored.cues.map { SubtitleCue(it.s, it.e, it.t) },
+        ).also { touch(file) }
+    }.getOrNull()
+
+    private fun cachedFilesForKey(key: String): List<File> = buildList {
+        transcriptsDir.resolve("$key.json").takeIf { it.isFile }?.let(::add)
+        translationsDir.listFiles().orEmpty()
+            .filter { it.isFile && it.extension == "json" && it.name.startsWith("${key}_") }
+            .let(::addAll)
+    }
+
+    private fun isSafeCacheKey(key: String): Boolean =
+        key.isNotEmpty() && key.length <= 48 && key.all { it.isLetterOrDigit() || it == '_' || it == '-' }
+
+    private fun touch(file: File) {
+        val now = System.currentTimeMillis()
+        if (now - file.lastModified() >= 60_000) file.setLastModified(now)
+    }
 
     private fun transcriptFile(episodeId: String): File =
         transcriptsDir.resolve("${episodeId.takeLast(48)}.json")

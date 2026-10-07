@@ -755,6 +755,41 @@ interface DatabaseDao {
     @Query("SELECT * FROM lyrics WHERE id = :id")
     fun lyrics(id: String?): Flow<LyricsEntity?>
 
+    @Query("""
+        SELECT lyrics.id,
+               length(CAST(lyrics.lyrics AS BLOB)) + length(CAST(lyrics.translatedLyrics AS BLOB)) AS bytes,
+               lyrics.provider,
+               song.id IS NOT NULL AS hasSong,
+               song.inLibrary IS NOT NULL AS inLibrary,
+               coalesce(song.liked, 0) AS liked,
+               coalesce(song.isDownloaded, 0) AS downloaded,
+               coalesce((SELECT max(timestamp) FROM event WHERE songId = lyrics.id), 0) AS lastPlayedMs
+        FROM lyrics LEFT JOIN song ON song.id = lyrics.id
+    """)
+    fun observeLyricsCacheEntries(): Flow<List<LyricsCacheEntry>>
+
+    @Query("SELECT count(*) FROM lyrics")
+    fun observeLyricsCacheCount(): Flow<Int>
+
+    @Query("""
+        SELECT lyrics.id,
+               length(CAST(lyrics.lyrics AS BLOB)) + length(CAST(lyrics.translatedLyrics AS BLOB)) AS bytes,
+               lyrics.provider,
+               song.id IS NOT NULL AS hasSong,
+               song.inLibrary IS NOT NULL AS inLibrary,
+               coalesce(song.liked, 0) AS liked,
+               coalesce(song.isDownloaded, 0) AS downloaded,
+               coalesce((SELECT max(timestamp) FROM event WHERE songId = lyrics.id), 0) AS lastPlayedMs
+        FROM lyrics LEFT JOIN song ON song.id = lyrics.id
+    """)
+    suspend fun lyricsCacheEntries(): List<LyricsCacheEntry>
+
+    @Query("DELETE FROM lyrics WHERE id = :id AND provider != 'Manual'")
+    suspend fun deleteCachedLyrics(id: String): Int
+
+    @Query("DELETE FROM lyrics WHERE id = :id AND lyrics = :expectedLyrics AND provider != 'Manual'")
+    suspend fun deleteCachedLyricsIfUnchanged(id: String, expectedLyrics: String): Int
+
     @Transaction
     @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     @Query("SELECT *, (SELECT COUNT(1) FROM song_artist_map JOIN song ON song_artist_map.songId = song.id WHERE artistId = artist.id AND song.inLibrary IS NOT NULL) AS songCount FROM artist WHERE songCount > 0 ORDER BY rowId")

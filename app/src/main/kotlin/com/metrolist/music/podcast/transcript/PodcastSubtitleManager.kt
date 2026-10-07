@@ -7,6 +7,7 @@ package com.metrolist.music.podcast.transcript
 
 import android.content.Context
 import com.metrolist.music.R
+import com.metrolist.music.cache.TextCacheSignals
 import com.metrolist.music.di.ApplicationScope
 import com.metrolist.music.models.MediaMetadata
 import com.metrolist.music.podcast.PodcastRepository
@@ -17,9 +18,17 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
+
+internal fun isCurrentSubtitleRequest(
+    requestGeneration: Long,
+    currentGeneration: Long,
+    requestEpisodeId: String,
+    currentEpisodeId: String?,
+): Boolean = requestGeneration == currentGeneration && requestEpisodeId == currentEpisodeId
 
 /** Lifecycle of subtitles for the currently displayed podcast episode. */
 sealed interface PodcastSubtitleState {
@@ -74,6 +83,9 @@ class PodcastSubtitleManager @Inject constructor(
     val translationStatus: StateFlow<PodcastTranslationStatus> = _translationStatus.asStateFlow()
 
     private var currentEpisodeId: String? = null
+    private var episodeGeneration = 0L
+    private var translationGeneration = 0L
+    private var transcriptLoadJob: Job? = null
     private var transcriptionJob: Job? = null
     private var translationJob: Job? = null
     private var translationConfigKey: String? = null
@@ -101,12 +113,19 @@ class PodcastSubtitleManager @Inject constructor(
             reset(PodcastSubtitleState.Idle)
             return
         }
-        if (metadata.id == currentEpisodeId) return
+        if (metadata.id == currentEpisodeId) {
+            TextCacheSignals.protect(CACHE_PROTECTION_OWNER, metadata.id.takeIf { metadata.mediaUrl != null })
+            return
+        }
         reset(PodcastSubtitleState.Loading)
         currentEpisodeId = metadata.id
+        TextCacheSignals.protect(CACHE_PROTECTION_OWNER, metadata.id.takeIf { metadata.mediaUrl != null })
         val episodeId = metadata.id
+        val requestGeneration = episodeGeneration
 
-        scope.launch {
+        transcriptLoadJob = scope.launch {
+            fun isCurrentRequest() =
+                isCurrentSubtitleRequest(requestGeneration, episodeGeneration, episodeId, currentEpisodeId)
             // Prefer a publisher transcript whenever the feed advertises one. A generated
             // transcript is only a fallback, so it must never shadow a later feed refresh.
             var refs = transcriptRepository.transcriptRefs(episodeId)
@@ -119,7 +138,7 @@ class PodcastSubtitleManager @Inject constructor(
 
             if (refs != null) {
                 val loaded = runCatching { transcriptRepository.loadTranscript(episodeId) }.getOrNull()
-                if (currentEpisodeId != episodeId) return@launch
+                if (!isActive || !isCurrentRequest()) return@launch
                 if (loaded != null) {
                     _state.value = PodcastSubtitleState.Ready(loaded)
                     return@launch
@@ -130,11 +149,11 @@ class PodcastSubtitleManager @Inject constructor(
             transcriptRepository.cachedTranscript(episodeId)
                 ?.takeIf { it.source == TranscriptSource.ON_DEVICE }
                 ?.let { cached ->
-                if (currentEpisodeId == episodeId) _state.value = PodcastSubtitleState.Ready(cached)
-                return@launch
-            }
+                    if (isActive && isCurrentRequest()) _state.value = PodcastSubtitleState.Ready(cached)
+                    return@launch
+                }
 
-            if (currentEpisodeId == episodeId) {
+            if (isActive && isCurrentRequest()) {
                 _state.value = PodcastSubtitleState.Unavailable
             }
         }
@@ -244,6 +263,7 @@ class PodcastSubtitleManager @Inject constructor(
         val episodeId = currentEpisodeId ?: return
         val configKey = "${episodeId}|${config.provider}|${config.targetLanguage}|${config.model}"
         if (translationConfigKey != configKey) {
+            translationGeneration++
             translationJob?.cancel()
             translationJob = null
             translationConfigKey = configKey
@@ -252,16 +272,22 @@ class PodcastSubtitleManager @Inject constructor(
             _translationStatus.value = PodcastTranslationStatus.Idle
         }
         if (translationJob?.isActive == true) return
+        val requestGeneration = translationGeneration
         val showStatus = !translationStatusShown
         if (showStatus) {
             translationStatusShown = true
             _translationStatus.value = PodcastTranslationStatus.Translating
         }
         translationJob = scope.launch {
+            fun isCurrentRequest() =
+                isCurrentSubtitleRequest(requestGeneration, translationGeneration, episodeId, currentEpisodeId) &&
+                    translationConfigKey == configKey
+
             if (_translations.value.isEmpty()) {
                 val persisted = transcriptRepository.loadTranslation(
                     episodeId, config.targetLanguage, config.provider,
                 )
+                if (!isActive || !isCurrentRequest()) return@launch
                 if (persisted.isNotEmpty()) {
                     _translations.value = _translations.value + persisted.filterKeys { it < cues.size }
                 }
@@ -273,7 +299,7 @@ class PodcastSubtitleManager @Inject constructor(
                 if (showStatus) {
                     _translationStatus.value = PodcastTranslationStatus.Success
                     delay(3_000)
-                    if (_translationStatus.value == PodcastTranslationStatus.Success) {
+                    if (isActive && isCurrentRequest() && _translationStatus.value == PodcastTranslationStatus.Success) {
                         _translationStatus.value = PodcastTranslationStatus.Idle
                     }
                 }
@@ -283,11 +309,14 @@ class PodcastSubtitleManager @Inject constructor(
             val batches = buildTranslationBatches(stillMissing, cues)
             var failedMessage: String? = null
             for (batch in batches) {
+                if (!isActive || !isCurrentRequest()) return@launch
                 val result = SubtitleTranslationHelper.translateLines(
                     lines = batch.map { cues[it].text },
                     config = config,
                     context = context,
                 )
+                // Providers may wrap cancellation in Result; an obsolete reply cannot own UI state.
+                if (!isActive || !isCurrentRequest()) return@launch
                 result.onSuccess { translatedLines ->
                     val updated = _translations.value.toMutableMap()
                     val forPersistence = mutableMapOf<Int, String>()
@@ -307,6 +336,7 @@ class PodcastSubtitleManager @Inject constructor(
                 }.onFailure { error ->
                     failedMessage = error.message
                 }
+                if (!isActive || !isCurrentRequest()) return@launch
                 if (failedMessage != null) break
             }
             if (failedMessage != null) {
@@ -315,7 +345,7 @@ class PodcastSubtitleManager @Inject constructor(
             } else if (showStatus) {
                 _translationStatus.value = PodcastTranslationStatus.Success
                 delay(3_000)
-                if (_translationStatus.value == PodcastTranslationStatus.Success) {
+                if (isActive && isCurrentRequest() && _translationStatus.value == PodcastTranslationStatus.Success) {
                     _translationStatus.value = PodcastTranslationStatus.Idle
                 }
             } else {
@@ -325,6 +355,7 @@ class PodcastSubtitleManager @Inject constructor(
     }
 
     fun clearTranslations() {
+        translationGeneration++
         translationJob?.cancel()
         translationJob = null
         _translations.value = emptyMap()
@@ -370,20 +401,20 @@ class PodcastSubtitleManager @Inject constructor(
     }
 
     private fun reset(next: PodcastSubtitleState) {
+        episodeGeneration++
+        transcriptLoadJob?.cancel()
+        transcriptLoadJob = null
         transcriptionJob?.cancel()
         transcriptionJob = null
         _modelDownloadProgress.value = null
-        translationJob?.cancel()
-        translationJob = null
-        _translations.value = emptyMap()
-        _translationStatus.value = PodcastTranslationStatus.Idle
-        translationConfigKey = null
-        translationStatusShown = false
+        clearTranslations()
         currentEpisodeId = null
+        TextCacheSignals.protect(CACHE_PROTECTION_OWNER, null)
         _state.value = next
     }
 
     private companion object {
+        const val CACHE_PROTECTION_OWNER = "podcast_subtitles"
         const val TRANSLATION_WINDOW_AHEAD = 80
         const val MAX_TRANSLATION_CHARS = 12_000
     }
