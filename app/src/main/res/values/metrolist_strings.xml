@@ -723,7 +723,7 @@
     <string name="ai_setup_guide">API credentials</string>
     <string name="ai_translation_literal">Translation</string>
     <string name="ai_translation_literal_desc">Translates the meaning into the target language</string>
-    <string name="ai_translation_transcribed">Transcription</string>
+    <string name="ai_translation_transcribed">Phonetic transcription</string>
     <string name="ai_translation_transcribed_desc">Converts pronunciation into the target script</string>
     <string name="ai_api_key_required">API key required</string>
     <string name="ai_error_api_key_required">An API key is required</string>
@@ -1158,4 +1158,25 @@
     <string name="podcast_subtitle_delete_model_confirm">Delete the on-device recognition model? Generated episode subtitles will be kept</string>
     <string name="podcast_subtitle_asr_model_corrupt">The recognition model is missing or corrupted. Please download it again</string>
     <string name="podcast_subtitle_asr_dialog_confirm">Continue</string>
+    <string name="ai_lyrics_translation_toggle">AI lyrics translation</string>
+    <string name="ai_translating_subtitles">Translating subtitles…</string>
+    <string name="ai_subtitles_translated">Subtitles translated</string>
+    <!-- Text cache -->
+    <string name="text_cache_title">Subtitles, lyrics &amp; translations</string>
+    <string name="text_cache_limit">Maximum text cache size</string>
+    <string name="text_cache_subtitles">Podcast subtitles &amp; translations</string>
+    <string name="text_cache_lyrics">Song lyrics &amp; translations</string>
+    <string name="text_cache_protected">Protected text</string>
+    <string name="text_cache_policy">Podcast subtitles and translations are removed first, then lyrics for songs outside your library, library or liked songs, and downloaded songs. Within each group, the least recently used are removed first.</string>
+    <string name="text_cache_preserved">Text currently in use, manually edited lyrics and lyrics without a verified cache origin are preserved, so usage may exceed the limit.</string>
+    <string name="text_cache_storage_note">Text sizes exclude audio, images, speech models and database overhead. Deleted database space is reused and may not immediately reduce the app’s storage size.</string>
+    <string name="text_cache_clear_all">Clear text cache</string>
+    <string name="text_cache_clear_subtitles">Clear podcast subtitle cache</string>
+    <string name="text_cache_clear_lyrics">Clear song lyric cache</string>
+    <string name="text_cache_clear_confirm">Clear unused cached text in this category? Text currently in use and lyrics marked as manually edited will be kept. Unmarked lyrics are kept unless you select the option below. Removed content must be downloaded or generated again; AI translation may use your service quota.</string>
+    <string name="text_cache_clear_done">Text cache cleared</string>
+    <string name="text_cache_clear_failed">Could not clear all cached text. Please try again.</string>
+    <string name="text_cache_loading">Calculating text cache size…</string>
+    <string name="text_cache_include_unverified">Also clear unmarked lyrics (may include older manual edits)</string>
+    <string name="text_cache_clear_podcasts_confirm">Clear unused podcast subtitles and translations? Text currently in use is kept. Removed content must be downloaded or generated again; AI translation may use your service quota.</string>
 </resources>

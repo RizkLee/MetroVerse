@@ -458,7 +458,7 @@
     <string name="ai_target_language">Lingua di destinazione</string>
     <string name="ai_setup_guide">Credenziali API</string>
     <string name="ai_translation_literal">Traduzione</string>
-    <string name="ai_translation_transcribed">Trascrizione</string>
+    <string name="ai_translation_transcribed">Trascrizione fonetica</string>
     <string name="ai_api_key_required">Chiave API richiesta</string>
     <string name="ai_error_language_required">È richiesta una lingua di destinazione</string>
     <string name="ai_error_unexpected">Risultato di traduzione inaspettato</string>
@@ -505,7 +505,7 @@
     <string name="listen_together_in_top_bar">Ascolta Insieme nella barra in alto</string>
     <string name="listen_together_in_top_bar_desc">Mostra Ascolta Insieme nella barra dell\'app in alto anziché nella barra di navigazione</string>
     <string name="ai_translation_literal_desc">Traduce il significato nella lingua di destinazione</string>
-    <string name="ai_translation_transcribed_desc">Converte la pronuncia nello script di destinazione</string>
+    <string name="ai_translation_transcribed_desc">Rappresenta la pronuncia con i caratteri della lingua di destinazione</string>
     <string name="ai_provider_help">Ottieni chiavi API</string>
     <string name="ai_provider_openrouter_help">Visita https://openrouter.ai per i modelli gratuiti e a pagamento</string>
     <string name="ai_provider_openai_help">Visita https://platform.openai.com/api-keys</string>
@@ -941,11 +941,32 @@
     <string name="podcast_subtitle_delete_model_confirm">Eliminare il modello di riconoscimento sul dispositivo? I sottotitoli generati verranno conservati</string>
     <string name="podcast_subtitle_asr_model_corrupt">Il modello di riconoscimento manca o è danneggiato. Scaricalo di nuovo</string>
     <string name="podcast_subtitle_asr_dialog_confirm">Continua</string>
-    <string name="ai_always_translate_lyrics">Always use AI translation for lyrics</string>
-    <string name="ai_always_translate_lyrics_desc">Automatically translate lyrics when they are displayed.</string>
-    <string name="ai_always_translate_podcast_subtitles">Always use AI translation for podcast subtitles</string>
-    <string name="ai_always_translate_podcast_subtitles_desc">Automatically translate podcast subtitles when they are displayed.</string>
-    <string name="podcast_subtitle_asr_performance_warning">Recognition uses substantial CPU, memory, battery, and storage. The phone may become warm or playback may stutter.</string>
-    <string name="podcast_subtitle_asr_accuracy_warning">Recognition is experimental. Results may contain errors, missing words, or imperfect timing and should not be treated as an official transcript.</string>
-    <string name="podcast_subtitle_share_failed">Could not create the subtitle image</string>
+    <string name="ai_always_translate_lyrics">Usa sempre l’IA per tradurre i testi</string>
+    <string name="ai_always_translate_lyrics_desc">Traduci automaticamente i testi quando vengono visualizzati.</string>
+    <string name="ai_always_translate_podcast_subtitles">Usa sempre l’IA per tradurre i sottotitoli dei podcast</string>
+    <string name="ai_always_translate_podcast_subtitles_desc">Traduci automaticamente i sottotitoli dei podcast quando vengono visualizzati.</string>
+    <string name="podcast_subtitle_asr_performance_warning">Il riconoscimento utilizza molte risorse di CPU, memoria, batteria e archiviazione. Il telefono potrebbe scaldarsi o la riproduzione potrebbe procedere a scatti.</string>
+    <string name="podcast_subtitle_asr_accuracy_warning">Il riconoscimento è sperimentale. I risultati possono contenere errori, parole mancanti o tempi imprecisi e non devono essere considerati una trascrizione ufficiale.</string>
+    <string name="podcast_subtitle_share_failed">Impossibile creare l’immagine dei sottotitoli</string>
+    <string name="ai_lyrics_translation_toggle">Traduzione dei testi con IA</string>
+    <string name="ai_translating_subtitles">Traduzione dei sottotitoli…</string>
+    <string name="ai_subtitles_translated">Sottotitoli tradotti</string>
+    <!-- Text cache -->
+    <string name="text_cache_title">Sottotitoli, testi e traduzioni</string>
+    <string name="text_cache_limit">Dimensione massima della cache di testo</string>
+    <string name="text_cache_subtitles">Sottotitoli dei podcast e traduzioni</string>
+    <string name="text_cache_lyrics">Testi delle canzoni e traduzioni</string>
+    <string name="text_cache_protected">Testo protetto</string>
+    <string name="text_cache_policy">Vengono rimossi prima i sottotitoli dei podcast e le traduzioni, poi i testi dei brani fuori dalla libreria, dei brani salvati o preferiti e infine dei brani scaricati. In ogni gruppo vengono rimossi prima i contenuti non utilizzati da più tempo.</string>
+    <string name="text_cache_preserved">Il testo in uso, i testi modificati manualmente e quelli la cui origine nella cache non è verificata vengono conservati, quindi lo spazio occupato può superare il limite.</string>
+    <string name="text_cache_storage_note">La dimensione del testo esclude audio, immagini, modelli vocali e spazio aggiuntivo del database. Lo spazio liberato nel database viene riutilizzato e potrebbe non ridurre subito lo spazio occupato dall’app.</string>
+    <string name="text_cache_clear_all">Svuota cache di testo</string>
+    <string name="text_cache_clear_subtitles">Svuota cache dei sottotitoli dei podcast</string>
+    <string name="text_cache_clear_lyrics">Svuota cache dei testi delle canzoni</string>
+    <string name="text_cache_clear_confirm">Eliminare il testo in cache non utilizzato di questa categoria? Il testo in uso e i testi contrassegnati come modificati manualmente verranno conservati. I testi non contrassegnati saranno conservati, a meno che non selezioni l’opzione qui sotto. I contenuti eliminati dovranno essere scaricati o generati di nuovo; la traduzione con IA potrebbe consumare la quota del servizio.</string>
+    <string name="text_cache_clear_done">Cache di testo svuotata</string>
+    <string name="text_cache_clear_failed">Impossibile eliminare tutto il testo in cache. Riprova.</string>
+    <string name="text_cache_loading">Calcolo della dimensione della cache di testo…</string>
+    <string name="text_cache_include_unverified">Elimina anche i testi non contrassegnati (possono includere vecchie modifiche manuali)</string>
+    <string name="text_cache_clear_podcasts_confirm">Eliminare i sottotitoli dei podcast e le traduzioni non utilizzati? Il testo in uso verrà conservato. I contenuti eliminati dovranno essere scaricati o generati di nuovo; la traduzione con IA potrebbe consumare la quota del servizio.</string>
 </resources>

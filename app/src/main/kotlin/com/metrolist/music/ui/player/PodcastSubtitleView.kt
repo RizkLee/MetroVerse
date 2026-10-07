@@ -47,6 +47,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -58,6 +59,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.metrolist.music.R
 import com.metrolist.music.podcast.transcript.PodcastAsrSupport
 import com.metrolist.music.podcast.transcript.PodcastSubtitleState
@@ -232,7 +234,9 @@ private fun SubtitleCueList(
     resyncToken: Int,
 ) {
     val listState = rememberLazyListState()
-    var autoScroll by rememberSaveable { mutableStateOf(true) }
+    val scope = rememberCoroutineScope()
+    val autoScrollController = remember(scope) { SubtitleAutoScrollController(scope) }
+    val autoScroll by autoScrollController.following.collectAsStateWithLifecycle()
     var selectionMode by rememberSaveable { mutableStateOf(false) }
     var selectedIndices by rememberSaveable { mutableStateOf<Set<Int>>(emptySet()) }
 
@@ -246,10 +250,9 @@ private fun SubtitleCueList(
     LaunchedEffect(listState) {
         listState.interactionSource.interactions.collect { interaction ->
             when (interaction) {
-                is DragInteraction.Start -> autoScroll = false
+                is DragInteraction.Start -> autoScrollController.pause()
                 is DragInteraction.Stop, is DragInteraction.Cancel -> {
-                    delay(6_000)
-                    autoScroll = true
+                    if (!selectionMode) autoScrollController.resumeAfterDrag()
                 }
             }
         }
@@ -274,7 +277,7 @@ private fun SubtitleCueList(
     }
 
     LaunchedEffect(resyncToken) {
-        autoScroll = true
+        autoScrollController.resume()
         if (currentIndex >= 0 && cues.isNotEmpty()) {
             listState.animateScrollToItem(currentIndex.coerceIn(0, cues.lastIndex))
         }
@@ -326,14 +329,14 @@ private fun SubtitleCueList(
                                 if (!it.add(index)) it.remove(index)
                             }
                         } else {
-                            autoScroll = true
+                            autoScrollController.resume()
                             onSeek(cue.startMs)
                         }
                     },
                     onLongClick = {
                         selectionMode = true
                         selectedIndices = selectedIndices + index
-                        autoScroll = false
+                        autoScrollController.pause()
                     },
                 )
             }
@@ -355,6 +358,7 @@ private fun SubtitleCueList(
                     onClick = {
                         selectionMode = false
                         selectedIndices = emptySet()
+                        autoScrollController.resume()
                     },
                 ) {
                     Icon(painterResource(R.drawable.close), stringResource(R.string.cancel))
@@ -365,6 +369,7 @@ private fun SubtitleCueList(
                         onShareCues(selectedIndices.sorted().mapNotNull(cues::getOrNull))
                         selectionMode = false
                         selectedIndices = emptySet()
+                        autoScrollController.resume()
                     },
                 ) {
                     Icon(painterResource(R.drawable.share), stringResource(R.string.share_selected))
@@ -375,7 +380,7 @@ private fun SubtitleCueList(
         }
         if (!selectionMode && !autoScroll) {
             FilledTonalButton(
-                onClick = { autoScroll = true },
+                onClick = autoScrollController::resume,
                 modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 20.dp),
             ) {
                 Icon(painterResource(R.drawable.sync), stringResource(R.string.auto_scroll))
@@ -412,8 +417,8 @@ private fun PodcastTranslationHeader(
             PodcastTranslationStatus.Idle -> textColor
         }
         val label = when (status) {
-            PodcastTranslationStatus.Translating -> stringResource(R.string.ai_translating_lyrics)
-            PodcastTranslationStatus.Success -> stringResource(R.string.ai_lyrics_translated)
+            PodcastTranslationStatus.Translating -> stringResource(R.string.ai_translating_subtitles)
+            PodcastTranslationStatus.Success -> stringResource(R.string.ai_subtitles_translated)
             is PodcastTranslationStatus.Error -> status.message
             PodcastTranslationStatus.Idle -> ""
         }

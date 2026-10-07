@@ -154,7 +154,6 @@ import com.metrolist.music.constants.PlayerButtonsStyle
 import com.metrolist.music.constants.PlayerButtonsStyleKey
 import com.metrolist.music.constants.PlayerHorizontalPadding
 import com.metrolist.music.constants.PodcastAsrDisclaimerSeenKey
-import com.metrolist.music.constants.PodcastSubtitleBilingualKey
 import com.metrolist.music.constants.PodcastSubtitleTranslationEnabledKey
 import com.metrolist.music.constants.QueuePeekHeight
 import com.metrolist.music.constants.ShowPodcastSubtitlesKey
@@ -335,7 +334,6 @@ fun BottomSheetPlayer(
     val podcastSubtitleManager = LocalPodcastSubtitleManager.current
     val (showPodcastSubtitles, onShowPodcastSubtitlesChange) = rememberPreference(ShowPodcastSubtitlesKey, true)
     val podcastSubtitleTranslation by rememberPreference(PodcastSubtitleTranslationEnabledKey, false)
-    val podcastSubtitleBilingual by rememberPreference(PodcastSubtitleBilingualKey, true)
 
     val appLanguageCode = rememberEffectiveAppLanguageCode()
     val openRouterApiKey by rememberPreference(OpenRouterApiKey, "")
@@ -1951,7 +1949,7 @@ fun BottomSheetPlayer(
                                         state = subtitleState,
                                         translations = subtitleTranslations,
                                         positionProvider = { effectivePosition },
-                                        showTranslation = podcastSubtitleTranslation && podcastSubtitleBilingual,
+                                        showTranslation = podcastSubtitleTranslation,
                                         translationMissingCredentials =
                                             podcastSubtitleTranslation && !subtitleTranslationConfig.hasCredentials,
                                         textColor = TextBackgroundColor,
@@ -2047,7 +2045,7 @@ fun BottomSheetPlayer(
                                         state = subtitleState,
                                         translations = subtitleTranslations,
                                         positionProvider = { effectivePosition },
-                                        showTranslation = podcastSubtitleTranslation && podcastSubtitleBilingual,
+                                        showTranslation = podcastSubtitleTranslation,
                                         translationMissingCredentials =
                                             podcastSubtitleTranslation && !subtitleTranslationConfig.hasCredentials,
                                         textColor = TextBackgroundColor,

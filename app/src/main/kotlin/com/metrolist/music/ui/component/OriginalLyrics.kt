@@ -2012,6 +2012,9 @@ fun OriginalLyrics(
         if (showColorPickerDialog && shareDialogData != null) {
             val (lyricsText, songTitle, artists) = shareDialogData!!
             val coverUrl = mediaMetadata?.thumbnailUrl
+            val previewImageHeight = remember(lyricsText, songTitle, artists) {
+                LyricsShareLayout.imageHeightFor(songTitle, artists, lyricsText)
+            }
             val paletteColors = remember { mutableStateListOf<Color>() }
 
             var previewBackgroundStyle by remember { mutableStateOf(LyricsBackgroundStyle.SOLID) }
@@ -2089,14 +2092,14 @@ fun OriginalLyrics(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .padding(20.dp),
+                            .padding(12.dp),
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier =
                             Modifier
                                 .verticalScroll(rememberScrollState())
-                                .padding(20.dp),
+                                .padding(16.dp),
                     ) {
                         Text(
                             text = stringResource(id = R.string.customize_colors),
@@ -2133,8 +2136,7 @@ fun OriginalLyrics(
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
-                                    .aspectRatio(1f)
-                                    .padding(8.dp)
+                                    .aspectRatio(LyricsShareLayout.IMAGE_WIDTH.toFloat() / previewImageHeight)
                                     .clip(RoundedCornerShape(12.dp)),
                         ) {
                             LyricsImageCard(

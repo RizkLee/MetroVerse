@@ -153,7 +153,7 @@ fun LyricsMenu(
                         LyricsEntity(
                             id = mediaMetadataProvider().id,
                             lyrics = it,
-                            provider = lyricsProvider()?.provider ?: "Manual",
+                            provider = "Manual",
                         ),
                     )
                 }
@@ -494,7 +494,7 @@ fun LyricsMenu(
                     if (hasApiKey) {
                         add(
                             Material3MenuItemData(
-                                title = { Text(stringResource(R.string.ai_lyrics_translation)) },
+                                title = { Text(stringResource(R.string.ai_lyrics_translation_toggle)) },
                                 icon = {
                                     Icon(
                                         painter = painterResource(R.drawable.translate),

@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
@@ -36,7 +35,6 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.metrolist.music.BuildConfig
 import com.metrolist.music.LocalPlayerAwareWindowInsets
-import com.metrolist.music.LocalPodcastSubtitleManager
 import com.metrolist.music.R
 import com.metrolist.music.constants.AudioNormalizationKey
 import com.metrolist.music.constants.AudioOffload
@@ -232,10 +230,6 @@ fun PlayerSettings(
         mutableStateOf(false)
     }
 
-    val podcastSubtitleManager = LocalPodcastSubtitleManager.current
-    val asrModelReady = podcastSubtitleManager?.isAsrModelReady() == true
-    var showDeleteAsrModelDialog by remember { mutableStateOf(false) }
-
     if (showAudioQualityDialog) {
         EnumDialog(
             onDismiss = { showAudioQualityDialog = false },
@@ -267,29 +261,6 @@ fun PlayerSettings(
             current = loudnessLevel,
             values = LoudnessLevel.values().toList(),
             valueText = { getLoudnessLevelLabel(it) }
-        )
-    }
-
-    if (showDeleteAsrModelDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteAsrModelDialog = false },
-            title = { Text(stringResource(R.string.podcast_subtitle_delete_model)) },
-            text = { Text(stringResource(R.string.podcast_subtitle_delete_model_confirm)) },
-            confirmButton = {
-                androidx.compose.material3.TextButton(
-                    onClick = {
-                        podcastSubtitleManager?.deleteAsrModel()
-                        showDeleteAsrModelDialog = false
-                    },
-                ) {
-                    Text(stringResource(R.string.clear))
-                }
-            },
-            dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { showDeleteAsrModelDialog = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
         )
     }
 
@@ -1088,31 +1059,6 @@ fun PlayerSettings(
             )
         )
 
-        Spacer(modifier = Modifier.height(27.dp))
-
-        Material3SettingsGroup(
-            title = stringResource(R.string.settings_title_podcast_subtitles),
-            items = buildList {
-                add(
-                    Material3SettingsItem(
-                        icon = painterResource(R.drawable.delete),
-                        title = { Text(stringResource(R.string.podcast_subtitle_delete_model)) },
-                        description = {
-                            Text(
-                                stringResource(
-                                    if (asrModelReady) {
-                                        R.string.podcast_subtitle_model_ready
-                                    } else {
-                                        R.string.podcast_subtitle_asr_download_model
-                                    },
-                                ),
-                            )
-                        },
-                        onClick = { if (asrModelReady) showDeleteAsrModelDialog = true },
-                    ),
-                )
-            }
-        )
         Spacer(modifier = Modifier.height(16.dp))
     }
 

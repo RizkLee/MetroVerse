@@ -37,6 +37,7 @@ import coil3.request.allowHardware
 import coil3.toBitmap
 import com.metrolist.music.R
 import com.metrolist.music.ui.component.LyricsBackgroundStyle
+import com.metrolist.music.ui.component.LyricsShareLayout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -60,18 +61,15 @@ object ComposeToImage {
         lyricsAlignment: Layout.Alignment = Layout.Alignment.ALIGN_CENTER,
     ): Bitmap =
         withContext(Dispatchers.Default) {
-            // Use fixed high resolution as requested (2160x2160)
-            // This ensures consistent high-quality output regardless of the device screen
-            val imageWidth = 2160
-            val imageHeight = 2160
+            val imageWidth = LyricsShareLayout.IMAGE_WIDTH
+            val imageHeight = LyricsShareLayout.imageHeightFor(songTitle, artistName, lyrics)
 
             val bitmap = createBitmap(imageWidth, imageHeight)
             val canvas = Canvas(bitmap)
             val backgroundRect = RectF(0f, 0f, imageWidth.toFloat(), imageHeight.toFloat())
 
-            // Base scale on width relative to the reference design (340dp)
-            // 2160 / 340 ≈ 6.35
-            val scale = imageWidth / 340f
+            // Scale from height so the wider export gives text more room without enlarging it.
+            val scale = LyricsShareLayout.IMAGE_HEIGHT / LyricsShareLayout.REFERENCE_HEIGHT
             val cornerRadius = 20f * scale
             val exportPath =
                 Path().apply {
@@ -186,10 +184,10 @@ object ComposeToImage {
                 }
             canvas.drawRoundRect(backgroundRect, cornerRadius, cornerRadius, borderPaint)
 
-            val padding = 28f * scale
+            val padding = LyricsShareLayout.CONTENT_PADDING * scale
 
             // --- Header Section ---
-            val coverArtSize = 56f * scale
+            val coverArtSize = LyricsShareLayout.COVER_SIZE * scale
             val headerBottomPadding = 12f * scale
 
             val coverCornerRadius = 3f * scale
@@ -216,7 +214,7 @@ object ComposeToImage {
                 canvas.drawRoundRect(rect, coverCornerRadius, coverCornerRadius, coverBorderPaint)
             }
 
-            val textStartX = padding + coverArtSize + (16f * scale)
+            val textStartX = padding + coverArtSize + (LyricsShareLayout.HEADER_GAP * scale)
             val textMaxWidth = imageWidth - textStartX - padding
 
             val titlePaint =
@@ -239,7 +237,7 @@ object ComposeToImage {
                 StaticLayout.Builder
                     .obtain(songTitle, 0, songTitle.length, titlePaint, textMaxWidth.toInt())
                     .setAlignment(Layout.Alignment.ALIGN_NORMAL)
-                    .setMaxLines(2)
+                    .setMaxLines(LyricsShareLayout.TITLE_MAX_LINES)
                     .setEllipsize(android.text.TextUtils.TruncateAt.END)
                     .build()
 
@@ -254,7 +252,7 @@ object ComposeToImage {
             // Vertically align text block with cover art
             val headerTextHeight = titleLayout.height + artistLayout.height + (2f * scale) // +2dp padding between title and artist
             val headerCenterY = padding + coverArtSize / 2f
-            val titleY = headerCenterY - headerTextHeight / 2f
+            val titleY = (headerCenterY - headerTextHeight / 2f).coerceAtLeast(padding)
 
             canvas.save()
             canvas.translate(textStartX, titleY)
@@ -315,7 +313,7 @@ object ComposeToImage {
 
             // --- Lyrics Section ---
             // Calculate available space
-            val lyricsTop = padding + coverArtSize + headerBottomPadding
+            val lyricsTop = maxOf(padding + coverArtSize, titleY + headerTextHeight) + headerBottomPadding
             val lyricsBottom = footerY - (12f * scale) // Add some padding above footer
             val lyricsHeight = lyricsBottom - lyricsTop
             val lyricsWidth = imageWidth - (padding * 2)
@@ -331,7 +329,7 @@ object ComposeToImage {
             // Adaptive font size calculation
             // Start with a large size (e.g. 50sp equivalent) and scale down until it fits
             var lyricsTextSize = 50f * scale
-            val minLyricsSize = 13f * scale
+            val minLyricsSize = LyricsShareLayout.MIN_LYRICS_TEXT_SIZE * scale
             var lyricsLayout: StaticLayout
 
             while (lyricsTextSize > minLyricsSize) {
@@ -361,6 +359,20 @@ object ComposeToImage {
                     .setIncludePad(false)
                     .build()
 
+            if (lyricsLayout.height > lyricsHeight) {
+                val visibleLines = (0 until lyricsLayout.lineCount)
+                    .takeWhile { lyricsLayout.getLineBottom(it) <= lyricsHeight }
+                    .size.coerceAtLeast(1)
+                lyricsLayout = StaticLayout.Builder
+                    .obtain(lyrics, 0, lyrics.length, lyricsPaint, lyricsWidth.toInt())
+                    .setAlignment(lyricsAlignment)
+                    .setLineSpacing(0f, 1.2f)
+                    .setIncludePad(false)
+                    .setMaxLines(visibleLines)
+                    .setEllipsize(android.text.TextUtils.TruncateAt.END)
+                    .build()
+            }
+
             // Center vertically in the available space
             val lyricsContentHeight = lyricsLayout.height
             val lyricsY =
@@ -370,8 +382,10 @@ object ComposeToImage {
                     lyricsTop
                 }
 
-            canvas.withTranslation(padding, lyricsY) {
-                lyricsLayout.draw(this)
+            canvas.withClip(RectF(padding, lyricsTop, imageWidth - padding, lyricsBottom)) {
+                withTranslation(padding, lyricsY) {
+                    lyricsLayout.draw(this)
+                }
             }
 
             return@withContext bitmap

@@ -448,7 +448,7 @@
     <string name="ai_target_language">Idioma de destino</string>
     <string name="ai_setup_guide">Credenciais da API</string>
     <string name="ai_translation_literal">Tradução</string>
-    <string name="ai_translation_transcribed">Transcrição</string>
+    <string name="ai_translation_transcribed">Transcrição fonética</string>
     <string name="ai_api_key_required">Chave de API necessária</string>
     <string name="ai_error_api_key_required">Uma chave de API é necessária</string>
     <string name="ai_error_no_lyrics">Não há letras para traduzir</string>
@@ -507,7 +507,7 @@
     <string name="prevent_duplicate_tracks_in_queue">Impedir faixas duplicadas na fila</string>
     <string name="prevent_duplicate_tracks_in_queue_desc">Quando adicionar uma faixa que já está na fila, ela será movida da sua posição anterior ao invés de ser adicionada novamente</string>
     <string name="ai_translation_literal_desc">Traduz o significado para o idioma de destino</string>
-    <string name="ai_translation_transcribed_desc">Converte a pronúncia para o script de destino</string>
+    <string name="ai_translation_transcribed_desc">Representa a pronúncia com os caracteres do idioma de destino</string>
     <string name="ai_provider_help">Obter chaves de API</string>
     <string name="ai_provider_openrouter_help">Visite https://openrouter.ai para modelos gratuitos e pagos</string>
     <string name="ai_provider_openai_help">Visite https://plataform.openai.com/api-keys</string>
@@ -937,11 +937,32 @@
     <string name="podcast_subtitle_delete_model_confirm">Excluir o modelo de reconhecimento do dispositivo? As legendas geradas serão mantidas</string>
     <string name="podcast_subtitle_asr_model_corrupt">O modelo de reconhecimento está ausente ou corrompido. Baixe-o novamente</string>
     <string name="podcast_subtitle_asr_dialog_confirm">Continuar</string>
-    <string name="ai_always_translate_lyrics">Always use AI translation for lyrics</string>
-    <string name="ai_always_translate_lyrics_desc">Automatically translate lyrics when they are displayed.</string>
-    <string name="ai_always_translate_podcast_subtitles">Always use AI translation for podcast subtitles</string>
-    <string name="ai_always_translate_podcast_subtitles_desc">Automatically translate podcast subtitles when they are displayed.</string>
-    <string name="podcast_subtitle_asr_performance_warning">Recognition uses substantial CPU, memory, battery, and storage. The phone may become warm or playback may stutter.</string>
-    <string name="podcast_subtitle_asr_accuracy_warning">Recognition is experimental. Results may contain errors, missing words, or imperfect timing and should not be treated as an official transcript.</string>
-    <string name="podcast_subtitle_share_failed">Could not create the subtitle image</string>
+    <string name="ai_always_translate_lyrics">Sempre usar IA para traduzir letras</string>
+    <string name="ai_always_translate_lyrics_desc">Traduzir automaticamente as letras quando forem exibidas.</string>
+    <string name="ai_always_translate_podcast_subtitles">Sempre usar IA para traduzir legendas de podcasts</string>
+    <string name="ai_always_translate_podcast_subtitles_desc">Traduzir automaticamente as legendas de podcasts quando forem exibidas.</string>
+    <string name="podcast_subtitle_asr_performance_warning">O reconhecimento usa muitos recursos de CPU, memória, bateria e armazenamento. O celular pode aquecer ou a reprodução pode travar.</string>
+    <string name="podcast_subtitle_asr_accuracy_warning">O reconhecimento é experimental. Os resultados podem conter erros, palavras ausentes ou tempos imprecisos e não devem ser considerados uma transcrição oficial.</string>
+    <string name="podcast_subtitle_share_failed">Não foi possível criar a imagem das legendas</string>
+    <string name="ai_lyrics_translation_toggle">Tradução de letras por IA</string>
+    <string name="ai_translating_subtitles">Traduzindo legendas…</string>
+    <string name="ai_subtitles_translated">Legendas traduzidas</string>
+    <!-- Text cache -->
+    <string name="text_cache_title">Legendas, letras e traduções</string>
+    <string name="text_cache_limit">Tamanho máximo do cache de texto</string>
+    <string name="text_cache_subtitles">Legendas de podcasts e traduções</string>
+    <string name="text_cache_lyrics">Letras de músicas e traduções</string>
+    <string name="text_cache_protected">Textos protegidos</string>
+    <string name="text_cache_policy">Primeiro são removidas as legendas de podcasts e suas traduções, depois as letras de músicas fora da biblioteca, de músicas salvas ou curtidas e, por último, de músicas baixadas. Em cada grupo, o conteúdo sem uso há mais tempo é removido primeiro.</string>
+    <string name="text_cache_preserved">Os textos em uso, as letras editadas manualmente e as letras sem origem de cache verificada são preservados, por isso o espaço ocupado pode ultrapassar o limite.</string>
+    <string name="text_cache_storage_note">O tamanho dos textos não inclui áudio, imagens, modelos de voz nem o espaço adicional do banco de dados. O espaço liberado no banco é reutilizado e pode não reduzir imediatamente o armazenamento do app.</string>
+    <string name="text_cache_clear_all">Limpar cache de texto</string>
+    <string name="text_cache_clear_subtitles">Limpar cache de legendas de podcasts</string>
+    <string name="text_cache_clear_lyrics">Limpar cache de letras de músicas</string>
+    <string name="text_cache_clear_confirm">Limpar os textos em cache que não estão em uso nesta categoria? Os textos em uso e as letras marcadas como editadas manualmente serão mantidos. As letras sem marcação serão mantidas, a menos que você selecione a opção abaixo. O conteúdo removido precisará ser baixado ou gerado novamente; a tradução por IA pode consumir a cota do serviço.</string>
+    <string name="text_cache_clear_done">Cache de texto limpo</string>
+    <string name="text_cache_clear_failed">Não foi possível limpar todos os textos em cache. Tente novamente.</string>
+    <string name="text_cache_loading">Calculando o tamanho do cache de texto…</string>
+    <string name="text_cache_include_unverified">Limpar também letras sem marcação (podem incluir edições manuais antigas)</string>
+    <string name="text_cache_clear_podcasts_confirm">Limpar as legendas de podcasts e as traduções que não estão em uso? Os textos em uso serão mantidos. O conteúdo removido precisará ser baixado ou gerado novamente; a tradução por IA pode consumir a cota do serviço.</string>
 </resources>

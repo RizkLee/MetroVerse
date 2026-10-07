@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +45,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -89,9 +91,10 @@ fun rememberAdjustedFontSize(
         mutableStateOf(initialSize)
     }
 
-    LaunchedEffect(key1 = text, key2 = maxWidth, key3 = maxHeight) {
+    LaunchedEffect(text, maxWidth, maxHeight, density, style, initialFontSize, minFontSize) {
         val targetWidthPx = with(density) { maxWidth.toPx() * 0.92f }
         val targetHeightPx = with(density) { maxHeight.toPx() * 0.92f }
+        val textConstraints = Constraints(maxWidth = targetWidthPx.toInt().coerceAtLeast(1))
         if (text.isBlank()) {
             calculatedFontSize = minFontSize
             return@LaunchedEffect
@@ -101,7 +104,8 @@ fun rememberAdjustedFontSize(
             val largerSize = (initialFontSize.value * 1.1f).sp
             val result = measurer.measure(
                 text = AnnotatedString(text),
-                style = style.copy(fontSize = largerSize)
+                style = style.copy(fontSize = largerSize, lineHeight = largerSize * 1.2f),
+                constraints = textConstraints,
             )
             if (result.size.width <= targetWidthPx && result.size.height <= targetHeightPx) {
                 calculatedFontSize = largerSize
@@ -111,7 +115,8 @@ fun rememberAdjustedFontSize(
             val largerSize = (initialFontSize.value * 0.9f).sp
             val result = measurer.measure(
                 text = AnnotatedString(text),
-                style = style.copy(fontSize = largerSize)
+                style = style.copy(fontSize = largerSize, lineHeight = largerSize * 1.2f),
+                constraints = textConstraints,
             )
             if (result.size.width <= targetWidthPx && result.size.height <= targetHeightPx) {
                 calculatedFontSize = largerSize
@@ -131,7 +136,8 @@ fun rememberAdjustedFontSize(
 
             val result = measurer.measure(
                 text = AnnotatedString(text),
-                style = style.copy(fontSize = midSizeSp)
+                style = style.copy(fontSize = midSizeSp, lineHeight = midSizeSp * 1.2f),
+                constraints = textConstraints,
             )
 
             if (result.size.width <= targetWidthPx && result.size.height <= targetHeightPx) {
@@ -160,12 +166,46 @@ fun LyricsImageCard(
     secondaryTextColor: Color? = null,
     textAlign: TextAlign = TextAlign.Center
 ) {
+    val density = LocalDensity.current
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        // Keep the reference width stable when long lyrics make the shared image taller.
+        val referenceWidth = LyricsShareLayout.IMAGE_WIDTH /
+            (LyricsShareLayout.IMAGE_HEIGHT / LyricsShareLayout.REFERENCE_HEIGHT)
+        val previewScale = (maxWidth.value / referenceWidth).coerceAtLeast(0.01f)
+        CompositionLocalProvider(
+            LocalDensity provides Density(density.density * previewScale, fontScale = 1f),
+        ) {
+            LyricsImageCardContent(
+                lyricText = lyricText,
+                mediaMetadata = mediaMetadata,
+                darkBackground = darkBackground,
+                backgroundColor = backgroundColor,
+                backgroundStyle = backgroundStyle,
+                textColor = textColor,
+                secondaryTextColor = secondaryTextColor,
+                textAlign = textAlign,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LyricsImageCardContent(
+    lyricText: String,
+    mediaMetadata: MediaMetadata,
+    darkBackground: Boolean,
+    backgroundColor: Color?,
+    backgroundStyle: LyricsBackgroundStyle,
+    textColor: Color?,
+    secondaryTextColor: Color?,
+    textAlign: TextAlign,
+) {
     val context = LocalContext.current
     val density = LocalDensity.current
 
     val cardCornerRadius = 20.dp
-    val padding = 28.dp
-    val coverArtSize = 64.dp
+    val padding = LyricsShareLayout.CONTENT_PADDING.dp
+    val coverArtSize = LyricsShareLayout.COVER_SIZE.dp
 
     val defaultBgColor = if (darkBackground) Color(0xFF121212) else Color(0xFFF5F5F5)
     val backgroundSolidColor = backgroundColor ?: defaultBgColor
@@ -314,7 +354,7 @@ fun LyricsImageCard(
                             .clip(RoundedCornerShape(3.dp))
                             .border(1.dp, mainTextColor.copy(alpha = 0.16f), RoundedCornerShape(3.dp))
                     )
-                    Spacer(modifier = Modifier.width(16.dp))
+                    Spacer(modifier = Modifier.width(LyricsShareLayout.HEADER_GAP.dp))
                     Column(
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.Start,
@@ -323,16 +363,16 @@ fun LyricsImageCard(
                         Text(
                             text = mediaMetadata.title,
                             color = mainTextColor,
-                            fontSize = 20.sp,
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            maxLines = 1,
+                            maxLines = LyricsShareLayout.TITLE_MAX_LINES,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.padding(bottom = 2.dp)
                         )
                         Text(
                             text = mediaMetadata.artists.joinToString { it.name },
                             color = secondaryColor,
-                            fontSize = 16.sp,
+                            fontSize = 14.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -374,7 +414,7 @@ fun LyricsImageCard(
                         maxHeight = availableHeight - 8.dp,
                         density = density,
                         initialFontSize = initialSize,
-                        minFontSize = 18.sp,
+                        minFontSize = LyricsShareLayout.MIN_LYRICS_TEXT_SIZE.sp,
                         style = textStyle,
                         textMeasurer = textMeasurer
                     )
@@ -397,7 +437,7 @@ fun LyricsImageCard(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(44.dp)
+                            .size(22.dp)
                             .clip(RoundedCornerShape(50))
                             .background(secondaryColor),
                         contentAlignment = Alignment.Center
@@ -406,7 +446,7 @@ fun LyricsImageCard(
                             painter = painterResource(id = R.drawable.small_icon),
                             contentDescription = null,
                             modifier = Modifier
-                                .size(38.dp)
+                                .size(16.dp)
                         )
                     }
 

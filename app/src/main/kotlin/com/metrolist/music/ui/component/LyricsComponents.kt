@@ -314,6 +314,9 @@ internal fun LyricsColorPickerDialog(
     var previewBackgroundColor by remember { mutableStateOf(Color(0xFF242424)) }
     var previewTextColor by remember { mutableStateOf(Color.White) }
     var previewSecondaryTextColor by remember { mutableStateOf(Color.White.copy(alpha = 0.7f)) }
+    val previewImageHeight = remember(txt, title, arts) {
+        LyricsShareLayout.imageHeightFor(title, arts, txt)
+    }
     
     val align = when (lyricsTextPosition) {
         LyricsPosition.LEFT -> TextAlign.Left
@@ -344,10 +347,10 @@ internal fun LyricsColorPickerDialog(
     }
 
     BasicAlertDialog(onDismissRequest = onDismiss) {
-        Card(shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth().padding(20.dp)) {
+        Card(shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth().padding(12.dp)) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.verticalScroll(rememberScrollState()).padding(20.dp)
+                modifier = Modifier.verticalScroll(rememberScrollState()).padding(16.dp)
             ) {
                 Text(stringResource(R.string.customize_colors), style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(12.dp))
@@ -364,7 +367,7 @@ internal fun LyricsColorPickerDialog(
                     }
                 }
                 
-                Box(Modifier.fillMaxWidth().aspectRatio(1f).padding(8.dp).clip(RoundedCornerShape(12.dp))) {
+                Box(Modifier.fillMaxWidth().aspectRatio(LyricsShareLayout.IMAGE_WIDTH.toFloat() / previewImageHeight).clip(RoundedCornerShape(12.dp))) {
                     LyricsImageCard(
                         lyricText = txt,
                         mediaMetadata = MediaMetadata(

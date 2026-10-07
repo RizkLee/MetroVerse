@@ -23,7 +23,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.metrolist.music.LocalPodcastSubtitleManager
 import com.metrolist.music.R
-import com.metrolist.music.constants.PodcastSubtitleBilingualKey
 import com.metrolist.music.constants.PodcastSubtitleTranslationEnabledKey
 import com.metrolist.music.ui.component.Material3MenuGroup
 import com.metrolist.music.ui.component.Material3MenuItemData
@@ -36,7 +35,6 @@ fun PodcastSubtitleMenu(
 ) {
     val manager = LocalPodcastSubtitleManager.current
     var translationEnabled by rememberPreference(PodcastSubtitleTranslationEnabledKey, false)
-    var bilingual by rememberPreference(PodcastSubtitleBilingualKey, true)
     var showDeleteDialog by remember { mutableStateOf(false) }
     val modelReady = manager?.isAsrModelReady() == true
 
@@ -78,25 +76,6 @@ fun PodcastSubtitleMenu(
                         thumbContent = {
                             Icon(
                                 painterResource(if (translationEnabled) R.drawable.check else R.drawable.close),
-                                null,
-                                modifier = Modifier.size(SwitchDefaults.IconSize),
-                            )
-                        },
-                    )
-                },
-            ),
-            Material3MenuItemData(
-                icon = { Icon(painterResource(R.drawable.translate), null) },
-                title = { Text(stringResource(R.string.podcast_subtitles_bilingual)) },
-                description = { Text(stringResource(R.string.podcast_subtitles_bilingual_desc)) },
-                onClick = { bilingual = !bilingual },
-                trailingContent = {
-                    Switch(
-                        checked = bilingual,
-                        onCheckedChange = { bilingual = it },
-                        thumbContent = {
-                            Icon(
-                                painterResource(if (bilingual) R.drawable.check else R.drawable.close),
                                 null,
                                 modifier = Modifier.size(SwitchDefaults.IconSize),
                             )
