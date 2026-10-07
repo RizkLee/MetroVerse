@@ -8,7 +8,6 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Checkbox
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -90,7 +89,15 @@ fun TextCacheSettings(viewModel: TextCacheViewModel = hiltViewModel()) {
             },
             content = {
                 Column {
-                    Text(stringResource(if (target == TextCacheClearTarget.PODCASTS) R.string.text_cache_clear_podcasts_confirm else R.string.text_cache_clear_confirm))
+                    Text(
+                        stringResource(
+                            when (target) {
+                                TextCacheClearTarget.PODCASTS -> R.string.text_cache_clear_podcasts_confirm
+                                TextCacheClearTarget.LYRICS -> R.string.text_cache_clear_lyrics_confirm
+                                TextCacheClearTarget.ALL -> R.string.text_cache_clear_confirm
+                            },
+                        ),
+                    )
                     if (target != TextCacheClearTarget.PODCASTS) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -170,12 +177,4 @@ fun TextCacheSettings(viewModel: TextCacheViewModel = hiltViewModel()) {
             }
         },
     )
-    for (text in listOf(R.string.text_cache_policy, R.string.text_cache_preserved, R.string.text_cache_storage_note)) {
-        Text(
-            text = stringResource(text),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-        )
-    }
 }

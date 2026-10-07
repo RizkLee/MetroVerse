@@ -1,0 +1,22 @@
+cmake_minimum_required(VERSION 3.22.1)
+project(metroverse_moonshine LANGUAGES CXX)
+
+if(NOT DEFINED MOONSHINE_NATIVE_DIR)
+    message(FATAL_ERROR "MOONSHINE_NATIVE_DIR must point to the verified Moonshine v0.1.5 JNI directory")
+endif()
+
+set(MOONSHINE_ABI_DIR "${MOONSHINE_NATIVE_DIR}/${ANDROID_ABI}")
+foreach(library moonshine onnxruntime)
+    if(NOT EXISTS "${MOONSHINE_ABI_DIR}/lib${library}.so")
+        message(FATAL_ERROR "Missing verified ${ANDROID_ABI} library: lib${library}.so")
+    endif()
+    add_library(${library} SHARED IMPORTED)
+    set_target_properties(${library} PROPERTIES IMPORTED_LOCATION "${MOONSHINE_ABI_DIR}/lib${library}.so")
+endforeach()
+
+add_library(metroverse_moonshine SHARED MoonshineBridge.cpp)
+target_compile_features(metroverse_moonshine PRIVATE cxx_std_17)
+target_compile_options(metroverse_moonshine PRIVATE -Wall -Wextra -Werror -fvisibility=hidden)
+target_include_directories(metroverse_moonshine PRIVATE include)
+target_link_libraries(metroverse_moonshine PRIVATE moonshine onnxruntime)
+target_link_options(metroverse_moonshine PRIVATE "-Wl,-z,max-page-size=16384" "-Wl,-z,common-page-size=16384")

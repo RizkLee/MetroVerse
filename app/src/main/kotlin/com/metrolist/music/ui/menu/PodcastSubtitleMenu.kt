@@ -5,9 +5,13 @@
 
 package com.metrolist.music.ui.menu
 
+import android.text.format.Formatter
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -18,13 +22,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.metrolist.music.LocalPodcastSubtitleManager
 import com.metrolist.music.R
 import com.metrolist.music.constants.PodcastSubtitleTranslationEnabledKey
 import com.metrolist.music.ui.component.Material3MenuGroup
+import com.metrolist.music.ui.component.AsrModelDownloadDialog
 import com.metrolist.music.ui.component.Material3MenuItemData
 import com.metrolist.music.utils.rememberPreference
 
@@ -36,7 +43,29 @@ fun PodcastSubtitleMenu(
     val manager = LocalPodcastSubtitleManager.current
     var translationEnabled by rememberPreference(PodcastSubtitleTranslationEnabledKey, false)
     var showDeleteDialog by remember { mutableStateOf(false) }
-    val modelReady = manager?.isAsrModelReady() == true
+    var showDownloadDialog by remember { mutableStateOf(false) }
+    val modelReady = manager?.asrModelReady?.collectAsStateWithLifecycle()?.value == true
+    val modelBusy = manager?.modelOperationBusy?.collectAsStateWithLifecycle()?.value == true
+    val modelError = manager?.modelDownloadError?.collectAsStateWithLifecycle()?.value
+    val downloadProgress = manager?.modelDownloadProgress?.collectAsStateWithLifecycle()?.value
+    val importModel = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) manager?.importAsrModel(uri)
+    }
+
+    if (showDownloadDialog) {
+        AsrModelDownloadDialog(
+            modelBytes = manager?.asrModelDownloadBytes() ?: 0L,
+            onDismiss = { showDownloadDialog = false },
+            onDownload = {
+                showDownloadDialog = false
+                manager?.downloadAsrModel()
+            },
+            onImport = {
+                showDownloadDialog = false
+                importModel.launch(null)
+            },
+        )
+    }
 
     if (showDeleteDialog) {
         AlertDialog(
@@ -92,20 +121,37 @@ fun PodcastSubtitleMenu(
                 },
             ),
             Material3MenuItemData(
-                icon = { Icon(painterResource(R.drawable.subtitles), null) },
-                title = { Text(stringResource(R.string.podcast_asr_experimental)) },
-                description = {
-                    Text(
-                        stringResource(
-                            if (modelReady) {
-                                R.string.podcast_subtitle_model_ready
-                            } else {
-                                R.string.podcast_subtitle_asr_download_model
-                            },
-                        ),
-                    )
+                icon = { Icon(painterResource(if (modelReady) R.drawable.delete else R.drawable.download), null) },
+                title = {
+                    Text(stringResource(when {
+                        modelBusy -> R.string.podcast_subtitle_asr_model
+                        modelReady -> R.string.podcast_subtitle_delete_model
+                        modelError != null -> R.string.podcast_subtitle_asr_download_retry
+                        else -> R.string.podcast_subtitle_asr_download_model
+                    }))
                 },
-                onClick = if (modelReady) ({ showDeleteDialog = true }) else null,
+                description = {
+                    val progress = downloadProgress
+                    Text(when {
+                        progress != null -> stringResource(
+                            R.string.podcast_subtitle_asr_model_downloading,
+                            if (progress.second > 0L) (progress.first * 100L / progress.second).toInt().coerceIn(0, 100) else 0,
+                        )
+                        modelBusy -> stringResource(R.string.podcast_subtitle_asr_model_busy)
+                        modelError != null -> modelError.orEmpty()
+                        modelReady -> stringResource(R.string.podcast_subtitle_model_ready)
+                        else -> stringResource(
+                            R.string.podcast_subtitle_asr_model_details,
+                            Formatter.formatShortFileSize(LocalContext.current, manager?.asrModelDownloadBytes() ?: 0L),
+                        )
+                    })
+                },
+                trailingContent = if (modelBusy) ({
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                }) else null,
+                onClick = if (manager != null && !modelBusy) ({
+                    if (modelReady) showDeleteDialog = true else showDownloadDialog = true
+                }) else null,
             ),
         ),
     )

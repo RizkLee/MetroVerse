@@ -6,6 +6,7 @@
 package com.metrolist.music.podcast.transcript
 
 import android.content.Context
+import android.net.Uri
 import com.metrolist.music.R
 import com.metrolist.music.cache.TextCacheSignals
 import com.metrolist.music.di.ApplicationScope
@@ -13,13 +14,19 @@ import com.metrolist.music.models.MediaMetadata
 import com.metrolist.music.podcast.PodcastRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -79,11 +86,20 @@ class PodcastSubtitleManager @Inject constructor(
     private val _modelDownloadProgress = MutableStateFlow<Pair<Long, Long>?>(null)
     val modelDownloadProgress: StateFlow<Pair<Long, Long>?> = _modelDownloadProgress.asStateFlow()
 
+    private val _asrModelReady = MutableStateFlow(false)
+    val asrModelReady: StateFlow<Boolean> = _asrModelReady.asStateFlow()
+    private val _modelOperationBusy = MutableStateFlow(false)
+    val modelOperationBusy: StateFlow<Boolean> = _modelOperationBusy.asStateFlow()
+    private val _modelDownloadError = MutableStateFlow<String?>(null)
+    val modelDownloadError: StateFlow<String?> = _modelDownloadError.asStateFlow()
+    @Volatile private var modelStorageBytes = 0L
+    private var modelOperationJob: Job? = null
+
     private val _translationStatus = MutableStateFlow<PodcastTranslationStatus>(PodcastTranslationStatus.Idle)
     val translationStatus: StateFlow<PodcastTranslationStatus> = _translationStatus.asStateFlow()
 
-    private var currentEpisodeId: String? = null
-    private var episodeGeneration = 0L
+    @Volatile private var currentEpisodeId: String? = null
+    @Volatile private var episodeGeneration = 0L
     private var translationGeneration = 0L
     private var transcriptLoadJob: Job? = null
     private var transcriptionJob: Job? = null
@@ -91,17 +107,111 @@ class PodcastSubtitleManager @Inject constructor(
     private var translationConfigKey: String? = null
     private var translationStatusShown = false
 
-    fun isAsrModelReady(): Boolean = transcriber.isModelReady()
+    init {
+        _modelOperationBusy.value = true
+        modelOperationJob = scope.launch(Dispatchers.Main.immediate) {
+            try {
+                refreshModelState()
+            } finally {
+                _modelOperationBusy.value = false
+            }
+        }
+    }
 
-    fun asrModelStorageBytes(): Long = transcriber.modelStorageBytes()
+    fun isAsrModelReady(): Boolean = _asrModelReady.value
+
+    fun asrModelStorageBytes(): Long = modelStorageBytes
 
     fun asrModelDownloadBytes(): Long = OnDeviceTranscriber.approximateModelDownloadBytes()
 
     fun deleteAsrModel() {
-        transcriptionJob?.cancel()
-        transcriptionJob = null
-        transcriber.deleteModels()
-        _modelDownloadProgress.value = null
+        if (!_modelOperationBusy.compareAndSet(false, true)) return
+        val activeTranscription = transcriptionJob
+        _modelDownloadError.value = null
+        modelOperationJob = scope.launch(Dispatchers.Main.immediate) {
+            try {
+                activeTranscription?.cancelAndJoin()
+                transcriptionJob = null
+                if (_state.value is PodcastSubtitleState.Transcribing) _state.value = PodcastSubtitleState.Unavailable
+                val deleted = withContext(Dispatchers.IO) { transcriber.deleteModels() }
+                if (!deleted) _modelDownloadError.value = context.getString(R.string.podcast_subtitle_asr_model_failed)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                _modelDownloadError.value = context.getString(R.string.podcast_subtitle_asr_model_failed)
+            } finally {
+                _modelDownloadProgress.value = null
+                withContext(NonCancellable) {
+                    refreshModelState()
+                    _modelOperationBusy.value = false
+                }
+            }
+        }
+    }
+
+    fun downloadAsrModel() = prepareModel()
+
+    fun importAsrModel(treeUri: Uri) = prepareModel(treeUri = treeUri)
+
+    fun clearModelDownloadError() { _modelDownloadError.value = null }
+
+    private suspend fun refreshModelState() {
+        val status = withContext(Dispatchers.IO) {
+            runCatching { transcriber.isModelReady() to transcriber.modelStorageBytes() }.getOrDefault(false to 0L)
+        }
+        _asrModelReady.value = status.first
+        modelStorageBytes = status.second
+    }
+
+    private fun prepareModel(
+        treeUri: Uri? = null,
+        onPrepared: (() -> Unit)? = null,
+        onFailure: ((String) -> Unit)? = null,
+    ) {
+        if (_asrModelReady.value) { onPrepared?.invoke(); return }
+        if (!_modelOperationBusy.compareAndSet(false, true)) return
+        _modelDownloadError.value = null
+        _modelDownloadProgress.value = 0L to asrModelDownloadBytes()
+        modelOperationJob = scope.launch(Dispatchers.Main.immediate) {
+            var prepared = false
+            try {
+                val progress: (Long, Long) -> Unit = { bytes, total -> _modelDownloadProgress.value = bytes to total }
+                val result = withContext(Dispatchers.IO) {
+                    if (treeUri == null) transcriber.downloadModels(progress)
+                    else transcriber.importModels(treeUri, progress)
+                }
+                prepared = result.isSuccess
+                if (result.isFailure) {
+                    val failure = result.exceptionOrNull()
+                    if (failure is CancellationException) throw failure
+                    val message = failure?.message?.takeIf { it.isNotBlank() }
+                        ?: context.getString(R.string.podcast_subtitle_asr_model_failed)
+                    _modelDownloadError.value = message
+                    onFailure?.invoke(message)
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                val message = context.getString(R.string.podcast_subtitle_asr_model_failed)
+                _modelDownloadError.value = message
+                onFailure?.invoke(message)
+            } finally {
+                _modelDownloadProgress.value = null
+                withContext(NonCancellable) {
+                    refreshModelState()
+                    _modelOperationBusy.value = false
+                }
+            }
+            if (prepared) {
+                if (_asrModelReady.value) {
+                    onPrepared?.invoke()
+                } else {
+                    val message = context.getString(R.string.podcast_subtitle_asr_model_failed)
+                    _modelDownloadError.value = message
+                    onFailure?.invoke(message)
+                }
+            }
+        }
     }
 
     /**
@@ -167,47 +277,42 @@ class PodcastSubtitleManager @Inject constructor(
 
     /** Downloads and recognizes English speech on-device. */
     fun startTranscription(metadata: MediaMetadata, durationMs: Long) {
-        if (transcriptionJob?.isActive == true) return
+        if (transcriptionJob?.isActive == true || _modelOperationBusy.value) return
         val mediaUrl = metadata.mediaUrl ?: return
         val episodeId = metadata.id
-        currentEpisodeId = episodeId
-        transcriptionJob = scope.launch {
-            if (!transcriber.isModelReady()) {
-                transcriber.invalidateInvalidModelFiles()
-                _state.value = PodcastSubtitleState.Unavailable
-                _modelDownloadProgress.value = 0L to asrModelDownloadBytes()
-                val downloadResult = transcriber.downloadModels { bytes, total ->
-                    _modelDownloadProgress.value = bytes to total
-                }
-                if (downloadResult.isFailure) {
-                    _modelDownloadProgress.value = null
-                    if (currentEpisodeId == episodeId) {
-                        _state.value = PodcastSubtitleState.TranscriptionFailed(
-                            downloadResult.exceptionOrNull()?.message
-                                ?: context.getString(R.string.podcast_subtitle_asr_failed),
-                        )
+        if (!_asrModelReady.value) {
+            val requestedGeneration = episodeGeneration
+            prepareModel(
+                onPrepared = {
+                    if (isCurrentSubtitleRequest(requestedGeneration, episodeGeneration, episodeId, currentEpisodeId)) {
+                        startTranscription(metadata, durationMs)
                     }
-                    return@launch
-                }
-                // Keep the completed state visible until native recognition starts; do not flash
-                // back to an empty download button while the final files are being validated.
-                _modelDownloadProgress.value = asrModelDownloadBytes() to
-                    asrModelDownloadBytes()
-                _modelDownloadProgress.value = null
-            }
-
+                },
+                onFailure = { message ->
+                    if (isCurrentSubtitleRequest(requestedGeneration, episodeGeneration, episodeId, currentEpisodeId)) {
+                        _state.value = PodcastSubtitleState.TranscriptionFailed(message)
+                    }
+                },
+            )
+            return
+        }
+        transcriptLoadJob?.cancel()
+        transcriptLoadJob = null
+        episodeGeneration++
+        val requestedGeneration = episodeGeneration
+        currentEpisodeId = episodeId
+        TextCacheSignals.protect(CACHE_PROTECTION_OWNER, episodeId)
+        clearTranslations()
+        val job = scope.launch(Dispatchers.Main.immediate, start = CoroutineStart.LAZY) {
+            fun currentRequest() = isActive &&
+                isCurrentSubtitleRequest(requestedGeneration, episodeGeneration, episodeId, currentEpisodeId)
             _state.value = PodcastSubtitleState.Transcribing(emptyList(), 0)
-            val result = transcriber.transcribe(
-                source = mediaUrl,
-                totalDurationMs = durationMs,
-            ) { partial, percent ->
-                if (currentEpisodeId == episodeId) {
-                    _state.value = PodcastSubtitleState.Transcribing(partial, percent)
+            try {
+                val result = transcriber.transcribe(mediaUrl, durationMs) { partial, percent ->
+                    if (currentRequest()) _state.value = PodcastSubtitleState.Transcribing(partial, percent)
                 }
-            }
-            result
-                .onSuccess { (cues, language) ->
-                    if (currentEpisodeId != episodeId) return@onSuccess
+                if (!currentRequest()) return@launch
+                result.onSuccess { (cues, language) ->
                     if (cues.isEmpty()) {
                         _state.value = PodcastSubtitleState.TranscriptionFailed(
                             context.getString(R.string.podcast_subtitle_asr_empty),
@@ -215,6 +320,7 @@ class PodcastSubtitleManager @Inject constructor(
                         return@onSuccess
                     }
                     transcriptRepository.storeOnDeviceTranscript(episodeId, cues, language)
+                    if (!currentRequest()) return@onSuccess
                     _state.value = PodcastSubtitleState.Ready(
                         EpisodeTranscript(
                             episodeId = episodeId,
@@ -223,22 +329,28 @@ class PodcastSubtitleManager @Inject constructor(
                             language = language,
                         ),
                     )
-                }
-                .onFailure { error ->
-                    if (currentEpisodeId != episodeId || error is kotlinx.coroutines.CancellationException) {
-                        return@onFailure
-                    }
+                }.onFailure { error ->
+                    if (error is CancellationException) throw error
                     _state.value = PodcastSubtitleState.TranscriptionFailed(
                         error.message ?: context.getString(R.string.podcast_subtitle_asr_failed),
                     )
                 }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                if (currentRequest()) _state.value = PodcastSubtitleState.TranscriptionFailed(
+                    context.getString(R.string.podcast_subtitle_asr_failed),
+                )
+            }
         }
+        transcriptionJob = job
+        job.start()
     }
 
     fun cancelTranscription() {
         transcriptionJob?.cancel()
         transcriptionJob = null
-        _modelDownloadProgress.value = null
+        if (_modelDownloadProgress.value != null) modelOperationJob?.cancel()
         if (_state.value is PodcastSubtitleState.Transcribing) {
             _state.value = PodcastSubtitleState.Unavailable
         }
@@ -406,7 +518,6 @@ class PodcastSubtitleManager @Inject constructor(
         transcriptLoadJob = null
         transcriptionJob?.cancel()
         transcriptionJob = null
-        _modelDownloadProgress.value = null
         clearTranslations()
         currentEpisodeId = null
         TextCacheSignals.protect(CACHE_PROTECTION_OWNER, null)

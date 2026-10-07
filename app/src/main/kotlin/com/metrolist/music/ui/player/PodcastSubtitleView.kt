@@ -86,6 +86,8 @@ fun PodcastSubtitleView(
     modifier: Modifier = Modifier,
     asrDownloadProgress: Pair<Long, Long>? = null,
     asrModelReady: Boolean = false,
+    asrModelBusy: Boolean = false,
+    asrModelError: String? = null,
     onSeek: (Long) -> Unit = {},
     onStartTranscription: () -> Unit = {},
     onCancelTranscription: () -> Unit = {},
@@ -122,7 +124,7 @@ fun PodcastSubtitleView(
                         .padding(horizontal = 32.dp),
                 ) {
                     Text(
-                        text = stringResource(R.string.podcast_subtitle_unavailable),
+                        text = asrModelError ?: stringResource(R.string.podcast_subtitle_unavailable),
                         style = MaterialTheme.typography.bodyMedium,
                         color = textColor.copy(alpha = 0.7f),
                         textAlign = TextAlign.Center,
@@ -130,6 +132,7 @@ fun PodcastSubtitleView(
                     Spacer(Modifier.height(4.dp))
                     AsrEntry(
                         asrModelReady = asrModelReady,
+                        asrModelBusy = asrModelBusy,
                         asrDownloadProgress = asrDownloadProgress,
                         textColor = textColor,
                         onStartTranscription = onStartTranscription,
@@ -147,7 +150,7 @@ fun PodcastSubtitleView(
                         .padding(horizontal = 32.dp),
                 ) {
                     Text(
-                        text = state.message,
+                        text = asrModelError ?: state.message,
                         style = MaterialTheme.typography.bodyMedium,
                         color = textColor.copy(alpha = 0.8f),
                         textAlign = TextAlign.Center,
@@ -155,6 +158,7 @@ fun PodcastSubtitleView(
                     Spacer(Modifier.height(4.dp))
                     AsrEntry(
                         asrModelReady = asrModelReady,
+                        asrModelBusy = asrModelBusy,
                         asrDownloadProgress = asrDownloadProgress,
                         textColor = textColor,
                         label = stringResource(R.string.podcast_subtitle_asr_retry),
@@ -551,6 +555,7 @@ private fun TranscriptionProgressBar(
 @Composable
 private fun AsrEntry(
     asrModelReady: Boolean,
+    asrModelBusy: Boolean,
     asrDownloadProgress: Pair<Long, Long>?,
     textColor: Color,
     label: String? = null,
@@ -579,6 +584,15 @@ private fun AsrEntry(
             }
         }
 
+        asrModelBusy -> {
+            Text(
+                text = stringResource(R.string.podcast_subtitle_asr_model_busy),
+                style = MaterialTheme.typography.labelMedium,
+                color = textColor.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center,
+            )
+        }
+
         else -> {
             FilledTonalButton(
                 onClick = if (asrModelReady) onStartTranscription else onDownloadModel,
@@ -589,7 +603,7 @@ private fun AsrEntry(
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = label
+                    text = label.takeIf { asrModelReady }
                         ?: stringResource(
                             if (asrModelReady) {
                                 R.string.podcast_subtitle_asr_start

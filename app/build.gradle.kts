@@ -113,6 +113,20 @@ abstract class GenerateProtoTask : DefaultTask() {
     }
 }
 
+val asrBackend = providers.gradleProperty("asrBackend").orElse("moonshine").get()
+require(asrBackend in setOf("moonshine", "zipformer")) { "asrBackend must be moonshine or zipformer" }
+
+val moonshineRuntime by configurations.creating {
+    isCanBeConsumed = false
+    isTransitive = false
+}
+val prepareMoonshineNative by tasks.registering(Sync::class) {
+    from(moonshineRuntime.elements.map { artifacts -> artifacts.map { zipTree(it.asFile) } }) {
+        include("jni/arm64-v8a/libmoonshine.so", "jni/arm64-v8a/libonnxruntime.so")
+    }
+    into(layout.buildDirectory.dir("moonshine-native"))
+}
+
 // Fetches the prebuilt sherpa-onnx Android AAR (used by on-device podcast subtitle
 // recognition) on first build. The binary is intentionally not committed (*.aar is ignored).
 val sherpaOnnxAarFile = file("libs/sherpa-onnx-1.13.8.aar")
@@ -136,12 +150,32 @@ val downloadSherpaOnnx by tasks.registering {
     }
 }
 tasks.named("preBuild") {
-    dependsOn(downloadSherpaOnnx)
+    dependsOn(if (asrBackend == "moonshine") prepareMoonshineNative else downloadSherpaOnnx)
+}
+tasks.configureEach {
+    if (asrBackend == "moonshine" && (name.startsWith("configureCMake") || name.startsWith("buildCMake"))) {
+        dependsOn(prepareMoonshineNative)
+    }
 }
 
 android {
     namespace = "com.metrolist.music"
     compileSdk = 37
+    sourceSets.getByName("main").kotlin.srcDir("src/$asrBackend/kotlin")
+    if (asrBackend == "moonshine") {
+        sourceSets.getByName("main").assets.srcDir("src/moonshine/assets")
+        ndkVersion = "28.2.13676358"
+        // AGP packages the imported CMake libraries; listing them as jniLibs too would duplicate them.
+        externalNativeBuild.cmake {
+            path = file("src/moonshine/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
+        defaultConfig.externalNativeBuild.cmake {
+            arguments("-DMOONSHINE_NATIVE_DIR=${layout.buildDirectory.dir("moonshine-native/jni").get().asFile.absolutePath.replace('\\', '/')}")
+            arguments("-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON")
+            arguments("-DANDROID_STL=c++_shared")
+        }
+    }
 
     defaultConfig {
         applicationId = applicationIdOverride ?: baseApplicationId
@@ -439,9 +473,12 @@ dependencies {
     implementation(libs.jsoup)
     implementation(libs.rssparser)
 
-    // On-device podcast subtitle recognition (sherpa-onnx: SenseVoice + Silero VAD).
-    // The prebuilt AAR is fetched on first build; *.aar stays gitignored.
-    implementation(files("libs/sherpa-onnx-1.13.8.aar"))
+    // Each APK ships one ORT runtime. The retained Zipformer backend can be built with -PasrBackend=zipformer.
+    if (asrBackend == "moonshine") {
+        add(moonshineRuntime.name, "ai.moonshine:moonshine-voice:0.1.5@aar")
+    } else {
+        implementation(files("libs/sherpa-onnx-1.13.8.aar"))
+    }
     ksp(libs.hilt.compiler)
 
     implementation(project(":innertube"))

@@ -17,11 +17,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
 import java.io.File
 import java.nio.ByteOrder
-import java.security.MessageDigest
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.sqrt
@@ -36,113 +33,29 @@ import kotlin.math.sqrt
 class OnDeviceTranscriber @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
-    private val okHttpClient = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
-        .build()
-
-    private val asrDir: File
-        get() = File(context.filesDir, "podcast/asr")
-
-    private val modelDir: File
-        get() = File(asrDir, MODEL_DIR)
-
+    private val modelStore = AsrModelStore(
+        context,
+        MODEL_DIR,
+        listOf(
+            AsrModelArtifact(ENCODER_FILE, ENCODER_BYTES, ENCODER_SHA256, ENCODER_URLS),
+            AsrModelArtifact(DECODER_FILE, DECODER_BYTES, DECODER_SHA256, DECODER_URLS),
+            AsrModelArtifact(JOINER_FILE, JOINER_BYTES, JOINER_SHA256, JOINER_URLS),
+            AsrModelArtifact(TOKENS_FILE, TOKENS_BYTES, TOKENS_SHA256, TOKENS_URLS),
+        ),
+    )
+    private val modelDir: File get() = File(context.filesDir, "podcast/asr/$MODEL_DIR")
     private val modelFile: File get() = modelDir.resolve(ENCODER_FILE)
     private val decoderFile: File get() = modelDir.resolve(DECODER_FILE)
     private val joinerFile: File get() = modelDir.resolve(JOINER_FILE)
     private val tokensFile: File get() = modelDir.resolve(TOKENS_FILE)
-    @Volatile
-    private var validatedModelKey: String? = null
 
-    /**
-     * sherpa-onnx loads models natively and calls exit(-1) inside C++ when a file cannot be
-     * parsed, which kills the process instantly. Guard every load behind strict file checks so
-     * a corrupt or truncated download can never reach the native layer.
-     */
-    fun isModelReady(): Boolean = hasValidModelFiles()
-
-    /** Returns the total storage used by the optional on-device recognition model. */
-    fun modelStorageBytes(): Long =
-        asrDir.takeIf { it.exists() }
-            ?.walkTopDown()
-            ?.filter { it.isFile }
-            ?.sumOf { it.length() }
-            ?: 0L
-
-    /** Removes the optional ASR model without touching generated episode transcripts. */
-    fun deleteModels(): Boolean {
-        validatedModelKey = null
-        return asrDir.exists() && asrDir.deleteRecursively()
-    }
-
-    private fun hasValidModelFiles(): Boolean {
-        val artifacts = modelArtifacts()
-        val key = artifacts.joinToString(separator = ":") {
-            "${it.file.length()}:${it.file.lastModified()}"
-        }
-        if (validatedModelKey == key) return true
-        val valid = artifacts.all { artifact ->
-            artifact.file.length() == artifact.expectedBytes &&
-                sha256(artifact.file) == artifact.expectedSha256
-        }
-        validatedModelKey = key.takeIf { valid }
-        return valid
-    }
-
-    /** Deletes invalid model artifacts so the download flow starts over cleanly. */
-    fun invalidateInvalidModelFiles(): Boolean {
-        val invalid = !hasValidModelFiles()
-        if (invalid) {
-            validatedModelKey = null
-            modelArtifacts().forEach { it.file.delete() }
-            modelDir.delete()
-        }
-        return invalid
-    }
-
-    /** Downloads the English streaming Zipformer2 model with cumulative progress. */
-    suspend fun downloadModels(onProgress: (bytes: Long, totalBytes: Long) -> Unit): Result<Unit> =
-        withContext(Dispatchers.IO) {
-            runCatching {
-                val artifacts = modelArtifacts()
-                val total = artifacts.sumOf { it.expectedBytes }
-                var completed = 0L
-                fun report(bytes: Long) = onProgress((completed + bytes).coerceAtMost(total), total)
-
-                artifacts.forEach { artifact ->
-                    downloadToFile(
-                        urls = artifact.urls,
-                        target = artifact.file,
-                        minBytes = artifact.expectedBytes,
-                        onProgress = { bytes, _ -> report(bytes) },
-                        expectedBytes = artifact.expectedBytes,
-                        expectedSha256 = artifact.expectedSha256,
-                    )
-                    completed += artifact.expectedBytes
-                    report(0L)
-                }
-                onProgress(total, total)
-            }.onFailure { error ->
-                if (error is CancellationException) throw error
-                validatedModelKey = null
-                modelArtifacts().forEach { it.file.delete() }
-                modelDir.delete()
-            }
-        }
-
-    private data class ModelArtifact(
-        val file: File,
-        val urls: List<String>,
-        val expectedBytes: Long,
-        val expectedSha256: String,
-    )
-
-    private fun modelArtifacts(): List<ModelArtifact> = listOf(
-        ModelArtifact(modelFile, ENCODER_URLS, ENCODER_BYTES, ENCODER_SHA256),
-        ModelArtifact(decoderFile, DECODER_URLS, DECODER_BYTES, DECODER_SHA256),
-        ModelArtifact(joinerFile, JOINER_URLS, JOINER_BYTES, JOINER_SHA256),
-        ModelArtifact(tokensFile, TOKENS_URLS, TOKENS_BYTES, TOKENS_SHA256),
-    )
+    fun isModelReady(): Boolean = modelStore.isReady()
+    fun modelStorageBytes(): Long = modelStore.storageBytes()
+    suspend fun deleteModels(): Boolean = modelStore.delete()
+    suspend fun invalidateInvalidModelFiles(): Boolean = modelStore.invalidateInvalidFiles()
+    suspend fun downloadModels(onProgress: (Long, Long) -> Unit): Result<Unit> = modelStore.download(onProgress)
+    suspend fun importModels(treeUri: android.net.Uri, onProgress: (Long, Long) -> Unit): Result<Unit> =
+        modelStore.importFromTree(treeUri, onProgress)
 
     /** Transcribes the audio at [source] and reports cumulative cues as they are produced. */
     suspend fun transcribe(
@@ -151,84 +64,86 @@ class OnDeviceTranscriber @Inject constructor(
         onPartial: (cues: List<SubtitleCue>, progressPercent: Int) -> Unit,
     ): Result<Pair<List<SubtitleCue>, String?>> = withContext(Dispatchers.Default) {
         runCatching {
-            require(isModelReady()) { "ASR model is not downloaded" }
+            modelStore.withModel {
+                require(isModelReady()) { "ASR model is not downloaded" }
 
-            val recognizer = com.k2fsa.sherpa.onnx.OnlineRecognizer(
-                assetManager = null,
-                config = com.k2fsa.sherpa.onnx.OnlineRecognizerConfig(
-                    featConfig = com.k2fsa.sherpa.onnx.FeatureConfig(
-                        sampleRate = SAMPLE_RATE,
-                        featureDim = 80,
-                    ),
-                    modelConfig = com.k2fsa.sherpa.onnx.OnlineModelConfig(
-                        transducer = com.k2fsa.sherpa.onnx.OnlineTransducerModelConfig(
-                            encoder = modelFile.absolutePath,
-                            decoder = decoderFile.absolutePath,
-                            joiner = joinerFile.absolutePath,
+                val recognizer = com.k2fsa.sherpa.onnx.OnlineRecognizer(
+                    assetManager = null,
+                    config = com.k2fsa.sherpa.onnx.OnlineRecognizerConfig(
+                        featConfig = com.k2fsa.sherpa.onnx.FeatureConfig(
+                            sampleRate = SAMPLE_RATE,
+                            featureDim = 80,
                         ),
-                        tokens = tokensFile.absolutePath,
-                        numThreads = 1,
-                        provider = "cpu",
-                        modelType = "zipformer2",
-                        debug = false,
+                        modelConfig = com.k2fsa.sherpa.onnx.OnlineModelConfig(
+                            transducer = com.k2fsa.sherpa.onnx.OnlineTransducerModelConfig(
+                                encoder = modelFile.absolutePath,
+                                decoder = decoderFile.absolutePath,
+                                joiner = joinerFile.absolutePath,
+                            ),
+                            tokens = tokensFile.absolutePath,
+                            numThreads = 1,
+                            provider = "cpu",
+                            modelType = "zipformer2",
+                            debug = false,
+                        ),
+                        enableEndpoint = false,
+                        decodingMethod = "greedy_search",
                     ),
-                    enableEndpoint = false,
-                    decodingMethod = "greedy_search",
-                ),
-            )
+                )
 
-            try {
-                val totalSamplesEstimate =
-                    if (totalDurationMs > 0) totalDurationMs * SAMPLE_RATE / 1000 else 0L
-                val coroutineContext = currentCoroutineContext()
-                val cues = mutableListOf<SubtitleCue>()
-                var samplesFed = 0L
+                try {
+                    val totalSamplesEstimate =
+                        if (totalDurationMs > 0) totalDurationMs * SAMPLE_RATE / 1000 else 0L
+                    val coroutineContext = currentCoroutineContext()
+                    val cues = mutableListOf<SubtitleCue>()
+                    var samplesFed = 0L
 
-                fun recognize(startSample: Long, samples: FloatArray) {
-                    coroutineContext.ensureActive()
-                    val stream = recognizer.createStream()
-                    try {
-                        stream.acceptWaveform(samples, SAMPLE_RATE)
-                        while (recognizer.isReady(stream)) recognizer.decode(stream)
-                        stream.inputFinished()
-                        while (recognizer.isReady(stream)) recognizer.decode(stream)
-                        val text = PodcastAsrSupport.normalizeAsrText(
-                            recognizer.getResult(stream).text,
-                        )
-                        if (text.isNotEmpty()) {
-                            val startMs = startSample * 1000L / SAMPLE_RATE
-                            val endMs = (startSample + samples.size) * 1000L / SAMPLE_RATE
-                            cues.addAll(
-                                PodcastAsrSupport.splitLongCue(
-                                    SubtitleCue(startMs, maxOf(endMs, startMs + 1_000L), text),
-                                ),
+                    fun recognize(startSample: Long, samples: FloatArray) {
+                        coroutineContext.ensureActive()
+                        val stream = recognizer.createStream()
+                        try {
+                            stream.acceptWaveform(samples, SAMPLE_RATE)
+                            while (recognizer.isReady(stream)) recognizer.decode(stream)
+                            stream.inputFinished()
+                            while (recognizer.isReady(stream)) recognizer.decode(stream)
+                            val text = PodcastAsrSupport.normalizeAsrText(
+                                recognizer.getResult(stream).text,
                             )
+                            if (text.isNotEmpty()) {
+                                val startMs = startSample * 1000L / SAMPLE_RATE
+                                val endMs = (startSample + samples.size) * 1000L / SAMPLE_RATE
+                                cues.addAll(
+                                    PodcastAsrSupport.splitLongCue(
+                                        SubtitleCue(startMs, maxOf(endMs, startMs + 1_000L), text),
+                                    ),
+                                )
+                            }
+                        } finally {
+                            stream.release()
                         }
-                    } finally {
-                        stream.release()
+                        onPartial(cues.toList(), progressPercent(samplesFed, totalSamplesEstimate))
                     }
-                    onPartial(cues.toList(), progressPercent(samplesFed, totalSamplesEstimate))
-                }
 
-                val segmenter = RmsSpeechSegmenter { startSample, samples ->
-                    recognize(startSample, samples)
+                    val segmenter = RmsSpeechSegmenter { startSample, samples ->
+                        recognize(startSample, samples)
+                    }
+                    AudioDecoder.decodeToPcmChunks(
+                        source = source,
+                        chunkSamples = SAMPLE_RATE * 2,
+                    ) { chunk, _ ->
+                        coroutineContext.ensureActive()
+                        samplesFed += chunk.size
+                        segmenter.accept(chunk)
+                        onPartial(cues.toList(), progressPercent(samplesFed, totalSamplesEstimate))
+                    }
+                    segmenter.flush()
+                    onPartial(cues.toList(), 99)
+                    cues to "en"
+                } finally {
+                    recognizer.release()
                 }
-                AudioDecoder.decodeToPcmChunks(
-                    source = source,
-                    chunkSamples = SAMPLE_RATE * 2,
-                ) { chunk, _ ->
-                    coroutineContext.ensureActive()
-                    samplesFed += chunk.size
-                    segmenter.accept(chunk)
-                    onPartial(cues.toList(), progressPercent(samplesFed, totalSamplesEstimate))
-                }
-                segmenter.flush()
-                onPartial(cues.toList(), 99)
-                cues to "en"
-            } finally {
-                recognizer.release()
             }
-        }
+        }.onFailure { if (it is CancellationException) throw it }
     }
 
     private class RmsSpeechSegmenter(
@@ -305,91 +220,6 @@ class OnDeviceTranscriber @Inject constructor(
 
     private fun progressPercent(samplesFed: Long, totalSamples: Long): Int =
         if (totalSamples <= 0) 0 else ((samplesFed * 100) / totalSamples).toInt().coerceIn(0, 99)
-
-    private suspend fun downloadToFile(
-        urls: List<String>,
-        target: File,
-        minBytes: Long,
-        onProgress: (bytes: Long, totalBytes: Long) -> Unit,
-        expectedBytes: Long? = null,
-        expectedSha256: String? = null,
-    ) {
-        if (target.exists() && target.length() >= minBytes) {
-            val validSize = expectedBytes == null || target.length() == expectedBytes
-            val validHash = expectedSha256 == null || sha256(target) == expectedSha256
-            if (validSize && validHash) return
-            target.delete()
-        }
-        target.parentFile?.mkdirs()
-        val partial = File(target.absolutePath + ".part")
-
-        var lastError: Throwable? = null
-        for (url in urls) {
-            try {
-                partial.delete()
-                val request = okhttp3.Request.Builder()
-                    .url(url)
-                    .header("User-Agent", PODCAST_USER_AGENT)
-                    .build()
-                val response = okHttpClient.newCall(request).execute()
-                response.use { httpResponse ->
-                    check(httpResponse.isSuccessful) { "Model download failed (${httpResponse.code}): $url" }
-                    val body = httpResponse.body
-                    val total = body.contentLength()
-                    var written = 0L
-                    var lastReport = 0L
-                    body.byteStream().use { input ->
-                        partial.outputStream().use { output ->
-                            val buffer = ByteArray(DOWNLOAD_BUFFER_SIZE)
-                            while (true) {
-                                val read = input.read(buffer)
-                                if (read < 0) break
-                                output.write(buffer, 0, read)
-                                written += read
-                                if (written - lastReport > PROGRESS_STEP_BYTES) {
-                                    lastReport = written
-                                    onProgress(written, total)
-                                }
-                            }
-                            onProgress(written, total)
-                        }
-                    }
-                    // Reject truncated or proxy-blocked responses (e.g. HTML error pages
-                    // served with HTTP 200) before they can reach the native loader.
-                    check(written >= minBytes) { "Model download too small ($written bytes): $url" }
-                    check(total <= 0L || written == total) {
-                        "Model download incomplete ($written of $total bytes): $url"
-                    }
-                    check(expectedBytes == null || written == expectedBytes) {
-                        "Model download has unexpected size ($written bytes): $url"
-                    }
-                    check(expectedSha256 == null || sha256(partial) == expectedSha256) {
-                        "Model download checksum mismatch: $url"
-                    }
-                    check(partial.renameTo(target)) { "Failed to finalize model file: $url" }
-                    return
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Throwable) {
-                lastError = e
-            }
-        }
-        throw lastError ?: IllegalStateException("Model download failed: $urls")
-    }
-
-    private fun sha256(file: File): String {
-        val digest = MessageDigest.getInstance("SHA-256")
-        file.inputStream().use { input ->
-            val buffer = ByteArray(DOWNLOAD_BUFFER_SIZE)
-            while (true) {
-                val count = input.read(buffer)
-                if (count < 0) break
-                digest.update(buffer, 0, count)
-            }
-        }
-        return digest.digest().joinToString("") { byte -> "%02x".format(byte) }
-    }
 
     /** Streams an audio URL into 16 kHz mono float chunks via the platform decoder. */
     object AudioDecoder {

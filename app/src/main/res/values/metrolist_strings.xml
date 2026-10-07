@@ -1132,8 +1132,8 @@
     <string name="podcast_subtitle_asr_running">Recognizing… %1$d%%</string>
     <string name="podcast_subtitle_asr_failed">Subtitle recognition failed</string>
     <string name="podcast_subtitle_asr_empty">No speech was recognized</string>
-    <string name="podcast_subtitle_asr_download_model">Download recognition model (~74 MB)</string>
-    <string name="podcast_subtitle_asr_model_downloading">Downloading model… %1$d%%</string>
+    <string name="podcast_subtitle_asr_download_model">Download recognition model</string>
+    <string name="podcast_subtitle_asr_model_downloading">Preparing model… %1$d%%</string>
 
     <!-- Podcast subtitle settings -->
     <string name="settings_title_podcast_subtitles">Podcast subtitles</string>
@@ -1143,40 +1143,43 @@
     <string name="podcast_subtitles_translation_desc">Translate subtitle lines with the AI translation service configured for lyrics. Off by default</string>
     <string name="podcast_subtitles_bilingual">Bilingual subtitles</string>
     <string name="podcast_subtitles_bilingual_desc">Show the original line together with its translation</string>
-    <string name="podcast_asr_experimental">On-device subtitle recognition</string>
-    <string name="podcast_asr_experimental_desc">Experimental. Lets you generate subtitles manually for episodes without transcripts. Recognition runs entirely on this device and audio never leaves the phone. High CPU usage — charging is recommended. Downloads a ~74 MB language model first</string>
-    <string name="podcast_subtitle_asr_performance_warning">Recognition uses substantial CPU, memory, battery, and storage. The phone may become warm or playback may stutter.</string>
-    <string name="podcast_subtitle_asr_accuracy_warning">Recognition is experimental. Results may contain errors, missing words, or imperfect timing and should not be treated as an official transcript.</string>
+    <string name="podcast_asr_experimental_desc">English · About %1$s. Recognition runs on this device.</string>
     <string name="podcast_subtitle_share_failed">Could not create the subtitle image</string>
     <string name="podcast_asr_language">Recognition language</string>
     <string name="podcast_asr_language_auto">Auto detect</string>
     <string name="podcast_asr_language_zh">Chinese</string>
     <string name="podcast_asr_language_en">English</string>
-
-    <string name="podcast_subtitle_model_ready">Recognition model downloaded</string>
+    <string name="podcast_subtitle_model_ready">Model ready</string>
     <string name="podcast_subtitle_delete_model">Delete recognition model</string>
-    <string name="podcast_subtitle_delete_model_confirm">Delete the on-device recognition model? Generated episode subtitles will be kept</string>
+    <string name="podcast_subtitle_delete_model_confirm">Delete the model? Generated subtitles will stay.</string>
     <string name="podcast_subtitle_asr_model_corrupt">The recognition model is missing or corrupted. Please download it again</string>
-    <string name="podcast_subtitle_asr_dialog_confirm">Continue</string>
     <string name="ai_lyrics_translation_toggle">AI lyrics translation</string>
     <string name="ai_translating_subtitles">Translating subtitles…</string>
     <string name="ai_subtitles_translated">Subtitles translated</string>
     <!-- Text cache -->
     <string name="text_cache_title">Subtitles, lyrics &amp; translations</string>
-    <string name="text_cache_limit">Maximum text cache size</string>
+    <string name="text_cache_limit">Subtitle and lyric cache limit</string>
     <string name="text_cache_subtitles">Podcast subtitles &amp; translations</string>
     <string name="text_cache_lyrics">Song lyrics &amp; translations</string>
-    <string name="text_cache_protected">Protected text</string>
-    <string name="text_cache_policy">Podcast subtitles and translations are removed first, then lyrics for songs outside your library, library or liked songs, and downloaded songs. Within each group, the least recently used are removed first.</string>
-    <string name="text_cache_preserved">Text currently in use, manually edited lyrics and lyrics without a verified cache origin are preserved, so usage may exceed the limit.</string>
-    <string name="text_cache_storage_note">Text sizes exclude audio, images, speech models and database overhead. Deleted database space is reused and may not immediately reduce the app’s storage size.</string>
-    <string name="text_cache_clear_all">Clear text cache</string>
-    <string name="text_cache_clear_subtitles">Clear podcast subtitle cache</string>
-    <string name="text_cache_clear_lyrics">Clear song lyric cache</string>
-    <string name="text_cache_clear_confirm">Clear unused cached text in this category? Text currently in use and lyrics marked as manually edited will be kept. Unmarked lyrics are kept unless you select the option below. Removed content must be downloaded or generated again; AI translation may use your service quota.</string>
-    <string name="text_cache_clear_done">Text cache cleared</string>
-    <string name="text_cache_clear_failed">Could not clear all cached text. Please try again.</string>
-    <string name="text_cache_loading">Calculating text cache size…</string>
+    <string name="text_cache_protected">Subtitles and lyrics kept</string>
+    <string name="text_cache_clear_all">Clear all subtitle, lyric and translation caches</string>
+    <string name="text_cache_clear_subtitles">Clear subtitle and translation cache</string>
+    <string name="text_cache_clear_lyrics">Clear lyric and translation cache</string>
+    <string name="text_cache_clear_confirm">Clear unused subtitles, lyrics and translations? Playing items and marked manual edits stay.</string>
+    <string name="text_cache_clear_done">Cache cleared</string>
+    <string name="text_cache_clear_failed">Could not clear the cache. Try again.</string>
+    <string name="text_cache_loading">Calculating cache size…</string>
     <string name="text_cache_include_unverified">Also clear unmarked lyrics (may include older manual edits)</string>
-    <string name="text_cache_clear_podcasts_confirm">Clear unused podcast subtitles and translations? Text currently in use is kept. Removed content must be downloaded or generated again; AI translation may use your service quota.</string>
+    <string name="text_cache_clear_podcasts_confirm">Clear unused subtitles and translations? Playing items stay.</string>
+    <string name="podcast_subtitle_asr_import_model">Import from folder</string>
+    <string name="podcast_subtitle_asr_download_and_start">Download and recognize</string>
+    <string name="podcast_subtitle_asr_download_retry">Retry model download</string>
+    <string name="podcast_subtitle_asr_model">Recognition model</string>
+    <string name="podcast_subtitle_asr_model_details">English · About %1$s</string>
+    <string name="podcast_subtitle_asr_model_busy">Preparing model…</string>
+    <string name="podcast_subtitle_asr_model_failed">Could not prepare the model. Try again.</string>
+    <string name="text_cache_clear_lyrics_confirm">Clear unused lyrics and translations? Playing items and marked manual edits stay.</string>
+    <string name="podcast_asr_model_files_missing">Choose the model folder (required files: %1$d).</string>
+    <string name="podcast_asr_model_file_invalid">The model file %1$s is incomplete or does not match the supported version.</string>
+    <string name="podcast_asr_model_download_failed">Model download failed (HTTP %1$d). Retry or import the model folder.</string>
 </resources>

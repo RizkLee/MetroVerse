@@ -13,6 +13,8 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.view.WindowManager
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -56,7 +58,6 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -68,7 +69,6 @@ import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -153,7 +153,6 @@ import com.metrolist.music.constants.PlayerBackgroundStyleKey
 import com.metrolist.music.constants.PlayerButtonsStyle
 import com.metrolist.music.constants.PlayerButtonsStyleKey
 import com.metrolist.music.constants.PlayerHorizontalPadding
-import com.metrolist.music.constants.PodcastAsrDisclaimerSeenKey
 import com.metrolist.music.constants.PodcastSubtitleTranslationEnabledKey
 import com.metrolist.music.constants.QueuePeekHeight
 import com.metrolist.music.constants.ShowPodcastSubtitlesKey
@@ -179,6 +178,7 @@ import com.metrolist.music.ui.component.BottomSheetState
 import com.metrolist.music.ui.component.LocalBottomSheetPageState
 import com.metrolist.music.ui.component.LocalMenuState
 import com.metrolist.music.ui.component.Lyrics
+import com.metrolist.music.ui.component.AsrModelDownloadDialog
 import com.metrolist.music.ui.component.PlayerSliderTrack
 import com.metrolist.music.ui.component.ResizableIconButton
 import com.metrolist.music.ui.component.SquigglySlider
@@ -396,8 +396,13 @@ fun BottomSheetPlayer(
             else -> PlayerContentMode.THUMBNAIL
         }
 
-    val (asrDisclaimerSeen, onAsrDisclaimerSeenChange) = rememberPreference(PodcastAsrDisclaimerSeenKey, false)
-    var showAsrDisclaimerDialog by rememberSaveable { mutableStateOf(false) }
+    val subtitleModelReady = podcastSubtitleManager?.asrModelReady?.collectAsStateWithLifecycle()?.value == true
+    val subtitleModelBusy = podcastSubtitleManager?.modelOperationBusy?.collectAsStateWithLifecycle()?.value == true
+    val subtitleModelError = podcastSubtitleManager?.modelDownloadError?.collectAsStateWithLifecycle()?.value
+    var showAsrModelDialog by rememberSaveable(mediaMetadata?.id) { mutableStateOf(false) }
+    val importAsrModel = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) podcastSubtitleManager?.importAsrModel(uri)
+    }
     var subtitleResyncToken by rememberSaveable { mutableStateOf(0) }
     var currentSubtitleIndex by rememberSaveable { mutableStateOf(-1) }
 
@@ -504,10 +509,11 @@ fun BottomSheetPlayer(
     }
 
     fun requestOnDeviceTranscription() {
-        if (asrDisclaimerSeen) {
+        if (subtitleModelBusy) return
+        if (subtitleModelReady) {
             launchOnDeviceTranscription()
         } else {
-            showAsrDisclaimerDialog = true
+            showAsrModelDialog = true
         }
     }
 
@@ -1955,7 +1961,9 @@ fun BottomSheetPlayer(
                                         textColor = TextBackgroundColor,
                                         translationStatus = subtitleTranslationStatus,
                                         asrDownloadProgress = subtitleModelDownloadProgress,
-                                        asrModelReady = podcastSubtitleManager?.isAsrModelReady() == true,
+                                        asrModelReady = subtitleModelReady,
+                                        asrModelBusy = subtitleModelBusy,
+                                        asrModelError = subtitleModelError,
                                         onSeek = { target ->
                                             if (!isListenTogetherGuest) {
                                                 playerConnection.player.seekTo(target)
@@ -2051,7 +2059,9 @@ fun BottomSheetPlayer(
                                         textColor = TextBackgroundColor,
                                         translationStatus = subtitleTranslationStatus,
                                         asrDownloadProgress = subtitleModelDownloadProgress,
-                                        asrModelReady = podcastSubtitleManager?.isAsrModelReady() == true,
+                                        asrModelReady = subtitleModelReady,
+                                        asrModelBusy = subtitleModelBusy,
+                                        asrModelError = subtitleModelError,
                                         onSeek = { target ->
                                             if (!isListenTogetherGuest) {
                                                 playerConnection.player.seekTo(target)
@@ -2123,59 +2133,21 @@ fun BottomSheetPlayer(
             )
         }
 
-        if (showAsrDisclaimerDialog) {
-            AlertDialog(
-                onDismissRequest = { showAsrDisclaimerDialog = false },
-                title = { Text(stringResource(R.string.podcast_asr_experimental)) },
-                icon = { Icon(painterResource(R.drawable.warning), contentDescription = null) },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Row(verticalAlignment = Alignment.Top) {
-                            Icon(
-                                painterResource(R.drawable.speed),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(22.dp),
-                            )
-                            Spacer(Modifier.width(12.dp))
-                            Text(stringResource(R.string.podcast_subtitle_asr_performance_warning))
-                        }
-                        Row(verticalAlignment = Alignment.Top) {
-                            Icon(
-                                painterResource(R.drawable.warning),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(22.dp),
-                            )
-                            Spacer(Modifier.width(12.dp))
-                            Text(stringResource(R.string.podcast_subtitle_asr_accuracy_warning))
-                        }
-                        Row(verticalAlignment = Alignment.Top) {
-                            Icon(
-                                painterResource(R.drawable.download),
-                                contentDescription = null,
-                                modifier = Modifier.size(22.dp),
-                            )
-                            Spacer(Modifier.width(12.dp))
-                            Text(stringResource(R.string.podcast_asr_experimental_desc))
-                        }
+        if (showAsrModelDialog) {
+            val requestedEpisodeId = mediaMetadata?.id
+            AsrModelDownloadDialog(
+                modelBytes = podcastSubtitleManager?.asrModelDownloadBytes() ?: 0L,
+                startRecognitionAfterDownload = true,
+                onDismiss = { showAsrModelDialog = false },
+                onDownload = {
+                    showAsrModelDialog = false
+                    if (requestedEpisodeId != null && playerConnection.player.currentMediaItem?.mediaId == requestedEpisodeId) {
+                        launchOnDeviceTranscription()
                     }
                 },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            showAsrDisclaimerDialog = false
-                            onAsrDisclaimerSeenChange(true)
-                            launchOnDeviceTranscription()
-                        },
-                    ) {
-                        Text(stringResource(R.string.podcast_subtitle_asr_dialog_confirm))
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showAsrDisclaimerDialog = false }) {
-                        Text(stringResource(R.string.podcast_subtitle_asr_cancel))
-                    }
+                onImport = {
+                    showAsrModelDialog = false
+                    importAsrModel.launch(null)
                 },
             )
         }
