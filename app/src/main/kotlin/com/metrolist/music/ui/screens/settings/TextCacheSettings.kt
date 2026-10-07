@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -45,7 +46,7 @@ fun TextCacheSettings(viewModel: TextCacheViewModel = hiltViewModel()) {
     val scope = rememberCoroutineScope()
     var clearing by remember { mutableStateOf(false) }
     var clearTarget by remember { mutableStateOf<TextCacheClearTarget?>(null) }
-    var selectedLimit by remember(state.limitMiB) { mutableStateOf(state.limitMiB) }
+    var selectedLimit by remember(state.limitMiB) { mutableIntStateOf(state.limitMiB) }
     var includeUnverified by remember(clearTarget) { mutableStateOf(false) }
 
     fun showResult(success: Boolean) {
