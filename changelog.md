@@ -2,6 +2,32 @@
 
 All notable MetroVerse-specific changes are recorded here. Upstream Metrolist history remains available in Git history.
 
+## 1.0.0 - Unreleased
+
+### Added
+
+- Podcast subtitles from RSS transcript files, with timed highlighting, tap-to-seek, resync, and selected-line sharing.
+- Experimental on-device English subtitle generation with Moonshine Small Streaming, including model download, local import, and deletion.
+- Bilingual AI podcast subtitles, with current-position translation and batched prefetching through the configured translation service.
+- A separate storage limit and cleanup controls for podcast subtitles, lyrics, and translations, with protection for manually edited lyrics and active content.
+
+### Changed
+
+- Moved podcast subtitle settings into AI lyrics and podcast subtitle translation settings; translated subtitles always display bilingually.
+- Both player translation menus remain available before setup and link directly to API key configuration.
+- Podcast playback opens on the cover view; subtitle generation shows a concise model and device-requirements warning.
+- Widened lyric-share images to fit longer song titles and updated the notification icon.
+
+### Fixed
+
+- Lyrics can scroll back to the first line without excessive empty space after the last line. Lyric positioning and word highlighting remain aligned as layouts change.
+- Tapping lyrics or subtitles follows the selected line directly, without first returning to the old playback position.
+- Interrupted subtitle generation preserves completed sentences and resumes from a safe recognition boundary; translations stay matched to their source sentences.
+- Subtitle translation no longer refills every window with single-sentence requests, loses requests while busy, or repeatedly retries without a cooldown. Requests stop when cancelled.
+- Podcast playback controls no longer alternate with music controls when playback progress is saved.
+- Open RSS episodes saved for later remain intact during YouTube library synchronization.
+- Corrected lyric versus subtitle translation labels and completed translations for the supported App languages.
+
 ## 0.5.8 - 2026-09-13
 
 ### Changed
