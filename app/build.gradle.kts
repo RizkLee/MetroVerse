@@ -9,6 +9,7 @@ import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
 import org.gradle.process.ExecOperations
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.gradle.api.file.ArchiveOperations
 import java.net.URL
 import java.util.Properties
 import javax.inject.Inject
@@ -113,47 +114,27 @@ abstract class GenerateProtoTask : DefaultTask() {
     }
 }
 
-val asrBackend = providers.gradleProperty("asrBackend").orElse("moonshine").get()
-require(asrBackend in setOf("moonshine", "zipformer")) { "asrBackend must be moonshine or zipformer" }
-
 val moonshineRuntime by configurations.creating {
     isCanBeConsumed = false
     isTransitive = false
 }
+abstract class NativeArchiveAccess {
+    @get:Inject abstract val archives: ArchiveOperations
+}
+
 val prepareMoonshineNative by tasks.registering(Sync::class) {
-    from(moonshineRuntime.elements.map { artifacts -> artifacts.map { zipTree(it.asFile) } }) {
+    val archives = objects.newInstance<NativeArchiveAccess>().archives
+    from(moonshineRuntime.elements.map { artifacts -> artifacts.map { archives.zipTree(it.asFile) } }) {
         include("jni/arm64-v8a/libmoonshine.so", "jni/arm64-v8a/libonnxruntime.so")
     }
     into(layout.buildDirectory.dir("moonshine-native"))
 }
 
-// Fetches the prebuilt sherpa-onnx Android AAR (used by on-device podcast subtitle
-// recognition) on first build. The binary is intentionally not committed (*.aar is ignored).
-val sherpaOnnxAarFile = file("libs/sherpa-onnx-1.13.8.aar")
-val sherpaOnnxAarUrl = "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.8/sherpa-onnx-1.13.8.aar"
-val downloadSherpaOnnx by tasks.registering {
-    val aarPath = sherpaOnnxAarFile.absolutePath
-    val aarUrl = sherpaOnnxAarUrl
-    outputs.file(sherpaOnnxAarFile)
-    onlyIf { !File(aarPath).exists() }
-    doLast {
-        val target = File(aarPath)
-        target.parentFile.mkdirs()
-        val partial = File(target.parentFile, target.name + ".part")
-        logger.lifecycle("Downloading sherpa-onnx AAR from $aarUrl")
-        URL(aarUrl).openStream().use { input ->
-            partial.outputStream().use { output -> input.copyTo(output) }
-        }
-        check(partial.length() > 0L) { "sherpa-onnx AAR download was empty" }
-        check(partial.renameTo(target)) { "Failed to finalize sherpa-onnx AAR" }
-        logger.lifecycle("sherpa-onnx AAR downloaded (${target.length()} bytes)")
-    }
-}
 tasks.named("preBuild") {
-    dependsOn(if (asrBackend == "moonshine") prepareMoonshineNative else downloadSherpaOnnx)
+    dependsOn(prepareMoonshineNative)
 }
 tasks.configureEach {
-    if (asrBackend == "moonshine" && (name.startsWith("configureCMake") || name.startsWith("buildCMake"))) {
+    if (name.startsWith("configureCMake") || name.startsWith("buildCMake")) {
         dependsOn(prepareMoonshineNative)
     }
 }
@@ -161,36 +142,33 @@ tasks.configureEach {
 android {
     namespace = "com.metrolist.music"
     compileSdk = 37
-    sourceSets.getByName("main").kotlin.srcDir("src/$asrBackend/kotlin")
-    if (asrBackend == "moonshine") {
-        sourceSets.getByName("main").assets.srcDir("src/moonshine/assets")
-        ndkVersion = "28.2.13676358"
-        // AGP packages the imported CMake libraries; listing them as jniLibs too would duplicate them.
-        externalNativeBuild.cmake {
-            path = file("src/moonshine/cpp/CMakeLists.txt")
-            version = "3.22.1"
-        }
-        defaultConfig.externalNativeBuild.cmake {
-            arguments("-DMOONSHINE_NATIVE_DIR=${layout.buildDirectory.dir("moonshine-native/jni").get().asFile.absolutePath.replace('\\', '/')}")
-            arguments("-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON")
-            arguments("-DANDROID_STL=c++_shared")
-        }
+    sourceSets.getByName("main").kotlin.srcDir("src/moonshine/kotlin")
+    sourceSets.getByName("main").assets.srcDir("src/moonshine/assets")
+    ndkVersion = "28.2.13676358"
+    // AGP packages the imported CMake libraries; listing them as jniLibs too would duplicate them.
+    externalNativeBuild.cmake {
+        path = file("src/moonshine/cpp/CMakeLists.txt")
+        version = "3.22.1"
+    }
+    defaultConfig.externalNativeBuild.cmake {
+        arguments("-DMOONSHINE_NATIVE_DIR=${layout.buildDirectory.dir("moonshine-native/jni").get().asFile.absolutePath.replace('\\', '/')}")
+        arguments("-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON")
+        arguments("-DANDROID_STL=c++_shared")
     }
 
     defaultConfig {
         applicationId = applicationIdOverride ?: baseApplicationId
         minSdk = 26
         targetSdk = 36
-        versionCode = 14
-        versionName = "0.5.8"
+        versionCode = 15
+        versionName = "1.0.0"
         resValue("string", "app_name", appNameOverride ?: "MetroVerse")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
 
         ndk {
-            // The sherpa-onnx ML runtime dominates APK size; arm64-v8a covers all current
-            // physical devices. Revisit before a release build if 32-bit devices are needed.
+            // The on-device recognizer uses the supported 64-bit ARM runtime.
             abiFilters += listOf("arm64-v8a")
         }
 
@@ -473,12 +451,7 @@ dependencies {
     implementation(libs.jsoup)
     implementation(libs.rssparser)
 
-    // Each APK ships one ORT runtime. The retained Zipformer backend can be built with -PasrBackend=zipformer.
-    if (asrBackend == "moonshine") {
-        add(moonshineRuntime.name, "ai.moonshine:moonshine-voice:0.1.5@aar")
-    } else {
-        implementation(files("libs/sherpa-onnx-1.13.8.aar"))
-    }
+    add(moonshineRuntime.name, "ai.moonshine:moonshine-voice:0.1.5@aar")
     ksp(libs.hilt.compiler)
 
     implementation(project(":innertube"))
@@ -506,6 +479,7 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.ktor.client.mock)
+    testImplementation(libs.mockwebserver)
     // XmlPullParser implementation for JVM tests of the podcast transcript feed parser.
     testImplementation("net.sf.kxml:kxml2:2.3.0")
 }

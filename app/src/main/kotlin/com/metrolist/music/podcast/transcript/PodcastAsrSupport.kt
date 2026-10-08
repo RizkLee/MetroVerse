@@ -5,51 +5,11 @@
 
 package com.metrolist.music.podcast.transcript
 
-import java.util.Locale
-
 /** Pure helpers shared by the on-device podcast transcription pipeline. JVM-testable. */
 object PodcastAsrSupport {
 
     /** Maximum duration of a single subtitle cue produced from speech recognition. */
     const val MAX_ASR_CUE_DURATION_MS = 12_000L
-
-    /**
-     * Linear-interpolation resample of interleaved 16-bit PCM, downmixed to mono.
-     * Returns a new float array in [-1, 1] at [targetSampleRate].
-     */
-    fun resampleToMono16k(
-        pcm: ShortArray,
-        channelCount: Int,
-        sourceSampleRate: Int,
-        targetSampleRate: Int = 16_000,
-    ): FloatArray {
-        require(channelCount >= 1) { "channelCount must be positive" }
-        if (pcm.isEmpty() || sourceSampleRate <= 0) return FloatArray(0)
-        if (channelCount == 1 && sourceSampleRate == targetSampleRate) {
-            return FloatArray(pcm.size) { pcm[it] / 32768f }
-        }
-
-        val sourceFrames = pcm.size / channelCount
-        val targetFrames = ((sourceFrames.toLong() * targetSampleRate) / sourceSampleRate).toInt()
-        if (targetFrames <= 0) return FloatArray(0)
-
-        val result = FloatArray(targetFrames)
-        val step = sourceSampleRate.toFloat() / targetSampleRate
-        for (frame in 0 until targetFrames) {
-            val sourcePosition = frame * step
-            val left = sourcePosition.toInt().coerceAtMost(sourceFrames - 1)
-            val right = (left + 1).coerceAtMost(sourceFrames - 1)
-            val fraction = sourcePosition - left
-            var sample = 0f
-            for (channel in 0 until channelCount) {
-                val a = pcm[left * channelCount + channel]
-                val b = pcm[right * channelCount + channel]
-                sample += ((a + (b - a) * fraction)) / 32768f
-            }
-            result[frame] = sample / channelCount
-        }
-        return result
-    }
 
     /**
      * Splits cues longer than [PodcastAsrSupport.MAX_ASR_CUE_DURATION_MS] into roughly even
@@ -88,69 +48,19 @@ object PodcastAsrSupport {
         }
     }
 
-    /** Normalizes SenseVoice language tags (`<|zh|>`, `zh`, ...) into a bare ISO-ish code. */
-    fun normalizeLanguageTag(raw: String?): String? {
-        val cleaned = raw
-            ?.let { value ->
-                value
-                    .replace("<|", "")
-                    .replace("|>", "")
-                    .trim()
-                    .lowercase()
-            }
-            ?.takeIf { it.isNotEmpty() }
-            ?: return null
-        return when {
-            cleaned.startsWith("zh") -> "zh"
-            cleaned.startsWith("en") -> "en"
-            cleaned.startsWith("ja") -> "ja"
-            cleaned.startsWith("ko") -> "ko"
-            cleaned.startsWith("yue") -> "yue"
-            else -> cleaned.take(2)
-        }
-    }
-
-    /** Converts Zipformer's uppercase English output to readable sentence case. */
-    fun normalizeAsrText(text: String): String {
-        val trimmed = text.trim()
-        if (trimmed.isEmpty() || trimmed.none { it.isLetter() }) return trimmed
-        if (trimmed != trimmed.uppercase(Locale.US)) return trimmed
-
-        val lower = trimmed.lowercase(Locale.US)
-        val result = StringBuilder(lower.length)
-        var capitalizeNext = true
-        lower.forEach { character ->
-            if (capitalizeNext && character.isLetter()) {
-                result.append(character.uppercaseChar())
-                capitalizeNext = false
-            } else {
-                result.append(character)
-            }
-            if (character == '.' || character == '!' || character == '?') {
-                capitalizeNext = true
-            }
-        }
-        return result.toString()
-    }
-
-    /** Index of the cue covering [positionMs], or -1 when playback is between cues. */
+    /** Latest cue that has started, preserving its highlight during gaps until the next cue. */
     fun cueIndexAt(cues: List<SubtitleCue>, positionMs: Long): Int {
         if (cues.isEmpty()) return -1
         var low = 0
         var high = cues.lastIndex
         var best = -1
         while (low <= high) {
-            val middle = (low + high) / 2
-            val cue = cues[middle]
-            when {
-                positionMs < cue.startMs -> high = middle - 1
-                positionMs > cue.endMs -> {
-                    // Keep the last cue that started before the position as a fallback for
-                    // gaps between cues.
-                    best = middle
-                    low = middle + 1
-                }
-                else -> return middle
+            val middle = low + (high - low) / 2
+            if (cues[middle].startMs <= positionMs) {
+                best = middle
+                low = middle + 1
+            } else {
+                high = middle - 1
             }
         }
         return best

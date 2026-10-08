@@ -7,8 +7,13 @@ package com.metrolist.music.ui.component
 
 import android.text.format.Formatter
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -34,13 +39,25 @@ internal fun AsrModelDownloadDialog(
         title = { Text(stringResource(R.string.podcast_subtitle_asr_download_model)) },
         icon = { Icon(painterResource(R.drawable.download), contentDescription = null) },
         text = {
-            Column {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 Text(
                     stringResource(
                         R.string.podcast_asr_experimental_desc,
                         Formatter.formatShortFileSize(LocalContext.current, modelBytes),
                     ),
                 )
+                Spacer(Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Icon(
+                        painterResource(R.drawable.warning),
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                    )
+                    Text(
+                        stringResource(R.string.podcast_asr_device_warning),
+                        modifier = Modifier.weight(1f),
+                    )
+                }
                 Spacer(Modifier.height(8.dp))
                 TextButton(onClick = onImport) {
                     Text(stringResource(R.string.podcast_subtitle_asr_import_model))

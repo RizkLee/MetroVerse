@@ -18,6 +18,7 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -37,12 +38,17 @@ enum class TranscriptSource {
     ON_DEVICE,
 }
 
-/** A fully loaded transcript for one episode. */
+/** Complete publisher/ASR subtitles, or an explicitly unfinished ASR checkpoint. */
 data class EpisodeTranscript(
     val episodeId: String,
     val source: TranscriptSource,
     val cues: List<SubtitleCue>,
     val language: String? = null,
+    val isComplete: Boolean = true,
+    val progressPercent: Int = if (isComplete) 100 else 0,
+    val resumePositionMs: Long = 0,
+    val mediaSourceFingerprint: String? = null,
+    val recognizerFingerprint: String? = null,
 )
 
 data class PodcastTextCacheEntry(
@@ -81,7 +87,21 @@ private data class StoredTranscript(
     val source: TranscriptSource = TranscriptSource.FEED,
     val language: String? = null,
     val cues: List<StoredCue>,
+    val isComplete: Boolean = true,
+    val progressPercent: Int = if (isComplete) 100 else 0,
+    val resumePositionMs: Long = 0,
+    val mediaSourceFingerprint: String? = null,
+    val recognizerFingerprint: String? = null,
 )
+
+@Serializable
+private data class StoredTranslations(
+    val version: Int = 2,
+    val configuration: String,
+    val entries: Map<String, String>,
+)
+
+private data class PendingSubtitleSave<T>(val value: T, val lastAccessMs: Long)
 
 /**
  * File-backed store for podcast transcripts.
@@ -109,6 +129,8 @@ class TranscriptRepository @Inject constructor(
     }
 
     private val fileMutex = Mutex()
+    private val pendingTranscriptSaves = linkedMapOf<String, PendingSubtitleSave<EpisodeTranscript>>()
+    private val pendingTranslationSaves = linkedMapOf<Pair<String, String>, PendingSubtitleSave<Map<String, String>>>()
     private var cachedIndex: TranscriptIndex? = null
 
     private val indexFile: File
@@ -186,8 +208,7 @@ class TranscriptRepository @Inject constructor(
         episodeId: String,
         cues: List<SubtitleCue>,
         language: String? = null,
-    ) {
-        storeTranscript(
+    ): Result<Unit> = storeTranscript(
             episodeId,
             EpisodeTranscript(
                 episodeId = episodeId,
@@ -196,10 +217,18 @@ class TranscriptRepository @Inject constructor(
                 language = language,
             ),
         )
+
+    suspend fun storeOnDeviceTranscript(transcript: EpisodeTranscript): Result<Unit> {
+        require(transcript.source == TranscriptSource.ON_DEVICE)
+        return storeTranscript(transcript.episodeId, transcript)
     }
 
     suspend fun cachedTranscript(episodeId: String): EpisodeTranscript? =
         loadCachedTranscript(episodeId)
+
+    internal suspend fun pendingTranscript(episodeId: String): EpisodeTranscript? = fileMutex.withLock {
+        pendingTranscriptSaves[episodeId]?.value
+    }
 
     /** Removes every transcript artifact of one episode (index entry, decoded cues, translations). */
     suspend fun clearEpisode(episodeId: String) = fileMutex.withLock {
@@ -208,6 +237,7 @@ class TranscriptRepository @Inject constructor(
         persistIndex(index)
         withContext(Dispatchers.IO) {
             cachedFilesForKey(episodeId.takeLast(48)).forEach { it.delete() }
+            removePendingText(episodeId.takeLast(48))
             TextCacheSignals.notifyChanged()
         }
     }
@@ -225,9 +255,19 @@ class TranscriptRepository @Inject constructor(
                         .lastOrNull { it in knownKeys }
                 if (key != null && isSafeCacheKey(key)) filesByKey.getOrPut(key) { mutableListOf() }.add(file)
             }
+            val pendingAccess = mutableMapOf<String, Long>()
+            pendingTranscriptSaves.forEach { (episodeId, pending) -> pendingAccess[episodeId.takeLast(48)] = pending.lastAccessMs }
+            pendingTranslationSaves.forEach { (identity, pending) ->
+                val key = identity.first.takeLast(48)
+                pendingAccess[key] = maxOf(pendingAccess[key] ?: 0, pending.lastAccessMs)
+            }
+            pendingAccess.keys.forEach { filesByKey.getOrPut(it) { mutableListOf() } }
             filesByKey.mapNotNull { (key, files) ->
                 key.takeIf(::isSafeCacheKey)?.let {
-                    PodcastTextCacheEntry(key, files.sumOf { it.length() }, files.maxOf { it.lastModified() })
+                    PodcastTextCacheEntry(
+                        key, files.sumOf { it.length() },
+                        maxOf(files.maxOfOrNull { it.lastModified() } ?: 0, pendingAccess[key] ?: 0),
+                    )
                 }
             }
         }
@@ -238,45 +278,61 @@ class TranscriptRepository @Inject constructor(
         fileMutex.withLock {
             if (!isSafeCacheKey(key) || TextCacheSignals.isProtected(key)) return@withLock false
             val results = cachedFilesForKey(key).map { !it.exists() || it.delete() }
-            if (results.isNotEmpty()) TextCacheSignals.notifyChanged()
-            results.all { it }
+            val removed = results.all { it }
+            val removedPending = removed && removePendingText(key)
+            if (results.isNotEmpty() || removedPending) TextCacheSignals.notifyChanged()
+            removed
         }
     }
 
     suspend fun storeTranslation(
         episodeId: String,
-        targetLanguage: String,
-        provider: String,
-        translations: Map<Int, String>,
+        configurationKey: String,
+        translations: Map<String, String>,
     ) = withContext(Dispatchers.IO) {
         fileMutex.withLock {
-            runCatching {
-                translationsDir.mkdirs()
-                val file = translationsDir.resolve(translationFileName(episodeId, targetLanguage, provider))
-                val existing = readTranslation(file).toMutableMap()
-                existing.putAll(translations)
-                file.writeText(json.encodeToString(existing))
+            val identity = episodeId to configurationKey
+            val combined = mutableMapOf<String, String>()
+            try {
+                require(isFingerprint(configurationKey) && translations.keys.all(::isFingerprint))
+                val file = translationsDir.resolve(translationFileName(episodeId, configurationKey))
+                combined.putAll(readTranslation(file, configurationKey))
+                combined.putAll(pendingTranslationSaves[identity]?.value.orEmpty())
+                combined.putAll(translations)
+                writeSubtitleCacheAtomically(file, json.encodeToString(StoredTranslations(configuration = configurationKey, entries = combined)))
+                pendingTranslationSaves.remove(identity)
                 TextCacheSignals.notifyChanged()
-            }.isSuccess
+                true
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                if (combined.isNotEmpty()) retainPending(pendingTranslationSaves, identity, combined.toMap())
+                false
+            }
         }
     }
 
     suspend fun loadTranslation(
         episodeId: String,
-        targetLanguage: String,
-        provider: String,
-    ): Map<Int, String> = withContext(Dispatchers.IO) {
+        configurationKey: String,
+    ): Map<String, String> = withContext(Dispatchers.IO) {
         fileMutex.withLock {
-            readTranslation(translationsDir.resolve(translationFileName(episodeId, targetLanguage, provider)))
+            if (!isFingerprint(configurationKey)) return@withLock emptyMap()
+            readTranslation(translationsDir.resolve(translationFileName(episodeId, configurationKey)), configurationKey) +
+                pendingTranslationSaves[episodeId to configurationKey]?.value.orEmpty()
         }
     }
 
-    private fun readTranslation(file: File): Map<Int, String> =
+    internal suspend fun hasPendingTranslationSave(episodeId: String, configurationKey: String): Boolean = fileMutex.withLock {
+        episodeId to configurationKey in pendingTranslationSaves
+    }
+
+    private fun readTranslation(file: File, configurationKey: String): Map<String, String> =
         runCatching {
             if (!file.exists()) return@runCatching emptyMap()
-            json.decodeFromString<Map<String, String>>(file.readText())
-                .mapKeys { entry -> entry.key.toInt() }
-                .also { touch(file) }
+            val stored = json.decodeFromString<StoredTranslations>(file.readText())
+            if (stored.version != 2 || stored.configuration != configurationKey) return@runCatching emptyMap()
+            stored.entries.filter { isFingerprint(it.key) && it.value.isNotBlank() }.also { touch(file) }
         }.getOrDefault(emptyMap())
 
     private suspend fun download(url: String): String? = withContext(Dispatchers.IO) {
@@ -289,26 +345,37 @@ class TranscriptRepository @Inject constructor(
         }.getOrNull()
     }
 
-    private suspend fun storeTranscript(episodeId: String, transcript: EpisodeTranscript) =
+    private suspend fun storeTranscript(episodeId: String, transcript: EpisodeTranscript): Result<Unit> =
         withContext(Dispatchers.IO) {
             fileMutex.withLock {
-                runCatching {
-                    transcriptsDir.mkdirs()
-                    val previous = readCachedTranscript(episodeId)
-                    if (previous != null && previous.cues != transcript.cues) {
-                        cachedFilesForKey(episodeId.takeLast(48)).filter { it.parentFile == translationsDir }
-                            .forEach { it.delete() }
-                    }
-                    transcriptFile(episodeId).writeText(
+                try {
+                    require(transcript.resumePositionMs >= 0)
+                    require(transcript.progressPercent in 0..(if (transcript.isComplete) 100 else 99))
+                    writeSubtitleCacheAtomically(
+                        transcriptFile(episodeId),
                         json.encodeToString(
                             StoredTranscript(
                                 source = transcript.source,
                                 language = transcript.language,
                                 cues = transcript.cues.map { StoredCue(it.startMs, it.endMs, it.text) },
+                                isComplete = transcript.isComplete,
+                                progressPercent = transcript.progressPercent,
+                                resumePositionMs = transcript.resumePositionMs,
+                                mediaSourceFingerprint = transcript.mediaSourceFingerprint,
+                                recognizerFingerprint = transcript.recognizerFingerprint,
                             ),
                         ),
                     )
+                    pendingTranscriptSaves.remove(episodeId)
                     TextCacheSignals.notifyChanged()
+                    Result.success(Unit)
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Exception) {
+                    if (transcript.source == TranscriptSource.ON_DEVICE && transcript.cues.isNotEmpty()) {
+                        retainPending(pendingTranscriptSaves, episodeId, transcript)
+                    }
+                    Result.failure(error)
                 }
             }
         }
@@ -322,11 +389,17 @@ class TranscriptRepository @Inject constructor(
         val file = transcriptFile(episodeId)
         if (!file.exists()) return@runCatching null
         val stored = json.decodeFromString<StoredTranscript>(file.readText())
+        if (stored.resumePositionMs < 0 || stored.progressPercent !in 0..100) return@runCatching null
         EpisodeTranscript(
             episodeId = episodeId,
             source = stored.source,
             language = stored.language,
             cues = stored.cues.map { SubtitleCue(it.s, it.e, it.t) },
+            isComplete = stored.isComplete,
+            progressPercent = if (stored.isComplete) 100 else stored.progressPercent.coerceAtMost(99),
+            resumePositionMs = stored.resumePositionMs,
+            mediaSourceFingerprint = stored.mediaSourceFingerprint,
+            recognizerFingerprint = stored.recognizerFingerprint,
         ).also { touch(file) }
     }.getOrNull()
 
@@ -335,6 +408,19 @@ class TranscriptRepository @Inject constructor(
         translationsDir.listFiles().orEmpty()
             .filter { it.isFile && it.extension == "json" && it.name.startsWith("${key}_") }
             .let(::addAll)
+    }
+
+    private fun removePendingText(key: String): Boolean {
+        val removedTranscript = pendingTranscriptSaves.keys.removeAll { it.takeLast(48) == key }
+        val removedTranslations = pendingTranslationSaves.keys.removeAll { it.first.takeLast(48) == key }
+        return removedTranscript || removedTranslations
+    }
+
+    private fun <K, V> retainPending(saves: MutableMap<K, PendingSubtitleSave<V>>, key: K, value: V) {
+        saves.remove(key)
+        saves[key] = PendingSubtitleSave(value, System.currentTimeMillis())
+        while (saves.size > 4) saves.remove(saves.keys.first())
+        TextCacheSignals.notifyChanged()
     }
 
     private fun isSafeCacheKey(key: String): Boolean =
@@ -348,8 +434,10 @@ class TranscriptRepository @Inject constructor(
     private fun transcriptFile(episodeId: String): File =
         transcriptsDir.resolve("${episodeId.takeLast(48)}.json")
 
-    private fun translationFileName(episodeId: String, targetLanguage: String, provider: String): String =
-        "${episodeId.takeLast(48)}_${provider}_${targetLanguage.replace('/', '_')}.json"
+    private fun translationFileName(episodeId: String, configurationKey: String): String =
+        "${episodeId.takeLast(48)}_v2_$configurationKey.json"
+
+    private fun isFingerprint(value: String): Boolean = value.length == 64 && value.all { it in '0'..'9' || it in 'a'..'f' }
 
     private suspend fun loadIndex(): TranscriptIndex {
         cachedIndex?.let { return it }

@@ -932,7 +932,7 @@
     <string name="podcast_subtitles_translation_desc">Traduce los subtítulos con el servicio de IA configurado para letras. Desactivado por defecto</string>
     <string name="podcast_subtitles_bilingual">Subtítulos bilingües</string>
     <string name="podcast_subtitles_bilingual_desc">Muestra la línea original junto con su traducción</string>
-    <string name="podcast_asr_experimental_desc">Inglés · aprox. %1$s. El reconocimiento se realiza en este dispositivo.</string>
+    <string name="podcast_asr_experimental_desc">Moonshine Small Streaming · Inglés · Aproximadamente %1$s</string>
     <string name="podcast_asr_language">Idioma de reconocimiento</string>
     <string name="podcast_asr_language_auto">Detección automática</string>
     <string name="podcast_asr_language_zh">Chino</string>
@@ -975,4 +975,12 @@
     <string name="podcast_asr_model_files_missing">Elige la carpeta que contenga los %1$d archivos del modelo.</string>
     <string name="podcast_asr_model_file_invalid">El archivo del modelo %1$s está incompleto o no coincide con la versión compatible.</string>
     <string name="podcast_asr_model_download_failed">Error al descargar el modelo (HTTP %1$d). Reintenta o importa la carpeta del modelo.</string>
+    <string name="ai_api_key_required_title">Se necesita una clave API</string>
+    <string name="ai_api_key_required_message">Elige un proveedor de IA e introduce su clave API en los ajustes de traducción.</string>
+    <string name="ai_configure_api_key">Configurar clave API</string>
+    <string name="podcast_subtitle_incomplete">Los subtítulos están incompletos</string>
+    <string name="podcast_subtitle_resume">Continuar generando subtítulos</string>
+    <string name="podcast_asr_device_warning">Función experimental. Requiere bastante memoria y capacidad de procesamiento; el reconocimiento puede aumentar el calor y el consumo de batería.</string>
+    <string name="podcast_subtitle_save_failed">No se pudieron guardar los subtítulos. Los subtítulos actuales siguen disponibles.</string>
+    <string name="podcast_subtitle_retry_save">Reintentar guardar subtítulos</string>
 </resources>

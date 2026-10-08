@@ -454,6 +454,7 @@ class MusicService :
     private var crossfadeJob: Job? = null
     private var isRunning = false
     private var mediaSession: MediaLibrarySession? = null
+    private var lastMediaSessionButtonState: MediaSessionButtonState? = null
     private var controllerFuture: com.google.common.util.concurrent.ListenableFuture<MediaController>? = null
 
     private val playerInitialized = MutableStateFlow(false)
@@ -781,6 +782,7 @@ class MusicService :
         if (startupPrefs!![RememberShuffleAndRepeatKey] ?: true) {
             player.shuffleModeEnabled = startupPrefs!![ShuffleModeKey] ?: false
         }
+        updateNotification()
 
         // Keep a connected controller so that notification works
         val sessionToken = SessionToken(this, ComponentName(this, MusicService::class.java))
@@ -1649,45 +1651,76 @@ class MusicService :
         player.pause()
     }
 
-    private fun updateNotification(isLiked: Boolean? = currentSong.value?.song?.let { if (it.isEpisode) it.inLibrary != null else it.liked }) {
-        val isEpisode = player.currentMediaItem?.metadata?.isEpisode == true
-        mediaSession?.setMediaButtonPreferences(
-            listOf(
+    private fun updateNotification(isLiked: Boolean? = null) {
+        val session = mediaSession ?: return
+        val state = mediaSessionButtonState(
+            mediaId = player.currentMediaItem?.mediaId,
+            isEpisode = player.currentMediaItem?.metadata?.isEpisode == true,
+            song = currentSong.value?.song,
+            repeatMode = player.repeatMode,
+            shuffleModeEnabled = player.shuffleModeEnabled,
+            isLikedOverride = isLiked,
+        )
+        // Position checkpoints and other Room updates do not change session controls.
+        if (state == lastMediaSessionButtonState) return
+
+        val isEpisode = state.isEpisode
+        val isSavedOrLiked = state.isSavedOrLiked
+        val buttons = buildList {
+            add(
                 CommandButton
-                    .Builder()
+                    .Builder(if (isEpisode) CommandButton.ICON_SKIP_BACK_10 else CommandButton.ICON_PREVIOUS)
                     .setDisplayName(getString(if (isEpisode) R.string.rewind_10_seconds else R.string.previous_track))
                     .setIconResId(if (isEpisode) R.drawable.replay_10 else R.drawable.skip_previous)
                     .setPlayerCommand(if (isEpisode) Player.COMMAND_SEEK_BACK else Player.COMMAND_SEEK_TO_PREVIOUS)
+                    .setSlots(CommandButton.SLOT_BACK)
                     .build(),
+            )
+            add(
                 CommandButton
-                    .Builder()
+                    .Builder(if (isEpisode) CommandButton.ICON_SKIP_FORWARD_10 else CommandButton.ICON_NEXT)
                     .setDisplayName(getString(if (isEpisode) R.string.forward_10_seconds else R.string.next_track))
                     .setIconResId(if (isEpisode) R.drawable.forward_10 else R.drawable.skip_next)
                     .setPlayerCommand(if (isEpisode) Player.COMMAND_SEEK_FORWARD else Player.COMMAND_SEEK_TO_NEXT)
+                    .setSlots(CommandButton.SLOT_FORWARD)
                     .build(),
-            ),
-        )
-        mediaSession?.setCustomLayout(
-            listOf(
+            )
+            add(
                 CommandButton
-                    .Builder()
+                    .Builder(
+                        if (isEpisode) {
+                            if (isSavedOrLiked) CommandButton.ICON_BOOKMARK_FILLED else CommandButton.ICON_BOOKMARK_UNFILLED
+                        } else {
+                            if (isSavedOrLiked) CommandButton.ICON_HEART_FILLED else CommandButton.ICON_HEART_UNFILLED
+                        },
+                    )
                     .setDisplayName(
                         getString(
-                            if (isLiked == true) {
-                                R.string.action_remove_like
+                            if (isEpisode) {
+                                if (isSavedOrLiked) R.string.remove_episode_from_saved else R.string.save_episode_for_later
                             } else {
-                                R.string.action_like
+                                if (isSavedOrLiked) R.string.action_remove_like else R.string.action_like
                             },
                         ),
-                    ).setIconResId(if (isLiked == true) R.drawable.ic_heart else R.drawable.ic_heart_outline)
+                    )
+                    .apply {
+                        if (!isEpisode) {
+                            setIconResId(if (isSavedOrLiked) R.drawable.ic_heart else R.drawable.ic_heart_outline)
+                        }
+                    }
                     .setSessionCommand(CommandToggleLike)
-                    .setEnabled(currentSong.value != null)
+                    .setSlots(CommandButton.SLOT_OVERFLOW)
+                    .setEnabled(state.hasCurrentSong)
                     .build(),
+            )
+            if (isEpisode) return@buildList
+
+            add(
                 CommandButton
                     .Builder()
                     .setDisplayName(
                         getString(
-                            when (player.repeatMode) {
+                            when (state.repeatMode) {
                                 REPEAT_MODE_OFF -> R.string.repeat_mode_off
                                 REPEAT_MODE_ONE -> R.string.repeat_mode_one
                                 REPEAT_MODE_ALL -> R.string.repeat_mode_all
@@ -1695,36 +1728,50 @@ class MusicService :
                             },
                         ),
                     ).setIconResId(
-                        when (player.repeatMode) {
+                        when (state.repeatMode) {
                             REPEAT_MODE_OFF -> R.drawable.repeat
                             REPEAT_MODE_ONE -> R.drawable.repeat_one_on
                             REPEAT_MODE_ALL -> R.drawable.repeat_on
                             else -> throw IllegalStateException()
                         },
                     ).setSessionCommand(CommandToggleRepeatMode)
+                    .setSlots(CommandButton.SLOT_OVERFLOW)
                     .build(),
+            )
+            add(
                 CommandButton
                     .Builder()
-                    .setDisplayName(getString(if (player.shuffleModeEnabled) R.string.action_shuffle_off else R.string.action_shuffle_on))
-                    .setIconResId(if (player.shuffleModeEnabled) R.drawable.shuffle_on else R.drawable.shuffle)
+                    .setDisplayName(getString(if (state.shuffleModeEnabled) R.string.action_shuffle_off else R.string.action_shuffle_on))
+                    .setIconResId(if (state.shuffleModeEnabled) R.drawable.shuffle_on else R.drawable.shuffle)
                     .setSessionCommand(CommandToggleShuffle)
+                    .setSlots(CommandButton.SLOT_OVERFLOW)
                     .build(),
+            )
+            add(
                 CommandButton
                     .Builder()
                     .setDisplayName(getString(R.string.start_radio))
                     .setIconResId(R.drawable.radio)
                     .setSessionCommand(CommandToggleStartRadio)
-                    .setEnabled(currentSong.value != null && !isEpisode)
+                    .setSlots(CommandButton.SLOT_OVERFLOW)
+                    .setEnabled(state.hasCurrentSong)
                     .build(),
+            )
+            add(
                 CommandButton
                     .Builder()
                     .setDisplayName(getString(R.string.android_auto_target_playlist))
                     .setIconResId(R.drawable.playlist_add)
                     .setSessionCommand(CommandAddToTargetPlaylist)
-                    .setEnabled(currentSong.value != null)
+                    .setSlots(CommandButton.SLOT_OVERFLOW)
+                    .setEnabled(state.hasCurrentSong)
                     .build(),
-            ),
-        )
+            )
+        }
+        // Media3 converts these preferences for legacy controllers as well. Setting a
+        // separate custom layout afterwards would overwrite the platform buttons.
+        session.setMediaButtonPreferences(buttons)
+        lastMediaSessionButtonState = state
     }
 
     /**
@@ -2738,6 +2785,7 @@ class MusicService :
         previousEpisodePosition = 0L
 
         val newMetadata = mediaItem?.metadata
+        updateNotification()
         if (shouldResetPlaybackParameters(previousItemWasEpisode, newMetadata?.isEpisode)) {
             player.playbackParameters = PlaybackParameters.DEFAULT
         }
@@ -3831,7 +3879,7 @@ class MusicService :
         scope.launch(Dispatchers.IO) {
             val (freshSongId, freshIsPlaying) = withContext(Dispatchers.Main.immediate) {
                 player.currentMetadata?.id to player.isPlaying
-            } ?: return@launch
+            }
             val song = database.song(freshSongId).first() ?: return@launch
             updateDiscordRPC(song, freshIsPlaying)
         }

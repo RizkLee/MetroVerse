@@ -929,7 +929,7 @@
     <string name="podcast_subtitles_translation_desc">Übersetzt Untertitel mit dem für Liedtexte konfigurierten KI-Dienst. Standardmäßig aus</string>
     <string name="podcast_subtitles_bilingual">Zweisprachige Untertitel</string>
     <string name="podcast_subtitles_bilingual_desc">Zeigt den Originaltext zusammen mit der Übersetzung</string>
-    <string name="podcast_asr_experimental_desc">Englisch · ca. %1$s. Die Erkennung läuft auf diesem Gerät.</string>
+    <string name="podcast_asr_experimental_desc">Moonshine Small Streaming · Englisch · Etwa %1$s</string>
     <string name="podcast_asr_language">Erkennungssprache</string>
     <string name="podcast_asr_language_auto">Automatisch</string>
     <string name="podcast_asr_language_zh">Chinesisch</string>
@@ -972,4 +972,12 @@
     <string name="podcast_asr_model_files_missing">Wähle den Ordner mit allen %1$d Modelldateien.</string>
     <string name="podcast_asr_model_file_invalid">Die Modelldatei %1$s ist unvollständig oder entspricht nicht der unterstützten Version.</string>
     <string name="podcast_asr_model_download_failed">Modelldownload fehlgeschlagen (HTTP %1$d). Erneut versuchen oder den Modellordner importieren.</string>
+    <string name="ai_api_key_required_title">API-Schlüssel erforderlich</string>
+    <string name="ai_api_key_required_message">Wähle in den Übersetzungseinstellungen einen KI-Anbieter und gib seinen API-Schlüssel ein.</string>
+    <string name="ai_configure_api_key">API-Schlüssel einrichten</string>
+    <string name="podcast_subtitle_incomplete">Untertitel sind unvollständig</string>
+    <string name="podcast_subtitle_resume">Untertitel weiter erstellen</string>
+    <string name="podcast_asr_device_warning">Experimentelle Funktion. Benötigt viel Arbeitsspeicher und Rechenleistung; die Erkennung kann Wärmeentwicklung und Akkuverbrauch erhöhen.</string>
+    <string name="podcast_subtitle_save_failed">Untertitel konnten nicht gespeichert werden. Die aktuellen Untertitel bleiben sichtbar.</string>
+    <string name="podcast_subtitle_retry_save">Untertitel erneut speichern</string>
 </resources>

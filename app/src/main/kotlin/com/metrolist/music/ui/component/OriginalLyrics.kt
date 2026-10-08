@@ -8,6 +8,7 @@ package com.metrolist.music.ui.component
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
+import android.os.SystemClock
 import android.text.Layout
 import android.view.WindowManager
 import android.widget.Toast
@@ -566,9 +567,10 @@ fun OriginalLyrics(
 
     val lazyListState = rememberLazyListState()
 
-    // Professional animation states for smooth Metrolist-style transitions
-    var isAnimating by remember { mutableStateOf(false) }
     var isAutoScrollEnabled by rememberSaveable { mutableStateOf(true) }
+    var pendingSeek by remember(lyrics) { mutableStateOf<LyricsSeekTarget?>(null) }
+    var scrollRequest by remember { mutableIntStateOf(0) }
+    var completedScrollRequest by remember { mutableIntStateOf(0) }
 
     // Handle back button press - close selection mode instead of exiting screen
     BackHandler(enabled = isSelectionModeActive) {
@@ -640,11 +642,16 @@ fun OriginalLyrics(
         while (isActive) {
             delay(8) // Faster update for word-by-word animation
             val sliderPosition = sliderPositionProvider()
-            isSeeking = sliderPosition != null
-            val position = sliderPosition ?: playerConnection.player.currentPosition
-            currentPlaybackPosition = position
+            val observedPosition = sliderPosition ?: playerConnection.player.currentPosition
             val lyricsOffset = currentSong?.song?.lyricsOffset ?: 0
-            currentLineIndex = findCurrentLineIndex(lines, position + lyricsOffset)
+            val observedIndex = findCurrentLineIndex(lines, observedPosition + lyricsOffset)
+            val waitingForSeek = pendingSeek?.takeIf {
+                sliderPosition == null && it.isPending(observedIndex, SystemClock.uptimeMillis())
+            }
+            pendingSeek = waitingForSeek
+            isSeeking = sliderPosition != null || waitingForSeek != null
+            currentPlaybackPosition = waitingForSeek?.positionMs ?: observedPosition
+            currentLineIndex = waitingForSeek?.index ?: observedIndex
         }
     }
 
@@ -680,40 +687,30 @@ fun OriginalLyrics(
         targetIndex: Int,
         duration: Int = 1500,
     ) {
-        if (isAnimating) return // Prevent multiple animations
         val listTargetIndex = resolveListScrollIndex(targetIndex) ?: return
-
-        isAnimating = true
-        try {
-            val itemInfo = lazyListState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == listTargetIndex }
-            if (itemInfo != null) {
-                // Item is visible, animate directly to center without sudden jumps
-                val viewportHeight = lazyListState.layoutInfo.viewportEndOffset - lazyListState.layoutInfo.viewportStartOffset
-                val center = lazyListState.layoutInfo.viewportStartOffset + (viewportHeight / 2)
-                val itemCenter = itemInfo.offset + itemInfo.size / 2
-                val offset = itemCenter - center
-                if (kotlin.math.abs(offset) > 10) {
-                    lazyListState.animateScrollBy(
-                        value = offset.toFloat(),
-                        animationSpec = tween(durationMillis = duration),
-                    )
-                }
-            } else {
-                // Item is not visible, scroll to it first without animation, then it will be handled in next cycle
-                lazyListState.scrollToItem(listTargetIndex)
+        val itemInfo = lazyListState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == listTargetIndex }
+        if (itemInfo != null) {
+            val viewportHeight = lazyListState.layoutInfo.viewportEndOffset - lazyListState.layoutInfo.viewportStartOffset
+            val center = lazyListState.layoutInfo.viewportStartOffset + (viewportHeight / 2)
+            val itemCenter = itemInfo.offset + itemInfo.size / 2
+            val offset = itemCenter - center
+            if (kotlin.math.abs(offset) > 10) {
+                lazyListState.animateScrollBy(
+                    value = offset.toFloat(),
+                    animationSpec = tween(durationMillis = duration),
+                )
             }
-        } finally {
-            isAnimating = false
+        } else {
+            lazyListState.animateScrollToItem(listTargetIndex)
         }
     }
 
     val latestShowLyrics by rememberUpdatedState(showLyrics)
-    val latestResyncLyrics by rememberUpdatedState(
+    val latestResyncLyrics by rememberUpdatedState<() -> Unit>(
         newValue = {
-            scope.launch {
-                performSmoothPageScroll(currentLineIndex, 1500)
-            }
             isAutoScrollEnabled = true
+            lastPreviewTime = 0L
+            scrollRequest++
         },
     )
 
@@ -725,10 +722,14 @@ fun OriginalLyrics(
         }
     }
 
-    LaunchedEffect(currentLineIndex, lastPreviewTime, initialScrollDone, isAutoScrollEnabled) {
+    LaunchedEffect(currentLineIndex, lastPreviewTime, initialScrollDone, isAutoScrollEnabled, isSeeking, scrollRequest) {
         if (!isSynced) return@LaunchedEffect
         if (isAutoScrollEnabled) {
-            if ((currentLineIndex == 0 && shouldScrollToFirstLine) || !initialScrollDone) {
+            if (scrollRequest != completedScrollRequest) {
+                performSmoothPageScroll(currentLineIndex.coerceAtLeast(0), 500)
+                completedScrollRequest = scrollRequest
+                initialScrollDone = true
+            } else if ((currentLineIndex == 0 && shouldScrollToFirstLine) || !initialScrollDone) {
                 shouldScrollToFirstLine = false
                 // Initial scroll to center the first line with medium animation (600ms)
                 val initialCenterIndex = kotlin.math.max(0, currentLineIndex)
@@ -999,38 +1000,16 @@ fun OriginalLyrics(
                                                 }
                                             }
                                         } else if (isSynced && changeLyrics && !isGuest) {
-                                            // Professional seek action with smooth animation
                                             val lyricsOffset = currentSong?.song?.lyricsOffset ?: 0
-                                            playerConnection.seekTo((item.time - lyricsOffset).coerceAtLeast(0))
-                                            // Smooth slow scroll when clicking on lyrics (3 seconds)
-                                            scope.launch {
-                                                val listTargetIndex = resolveListScrollIndex(index) ?: return@launch
-                                                // First scroll to the clicked item without animation
-                                                lazyListState.scrollToItem(index = listTargetIndex)
-
-                                                // Then animate it to center position slowly
-                                                val itemInfo =
-                                                    lazyListState.layoutInfo.visibleItemsInfo.firstOrNull {
-                                                        it.index == listTargetIndex
-                                                    }
-                                                if (itemInfo != null) {
-                                                    val viewportHeight =
-                                                        lazyListState.layoutInfo.viewportEndOffset -
-                                                            lazyListState.layoutInfo.viewportStartOffset
-                                                    val center =
-                                                        lazyListState.layoutInfo.viewportStartOffset + (viewportHeight / 2)
-                                                    val itemCenter = itemInfo.offset + itemInfo.size / 2
-                                                    val offset = itemCenter - center
-
-                                                    if (kotlin.math.abs(offset) > 10) { // Only animate if not already centered
-                                                        lazyListState.animateScrollBy(
-                                                            value = offset.toFloat(),
-                                                            animationSpec = tween(durationMillis = 1500), // Reduced to half speed
-                                                        )
-                                                    }
-                                                }
-                                            }
+                                            val targetPosition = (item.time - lyricsOffset).coerceAtLeast(0)
+                                            pendingSeek = LyricsSeekTarget(index, targetPosition, SystemClock.uptimeMillis())
+                                            currentLineIndex = index
+                                            deferredCurrentLineIndex = index
+                                            currentPlaybackPosition = targetPosition
+                                            isAutoScrollEnabled = true
+                                            scrollRequest++
                                             lastPreviewTime = 0L
+                                            playerConnection.seekTo(targetPosition)
                                         }
                                     },
                                     onLongClick = {

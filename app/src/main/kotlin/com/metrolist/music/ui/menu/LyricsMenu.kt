@@ -75,6 +75,7 @@ import com.metrolist.music.ui.component.Material3MenuItemData
 import com.metrolist.music.ui.component.NewAction
 import com.metrolist.music.ui.component.NewActionGrid
 import com.metrolist.music.ui.component.TextFieldDialog
+import com.metrolist.music.ui.component.TranslationApiKeyDialog
 import com.metrolist.music.viewmodels.LyricsMenuViewModel
 import com.metrolist.music.constants.OpenRouterApiKey
 import com.metrolist.music.constants.DeeplApiKey
@@ -98,6 +99,7 @@ fun LyricsMenu(
     songProvider: () -> SongEntity?,
     mediaMetadataProvider: () -> MediaMetadata,
     onDismiss: () -> Unit,
+    onConfigureAi: () -> Unit,
     onShowOffsetDialog: () -> Unit = {},
     viewModel: LyricsMenuViewModel = hiltViewModel(),
 ) {
@@ -117,13 +119,29 @@ fun LyricsMenu(
     var showIntervalIndicator by rememberPreference(ShowIntervalIndicatorKey, true)
 
     val hasApiKey = if (aiProvider == "DeepL") deeplApiKey.isNotBlank() else openRouterApiKey.isNotBlank()
+    var showApiKeyPrompt by rememberSaveable { mutableStateOf(false) }
+
+    if (showApiKeyPrompt) {
+        TranslationApiKeyDialog(
+            onDismiss = { showApiKeyPrompt = false },
+            onConfigure = {
+                showApiKeyPrompt = false
+                onDismiss()
+                onConfigureAi()
+            },
+        )
+    }
     
     val activeTranslationSongId by LyricsTranslationHelper.activeTranslationSongId.collectAsStateWithLifecycle()
     val currentMediaId = mediaMetadataProvider().id
     val hasTranslations = activeTranslationSongId == currentMediaId
     val enableTranslation = {
-        LyricsTranslationHelper.allowAutomaticTranslation(currentMediaId)
-        LyricsTranslationHelper.triggerManualTranslation()
+        if (hasApiKey) {
+            LyricsTranslationHelper.allowAutomaticTranslation(currentMediaId)
+            LyricsTranslationHelper.triggerManualTranslation()
+        } else {
+            showApiKeyPrompt = true
+        }
     }
     val disableTranslation = {
         LyricsTranslationHelper.suppressAutomaticTranslation(currentMediaId)
@@ -490,46 +508,43 @@ fun LyricsMenu(
         item {
             Material3MenuGroup(
                 items = buildList {
-                    // Add translation toggle option if API key is configured
-                    if (hasApiKey) {
-                        add(
-                            Material3MenuItemData(
-                                title = { Text(stringResource(R.string.ai_lyrics_translation_toggle)) },
-                                icon = {
-                                    Icon(
-                                        painter = painterResource(R.drawable.translate),
-                                        contentDescription = null,
-                                    )
-                                },
-                                onClick = {
-                                    if (hasTranslations) disableTranslation() else enableTranslation()
-                                },
-                                trailingContent = {
-                                    Switch(
-                                        checked = hasTranslations,
-                                        onCheckedChange = { enabled ->
-                                            if (enabled) enableTranslation() else disableTranslation()
-                                        },
-                                        thumbContent = {
-                                            Icon(
-                                                painter = painterResource(
-                                                    id = if (hasTranslations) R.drawable.check else R.drawable.close
-                                                ),
-                                                contentDescription = null,
-                                                modifier = Modifier.size(SwitchDefaults.IconSize)
-                                            )
-                                        },
-                                        colors = SwitchDefaults.colors(
-                                            uncheckedThumbColor = MaterialTheme.colorScheme.primaryContainer,
-                                            checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                                            checkedTrackColor = MaterialTheme.colorScheme.primary
+                    add(
+                        Material3MenuItemData(
+                            title = { Text(stringResource(R.string.ai_lyrics_translation_toggle)) },
+                            icon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.translate),
+                                    contentDescription = null,
+                                )
+                            },
+                            onClick = {
+                                if (hasTranslations) disableTranslation() else enableTranslation()
+                            },
+                            trailingContent = {
+                                Switch(
+                                    checked = hasTranslations,
+                                    onCheckedChange = { enabled ->
+                                        if (enabled) enableTranslation() else disableTranslation()
+                                    },
+                                    thumbContent = {
+                                        Icon(
+                                            painter = painterResource(
+                                                id = if (hasTranslations) R.drawable.check else R.drawable.close,
+                                            ),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(SwitchDefaults.IconSize),
                                         )
-                                    )
-                                }
-                            )
-                        )
-                    }
-                    
+                                    },
+                                    colors = SwitchDefaults.colors(
+                                        uncheckedThumbColor = MaterialTheme.colorScheme.primaryContainer,
+                                        checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                                        checkedTrackColor = MaterialTheme.colorScheme.primary,
+                                    ),
+                                )
+                            },
+                        ),
+                    )
+
                     add(
                         Material3MenuItemData(
                             title = { Text(stringResource(R.string.respect_agent_positioning)) },

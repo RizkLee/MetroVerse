@@ -445,8 +445,24 @@ fun NavGraphBuilder.navigationBuilder(
         RomanizationSettings(navController)
     }
 
-    composable("settings/ai") {
-        AiSettings(navController)
+    composable(
+        "settings/ai?openApiKey={openApiKey}&requestId={requestId}",
+        arguments = listOf(
+            navArgument("openApiKey") {
+                type = NavType.BoolType
+                defaultValue = false
+            },
+            navArgument("requestId") {
+                type = NavType.LongType
+                defaultValue = 0L
+            },
+        ),
+    ) { entry ->
+        AiSettings(
+            navController,
+            openApiKey = entry.arguments?.getBoolean("openApiKey") == true,
+            apiKeyRequestId = entry.arguments?.getLong("requestId") ?: 0L,
+        )
     }
 
     composable("settings/player") {

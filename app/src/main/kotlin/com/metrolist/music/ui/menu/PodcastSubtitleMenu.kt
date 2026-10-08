@@ -30,18 +30,28 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.metrolist.music.LocalPodcastSubtitleManager
 import com.metrolist.music.R
 import com.metrolist.music.constants.PodcastSubtitleTranslationEnabledKey
+import com.metrolist.music.constants.AiProviderKey
+import com.metrolist.music.constants.DeeplApiKey
+import com.metrolist.music.constants.OpenRouterApiKey
 import com.metrolist.music.ui.component.Material3MenuGroup
 import com.metrolist.music.ui.component.AsrModelDownloadDialog
 import com.metrolist.music.ui.component.Material3MenuItemData
+import com.metrolist.music.ui.component.TranslationApiKeyDialog
 import com.metrolist.music.utils.rememberPreference
 
 @Composable
 fun PodcastSubtitleMenu(
     onDismiss: () -> Unit,
     onResync: () -> Unit,
+    onConfigureAi: () -> Unit,
 ) {
     val manager = LocalPodcastSubtitleManager.current
     var translationEnabled by rememberPreference(PodcastSubtitleTranslationEnabledKey, false)
+    val provider by rememberPreference(AiProviderKey, "OpenRouter")
+    val apiKey by rememberPreference(OpenRouterApiKey, "")
+    val deeplApiKey by rememberPreference(DeeplApiKey, "")
+    val hasApiKey = if (provider == "DeepL") deeplApiKey.isNotBlank() else apiKey.isNotBlank()
+    var showApiKeyPrompt by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showDownloadDialog by remember { mutableStateOf(false) }
     val modelReady = manager?.asrModelReady?.collectAsStateWithLifecycle()?.value == true
@@ -50,6 +60,26 @@ fun PodcastSubtitleMenu(
     val downloadProgress = manager?.modelDownloadProgress?.collectAsStateWithLifecycle()?.value
     val importModel = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) manager?.importAsrModel(uri)
+    }
+
+    fun setTranslationEnabled(enabled: Boolean) {
+        if (enabled && !hasApiKey) {
+            showApiKeyPrompt = true
+        } else {
+            translationEnabled = enabled
+            if (!enabled) manager?.stopTranslationRequests()
+        }
+    }
+
+    if (showApiKeyPrompt) {
+        TranslationApiKeyDialog(
+            onDismiss = { showApiKeyPrompt = false },
+            onConfigure = {
+                showApiKeyPrompt = false
+                onDismiss()
+                onConfigureAi()
+            },
+        )
     }
 
     if (showDownloadDialog) {
@@ -97,11 +127,11 @@ fun PodcastSubtitleMenu(
                 icon = { Icon(painterResource(R.drawable.translate), null) },
                 title = { Text(stringResource(R.string.podcast_subtitles_translation)) },
                 description = { Text(stringResource(R.string.podcast_subtitles_translation_desc)) },
-                onClick = { translationEnabled = !translationEnabled },
+                onClick = { setTranslationEnabled(!translationEnabled) },
                 trailingContent = {
                     Switch(
                         checked = translationEnabled,
-                        onCheckedChange = { translationEnabled = it },
+                        onCheckedChange = ::setTranslationEnabled,
                         thumbContent = {
                             Icon(
                                 painterResource(if (translationEnabled) R.drawable.check else R.drawable.close),

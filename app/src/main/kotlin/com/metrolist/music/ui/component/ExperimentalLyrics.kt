@@ -8,6 +8,7 @@ package com.metrolist.music.ui.component
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
+import android.os.SystemClock
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -20,6 +21,8 @@ import androidx.compose.animation.core.exponentialDecay
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitVerticalTouchSlopOrCancellation
 import androidx.compose.foundation.gestures.verticalDrag
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -478,6 +481,7 @@ fun ExperimentalLyrics(
     var showMaxSelectionToast by remember { mutableStateOf(false) }
     val isLyricsProviderShown = lyricsEntity != null && lyricsEntity.provider != "Unknown" && lyricsEntity.provider != "Manual" && !isSelectionModeActive
     var isAutoScrollEnabled by rememberSaveable { mutableStateOf(true) }
+    var pendingSeek by remember(lyrics) { mutableStateOf<LyricsSeekTarget?>(null) }
 
     BackHandler(enabled = isSelectionModeActive) {
         isSelectionModeActive = false
@@ -508,10 +512,8 @@ fun ExperimentalLyrics(
             withFrameNanos { _ -> }
             val now = System.currentTimeMillis()
             val sliderPosition = sliderPositionProvider()
-            isSeeking = sliderPosition != null
-            
-            val position = if (isSeeking) {
-                sliderPosition!!
+            val observedPosition = if (sliderPosition != null) {
+                sliderPosition
             } else {
                 val playerPos = playerConnection.player.currentPosition
                 if (playerPos != lastPlayerPos) {
@@ -522,10 +524,19 @@ fun ExperimentalLyrics(
                 lastPlayerPos + (if (playerConnection.player.isPlaying) elapsed else 0)
             }
             
+            val lyricsOffset = currentSong?.song?.lyricsOffset ?: 0
+            val waitingForSeek = pendingSeek?.takeIf { target ->
+                sliderPosition == null && target.isPending(
+                    playbackIndex = if (target.index in findActiveLineIndices(lines, observedPosition + lyricsOffset)) target.index else -1,
+                    nowMs = SystemClock.uptimeMillis(),
+                )
+            }
+            pendingSeek = waitingForSeek
+            isSeeking = sliderPosition != null || waitingForSeek != null
+            val position = waitingForSeek?.positionMs ?: observedPosition
             currentPositionState = position
             smoothPositionForSync = position
             
-            val lyricsOffset = currentSong?.song?.lyricsOffset ?: 0
             val effectivePosition = position + lyricsOffset
             
             val initialActiveIndices = findActiveLineIndices(lines, effectivePosition)
@@ -581,6 +592,7 @@ fun ExperimentalLyrics(
 
             if (shouldScroll) {
                 val targetToScroll = when {
+                    waitingForSeek != null -> waitingForSeek.index
                     isSeeking -> scrollMax
                     !isCurrentTargetStillActive && anyStillActive -> scrollMax
                     !isCurrentTargetStillActive && !anyStillActive -> {
@@ -595,7 +607,7 @@ fun ExperimentalLyrics(
                 }
             }
             
-            if (scrollMax > lastMainMaxSeen && scrollMax != -1) {
+            if ((isSeeking || scrollMax > lastMainMaxSeen) && scrollMax != -1) {
                 lastMainMaxSeen = scrollMax
             }
             
@@ -620,9 +632,12 @@ fun ExperimentalLyrics(
     }
 
     var userManualOffset by remember { mutableFloatStateOf(0f) }
+    var directScrollRequest by remember { mutableIntStateOf(0) }
+    var isDirectScroll by remember { mutableStateOf(false) }
     LaunchedEffect(lyrics, lines) {
         isAutoScrollEnabled = true
         userManualOffset = 0f
+        isDirectScroll = false
         scrollTargetIndex = -1
         deferredCurrentLineIndex = 0
         isSelectionModeActive = false
@@ -683,45 +698,23 @@ fun ExperimentalLyrics(
             }
         }
 
-        val positions = remember(itemHeights.toMap(), activeListIndex, mergedLyricsList) {
-            val map = mutableMapOf<Int, Float>()
-            if (activeListIndex == -1 || mergedLyricsList.isEmpty()) return@remember map
-            
-            map[activeListIndex] = 0f
-            var currentY = 0f
-            for (i in activeListIndex - 1 downTo 0) {
-                val item = mergedLyricsList[i]
-                val height = resolveItemHeight(i)
-                val noGap = (item as? LyricsListItem.Line)?.entry?.isBackground == true || item is LyricsListItem.Indicator
-                currentY -= (height + if (noGap) 0f else with(density) { LYRICS_ITEM_GAP_DP.toPx() })
-                map[i] = currentY
-            }
-            currentY = 0f
-            for (i in activeListIndex until mergedLyricsList.size - 1) {
-                val nextItem = mergedLyricsList[i + 1]
-                val height = resolveItemHeight(i)
-                val nextNoGap = (nextItem as? LyricsListItem.Line)?.entry?.isBackground == true || nextItem is LyricsListItem.Indicator
-                currentY += (height + if (nextNoGap) 0f else with(density) { LYRICS_ITEM_GAP_DP.toPx() })
-                map[i + 1] = currentY
-            }
-            map
+        val positions = remember(itemHeights.toMap(), activeListIndex, mergedLyricsList, density) {
+            val gapPx = with(density) { LYRICS_ITEM_GAP_DP.toPx() }
+            computeLyricsItemPositions(
+                itemHeights = mergedLyricsList.indices.map(resolveItemHeight),
+                gapsBeforeItems = mergedLyricsList.map { item ->
+                    if ((item as? LyricsListItem.Line)?.entry?.isBackground == true || item is LyricsListItem.Indicator) 0f else gapPx
+                },
+                anchorIndex = activeListIndex,
+            )
         }
 
-        val scrollLayout = remember(itemHeights.toMap(), mergedLyricsList, activeListIndex, anchorY, maxHeightPx) {
+        val scrollLayout = remember(itemHeights.toMap(), positions, mergedLyricsList, activeListIndex, anchorY, maxHeightPx, density) {
             if (mergedLyricsList.isEmpty() || activeListIndex == -1) {
                 LyricsScrollBounds(minOffset = 0f, maxOffset = 0f) to 0f
             } else {
-                val gapPx = with(density) { LYRICS_ITEM_GAP_DP.toPx() }
-                val totalAbove = (0 until activeListIndex).sumOf { i ->
-                    val item = mergedLyricsList[i]
-                    val noGap = (item as? LyricsListItem.Line)?.entry?.isBackground == true || item is LyricsListItem.Indicator
-                    (resolveItemHeight(i) + if (noGap) 0f else gapPx).toDouble()
-                }.toFloat()
-                val totalBelow = (activeListIndex until mergedLyricsList.size - 1).sumOf { i ->
-                    val nextItem = mergedLyricsList[i + 1]
-                    val nextNoGap = (nextItem as? LyricsListItem.Line)?.entry?.isBackground == true || nextItem is LyricsListItem.Indicator
-                    (resolveItemHeight(i) + if (nextNoGap) 0f else gapPx).toDouble()
-                }.toFloat()
+                val totalAbove = -(positions[0] ?: 0f)
+                val totalBelow = positions[mergedLyricsList.lastIndex] ?: 0f
                 val lastHeight = resolveItemHeight(mergedLyricsList.size - 1)
                 val topPad = with(density) { LYRICS_SCROLL_TOP_PADDING_DP.toPx() }
                 val bottomPad = with(density) { LYRICS_SCROLL_BOTTOM_PADDING_DP.toPx() }
@@ -754,6 +747,8 @@ fun ExperimentalLyrics(
         // instead of always 0, which used to leave a blank slab past the last line.
         val scrollClampMin = lyricsScrollBounds.clampMin
         val scrollClampMax = lyricsScrollBounds.clampMax
+        // The pointer coroutine survives layout updates, including translation height changes.
+        val latestScrollBounds by rememberUpdatedState(lyricsScrollBounds)
 
         LaunchedEffect(scrollClampMin, scrollClampMax, isAutoScrollEnabled) {
             if (!isAutoScrollEnabled && (userManualOffset < scrollClampMin || userManualOffset > scrollClampMax)) {
@@ -761,12 +756,14 @@ fun ExperimentalLyrics(
             }
         }
 
-        LaunchedEffect(isAutoScrollEnabled, autoRestOffset, lines) {
+        LaunchedEffect(isAutoScrollEnabled, autoRestOffset, lines, directScrollRequest) {
             if (isAutoScrollEnabled) {
                 val start = userManualOffset
                 val target = autoRestOffset
                 if (abs(start - target) < 1f) {
                     userManualOffset = target
+                    withFrameNanos { }
+                    isDirectScroll = false
                     return@LaunchedEffect
                 }
                 val anim = Animatable(start)
@@ -776,6 +773,7 @@ fun ExperimentalLyrics(
                     lastValue = value
                 }
                 userManualOffset = target
+                isDirectScroll = false
             }
         }
 
@@ -831,6 +829,8 @@ fun ExperimentalLyrics(
                     deferredCurrentLineIndex = target
                     scrollTargetIndex = target
                 }
+                isDirectScroll = true
+                directScrollRequest++
                 isAutoScrollEnabled = true
             },
         )
@@ -878,25 +878,31 @@ fun ExperimentalLyrics(
                             }
                         }
                     })
-                    .pointerInput(Unit) {
-                        awaitPointerEventScope {
-                            while (true) {
-                                val down = awaitFirstDown(requireUnconsumed = false)
-                                if (isInitialLayout) continue
-                                flingJob?.cancel()
-                                velocityTracker.resetTracking()
+                    .pointerInput(lyrics, mergedLyricsList) {
+                        awaitEachGesture {
+                            val down = awaitFirstDown(requireUnconsumed = false)
+                            if (isInitialLayout) return@awaitEachGesture
+                            flingJob?.cancel()
+                            velocityTracker.resetTracking()
+                            velocityTracker.addPosition(down.uptimeMillis, down.position)
+                            val drag = awaitVerticalTouchSlopOrCancellation(down.id) { change, overSlop ->
                                 isAutoScrollEnabled = false
+                                isDirectScroll = false
                                 lastPreviewTime = System.currentTimeMillis()
-                                velocityTracker.addPosition(down.uptimeMillis, down.position)
-                                verticalDrag(down.id) { change ->
-                                    userManualOffset = (userManualOffset + change.positionChange().y).coerceIn(scrollClampMin, scrollClampMax)
-                                    velocityTracker.addPosition(change.uptimeMillis, change.position)
-                                    change.consume()
-                                }
+                                userManualOffset = (userManualOffset + overSlop).coerceIn(latestScrollBounds.clampMin, latestScrollBounds.clampMax)
+                                velocityTracker.addPosition(change.uptimeMillis, change.position)
+                                change.consume()
+                            } ?: return@awaitEachGesture
+                            val released = verticalDrag(drag.id) { change ->
+                                userManualOffset = (userManualOffset + change.positionChange().y).coerceIn(latestScrollBounds.clampMin, latestScrollBounds.clampMax)
+                                velocityTracker.addPosition(change.uptimeMillis, change.position)
+                                change.consume()
+                            }
+                            if (released) {
                                 val velocity = velocityTracker.calculateVelocity().y
                                 flingJob = scope.launch {
                                     AnimationState(initialValue = userManualOffset, initialVelocity = velocity).animateDecay(decayAnimSpec) {
-                                        val clamped = value.coerceIn(scrollClampMin, scrollClampMax)
+                                        val clamped = value.coerceIn(latestScrollBounds.clampMin, latestScrollBounds.clampMax)
                                         userManualOffset = clamped
                                         if (value != clamped) cancelAnimation()
                                     }
@@ -912,7 +918,7 @@ fun ExperimentalLyrics(
                     val targetProviderBase = anchorY + (positions[0] ?: 0f) - with(density) { 32.dp.toPx() }
                     val animatedProviderBase by animateFloatAsState(
                         targetValue = targetProviderBase,
-                        animationSpec = if (isInitialLayout || !isAutoScrollEnabled) snap()
+                        animationSpec = if (isInitialLayout || !isAutoScrollEnabled || isDirectScroll) snap()
                         else {
                             tween(750, 0, FastOutSlowInEasing)
                         },
@@ -929,13 +935,9 @@ fun ExperimentalLyrics(
                     key(listItem) {
                         val distance = abs(listIndex - activeListIndex)
                         val targetOffset = anchorY + positions.getOrDefault(listIndex, (listIndex - activeListIndex) * lineHeightPx)
-                        val frozenOffset = remember { mutableFloatStateOf(targetOffset) }
-                        LaunchedEffect(isAutoScrollEnabled, targetOffset, isInitialLayout) {
-                            if (isAutoScrollEnabled || isInitialLayout) frozenOffset.floatValue = targetOffset
-                        }
                         val animatedOffset by animateFloatAsState(
-                            targetValue = if (isAutoScrollEnabled) targetOffset else frozenOffset.floatValue,
-                            animationSpec = if (isInitialLayout || !isAutoScrollEnabled) snap() 
+                            targetValue = targetOffset,
+                            animationSpec = if (isInitialLayout || !isAutoScrollEnabled || isDirectScroll) snap()
                                             else {
                                                 tween(750, (distance * LYRICS_STAGGER_DELAY_PER_DISTANCE).coerceAtMost(LYRICS_STAGGER_DELAY_MAX_MS), FastOutSlowInEasing)
                                             },
@@ -990,11 +992,20 @@ fun ExperimentalLyrics(
                                                 } else if (selectedIndices.size < maxSelectionLimit) selectedIndices.add(index)
                                                 else showMaxSelectionToast = true
                                             } else if (changeLyrics && !isGuest) {
+                                                flingJob?.cancel()
+                                                // Rebase the clicked row in place; only the shared offset animates to its new anchor.
+                                                userManualOffset += animatedOffset - anchorY
+                                                scrollTargetIndex = index
+                                                deferredCurrentLineIndex = index
+                                                lastMainMaxSeen = index
+                                                previousScrollActiveIndices = emptySet()
+                                                pendingSeek = null
+                                                isDirectScroll = true
+                                                directScrollRequest++
                                                 if (item.time < playerConnection.player.duration + 30000L) {
-                                                    playerConnection.seekTo((item.time - (currentSong?.song?.lyricsOffset ?: 0)).coerceAtLeast(0))
-                                                } else {
-                                                    scrollTargetIndex = index
-                                                    deferredCurrentLineIndex = index
+                                                    val targetPosition = (item.time - (currentSong?.song?.lyricsOffset ?: 0)).coerceAtLeast(0)
+                                                    pendingSeek = LyricsSeekTarget(index, targetPosition, SystemClock.uptimeMillis())
+                                                    playerConnection.seekTo(targetPosition)
                                                 }
                                                 isAutoScrollEnabled = true
                                                 lastPreviewTime = 0L

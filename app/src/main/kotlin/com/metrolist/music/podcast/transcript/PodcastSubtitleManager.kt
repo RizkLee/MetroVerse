@@ -7,6 +7,8 @@ package com.metrolist.music.podcast.transcript
 
 import android.content.Context
 import android.net.Uri
+import android.os.SystemClock
+import com.metrolist.music.BuildConfig
 import com.metrolist.music.R
 import com.metrolist.music.cache.TextCacheSignals
 import com.metrolist.music.di.ApplicationScope
@@ -20,6 +22,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.job
+import java.util.concurrent.atomic.AtomicReference
+import timber.log.Timber
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -44,6 +53,12 @@ sealed interface PodcastSubtitleState {
 
     /** Publisher transcript (or a previously generated on-device transcript) is available. */
     data class Ready(val transcript: EpisodeTranscript) : PodcastSubtitleState
+
+    data class Partial(
+        val transcript: EpisodeTranscript,
+        val message: String? = null,
+        val hasPendingSave: Boolean = false,
+    ) : PodcastSubtitleState
 
     /** No transcript exists for this episode; on-device recognition can be started manually. */
     data object Unavailable : PodcastSubtitleState
@@ -100,17 +115,31 @@ class PodcastSubtitleManager @Inject constructor(
 
     @Volatile private var currentEpisodeId: String? = null
     @Volatile private var episodeGeneration = 0L
-    private var translationGeneration = 0L
     private var transcriptLoadJob: Job? = null
     private var transcriptionJob: Job? = null
-    private var translationJob: Job? = null
-    private var translationConfigKey: String? = null
-    private var translationStatusShown = false
+    private var currentCheckpoint: EpisodeTranscript? = null
+    private var currentMediaSourceFingerprint: String? = null
+    private val translationCoordinator = SubtitleTranslationCoordinator(
+        scope = CoroutineScope(scope.coroutineContext + Dispatchers.Main.immediate),
+        load = transcriptRepository::loadTranslation,
+        store = transcriptRepository::storeTranslation,
+        translate = { lines, config -> SubtitleTranslationHelper.translateLines(lines, config, context) },
+        onTranslations = { _translations.value = it },
+        onStatus = { _translationStatus.value = it },
+        errorMessage = { context.getString(R.string.ai_error_translation_failed) },
+        saveErrorMessage = { context.getString(R.string.podcast_subtitle_save_failed) },
+        hasPendingSave = transcriptRepository::hasPendingTranslationSave,
+        onWorkEpisodeChanged = { TextCacheSignals.protect(TRANSLATION_CACHE_OWNER, it) },
+        trace = { message -> if (BuildConfig.DEBUG) Timber.tag("PodcastSubtitleTranslation").d(message) },
+    )
 
     init {
         _modelOperationBusy.value = true
         modelOperationJob = scope.launch(Dispatchers.Main.immediate) {
             try {
+                runCatching { transcriber.removeRetiredModelFiles() }.onFailure { error ->
+                    if (error is CancellationException) throw error
+                }
                 refreshModelState()
             } finally {
                 _modelOperationBusy.value = false
@@ -131,8 +160,7 @@ class PodcastSubtitleManager @Inject constructor(
         modelOperationJob = scope.launch(Dispatchers.Main.immediate) {
             try {
                 activeTranscription?.cancelAndJoin()
-                transcriptionJob = null
-                if (_state.value is PodcastSubtitleState.Transcribing) _state.value = PodcastSubtitleState.Unavailable
+                if (transcriptionJob == activeTranscription) transcriptionJob = null
                 val deleted = withContext(Dispatchers.IO) { transcriber.deleteModels() }
                 if (!deleted) _modelDownloadError.value = context.getString(R.string.podcast_subtitle_asr_model_failed)
             } catch (error: CancellationException) {
@@ -202,6 +230,7 @@ class PodcastSubtitleManager @Inject constructor(
                     _modelOperationBusy.value = false
                 }
             }
+            currentCoroutineContext().ensureActive()
             if (prepared) {
                 if (_asrModelReady.value) {
                     onPrepared?.invoke()
@@ -223,61 +252,85 @@ class PodcastSubtitleManager @Inject constructor(
             reset(PodcastSubtitleState.Idle)
             return
         }
-        if (metadata.id == currentEpisodeId) {
+        val sourceFingerprint = metadata.mediaUrl?.let { subtitleCacheFingerprint("asr-source-v1", it) }
+        if (metadata.id == currentEpisodeId && sourceFingerprint == currentMediaSourceFingerprint) {
             TextCacheSignals.protect(CACHE_PROTECTION_OWNER, metadata.id.takeIf { metadata.mediaUrl != null })
             return
         }
+        val previousTranscription = transcriptionJob
         reset(PodcastSubtitleState.Loading)
         currentEpisodeId = metadata.id
+        currentMediaSourceFingerprint = sourceFingerprint
         TextCacheSignals.protect(CACHE_PROTECTION_OWNER, metadata.id.takeIf { metadata.mediaUrl != null })
         val episodeId = metadata.id
         val requestGeneration = episodeGeneration
 
-        transcriptLoadJob = scope.launch {
+        transcriptLoadJob = scope.launch(Dispatchers.Main.immediate) {
             fun isCurrentRequest() =
                 isCurrentSubtitleRequest(requestGeneration, episodeGeneration, episodeId, currentEpisodeId)
-            // Prefer a publisher transcript whenever the feed advertises one. A generated
-            // transcript is only a fallback, so it must never shadow a later feed refresh.
+            // A quick return to the previous episode must see its cancellation checkpoint.
+            previousTranscription?.join()
+            if (!isActive || !isCurrentRequest()) return@launch
             var refs = transcriptRepository.transcriptRefs(episodeId)
             if (refs == null) {
-                // Subscriptions imported before this feature have no index entry yet;
-                // re-parsing the feed records the transcript links, then retry once.
                 ensureFeedParsed(metadata)
                 refs = transcriptRepository.transcriptRefs(episodeId)
             }
-
             if (refs != null) {
                 val loaded = runCatching { transcriptRepository.loadTranscript(episodeId) }.getOrNull()
                 if (!isActive || !isCurrentRequest()) return@launch
                 if (loaded != null) {
-                    _state.value = PodcastSubtitleState.Ready(loaded)
+                    showTranscript(loaded)
                     return@launch
                 }
             }
-
-            // No usable publisher transcript: restore a previously generated on-device one.
-            transcriptRepository.cachedTranscript(episodeId)
-                ?.takeIf { it.source == TranscriptSource.ON_DEVICE }
-                ?.let { cached ->
-                    if (isActive && isCurrentRequest()) _state.value = PodcastSubtitleState.Ready(cached)
-                    return@launch
-                }
-
-            if (isActive && isCurrentRequest()) {
-                _state.value = PodcastSubtitleState.Unavailable
+            val pendingSave = transcriptRepository.pendingTranscript(episodeId)?.takeIf { it.mediaSourceFingerprint == sourceFingerprint }
+            if (!isActive || !isCurrentRequest()) return@launch
+            if (pendingSave != null) {
+                showInterruptedTranscript(pendingSave, context.getString(R.string.podcast_subtitle_save_failed), hasPendingSave = true)
+                return@launch
             }
+            val cached = transcriptRepository.cachedTranscript(episodeId)?.takeIf {
+                it.source == TranscriptSource.ON_DEVICE &&
+                    (it.mediaSourceFingerprint == sourceFingerprint || (it.isComplete && it.mediaSourceFingerprint == null))
+            }
+            if (!isActive || !isCurrentRequest()) return@launch
+            if (cached != null) showTranscript(cached)
+            else _state.value = PodcastSubtitleState.Unavailable
         }
     }
 
     fun currentCues(): List<SubtitleCue> = when (val current = _state.value) {
         is PodcastSubtitleState.Ready -> current.transcript.cues
+        is PodcastSubtitleState.Partial -> current.transcript.cues
         is PodcastSubtitleState.Transcribing -> current.cues
         else -> emptyList()
     }
 
+    private fun showTranscript(transcript: EpisodeTranscript, message: String? = null) {
+        currentCheckpoint = transcript.takeIf { it.source == TranscriptSource.ON_DEVICE }
+        _state.value = if (transcript.isComplete) PodcastSubtitleState.Ready(transcript)
+        else PodcastSubtitleState.Partial(transcript, message)
+        translationCoordinator.updateCues(transcript.cues, isStreaming = false)
+    }
+
+    private fun showInterruptedTranscript(transcript: EpisodeTranscript, message: String? = null, hasPendingSave: Boolean = false) {
+        currentCheckpoint = transcript
+        _state.value = PodcastSubtitleState.Partial(transcript, message, hasPendingSave)
+        translationCoordinator.updateCues(transcript.cues, isStreaming = false)
+    }
+
     /** Downloads and recognizes English speech on-device. */
     fun startTranscription(metadata: MediaMetadata, durationMs: Long) {
-        if (transcriptionJob?.isActive == true || _modelOperationBusy.value) return
+        if (transcriptionJob?.isActive == true) return
+        val pendingSave = (_state.value as? PodcastSubtitleState.Partial)?.takeIf {
+            it.transcript.episodeId == metadata.id && (it.hasPendingSave || it.transcript.isComplete)
+        }?.transcript
+        if (pendingSave != null) {
+            retryTranscriptSave(pendingSave)
+            return
+        }
+        if (_modelOperationBusy.value) return
         val mediaUrl = metadata.mediaUrl ?: return
         val episodeId = metadata.id
         if (!_asrModelReady.value) {
@@ -290,57 +343,175 @@ class PodcastSubtitleManager @Inject constructor(
                 },
                 onFailure = { message ->
                     if (isCurrentSubtitleRequest(requestedGeneration, episodeGeneration, episodeId, currentEpisodeId)) {
-                        _state.value = PodcastSubtitleState.TranscriptionFailed(message)
+                        val saved = currentCheckpoint?.takeIf { it.cues.isNotEmpty() && !it.isComplete }
+                        if (saved != null) showTranscript(saved, message)
+                        else _state.value = PodcastSubtitleState.TranscriptionFailed(message)
                     }
                 },
             )
             return
         }
+        val previousTranscription = transcriptionJob
+        val previousCheckpoint = currentCheckpoint?.takeIf { it.episodeId == episodeId && !it.isComplete }
         transcriptLoadJob?.cancel()
         transcriptLoadJob = null
         episodeGeneration++
         val requestedGeneration = episodeGeneration
+        val sourceFingerprint = subtitleCacheFingerprint("asr-source-v1", mediaUrl)
+        val recognizerFingerprint = OnDeviceTranscriber.checkpointIdentity()
         currentEpisodeId = episodeId
+        currentMediaSourceFingerprint = sourceFingerprint
         TextCacheSignals.protect(CACHE_PROTECTION_OWNER, episodeId)
-        clearTranslations()
         val job = scope.launch(Dispatchers.Main.immediate, start = CoroutineStart.LAZY) {
-            fun currentRequest() = isActive &&
+            val ownerJob = currentCoroutineContext().job
+            fun ownsRequest() =
                 isCurrentSubtitleRequest(requestedGeneration, episodeGeneration, episodeId, currentEpisodeId)
-            _state.value = PodcastSubtitleState.Transcribing(emptyList(), 0)
-            try {
-                val result = transcriber.transcribe(mediaUrl, durationMs) { partial, percent ->
-                    if (currentRequest()) _state.value = PodcastSubtitleState.Transcribing(partial, percent)
+            withContext(NonCancellable) { previousTranscription?.join() }
+            currentCoroutineContext().ensureActive()
+            if (!isActive || !ownsRequest()) return@launch
+            val recovered = transcriptRepository.pendingTranscript(episodeId)?.takeIf {
+                    !it.isComplete && it.mediaSourceFingerprint == sourceFingerprint
                 }
-                if (!currentRequest()) return@launch
-                result.onSuccess { (cues, language) ->
-                    if (cues.isEmpty()) {
-                        _state.value = PodcastSubtitleState.TranscriptionFailed(
-                            context.getString(R.string.podcast_subtitle_asr_empty),
-                        )
-                        return@onSuccess
+                ?: transcriptRepository.cachedTranscript(episodeId)?.takeIf {
+                    !it.isComplete && it.mediaSourceFingerprint == sourceFingerprint
+                }
+                ?: previousCheckpoint?.takeIf { it.mediaSourceFingerprint == sourceFingerprint }
+            currentCoroutineContext().ensureActive()
+            if (!ownsRequest()) return@launch
+            val resumePosition = subtitleResumePosition(recovered, sourceFingerprint, recognizerFingerprint)
+            val initial = EpisodeTranscript(
+                episodeId, TranscriptSource.ON_DEVICE, recovered?.cues.orEmpty(), "en",
+                isComplete = false,
+                progressPercent = recovered?.progressPercent ?: 0,
+                resumePositionMs = resumePosition,
+                mediaSourceFingerprint = sourceFingerprint,
+                recognizerFingerprint = recognizerFingerprint,
+            )
+            val latest = AtomicReference(initial)
+            currentCheckpoint = initial
+            _state.value = PodcastSubtitleState.Transcribing(initial.cues, initial.progressPercent)
+            translationCoordinator.updateCues(initial.cues, isStreaming = true)
+            var completed = false
+            var failureMessage: String? = null
+            TextCacheSignals.protect(TRANSCRIPTION_CACHE_OWNER, episodeId)
+            coroutineScope {
+                val displayUpdates = Channel<EpisodeTranscript>(Channel.CONFLATED)
+                val checkpointUpdates = Channel<Unit>(Channel.CONFLATED)
+                val displayJob = launch(Dispatchers.Main.immediate) {
+                    for (snapshot in displayUpdates) {
+                        if (ownerJob.isActive && ownsRequest()) {
+                            currentCheckpoint = snapshot
+                            _state.value = PodcastSubtitleState.Transcribing(snapshot.cues, snapshot.progressPercent)
+                            translationCoordinator.updateCues(snapshot.cues, isStreaming = true)
+                        }
                     }
-                    transcriptRepository.storeOnDeviceTranscript(episodeId, cues, language)
-                    if (!currentRequest()) return@onSuccess
-                    _state.value = PodcastSubtitleState.Ready(
-                        EpisodeTranscript(
-                            episodeId = episodeId,
-                            source = TranscriptSource.ON_DEVICE,
-                            cues = cues,
-                            language = language,
-                        ),
-                    )
-                }.onFailure { error ->
-                    if (error is CancellationException) throw error
-                    _state.value = PodcastSubtitleState.TranscriptionFailed(
-                        error.message ?: context.getString(R.string.podcast_subtitle_asr_failed),
-                    )
                 }
-            } catch (error: CancellationException) {
-                throw error
-            } catch (_: Exception) {
-                if (currentRequest()) _state.value = PodcastSubtitleState.TranscriptionFailed(
-                    context.getString(R.string.podcast_subtitle_asr_failed),
-                )
+                val checkpointJob = launch(Dispatchers.IO) {
+                    var nextWriteAt = 0L
+                    var saved = recovered
+                    for (signal in checkpointUpdates) {
+                        val remaining = nextWriteAt - SystemClock.elapsedRealtime()
+                        if (remaining > 0) delay(remaining)
+                        val snapshot = latest.get()
+                        if (snapshot.cues.isEmpty() || snapshot == saved) continue
+                        nextWriteAt = SystemClock.elapsedRealtime() + CHECKPOINT_INTERVAL_MS
+                        if (transcriptRepository.storeOnDeviceTranscript(snapshot).isSuccess) saved = snapshot
+                    }
+                }
+                try {
+                    val result = transcriber.transcribe(
+                        source = mediaUrl,
+                        totalDurationMs = durationMs,
+                        resumePositionMs = resumePosition,
+                        retainedCues = recovered?.cues.orEmpty(),
+                    ) { cues, percent, safeResumePosition ->
+                        if (ownerJob.isActive && ownsRequest()) {
+                            val incoming = initial.copy(
+                                cues = cues,
+                                progressPercent = percent.coerceIn(0, 99),
+                                resumePositionMs = safeResumePosition,
+                            )
+                            val snapshot = mergeSubtitleCheckpoint(latest.get(), incoming)
+                            latest.set(snapshot)
+                            displayUpdates.trySend(snapshot)
+                            checkpointUpdates.trySend(Unit)
+                        }
+                    }
+                    currentCoroutineContext().ensureActive()
+                    if (!ownsRequest()) return@coroutineScope
+                    val (cues, language) = result.getOrThrow()
+                    if (cues.isEmpty()) {
+                        failureMessage = context.getString(R.string.podcast_subtitle_asr_empty)
+                        return@coroutineScope
+                    }
+                    displayJob.cancelAndJoin()
+                    checkpointJob.cancelAndJoin()
+                    val finished = latest.get().copy(cues = cues, language = language, isComplete = true, progressPercent = 100)
+                    latest.set(finished)
+                    val persisted = withContext(NonCancellable) { transcriptRepository.storeOnDeviceTranscript(finished).isSuccess }
+                    if (!persisted) {
+                        failureMessage = context.getString(R.string.podcast_subtitle_save_failed)
+                        return@coroutineScope
+                    }
+                    completed = true
+                    if (ownsRequest()) showTranscript(finished)
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (_: Exception) {
+                    failureMessage = context.getString(R.string.podcast_subtitle_asr_failed)
+                } finally {
+                    withContext(NonCancellable) {
+                        displayJob.cancelAndJoin()
+                        checkpointJob.cancelAndJoin()
+                        displayUpdates.close()
+                        checkpointUpdates.close()
+                        if (!completed) {
+                            val snapshot = latest.get()
+                            val persisted = snapshot.cues.isEmpty() ||
+                                (!snapshot.isComplete && transcriptRepository.storeOnDeviceTranscript(snapshot).isSuccess)
+                            if (ownsRequest()) {
+                                if (snapshot.cues.isNotEmpty()) {
+                                    showInterruptedTranscript(
+                                        snapshot,
+                                        if (persisted) failureMessage else context.getString(R.string.podcast_subtitle_save_failed),
+                                        hasPendingSave = !persisted,
+                                    )
+                                } else {
+                                    _state.value = failureMessage?.let { PodcastSubtitleState.TranscriptionFailed(it) }
+                                        ?: PodcastSubtitleState.Unavailable
+                                }
+                            }
+                        }
+                        if (transcriptionJob == ownerJob) transcriptionJob = null
+                        TextCacheSignals.protect(TRANSCRIPTION_CACHE_OWNER, null)
+                    }
+                }
+            }
+        }
+        transcriptionJob = job
+        job.start()
+    }
+
+    private fun retryTranscriptSave(transcript: EpisodeTranscript) {
+        val previousTranscription = transcriptionJob
+        episodeGeneration++
+        val requestGeneration = episodeGeneration
+        val job = scope.launch(Dispatchers.Main.immediate, start = CoroutineStart.LAZY) {
+            val owner = currentCoroutineContext().job
+            var ownsProtection = false
+            try {
+                withContext(NonCancellable) { previousTranscription?.join() }
+                currentCoroutineContext().ensureActive()
+                TextCacheSignals.protect(TRANSCRIPTION_CACHE_OWNER, transcript.episodeId)
+                ownsProtection = true
+                val saved = withContext(NonCancellable) { transcriptRepository.storeOnDeviceTranscript(transcript).isSuccess }
+                if (isCurrentSubtitleRequest(requestGeneration, episodeGeneration, transcript.episodeId, currentEpisodeId)) {
+                    if (saved) showTranscript(transcript)
+                    else showInterruptedTranscript(transcript, context.getString(R.string.podcast_subtitle_save_failed), hasPendingSave = true)
+                }
+            } finally {
+                if (transcriptionJob == owner) transcriptionJob = null
+                if (ownsProtection) TextCacheSignals.protect(TRANSCRIPTION_CACHE_OWNER, null)
             }
         }
         transcriptionJob = job
@@ -349,132 +520,30 @@ class PodcastSubtitleManager @Inject constructor(
 
     fun cancelTranscription() {
         transcriptionJob?.cancel()
-        transcriptionJob = null
         if (_modelDownloadProgress.value != null) modelOperationJob?.cancel()
         if (_state.value is PodcastSubtitleState.Transcribing) {
-            _state.value = PodcastSubtitleState.Unavailable
+            val saved = currentCheckpoint?.takeIf { it.cues.isNotEmpty() }
+            if (saved != null) showInterruptedTranscript(saved)
+            else _state.value = PodcastSubtitleState.Unavailable
         }
     }
 
-    /**
-     * Ensures the lines around [centerIndex] are translated. Persisted translations are used
-     * first; missing lines are translated in one batch per window.
-     */
     fun requestTranslations(centerIndex: Int, config: SubtitleTranslationConfig) {
         val cues = currentCues()
-        if (cues.isEmpty() || !config.hasCredentials) return
-
-        // Skip translating when the transcript already speaks the target language.
-        val transcriptLanguage = currentTranscriptLanguage()
-        if (transcriptLanguage != null && config.targetLanguage.startsWith(transcriptLanguage)) return
-
-        val windowStart = (centerIndex - 1).coerceAtLeast(0)
-        val windowEnd = (centerIndex + TRANSLATION_WINDOW_AHEAD).coerceAtMost(cues.lastIndex)
-        if (windowStart > windowEnd) return
-
+        val language = currentTranscriptLanguage()
+        if (cues.isEmpty() || !config.hasCredentials || (language != null && config.targetLanguage.startsWith(language))) {
+            stopTranslationRequests()
+            return
+        }
         val episodeId = currentEpisodeId ?: return
-        val configKey = "${episodeId}|${config.provider}|${config.targetLanguage}|${config.model}"
-        if (translationConfigKey != configKey) {
-            translationGeneration++
-            translationJob?.cancel()
-            translationJob = null
-            translationConfigKey = configKey
-            translationStatusShown = false
-            _translations.value = emptyMap()
-            _translationStatus.value = PodcastTranslationStatus.Idle
-        }
-        if (translationJob?.isActive == true) return
-        val requestGeneration = translationGeneration
-        val showStatus = !translationStatusShown
-        if (showStatus) {
-            translationStatusShown = true
-            _translationStatus.value = PodcastTranslationStatus.Translating
-        }
-        translationJob = scope.launch {
-            fun isCurrentRequest() =
-                isCurrentSubtitleRequest(requestGeneration, translationGeneration, episodeId, currentEpisodeId) &&
-                    translationConfigKey == configKey
-
-            if (_translations.value.isEmpty()) {
-                val persisted = transcriptRepository.loadTranslation(
-                    episodeId, config.targetLanguage, config.provider,
-                )
-                if (!isActive || !isCurrentRequest()) return@launch
-                if (persisted.isNotEmpty()) {
-                    _translations.value = _translations.value + persisted.filterKeys { it < cues.size }
-                }
-            }
-            val stillMissing = (windowStart..windowEnd).filter { index ->
-                _translations.value[index] == null && cues[index].text.isNotBlank()
-            }
-            if (stillMissing.isEmpty()) {
-                if (showStatus) {
-                    _translationStatus.value = PodcastTranslationStatus.Success
-                    delay(3_000)
-                    if (isActive && isCurrentRequest() && _translationStatus.value == PodcastTranslationStatus.Success) {
-                        _translationStatus.value = PodcastTranslationStatus.Idle
-                    }
-                }
-                return@launch
-            }
-
-            val batches = buildTranslationBatches(stillMissing, cues)
-            var failedMessage: String? = null
-            for (batch in batches) {
-                if (!isActive || !isCurrentRequest()) return@launch
-                val result = SubtitleTranslationHelper.translateLines(
-                    lines = batch.map { cues[it].text },
-                    config = config,
-                    context = context,
-                )
-                // Providers may wrap cancellation in Result; an obsolete reply cannot own UI state.
-                if (!isActive || !isCurrentRequest()) return@launch
-                result.onSuccess { translatedLines ->
-                    val updated = _translations.value.toMutableMap()
-                    val forPersistence = mutableMapOf<Int, String>()
-                    batch.forEachIndexed { position, index ->
-                        val line = translatedLines.getOrNull(position).orEmpty()
-                        if (line.isNotBlank()) {
-                            updated[index] = line
-                            forPersistence[index] = line
-                        }
-                    }
-                    _translations.value = updated
-                    if (forPersistence.isNotEmpty()) {
-                        transcriptRepository.storeTranslation(
-                            episodeId, config.targetLanguage, config.provider, forPersistence,
-                        )
-                    }
-                }.onFailure { error ->
-                    failedMessage = error.message
-                }
-                if (!isActive || !isCurrentRequest()) return@launch
-                if (failedMessage != null) break
-            }
-            if (failedMessage != null) {
-                val message = failedMessage
-                _translationStatus.value = PodcastTranslationStatus.Error(message)
-            } else if (showStatus) {
-                _translationStatus.value = PodcastTranslationStatus.Success
-                delay(3_000)
-                if (isActive && isCurrentRequest() && _translationStatus.value == PodcastTranslationStatus.Success) {
-                    _translationStatus.value = PodcastTranslationStatus.Idle
-                }
-            } else {
-                _translationStatus.value = PodcastTranslationStatus.Idle
-            }
-        }
+        translationCoordinator.request(episodeId, centerIndex, cues, config, isStreaming = _state.value is PodcastSubtitleState.Transcribing)
     }
 
-    fun clearTranslations() {
-        translationGeneration++
-        translationJob?.cancel()
-        translationJob = null
-        _translations.value = emptyMap()
-        _translationStatus.value = PodcastTranslationStatus.Idle
-        translationConfigKey = null
-        translationStatusShown = false
-    }
+    fun stopTranslationRequests() = translationCoordinator.stop()
+
+    fun retryTranslations() = translationCoordinator.retry()
+
+    fun clearTranslations() = translationCoordinator.clear()
 
     fun reset() {
         reset(PodcastSubtitleState.Idle)
@@ -486,29 +555,10 @@ class PodcastSubtitleManager @Inject constructor(
         runCatching { podcastRepository.fetchFeed(feedUrl) }
     }
 
-    private fun buildTranslationBatches(
-        indices: List<Int>,
-        cues: List<SubtitleCue>,
-    ): List<List<Int>> {
-        val batches = mutableListOf<MutableList<Int>>()
-        var current = mutableListOf<Int>()
-        var currentChars = 0
-        indices.forEach { index ->
-            val lineChars = cues[index].text.length
-            if (current.isNotEmpty() && currentChars + lineChars > MAX_TRANSLATION_CHARS) {
-                batches += current
-                current = mutableListOf()
-                currentChars = 0
-            }
-            current += index
-            currentChars += lineChars
-        }
-        if (current.isNotEmpty()) batches += current
-        return batches
-    }
-
     private fun currentTranscriptLanguage(): String? = when (val current = _state.value) {
         is PodcastSubtitleState.Ready -> current.transcript.language
+        is PodcastSubtitleState.Partial -> current.transcript.language
+        is PodcastSubtitleState.Transcribing -> currentCheckpoint?.language
         else -> null
     }
 
@@ -517,16 +567,18 @@ class PodcastSubtitleManager @Inject constructor(
         transcriptLoadJob?.cancel()
         transcriptLoadJob = null
         transcriptionJob?.cancel()
-        transcriptionJob = null
         clearTranslations()
         currentEpisodeId = null
+        currentCheckpoint = null
+        currentMediaSourceFingerprint = null
         TextCacheSignals.protect(CACHE_PROTECTION_OWNER, null)
         _state.value = next
     }
 
     private companion object {
         const val CACHE_PROTECTION_OWNER = "podcast_subtitles"
-        const val TRANSLATION_WINDOW_AHEAD = 80
-        const val MAX_TRANSLATION_CHARS = 12_000
+        const val TRANSCRIPTION_CACHE_OWNER = "podcast_subtitle_transcription"
+        const val TRANSLATION_CACHE_OWNER = "podcast_subtitle_translation"
+        const val CHECKPOINT_INTERVAL_MS = 15_000L
     }
 }

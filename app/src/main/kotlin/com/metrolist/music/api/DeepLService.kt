@@ -5,7 +5,9 @@
 
 package com.metrolist.music.api
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -28,9 +30,11 @@ object DeepLService {
         targetLanguage: String,
         apiKey: String,
         formality: String = "default",
-        maxRetries: Int = 3
+        maxRetries: Int = 3,
+        strictLineCount: Boolean = false,
     ): Result<List<String>> = withContext(Dispatchers.IO) {
         var currentAttempt = 0
+        var lastFailure: TranslationRequestException? = null
         
         // Validate input
         if (text.isBlank()) {
@@ -78,30 +82,8 @@ object DeepLService {
                     .post(jsonBody.toString().toRequestBody(JSON))
                     .build()
 
-                val response = client.newCall(request).execute()
-                val responseBody = response.body?.string()
-
-                if (!response.isSuccessful) {
-                    // Retry on server errors (5xx)
-                    if (response.code >= 500) {
-                        currentAttempt++
-                        kotlinx.coroutines.delay(1000L * currentAttempt)
-                        continue
-                    }
-                    
-                    val errorMsg = try {
-                        JSONObject(responseBody ?: "").optString("message") 
-                            ?: "HTTP ${response.code}: ${response.message}"
-                    } catch (e: Exception) {
-                        "HTTP ${response.code}: ${response.message}"
-                    }
-                    return@withContext Result.failure(Exception("Translation failed: $errorMsg"))
-                }
-
-                if (responseBody == null) {
-                    currentAttempt++
-                    continue
-                }
+                val responseBody = client.newCall(request).awaitTranslationBody()
+                    ?: throw TranslationRequestException(null, null, "Translation response is empty")
 
                 val jsonResponse = JSONObject(responseBody)
                 val translations = jsonResponse.optJSONArray("translations")
@@ -110,26 +92,25 @@ object DeepLService {
                         translations.getJSONObject(i).optString("text", "")
                     }
                     
-                    if (translatedLines.size == lineCount) {
-                        return@withContext Result.success(translatedLines)
-                    } else if (translatedLines.size > lineCount) {
-                        return@withContext Result.success(translatedLines.take(lineCount))
-                    } else {
-                        val paddedLines = translatedLines.toMutableList()
-                        while (paddedLines.size < lineCount) {
-                            paddedLines.add("")
-                        }
-                        return@withContext Result.success(paddedLines)
-                    }
+                    return@withContext Result.success(
+                        alignProviderTranslationLines(translatedLines, lineCount, strictLineCount),
+                    )
                 }
+                throw TranslationRequestException(null, null, "Translation response is invalid")
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                if (currentAttempt == maxRetries - 1) {
-                    return@withContext Result.failure(e)
+                val failure = e.asTranslationRequestException()
+                if (failure.httpStatusCode != null && failure.httpStatusCode !in 500..599) {
+                    return@withContext Result.failure(failure)
                 }
+                lastFailure = failure
             }
             currentAttempt++
-            kotlinx.coroutines.delay(1000L * currentAttempt)
+            if (currentAttempt < maxRetries) delay(1000L * currentAttempt)
         }
-        return@withContext Result.failure(Exception("Max retries exceeded"))
+        return@withContext Result.failure(
+            lastFailure ?: TranslationRequestException(null, null, "Max retries exceeded"),
+        )
     }
 }

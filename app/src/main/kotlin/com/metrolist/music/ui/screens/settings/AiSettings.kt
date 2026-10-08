@@ -29,11 +29,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.LinkAnnotation
@@ -65,10 +67,13 @@ import com.metrolist.music.ui.component.Material3SettingsItem
 import com.metrolist.music.ui.component.TextFieldDialog
 import com.metrolist.music.ui.utils.rememberEffectiveAppLanguageCode
 import com.metrolist.music.utils.rememberPreference
+import com.metrolist.music.utils.dataStore
+import kotlinx.coroutines.flow.first
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AiSettings(navController: NavController) {
+fun AiSettings(navController: NavController, openApiKey: Boolean = false, apiKeyRequestId: Long = 0L) {
+    val context = LocalContext.current
     val appLanguageCode = rememberEffectiveAppLanguageCode()
     var aiProvider by rememberPreference(AiProviderKey, "OpenRouter")
     var openRouterApiKey by rememberPreference(OpenRouterApiKey, "")
@@ -177,6 +182,16 @@ fun AiSettings(navController: NavController) {
     var showModelDialog by rememberSaveable { mutableStateOf(false) }
     var showCustomModelInput by rememberSaveable { mutableStateOf(false) }
     var showSystemPromptDialog by rememberSaveable { mutableStateOf(false) }
+    var apiKeyRequestHandled by rememberSaveable(apiKeyRequestId) { mutableStateOf(false) }
+
+    LaunchedEffect(openApiKey, apiKeyRequestId) {
+        if (openApiKey && !apiKeyRequestHandled) {
+            val provider = context.dataStore.data.first()[AiProviderKey] ?: "OpenRouter"
+            showDeeplApiKeyDialog = provider == "DeepL"
+            showApiKeyDialog = provider != "DeepL"
+            apiKeyRequestHandled = true
+        }
+    }
 
     if (showProviderHelpDialog) {
         AlertDialog(

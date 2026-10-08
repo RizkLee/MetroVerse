@@ -166,7 +166,6 @@ fun TextCacheSettings(viewModel: TextCacheViewModel = hiltViewModel()) {
             for ((target, label) in listOf(
                 TextCacheClearTarget.PODCASTS to R.string.text_cache_clear_subtitles,
                 TextCacheClearTarget.LYRICS to R.string.text_cache_clear_lyrics,
-                TextCacheClearTarget.ALL to R.string.text_cache_clear_all,
             )) {
                 add(Material3SettingsItem(
                     icon = painterResource(R.drawable.clear_all),

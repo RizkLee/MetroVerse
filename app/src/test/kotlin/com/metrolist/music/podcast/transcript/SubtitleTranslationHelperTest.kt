@@ -33,4 +33,9 @@ class SubtitleTranslationHelperTest {
             // Expected.
         }
     }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `blank translations cannot count as successful completed work`() {
+        SubtitleTranslationHelper.alignTranslations(listOf("hello", "world"), listOf("bonjour", ""))
+    }
 }

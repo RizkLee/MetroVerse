@@ -5,6 +5,7 @@
 
 package com.metrolist.music.ui.player
 
+import android.os.SystemClock
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
@@ -41,13 +42,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -92,6 +95,7 @@ fun PodcastSubtitleView(
     onStartTranscription: () -> Unit = {},
     onCancelTranscription: () -> Unit = {},
     onDownloadModel: () -> Unit = {},
+    onRetryTranslation: () -> Unit = {},
     onCurrentCueChanged: (Int) -> Unit = {},
     onShareCues: (List<SubtitleCue>) -> Unit = {},
     resyncToken: Int = 0,
@@ -168,25 +172,59 @@ fun PodcastSubtitleView(
                 }
             }
 
-            is PodcastSubtitleState.Transcribing -> {
+            is PodcastSubtitleState.Transcribing, is PodcastSubtitleState.Partial, is PodcastSubtitleState.Ready -> {
+                val cues = when (state) {
+                    is PodcastSubtitleState.Transcribing -> state.cues
+                    is PodcastSubtitleState.Partial -> state.transcript.cues
+                    is PodcastSubtitleState.Ready -> state.transcript.cues
+                }
                 Column(modifier = Modifier.fillMaxSize()) {
-                    TranscriptionProgressBar(
-                        progressPercent = state.progressPercent,
-                        textColor = textColor,
-                        onCancel = onCancelTranscription,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(
+                    if (state is PodcastSubtitleState.Transcribing) {
+                        TranscriptionProgressBar(
+                            progressPercent = state.progressPercent,
+                            textColor = textColor,
+                            onCancel = onCancelTranscription,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    top = WindowInsets.systemBars.asPaddingValues().calculateTopPadding() + 16.dp,
+                                    start = 32.dp,
+                                    end = 32.dp,
+                                    bottom = 12.dp,
+                                ),
+                        )
+                    } else if (state is PodcastSubtitleState.Partial) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.fillMaxWidth().padding(
                                 top = WindowInsets.systemBars.asPaddingValues().calculateTopPadding() + 16.dp,
-                                start = 32.dp,
-                                end = 32.dp,
+                                start = 24.dp,
+                                end = 24.dp,
+                                bottom = 8.dp,
                             ),
-                    )
-                    if (state.cues.isNotEmpty()) {
-                        Spacer(Modifier.height(12.dp))
+                        ) {
+                            Text(
+                                text = state.message ?: stringResource(R.string.podcast_subtitle_incomplete),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = textColor.copy(alpha = 0.8f),
+                                textAlign = TextAlign.Center,
+                            )
+                            TextButton(
+                                onClick = onStartTranscription,
+                                enabled = state.hasPendingSave || state.transcript.isComplete || !asrModelBusy,
+                            ) {
+                                Icon(painterResource(R.drawable.refresh), contentDescription = null)
+                                Spacer(Modifier.width(8.dp))
+                                Text(stringResource(
+                                    if (state.hasPendingSave || state.transcript.isComplete) R.string.podcast_subtitle_retry_save
+                                    else R.string.podcast_subtitle_resume,
+                                ))
+                            }
+                        }
+                    }
+                    if (cues.isNotEmpty()) {
                         SubtitleCueList(
-                            cues = state.cues,
-                            activeIndex = -2,
+                            cues = cues,
                             translations = translations,
                             positionProvider = positionProvider,
                             showTranslation = showTranslation,
@@ -196,27 +234,12 @@ fun PodcastSubtitleView(
                             onSeek = onSeek,
                             onCurrentCueChanged = onCurrentCueChanged,
                             onShareCues = onShareCues,
+                            onRetryTranslation = onRetryTranslation,
                             resyncToken = resyncToken,
+                            modifier = Modifier.weight(1f),
                         )
                     }
                 }
-            }
-
-            is PodcastSubtitleState.Ready -> {
-                SubtitleCueList(
-                    cues = state.transcript.cues,
-                    activeIndex = -2,
-                    translations = translations,
-                    positionProvider = positionProvider,
-                    showTranslation = showTranslation,
-                    translationMissingCredentials = translationMissingCredentials,
-                    textColor = textColor,
-                    translationStatus = translationStatus,
-                    onSeek = onSeek,
-                    onCurrentCueChanged = onCurrentCueChanged,
-                    onShareCues = onShareCues,
-                    resyncToken = resyncToken,
-                )
             }
         }
     }
@@ -225,7 +248,6 @@ fun PodcastSubtitleView(
 @Composable
 private fun SubtitleCueList(
     cues: List<SubtitleCue>,
-    activeIndex: Int,
     translations: Map<Int, String>,
     positionProvider: () -> Long,
     showTranslation: Boolean,
@@ -235,12 +257,18 @@ private fun SubtitleCueList(
     onSeek: (Long) -> Unit,
     onCurrentCueChanged: (Int) -> Unit,
     onShareCues: (List<SubtitleCue>) -> Unit,
+    onRetryTranslation: () -> Unit,
     resyncToken: Int,
+    modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val autoScrollController = remember(scope) { SubtitleAutoScrollController(scope) }
     val autoScroll by autoScrollController.following.collectAsStateWithLifecycle()
+    val seekPreview = remember { SubtitleSeekPreview() }
+    val currentPositionProvider by rememberUpdatedState(positionProvider)
+    val currentCueChanged by rememberUpdatedState(onCurrentCueChanged)
+    var currentIndex by remember { mutableIntStateOf(PodcastAsrSupport.cueIndexAt(cues, positionProvider())) }
     var selectionMode by rememberSaveable { mutableStateOf(false) }
     var selectedIndices by rememberSaveable { mutableStateOf<Set<Int>>(emptySet()) }
 
@@ -262,38 +290,30 @@ private fun SubtitleCueList(
         }
     }
 
-    val currentIndex = when (activeIndex) {
-        -2 -> {
-            // Ready state: track the playing position.
-            val tracked by produceState(initialValue = -1, cues) {
-                while (true) {
-                    val next = PodcastAsrSupport.cueIndexAt(cues, positionProvider())
-                    if (next != value) {
-                        value = next
-                        onCurrentCueChanged(next)
-                    }
-                    delay(positionUpdateIntervalMs)
-                }
-            }
-            tracked
+    LaunchedEffect(cues) {
+        while (true) {
+            currentIndex = seekPreview.index(
+                PodcastAsrSupport.cueIndexAt(cues, currentPositionProvider()),
+                cues.size,
+                SystemClock.elapsedRealtime(),
+            )
+            currentCueChanged(currentIndex)
+            delay(positionUpdateIntervalMs)
         }
-        else -> activeIndex
     }
 
     LaunchedEffect(resyncToken) {
         autoScrollController.resume()
-        if (currentIndex >= 0 && cues.isNotEmpty()) {
-            listState.animateScrollToItem(currentIndex.coerceIn(0, cues.lastIndex))
-        }
     }
 
-    LaunchedEffect(currentIndex, autoScroll, cues.size) {
+    val hintCount = if (translationMissingCredentials && showTranslation) 1 else 0
+    LaunchedEffect(currentIndex, autoScroll, cues.size, resyncToken, hintCount) {
         if (autoScroll && currentIndex >= 0 && cues.isNotEmpty()) {
-            listState.animateScrollToItem(currentIndex.coerceIn(0, cues.lastIndex))
+            listState.animateScrollToItem(currentIndex.coerceIn(0, cues.lastIndex) + hintCount)
         }
     }
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         LazyColumn(
             state = listState,
             horizontalAlignment = Alignment.Start,
@@ -333,6 +353,9 @@ private fun SubtitleCueList(
                                 if (!it.add(index)) it.remove(index)
                             }
                         } else {
+                            seekPreview.request(index, SystemClock.elapsedRealtime())
+                            currentIndex = index
+                            currentCueChanged(index)
                             autoScrollController.resume()
                             onSeek(cue.startMs)
                         }
@@ -348,6 +371,7 @@ private fun SubtitleCueList(
         PodcastTranslationHeader(
             status = translationStatus,
             textColor = textColor,
+            onRetry = onRetryTranslation,
             modifier = Modifier.align(Alignment.TopCenter).padding(top = 56.dp),
         )
 
@@ -399,6 +423,7 @@ private fun SubtitleCueList(
 private fun PodcastTranslationHeader(
     status: PodcastTranslationStatus,
     textColor: Color,
+    onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     AnimatedVisibility(
@@ -446,7 +471,10 @@ private fun PodcastTranslationHeader(
                     val icon = if (status == PodcastTranslationStatus.Success) R.drawable.check else R.drawable.error
                     Icon(painterResource(icon), null, modifier = Modifier.size(16.dp))
                 }
-                Text(label, style = MaterialTheme.typography.labelMedium)
+                Text(label, style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f, fill = false))
+                if (status is PodcastTranslationStatus.Error) {
+                    TextButton(onClick = onRetry) { Text(stringResource(R.string.retry)) }
+                }
             }
         }
     }

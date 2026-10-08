@@ -7,9 +7,45 @@ package com.metrolist.music.podcast.transcript
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertSame
 import org.junit.Test
 
 class AsrSubtitleTimingTest {
+    @Test
+    fun `resume retains only finalized streams and keeps native times relative to the restart boundary`() {
+        val saved = listOf(
+            SubtitleCue(1_000, 3_000, "first stream"),
+            SubtitleCue(301_000, 303_000, "unfinished stream snapshot"),
+        )
+        val transcript = AsrTranscriptAccumulator(initialSample = 300_000 * 16L, retainedCues = saved)
+        transcript.update(1, "restored native stream", 1f, 2f, true)
+        assertEquals(
+            listOf(saved.first(), SubtitleCue(301_000, 303_000, "restored native stream")),
+            transcript.snapshot(304_000 * 16L),
+        )
+    }
+
+    @Test
+    fun `unchanged stable transcript reuses its snapshot while recognition hypotheses change`() {
+        val transcript = AsrTranscriptAccumulator()
+        transcript.update(1, "iPhone and NASA", 0f, 1f, true)
+        val first = transcript.snapshot(16_000)
+        transcript.update(1, "iPhone and NASA", 0f, 1f, true)
+        transcript.update(2, "still recognizing", 1f, 1f, false)
+        assertSame(first, transcript.snapshot(32_000))
+        assertEquals("iPhone and NASA", first.single().text)
+    }
+
+    @Test
+    fun `clipping a long final phrase never discards its words`() {
+        val transcript = AsrTranscriptAccumulator()
+        val words = (1..40).joinToString(" ") { "word$it" }
+        transcript.update(1, words, 0f, 40f, true)
+        val snapshot = transcript.snapshot(30_000 * 16L)
+        assertEquals(words, snapshot.joinToString(" ") { it.text })
+        assertEquals(30_000L, snapshot.last().endMs)
+    }
+
     @Test
     fun `unfinished hypothesis never receives a translation cue index`() {
         assertTrue(stableAsrCues(0, "a changing hypothesis", 1f, 2f, false).isEmpty())

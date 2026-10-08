@@ -929,7 +929,7 @@
     <string name="podcast_subtitles_translation_desc">Traduce i sottotitoli con il servizio IA configurato per i testi. Disattivato per impostazione predefinita</string>
     <string name="podcast_subtitles_bilingual">Sottotitoli bilingue</string>
     <string name="podcast_subtitles_bilingual_desc">Mostra la riga originale insieme alla traduzione</string>
-    <string name="podcast_asr_experimental_desc">Inglese · circa %1$s. Il riconoscimento avviene sul dispositivo.</string>
+    <string name="podcast_asr_experimental_desc">Moonshine Small Streaming · Inglese · Circa %1$s</string>
     <string name="podcast_asr_language">Lingua di riconoscimento</string>
     <string name="podcast_asr_language_auto">Rilevamento automatico</string>
     <string name="podcast_asr_language_zh">Cinese</string>
@@ -972,4 +972,12 @@
     <string name="podcast_asr_model_files_missing">Scegli la cartella contenente tutti i %1$d file del modello.</string>
     <string name="podcast_asr_model_file_invalid">Il file del modello %1$s è incompleto o non corrisponde alla versione supportata.</string>
     <string name="podcast_asr_model_download_failed">Download del modello non riuscito (HTTP %1$d). Riprova o importa la cartella del modello.</string>
+    <string name="ai_api_key_required_title">Chiave API richiesta</string>
+    <string name="ai_api_key_required_message">Scegli un fornitore IA e inserisci la sua chiave API nelle impostazioni di traduzione.</string>
+    <string name="ai_configure_api_key">Configura chiave API</string>
+    <string name="podcast_subtitle_incomplete">I sottotitoli sono incompleti</string>
+    <string name="podcast_subtitle_resume">Continua a generare i sottotitoli</string>
+    <string name="podcast_asr_device_warning">Funzione sperimentale. Richiede molta memoria e potenza di elaborazione; il riconoscimento può aumentare il calore e il consumo della batteria.</string>
+    <string name="podcast_subtitle_save_failed">Impossibile salvare i sottotitoli. Quelli attuali sono ancora disponibili.</string>
+    <string name="podcast_subtitle_retry_save">Riprova a salvare i sottotitoli</string>
 </resources>

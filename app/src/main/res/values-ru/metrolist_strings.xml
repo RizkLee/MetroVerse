@@ -943,7 +943,7 @@
     <string name="podcast_subtitles_translation_desc">Переводит субтитры тем же ИИ-сервисом, что и тексты песен. По умолчанию выключено</string>
     <string name="podcast_subtitles_bilingual">Двуязычные субтитры</string>
     <string name="podcast_subtitles_bilingual_desc">Показывать оригинальную строку вместе с переводом</string>
-    <string name="podcast_asr_experimental_desc">Английский · около %1$s. Распознавание выполняется на устройстве.</string>
+    <string name="podcast_asr_experimental_desc">Moonshine Small Streaming · Английский · Около %1$s</string>
     <string name="podcast_asr_language">Язык распознавания</string>
     <string name="podcast_asr_language_auto">Автоопределение</string>
     <string name="podcast_asr_language_zh">Китайский</string>
@@ -986,4 +986,12 @@
     <string name="podcast_asr_model_files_missing">Выберите папку со всеми файлами модели (%1$d).</string>
     <string name="podcast_asr_model_file_invalid">Файл модели %1$s неполон или не соответствует поддерживаемой версии.</string>
     <string name="podcast_asr_model_download_failed">Не удалось скачать модель (HTTP %1$d). Повторите попытку или импортируйте папку модели.</string>
+    <string name="ai_api_key_required_title">Требуется ключ API</string>
+    <string name="ai_api_key_required_message">Выберите сервис ИИ и укажите его ключ API в настройках перевода.</string>
+    <string name="ai_configure_api_key">Настроить ключ API</string>
+    <string name="podcast_subtitle_incomplete">Субтитры созданы не полностью</string>
+    <string name="podcast_subtitle_resume">Продолжить создание субтитров</string>
+    <string name="podcast_asr_device_warning">Экспериментальная функция. Требует много памяти и вычислительных ресурсов; распознавание может усилить нагрев и расход заряда.</string>
+    <string name="podcast_subtitle_save_failed">Не удалось сохранить субтитры. Текущие субтитры по-прежнему доступны.</string>
+    <string name="podcast_subtitle_retry_save">Повторить сохранение субтитров</string>
 </resources>

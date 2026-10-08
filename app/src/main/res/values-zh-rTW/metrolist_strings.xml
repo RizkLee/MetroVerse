@@ -866,7 +866,7 @@
     <string name="podcast_subtitles_translation_desc">使用與歌詞翻譯相同的 AI 服務翻譯字幕。預設關閉</string>
     <string name="podcast_subtitles_bilingual">雙語字幕</string>
     <string name="podcast_subtitles_bilingual_desc">在譯文旁同時顯示原文</string>
-    <string name="podcast_asr_experimental_desc">英語 · 約 %1$s。辨識在本機完成。</string>
+    <string name="podcast_asr_experimental_desc">Moonshine Small Streaming · 英語 · 約 %1$s</string>
     <string name="podcast_asr_language">辨識語言</string>
     <string name="podcast_asr_language_auto">自動偵測</string>
     <string name="podcast_asr_language_zh">中文</string>
@@ -909,4 +909,12 @@
     <string name="podcast_asr_model_files_missing">請選擇包含全部 %1$d 個模型檔案的資料夾。</string>
     <string name="podcast_asr_model_file_invalid">模型檔案 %1$s 不完整或版本不相符。</string>
     <string name="podcast_asr_model_download_failed">模型下載失敗（HTTP %1$d）。請重試或從資料夾匯入。</string>
+    <string name="ai_api_key_required_title">請設定 API 金鑰</string>
+    <string name="ai_api_key_required_message">請先在翻譯設定中選擇 AI 服務並設定 API 金鑰。</string>
+    <string name="ai_configure_api_key">設定 API 金鑰</string>
+    <string name="podcast_subtitle_incomplete">字幕尚未產生完畢</string>
+    <string name="podcast_subtitle_resume">繼續產生字幕</string>
+    <string name="podcast_asr_device_warning">實驗性功能，對手機記憶體和效能要求較高，辨識時可能發熱並增加耗電。</string>
+    <string name="podcast_subtitle_save_failed">無法儲存字幕，目前仍可查看已產生的字幕。</string>
+    <string name="podcast_subtitle_retry_save">重試儲存字幕</string>
 </resources>

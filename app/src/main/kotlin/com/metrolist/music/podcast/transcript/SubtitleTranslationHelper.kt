@@ -10,6 +10,9 @@ import com.metrolist.music.R
 import com.metrolist.music.api.DeepLService
 import com.metrolist.music.api.MistralService
 import com.metrolist.music.api.OpenRouterService
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 
 /**
  * Translation configuration resolved from the same DataStore keys that power AI lyrics
@@ -47,6 +50,7 @@ object SubtitleTranslationHelper {
         config: SubtitleTranslationConfig,
         context: Context,
     ): Result<List<String>> {
+        currentCoroutineContext().ensureActive()
         if (lines.isEmpty()) return Result.success(emptyList())
         if (!config.hasCredentials) {
             return Result.failure(IllegalStateException(context.getString(R.string.ai_error_api_key_required)))
@@ -66,6 +70,8 @@ object SubtitleTranslationHelper {
                 targetLanguage = config.targetLanguage,
                 apiKey = config.deeplApiKey,
                 formality = config.deeplFormality,
+                maxRetries = 1,
+                strictLineCount = true,
             )
 
             "Mistral" -> MistralService.translate(
@@ -75,6 +81,8 @@ object SubtitleTranslationHelper {
                 model = config.model,
                 mode = config.mode,
                 customSystemPrompt = config.systemPrompt,
+                maxRetries = 1,
+                strictLineCount = true,
             )
 
             else -> OpenRouterService.translate(
@@ -85,9 +93,13 @@ object SubtitleTranslationHelper {
                 model = config.model,
                 mode = config.mode,
                 customSystemPrompt = config.systemPrompt,
+                maxRetries = 1,
+                strictLineCount = true,
             )
         }
 
+        currentCoroutineContext().ensureActive()
+        result.exceptionOrNull()?.let { if (it is CancellationException) throw it }
         return result.mapCatching { translatedLines ->
             alignTranslations(lines, translatedLines)
         }
@@ -96,6 +108,7 @@ object SubtitleTranslationHelper {
     internal fun alignTranslations(lines: List<String>, translatedLines: List<String>): List<String> {
         val nonEmpty = lines.indices.filter { lines[it].isNotBlank() }
         require(translatedLines.size == nonEmpty.size) { "Translation line count mismatch" }
+        require(translatedLines.all { it.isNotBlank() }) { "Translation contains an empty line" }
         val byIndex = nonEmpty.zip(translatedLines).toMap()
         return lines.indices.map { byIndex[it].orEmpty() }
     }

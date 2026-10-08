@@ -155,7 +155,6 @@ import com.metrolist.music.constants.PlayerButtonsStyleKey
 import com.metrolist.music.constants.PlayerHorizontalPadding
 import com.metrolist.music.constants.PodcastSubtitleTranslationEnabledKey
 import com.metrolist.music.constants.QueuePeekHeight
-import com.metrolist.music.constants.ShowPodcastSubtitlesKey
 import com.metrolist.music.constants.SliderStyle
 import com.metrolist.music.constants.SliderStyleKey
 import com.metrolist.music.constants.SquigglySliderKey
@@ -215,6 +214,7 @@ fun BottomSheetPlayer(
     pureBlack: Boolean,
 ) {
     val context = LocalContext.current
+    val navController = LocalNavController.current
     val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     val menuState = LocalMenuState.current
     val copiedTitleStr = stringResource(R.string.copied_title)
@@ -332,7 +332,7 @@ fun BottomSheetPlayer(
 
     // Podcast subtitles: transcript display, optional AI translation, optional on-device ASR.
     val podcastSubtitleManager = LocalPodcastSubtitleManager.current
-    val (showPodcastSubtitles, onShowPodcastSubtitlesChange) = rememberPreference(ShowPodcastSubtitlesKey, true)
+    val (showPodcastSubtitles, onShowPodcastSubtitlesChange) = remember { mutableStateOf(false) }
     val podcastSubtitleTranslation by rememberPreference(PodcastSubtitleTranslationEnabledKey, false)
 
     val appLanguageCode = rememberEffectiveAppLanguageCode()
@@ -428,13 +428,27 @@ fun BottomSheetPlayer(
         currentSubtitleIndex = -1
     }
 
-    LaunchedEffect(podcastSubtitleTranslation, currentSubtitleIndex, subtitleState, subtitleTranslationConfig) {
-        if (podcastSubtitleTranslation && currentSubtitleIndex >= 0) {
+    val subtitleTranslationActive = subtitleViewVisible && !state.isCollapsed && !state.isDismissed
+    LaunchedEffect(podcastSubtitleTranslation, subtitleTranslationActive, currentSubtitleIndex, subtitleState, subtitleTranslationConfig) {
+        if (podcastSubtitleTranslation && subtitleTranslationActive && currentSubtitleIndex >= 0 && subtitleTranslationConfig.hasCredentials) {
             podcastSubtitleManager?.requestTranslations(
                 centerIndex = currentSubtitleIndex,
                 config = subtitleTranslationConfig,
             )
+        } else {
+            podcastSubtitleManager?.stopTranslationRequests()
+            if (!subtitleTranslationActive) currentSubtitleIndex = -1
         }
+    }
+
+    DisposableEffect(podcastSubtitleManager) {
+        onDispose { podcastSubtitleManager?.stopTranslationRequests() }
+    }
+
+    fun configureTranslationApiKey() {
+        state.collapseSoft()
+        val requestId = android.os.SystemClock.elapsedRealtimeNanos()
+        navController.navigate("settings/ai?openApiKey=true&requestId=$requestId") { launchSingleTop = true }
     }
 
 
@@ -509,6 +523,13 @@ fun BottomSheetPlayer(
     }
 
     fun requestOnDeviceTranscription() {
+        val partial = subtitleState as? PodcastSubtitleState.Partial
+        if (partial?.transcript?.episodeId == mediaMetadata?.id &&
+            partial != null && (partial.hasPendingSave || partial.transcript.isComplete)
+        ) {
+            launchOnDeviceTranscription()
+            return
+        }
         if (subtitleModelBusy) return
         if (subtitleModelReady) {
             launchOnDeviceTranscription()
@@ -1242,6 +1263,7 @@ fun BottomSheetPlayer(
                                                 PodcastSubtitleMenu(
                                                     onDismiss = menuState::dismiss,
                                                     onResync = { subtitleResyncToken++ },
+                                                    onConfigureAi = ::configureTranslationApiKey,
                                                 )
                                             }
                                         },
@@ -1269,6 +1291,7 @@ fun BottomSheetPlayer(
                                                     songProvider = { currentSong?.song },
                                                     mediaMetadataProvider = { mediaMetadata },
                                                     onDismiss = menuState::dismiss,
+                                                    onConfigureAi = ::configureTranslationApiKey,
                                                     onShowOffsetDialog = {
                                                         bottomSheetPageState.show {
                                                             ShowOffsetDialog(
@@ -1395,6 +1418,7 @@ fun BottomSheetPlayer(
                                                     PodcastSubtitleMenu(
                                                         onDismiss = menuState::dismiss,
                                                         onResync = { subtitleResyncToken++ },
+                                                        onConfigureAi = ::configureTranslationApiKey,
                                                     )
                                                 } else {
                                                     val currentLyrics by playerConnection.currentLyrics.collectAsStateWithLifecycle(initialValue = null)
@@ -1403,6 +1427,7 @@ fun BottomSheetPlayer(
                                                         songProvider = { currentSong?.song },
                                                         mediaMetadataProvider = { mediaMetadata },
                                                         onDismiss = menuState::dismiss,
+                                                        onConfigureAi = ::configureTranslationApiKey,
                                                         onShowOffsetDialog = {
                                                             bottomSheetPageState.show {
                                                                 ShowOffsetDialog(
@@ -1967,7 +1992,6 @@ fun BottomSheetPlayer(
                                         onSeek = { target ->
                                             if (!isListenTogetherGuest) {
                                                 playerConnection.player.seekTo(target)
-                                                subtitleResyncToken++
                                             }
                                         },
                                         onStartTranscription = { requestOnDeviceTranscription() },
@@ -1975,8 +1999,9 @@ fun BottomSheetPlayer(
                                             podcastSubtitleManager?.cancelTranscription()
                                         },
                                         onDownloadModel = { requestOnDeviceTranscription() },
+                                        onRetryTranslation = { podcastSubtitleManager?.retryTranslations() },
                                         onCurrentCueChanged = { index ->
-                                            currentSubtitleIndex = index
+                                            if (subtitleTranslationActive) currentSubtitleIndex = index
                                         },
                                         onShareCues = { cues -> sharePodcastCues(cues) },
                                         resyncToken = subtitleResyncToken,
@@ -2065,7 +2090,6 @@ fun BottomSheetPlayer(
                                         onSeek = { target ->
                                             if (!isListenTogetherGuest) {
                                                 playerConnection.player.seekTo(target)
-                                                subtitleResyncToken++
                                             }
                                         },
                                         onStartTranscription = { requestOnDeviceTranscription() },
@@ -2073,8 +2097,9 @@ fun BottomSheetPlayer(
                                             podcastSubtitleManager?.cancelTranscription()
                                         },
                                         onDownloadModel = { requestOnDeviceTranscription() },
+                                        onRetryTranslation = { podcastSubtitleManager?.retryTranslations() },
                                         onCurrentCueChanged = { index ->
-                                            currentSubtitleIndex = index
+                                            if (subtitleTranslationActive) currentSubtitleIndex = index
                                         },
                                         onShareCues = { cues -> sharePodcastCues(cues) },
                                         resyncToken = subtitleResyncToken,

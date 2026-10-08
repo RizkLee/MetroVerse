@@ -936,7 +936,7 @@
     <string name="podcast_subtitles_translation_desc">Traduit les sous-titres avec le service IA configuré pour les paroles. Désactivé par défaut</string>
     <string name="podcast_subtitles_bilingual">Sous-titres bilingues</string>
     <string name="podcast_subtitles_bilingual_desc">Affiche la ligne originale avec sa traduction</string>
-    <string name="podcast_asr_experimental_desc">Anglais · env. %1$s. La reconnaissance se fait sur cet appareil.</string>
+    <string name="podcast_asr_experimental_desc">Moonshine Small Streaming · Anglais · Environ %1$s</string>
     <string name="podcast_asr_language">Langue de reconnaissance</string>
     <string name="podcast_asr_language_auto">Détection automatique</string>
     <string name="podcast_asr_language_zh">Chinois</string>
@@ -979,4 +979,12 @@
     <string name="podcast_asr_model_files_missing">Choisissez le dossier contenant les %1$d fichiers du modèle.</string>
     <string name="podcast_asr_model_file_invalid">Le fichier du modèle %1$s est incomplet ou ne correspond pas à la version prise en charge.</string>
     <string name="podcast_asr_model_download_failed">Échec du téléchargement du modèle (HTTP %1$d). Réessayez ou importez le dossier du modèle.</string>
+    <string name="ai_api_key_required_title">Clé API requise</string>
+    <string name="ai_api_key_required_message">Choisissez un fournisseur d’IA et ajoutez sa clé API dans les paramètres de traduction.</string>
+    <string name="ai_configure_api_key">Configurer la clé API</string>
+    <string name="podcast_subtitle_incomplete">Les sous-titres sont incomplets</string>
+    <string name="podcast_subtitle_resume">Continuer à générer les sous-titres</string>
+    <string name="podcast_asr_device_warning">Fonction expérimentale. Nécessite beaucoup de mémoire et de puissance de calcul ; la reconnaissance peut augmenter la chauffe et la consommation de batterie.</string>
+    <string name="podcast_subtitle_save_failed">Impossible d’enregistrer les sous-titres. Les sous-titres actuels restent disponibles.</string>
+    <string name="podcast_subtitle_retry_save">Réessayer d’enregistrer les sous-titres</string>
 </resources>
