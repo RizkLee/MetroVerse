@@ -102,7 +102,7 @@ object YTPlayerUtils {
             withContext(Dispatchers.IO) {
                 poTokenGenerator.getWebClientPoToken(POTOKEN_WARMUP_VIDEO_ID, sessionId)
             }
-        }.onFailure { Timber.tag(TAG).w(it, "PoToken prewarm skipped: ${it.message}") }
+        }.onFailure { Timber.tag(TAG).w("PoToken prewarm skipped type=${it.javaClass.simpleName}") }
     }
 
     data class PlaybackData(
@@ -156,7 +156,7 @@ object YTPlayerUtils {
                     Timber.tag(logTag).d("PoToken generated successfully")
                 }
             } catch (e: Exception) {
-                Timber.tag(logTag).e(e, "PoToken generation failed: ${e.message}")
+                Timber.tag(logTag).e("PoToken generation failed type=${e.javaClass.simpleName}")
             }
         }
 

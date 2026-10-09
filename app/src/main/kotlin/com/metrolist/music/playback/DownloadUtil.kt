@@ -16,6 +16,7 @@ import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.offline.Download
+import androidx.media3.exoplayer.offline.DownloadCursor
 import androidx.media3.exoplayer.offline.DownloadManager
 import androidx.media3.exoplayer.offline.DownloadNotificationHelper
 import com.metrolist.innertube.YouTube
@@ -280,12 +281,7 @@ constructor(
         }
 
     init {
-        val result = mutableMapOf<String, Download>()
-        val cursor = downloadManager.downloadIndex.getDownloads()
-        while (cursor.moveToNext()) {
-            result[cursor.download.request.id] = cursor.download
-        }
-        downloads.value = result
+        downloads.value = readDownloadSnapshot(downloadManager.downloadIndex.getDownloads())
     }
 
     fun getDownload(songId: String): Flow<Download?> = downloads.map { it[songId] }
@@ -305,5 +301,14 @@ constructor(
             current = current.cause
         }
         return false
+    }
+}
+
+internal fun readDownloadSnapshot(cursor: DownloadCursor): Map<String, Download> = cursor.use {
+    buildMap {
+        while (cursor.moveToNext()) {
+            val download = cursor.download
+            put(download.request.id, download)
+        }
     }
 }
