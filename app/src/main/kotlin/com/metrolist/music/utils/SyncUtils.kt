@@ -124,6 +124,96 @@ internal fun youtubeSavedEpisodeRemovalCandidates(
         episode.mediaUrl == null && episode.id !in remoteIds
     }
 
+internal fun SongEntity.isYouTubeMusicSyncCandidate(): Boolean =
+    !isLocal && !isEpisode && mediaUrl == null && !isUploaded && uploadEntityId == null && !id.startsWith("rss_episode_")
+
+internal fun youtubeMusicRemovalCandidates(
+    localSongs: List<SongEntity>,
+    remoteIds: Set<String>,
+    allowEmptyRemote: Boolean = false,
+): List<SongEntity> =
+    if (remoteIds.isEmpty() && !allowEmptyRemote) emptyList()
+    else localSongs.filter { it.isYouTubeMusicSyncCandidate() && it.id !in remoteIds }
+
+private val exactSongCountPattern = Regex(
+    """^([0-9]+|[1-9][0-9]{0,2}(?:,[0-9]{3})+|[1-9][0-9]{0,2}(?: [0-9]{3})+)(?:\s*(?:songs?|tracks?|Titel|Lieder|canciones|canción|titres?|chansons?|brani|brano|músicas?|faixas?|трек(?:а|ов)?|песня|песни|песен|首(?:歌曲|歌)?|曲|곡))?$""",
+    RegexOption.IGNORE_CASE,
+)
+
+internal fun parseExactSongCount(text: String?): Int? {
+    val normalized = text?.trim()?.replace('\u00a0', ' ')?.replace('\u202f', ' ') ?: return null
+    val count = exactSongCountPattern.matchEntire(normalized)?.groupValues?.get(1) ?: return null
+    return count.replace(",", "").replace(" ", "").toIntOrNull()
+}
+
+internal fun canRemoveMissingYouTubeLikes(songCountText: String?, remoteIds: Set<String>): Boolean =
+    parseExactSongCount(songCountText)?.let { it == remoteIds.size } == true
+
+internal suspend fun MusicDatabase.removeYouTubeLike(expected: SongEntity) {
+    if (!expected.isYouTubeMusicSyncCandidate() || !expected.liked) return
+    withTransaction {
+        val current = getSongByIdBlocking(expected.id)?.song ?: return@withTransaction
+        if (current.isYouTubeMusicSyncCandidate() && current.liked && current.likedDate == expected.likedDate) {
+            update(current.copy(liked = false, likedDate = null))
+        }
+    }
+}
+
+internal suspend fun MusicDatabase.mergeYouTubeLikedSong(
+    remote: SongItem,
+    beforeRequest: SongEntity?,
+    likedAt: LocalDateTime,
+) {
+    if (remote.isEpisode || remote.uploadEntityId != null || remote.id.startsWith("rss_episode_")) return
+    withTransaction {
+        // This wrapper uses a blocking Room transaction; suspend DAO reads can deadlock it.
+        val current = getSongByIdBlocking(remote.id)?.song
+        if (current == null) {
+            if (beforeRequest == null) {
+                insert(remote.toMediaMetadata()) { it.copy(liked = true, likedDate = likedAt) }
+            }
+        } else if (current.isYouTubeMusicSyncCandidate() && (beforeRequest?.liked != true || current.liked)) {
+            val unchangedLike = beforeRequest != null && beforeRequest.liked == current.liked &&
+                beforeRequest.likedDate == current.likedDate
+            val updated = current.copy(
+                liked = true,
+                likedDate = if (current.liked && !unchangedLike) current.likedDate ?: likedAt else likedAt,
+                isVideo = remote.isVideoSong,
+            )
+            if (updated != current) update(updated)
+        }
+    }
+}
+
+internal suspend fun MusicDatabase.removeYouTubeLibraryMembership(expected: SongEntity) {
+    if (!expected.isYouTubeMusicSyncCandidate() || expected.inLibrary == null) return
+    withTransaction {
+        val current = getSongByIdBlocking(expected.id)?.song ?: return@withTransaction
+        if (current.isYouTubeMusicSyncCandidate() && current.inLibrary == expected.inLibrary) {
+            update(current.withLibraryMembership(isInLibrary = false))
+        }
+    }
+}
+
+internal suspend fun MusicDatabase.mergeYouTubeLibrarySong(
+    remote: SongItem,
+    beforeRequest: SongEntity?,
+    addedAt: LocalDateTime,
+) {
+    if (remote.isEpisode || remote.uploadEntityId != null || remote.id.startsWith("rss_episode_")) return
+    withTransaction {
+        val current = getSongByIdBlocking(remote.id)?.song
+        if (current == null) {
+            if (beforeRequest == null) {
+                insert(remote.toMediaMetadata()) { it.withLibraryMembership(isInLibrary = true, addedAt = addedAt) }
+            }
+        } else if (current.isYouTubeMusicSyncCandidate() && (beforeRequest?.inLibrary == null || current.inLibrary != null)) {
+            val updated = current.withLibraryMembership(isInLibrary = true, addedAt = addedAt)
+            if (updated != current) update(updated)
+        }
+    }
+}
+
 @Singleton
 class SyncUtils @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -777,60 +867,54 @@ class SyncUtils @Inject constructor(
 
         updateState { copy(likedSongs = SyncStatus.Syncing, currentOperation = "Syncing liked songs") }
 
-        withRetry {
-            YouTube.playlist("LM").completed()
-        }.onSuccess { result ->
-            result.onSuccess { page ->
-                try {
-                    val remoteSongs = page.songs
-                    val remoteIds = remoteSongs.map { it.id }.toSet()
-                    val localSongs = database.likedSongEntitiesByNameAsc()
-
-                    // Remove likes from songs not in remote
-                    localSongs.filterNot { it.id in remoteIds }.forEach { song ->
-                        try {
-                            database.update(song.localToggleLike())
-                            delay(DB_OPERATION_DELAY_MS)
-                        } catch (e: Exception) {
-                            Timber.e(e, "Failed to update song: ${song.id}")
-                        }
-                    }
-
-                    // Add/update songs from remote
-                    val now = LocalDateTime.now()
-                    remoteSongs.forEachIndexed { index, song ->
-                        try {
-                            val dbSong = database.songEntity(song.id)
-                            val timestamp = now.minusSeconds(index.toLong())
-                            val isVideoSong = song.isVideoSong
-
-                            database.withTransaction {
-                                if (dbSong == null) {
-                                    insert(song.toMediaMetadata()) {
-                                        it.copy(liked = true, likedDate = timestamp, isVideo = isVideoSong)
-                                    }
-                                } else if (!dbSong.liked || dbSong.likedDate != timestamp || dbSong.isVideo != isVideoSong) {
-                                    update(dbSong.copy(liked = true, likedDate = timestamp, isVideo = isVideoSong))
-                                }
-                            }
-                            delay(DB_OPERATION_DELAY_MS)
-                        } catch (e: Exception) {
-                            Timber.e(e, "Failed to process song: ${song.id}")
-                        }
-                    }
-
-                    updateState { copy(likedSongs = SyncStatus.Completed) }
-                    Timber.d("Synced ${remoteSongs.size} liked songs")
-                } catch (e: Exception) {
-                    Timber.e(e, "Error processing liked songs")
-                    updateState { copy(likedSongs = SyncStatus.Error(e.message ?: "Unknown error")) }
+        try {
+            // Only a pre-request snapshot may authorize removals; keep changes made while fetching.
+            val localSongs = database.likedSongEntitiesByNameAsc()
+            val beforeRequest = localSongs.associateBy { it.id }
+            withRetry {
+                YouTube.playlist("LM").completed(requireComplete = true).getOrThrow()
+            }.onSuccess { page ->
+                val remoteSongs = page.songs.distinctBy { it.id }
+                val remoteIds = remoteSongs.map { it.id }.toSet()
+                val removals = if (canRemoveMissingYouTubeLikes(page.playlist.songCountText, remoteIds)) {
+                    youtubeMusicRemovalCandidates(localSongs, remoteIds, allowEmptyRemote = true)
+                } else {
+                    Timber.w("Keeping unmatched liked songs because the remote song count is not verified")
+                    emptyList()
                 }
+                removals.forEach { song ->
+                    try {
+                        database.removeYouTubeLike(song)
+                        delay(DB_OPERATION_DELAY_MS)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        Timber.e(e, "Failed to update song: ${song.id}")
+                    }
+                }
+
+                val now = LocalDateTime.now()
+                remoteSongs.forEachIndexed { index, song ->
+                    try {
+                        database.mergeYouTubeLikedSong(song, beforeRequest[song.id], now.minusSeconds(index.toLong()))
+                        delay(DB_OPERATION_DELAY_MS)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        Timber.e(e, "Failed to process song: ${song.id}")
+                    }
+                }
+
+                updateState { copy(likedSongs = SyncStatus.Completed) }
+                Timber.d("Synced ${remoteSongs.size} liked songs")
             }.onFailure { e ->
-                Timber.e(e, "Failed to fetch liked songs from YouTube")
+                Timber.e(e, "Failed to sync liked songs after retries")
                 updateState { copy(likedSongs = SyncStatus.Error(e.message ?: "Unknown error")) }
             }
-        }.onFailure { e ->
-            Timber.e(e, "Failed to sync liked songs after retries")
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Timber.e(e, "Error processing liked songs")
             updateState { copy(likedSongs = SyncStatus.Error(e.message ?: "Unknown error")) }
         }
     }
@@ -843,52 +927,47 @@ class SyncUtils @Inject constructor(
 
         updateState { copy(librarySongs = SyncStatus.Syncing, currentOperation = "Syncing library songs") }
 
-        withRetry {
-            YouTube.library("FEmusic_liked_videos").completed()
-        }.onSuccess { result ->
-            result.onSuccess { page ->
-                try {
-                    val remoteSongs = page.items.filterIsInstance<SongItem>().reversed()
-                    val remoteIds = remoteSongs.map { it.id }.toSet()
-                    val localSongs = database.librarySongEntitiesByNameAsc()
-
-                    localSongs.filterNot { it.id in remoteIds }.forEach { song ->
-                        try {
-                            database.update(song.toggleLibrary(syncToYouTube = false))
-                            delay(DB_OPERATION_DELAY_MS)
-                        } catch (e: Exception) {
-                            Timber.e(e, "Failed to update song: ${song.id}")
-                        }
+        try {
+            val localSongs = database.librarySongEntitiesByNameAsc()
+            val beforeRequest = localSongs.associateBy { it.id }
+            withRetry {
+                YouTube.library("FEmusic_liked_videos").completed(requireComplete = true).getOrThrow()
+            }.onSuccess { page ->
+                val remoteSongs = page.items.filterIsInstance<SongItem>().reversed().distinctBy { it.id }
+                val remoteIds = remoteSongs.map { it.id }.toSet()
+                // An unrecognized library layout is also parsed as empty, so it cannot authorize removals.
+                youtubeMusicRemovalCandidates(localSongs, remoteIds).forEach { song ->
+                    try {
+                        database.removeYouTubeLibraryMembership(song)
+                        delay(DB_OPERATION_DELAY_MS)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        Timber.e(e, "Failed to update song: ${song.id}")
                     }
-
-                    remoteSongs.forEach { song ->
-                        try {
-                            val dbSong = database.songEntity(song.id)
-                            database.withTransaction {
-                                if (dbSong == null) {
-                                    insert(song.toMediaMetadata()) { it.toggleLibrary(syncToYouTube = false) }
-                                } else if (dbSong.inLibrary == null) {
-                                    update(dbSong.toggleLibrary(syncToYouTube = false))
-                                }
-                            }
-                            delay(DB_OPERATION_DELAY_MS)
-                        } catch (e: Exception) {
-                            Timber.e(e, "Failed to process song: ${song.id}")
-                        }
-                    }
-
-                    updateState { copy(librarySongs = SyncStatus.Completed) }
-                    Timber.d("Synced ${remoteSongs.size} library songs")
-                } catch (e: Exception) {
-                    Timber.e(e, "Error processing library songs")
-                    updateState { copy(librarySongs = SyncStatus.Error(e.message ?: "Unknown error")) }
                 }
+
+                remoteSongs.forEach { song ->
+                    try {
+                        database.mergeYouTubeLibrarySong(song, beforeRequest[song.id], LocalDateTime.now())
+                        delay(DB_OPERATION_DELAY_MS)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        Timber.e(e, "Failed to process song: ${song.id}")
+                    }
+                }
+
+                updateState { copy(librarySongs = SyncStatus.Completed) }
+                Timber.d("Synced ${remoteSongs.size} library songs")
             }.onFailure { e ->
-                Timber.e(e, "Failed to fetch library songs from YouTube")
+                Timber.e(e, "Failed to sync library songs after retries")
                 updateState { copy(librarySongs = SyncStatus.Error(e.message ?: "Unknown error")) }
             }
-        }.onFailure { e ->
-            Timber.e(e, "Failed to sync library songs after retries")
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Timber.e(e, "Error processing library songs")
             updateState { copy(librarySongs = SyncStatus.Error(e.message ?: "Unknown error")) }
         }
     }

@@ -87,6 +87,48 @@ import timber.log.Timber
 import java.net.Proxy
 import kotlin.random.Random
 
+internal fun parsePlaylistContinuation(
+    response: BrowseResponse,
+    preserveEmptyContinuation: Boolean = false,
+): PlaylistContinuationPage {
+    val mainContents = response.continuationContents
+        ?.sectionListContinuation
+        ?.contents
+        ?.flatMap { content ->
+            content.musicPlaylistShelfRenderer?.contents
+                ?: content.musicShelfRenderer?.contents.orEmpty()
+        }.orEmpty()
+    val shelfContents = response.continuationContents?.musicPlaylistShelfContinuation?.contents.orEmpty()
+    val musicShelfContents = response.continuationContents?.musicShelfContinuation?.contents.orEmpty()
+    val actions = response.onResponseReceivedActions.orEmpty()
+    val appendedContents = if (preserveEmptyContinuation) {
+        actions.flatMap { it.appendContinuationItemsAction?.continuationItems.orEmpty() }
+    } else {
+        actions.firstOrNull()?.appendContinuationItemsAction?.continuationItems.orEmpty()
+    }
+    val songs = (mainContents + shelfContents + musicShelfContents + appendedContents)
+        .mapNotNull { it.musicResponsiveListItemRenderer }
+        .mapNotNull { PlaylistPage.fromMusicResponsiveListItemRenderer(it) }
+    val nextContinuation = if (songs.isEmpty() && !preserveEmptyContinuation) {
+        null
+    } else {
+        response.continuationContents
+            ?.sectionListContinuation
+            ?.continuations
+            ?.getContinuation()
+            ?: response.continuationContents
+                ?.musicPlaylistShelfContinuation
+                ?.continuations
+                ?.getContinuation()
+            ?: response.continuationContents
+                ?.musicShelfContinuation
+                ?.continuations
+                ?.getContinuation()
+            ?: appendedContents.getContinuation()
+    }
+    return PlaylistContinuationPage(songs, nextContinuation)
+}
+
 /**
  * Parse useful data with [InnerTube] sending requests.
  * Modified from [ViMusic](https://github.com/vfsfitvnm/ViMusic)
@@ -1170,7 +1212,10 @@ object YouTube {
             )
         }
 
-    suspend fun playlistContinuation(continuation: String): Result<PlaylistContinuationPage> =
+    suspend fun playlistContinuation(
+        continuation: String,
+        preserveEmptyContinuation: Boolean = false,
+    ): Result<PlaylistContinuationPage> =
         runCatching {
             val response =
                 innerTube
@@ -1180,64 +1225,7 @@ object YouTube {
                         setLogin = true,
                     ).body<BrowseResponse>()
 
-            val mainContents: List<MusicShelfRenderer.Content> =
-                response.continuationContents
-                    ?.sectionListContinuation
-                    ?.contents
-                    ?.mapNotNull { content: SectionListRenderer.Content ->
-                        content.musicPlaylistShelfRenderer?.contents
-                            ?: content.musicShelfRenderer?.contents
-                    }
-                    ?.flatten()
-                    ?: emptyList()
-
-            val shelfContents: List<MusicShelfRenderer.Content> =
-                response.continuationContents?.musicPlaylistShelfContinuation?.contents ?: emptyList()
-
-            val musicShelfContinuationContents: List<MusicShelfRenderer.Content> =
-                response.continuationContents?.musicShelfContinuation?.contents ?: emptyList()
-
-            val appendedContents: List<MusicShelfRenderer.Content> =
-                response.onResponseReceivedActions
-                    ?.firstOrNull()
-                    ?.appendContinuationItemsAction
-                    ?.continuationItems
-                    .orEmpty()
-
-            val allContents = mainContents + shelfContents + musicShelfContinuationContents + appendedContents
-
-            val songs =
-                allContents
-                    .mapNotNull { content: MusicShelfRenderer.Content -> content.musicResponsiveListItemRenderer }
-                    .mapNotNull { renderer -> PlaylistPage.fromMusicResponsiveListItemRenderer(renderer) }
-
-            val nextContinuation =
-                if (songs.isEmpty()) {
-                    null
-                } else {
-                    response.continuationContents
-                        ?.sectionListContinuation
-                        ?.continuations
-                        ?.getContinuation()
-                        ?: response.continuationContents
-                            ?.musicPlaylistShelfContinuation
-                            ?.continuations
-                            ?.getContinuation()
-                        ?: response.continuationContents
-                            ?.musicShelfContinuation
-                            ?.continuations
-                            ?.getContinuation()
-                        ?: response.onResponseReceivedActions
-                            ?.firstOrNull()
-                            ?.appendContinuationItemsAction
-                            ?.continuationItems
-                            ?.getContinuation()
-                }
-
-            PlaylistContinuationPage(
-                songs = songs,
-                continuation = nextContinuation,
-            )
+            parsePlaylistContinuation(response, preserveEmptyContinuation)
         }
 
     suspend fun podcast(podcastId: String): Result<PodcastPage> = podcastWithDebug(podcastId) { }

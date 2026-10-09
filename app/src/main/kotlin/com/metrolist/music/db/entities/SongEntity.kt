@@ -77,6 +77,11 @@ data class SongEntity(
             likedDate = if (!liked) LocalDateTime.now() else null,
         )
 
+    fun withLibraryMembership(
+        isInLibrary: Boolean,
+        addedAt: LocalDateTime = LocalDateTime.now(),
+    ) = copy(inLibrary = if (isInLibrary) inLibrary ?: addedAt else null)
+
     fun toggleLike() =
         copy(
             liked = !liked,
