@@ -76,10 +76,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -168,6 +170,7 @@ import com.metrolist.music.extensions.togglePlayPause
 import com.metrolist.music.extensions.toggleRepeatMode
 import com.metrolist.music.listentogether.RoomRole
 import com.metrolist.music.models.MediaMetadata
+import com.metrolist.music.podcast.transcript.PodcastSubtitleOffsetStore
 import com.metrolist.music.podcast.transcript.PodcastSubtitleState
 import com.metrolist.music.podcast.transcript.PodcastTranslationStatus
 import com.metrolist.music.podcast.transcript.SubtitleCue
@@ -188,6 +191,7 @@ import com.metrolist.music.ui.menu.PodcastSubtitleMenu
 import com.metrolist.music.ui.screens.settings.DarkMode
 import com.metrolist.music.ui.theme.PlayerColorExtractor
 import com.metrolist.music.ui.theme.PlayerSliderColors
+import com.metrolist.music.ui.utils.PodcastSubtitleOffsetDialog
 import com.metrolist.music.ui.utils.ShowMediaInfo
 import com.metrolist.music.ui.utils.ShowOffsetDialog
 import com.metrolist.music.ui.utils.rememberEffectiveAppLanguageCode
@@ -197,6 +201,7 @@ import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -334,6 +339,43 @@ fun BottomSheetPlayer(
     val podcastSubtitleManager = LocalPodcastSubtitleManager.current
     val (showPodcastSubtitles, onShowPodcastSubtitlesChange) = remember { mutableStateOf(false) }
     val podcastSubtitleTranslation by rememberPreference(PodcastSubtitleTranslationEnabledKey, false)
+    val subtitleEpisodeId = mediaMetadata?.takeIf { it.isEpisode }?.id
+    val subtitleOffsetStore = remember(context) { PodcastSubtitleOffsetStore(context) }
+    val subtitleOffsetScope = rememberCoroutineScope()
+    val subtitleOffsetMs by key(subtitleEpisodeId) {
+        remember(subtitleOffsetStore, subtitleEpisodeId) {
+            subtitleEpisodeId?.let(subtitleOffsetStore::offsetMs) ?: flowOf(0)
+        }.collectAsStateWithLifecycle(initialValue = 0)
+    }
+    var subtitleOffsetDialogEpisodeId by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(subtitleEpisodeId, subtitleOffsetDialogEpisodeId) {
+        if (subtitleOffsetDialogEpisodeId != null && subtitleOffsetDialogEpisodeId != subtitleEpisodeId) {
+            bottomSheetPageState.dismiss()
+            subtitleOffsetDialogEpisodeId = null
+        }
+    }
+
+    fun showPodcastSubtitleOffset() {
+        val episodeId = subtitleEpisodeId ?: return
+        if (playerConnection.player.currentMediaItem?.mediaId != episodeId) return
+        val initialOffsetMs = subtitleOffsetMs
+        subtitleOffsetDialogEpisodeId = episodeId
+        bottomSheetPageState.show {
+            DisposableEffect(episodeId) {
+                onDispose {
+                    if (subtitleOffsetDialogEpisodeId == episodeId) subtitleOffsetDialogEpisodeId = null
+                }
+            }
+            PodcastSubtitleOffsetDialog(
+                episodeId = episodeId,
+                initialOffsetMs = initialOffsetMs,
+                onOffsetChange = { offsetMs ->
+                    subtitleOffsetScope.launch { subtitleOffsetStore.setOffsetMs(episodeId, offsetMs) }
+                },
+            )
+        }
+    }
 
     val appLanguageCode = rememberEffectiveAppLanguageCode()
     val openRouterApiKey by rememberPreference(OpenRouterApiKey, "")
@@ -389,6 +431,16 @@ fun BottomSheetPlayer(
         mediaMetadata?.isEpisode == true &&
             showPodcastSubtitles &&
             subtitleState != PodcastSubtitleState.Idle
+    DisposableEffect(subtitleEpisodeId, subtitleViewVisible) {
+        onDispose {
+            if (subtitleViewVisible) isFullScreen = false
+        }
+    }
+    LaunchedEffect(subtitleEpisodeId, subtitleViewVisible) {
+        // Subtitle visibility starts closed after recreation; a restored fullscreen flag must
+        // not leave the cover displayed without playback controls or an exit button.
+        if (subtitleEpisodeId != null && !subtitleViewVisible) isFullScreen = false
+    }
     val playerContentMode =
         when {
             subtitleViewVisible -> PlayerContentMode.SUBTITLES
@@ -405,6 +457,27 @@ fun BottomSheetPlayer(
     }
     var subtitleResyncToken by rememberSaveable { mutableStateOf(0) }
     var currentSubtitleIndex by rememberSaveable { mutableStateOf(-1) }
+
+    DisposableEffect(playerConnection.player, podcastSubtitleManager, subtitleEpisodeId) {
+        val player = playerConnection.player
+        val manager = podcastSubtitleManager
+        val episodeId = subtitleEpisodeId
+        val listener = object : Player.Listener {
+            override fun onPositionDiscontinuity(
+                oldPosition: Player.PositionInfo,
+                newPosition: Player.PositionInfo,
+                reason: Int,
+            ) {
+                if (reason != Player.DISCONTINUITY_REASON_SEEK || episodeId == null ||
+                    oldPosition.mediaItem?.mediaId != episodeId || newPosition.mediaItem?.mediaId != episodeId
+                ) return
+                manager?.onPlaybackSeek(episodeId, oldPosition.positionMs, newPosition.positionMs)
+                subtitleResyncToken++
+            }
+        }
+        if (episodeId != null && manager != null) player.addListener(listener)
+        onDispose { player.removeListener(listener) }
+    }
 
     fun sharePodcastCues(cues: List<SubtitleCue>) {
         val metadata = mediaMetadata ?: return
@@ -515,10 +588,19 @@ fun BottomSheetPlayer(
 
     fun launchOnDeviceTranscription() {
         val manager = podcastSubtitleManager ?: return
-        val metadata = mediaMetadata ?: return
+        val metadata = mediaMetadata?.takeIf { it.isEpisode } ?: return
+        if (playerConnection.player.currentMediaItem?.mediaId != metadata.id) return
         manager.startTranscription(
             metadata = metadata,
             durationMs = duration,
+            positionProvider = {
+                val currentPosition = if (castHandler?.isCasting?.value == true) {
+                    castHandler.castPosition.value
+                } else {
+                    playerConnection.player.currentPosition
+                }
+                currentPosition.coerceAtLeast(0L)
+            },
         )
     }
 
@@ -556,6 +638,24 @@ fun BottomSheetPlayer(
     }
     // Track when we last manually set position to avoid Cast overwriting it
     var lastManualSeekTime by remember { mutableLongStateOf(0L) }
+
+    fun seekToSubtitlePosition(target: Long) {
+        if (isListenTogetherGuest) return
+        val clampedTarget = target.coerceIn(0L, duration.takeIf { it > 0L } ?: Long.MAX_VALUE)
+        val castSeekOrigin = pendingSeekPosition ?: castPosition
+        pendingSeekPosition = clampedTarget
+        if (isCasting) {
+            castHandler?.seekTo(clampedTarget)
+            mediaMetadata?.takeIf { it.isEpisode }?.let { metadata ->
+                podcastSubtitleManager?.onPlaybackSeek(metadata.id, castSeekOrigin, clampedTarget)
+            }
+            lastManualSeekTime = System.currentTimeMillis()
+        } else {
+            playerConnection.player.seekTo(clampedTarget)
+        }
+        position = clampedTarget
+        subtitleResyncToken++
+    }
 
     var gradientColors by remember {
         mutableStateOf<List<Color>>(emptyList())
@@ -987,6 +1087,10 @@ fun BottomSheetPlayer(
             )
         },
     ) {
+        // Register inside the sheet so this takes precedence over its predictive collapse handler.
+        BackHandler(enabled = state.isExpanded && subtitleViewVisible && isFullScreen) {
+            isFullScreen = false
+        }
         val controlsContent: @Composable ColumnScope.(MediaMetadata) -> Unit = { mediaMetadata ->
             val playPauseRoundness by animateDpAsState(
                 targetValue = if (isPlaying) 24.dp else 36.dp,
@@ -1204,8 +1308,8 @@ fun BottomSheetPlayer(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        AnimatedContent(targetState = showInlineLyrics, label = "ShareButton") { showLyrics ->
-                            if (showLyrics) {
+                        AnimatedContent(targetState = showInlineLyrics || subtitleViewVisible, label = "ShareButton") { showText ->
+                            if (showText) {
                                 FilledIconButton(
                                     onClick = { isFullScreen = !isFullScreen },
                                     shape = shareShape,
@@ -1214,11 +1318,13 @@ fun BottomSheetPlayer(
                                             containerColor = textButtonColor,
                                             contentColor = iconButtonColor,
                                         ),
-                                    modifier = Modifier.size(42.dp),
+                                    modifier = Modifier.size(48.dp),
                                 ) {
                                     Icon(
-                                        painter = painterResource(R.drawable.fullscreen),
-                                        contentDescription = null,
+                                        painter = painterResource(if (subtitleViewVisible && isFullScreen) R.drawable.close else R.drawable.fullscreen),
+                                        contentDescription = if (subtitleViewVisible) stringResource(
+                                            if (isFullScreen) R.string.podcast_subtitle_exit_fullscreen else R.string.podcast_subtitle_fullscreen,
+                                        ) else null,
                                         modifier = Modifier.size(24.dp),
                                     )
                                 }
@@ -1264,6 +1370,8 @@ fun BottomSheetPlayer(
                                                     onDismiss = menuState::dismiss,
                                                     onResync = { subtitleResyncToken++ },
                                                     onConfigureAi = ::configureTranslationApiKey,
+                                                    offsetProvider = { subtitleOffsetMs },
+                                                    onShowOffsetDialog = ::showPodcastSubtitleOffset,
                                                 )
                                             }
                                         },
@@ -1348,19 +1456,21 @@ fun BottomSheetPlayer(
                         }
                     }
                 } else {
-                    AnimatedContent(targetState = showInlineLyrics, label = "ShareButton") { showLyrics ->
-                        if (showLyrics) {
+                    AnimatedContent(targetState = showInlineLyrics || subtitleViewVisible, label = "ShareButton") { showText ->
+                        if (showText) {
                             Box(
                                 modifier =
                                     Modifier
-                                        .size(40.dp)
+                                        .size(48.dp)
                                         .clip(RoundedCornerShape(24.dp))
                                         .background(textButtonColor)
                                         .clickable { isFullScreen = !isFullScreen },
                             ) {
                                 Icon(
-                                    painter = painterResource(R.drawable.fullscreen),
-                                    contentDescription = null,
+                                    painter = painterResource(if (subtitleViewVisible && isFullScreen) R.drawable.close else R.drawable.fullscreen),
+                                    contentDescription = if (subtitleViewVisible) stringResource(
+                                        if (isFullScreen) R.string.podcast_subtitle_exit_fullscreen else R.string.podcast_subtitle_fullscreen,
+                                    ) else null,
                                     tint = iconButtonColor,
                                     modifier =
                                         Modifier
@@ -1419,6 +1529,8 @@ fun BottomSheetPlayer(
                                                         onDismiss = menuState::dismiss,
                                                         onResync = { subtitleResyncToken++ },
                                                         onConfigureAi = ::configureTranslationApiKey,
+                                                        offsetProvider = { subtitleOffsetMs },
+                                                        onShowOffsetDialog = ::showPodcastSubtitleOffset,
                                                     )
                                                 } else {
                                                     val currentLyrics by playerConnection.currentLyrics.collectAsStateWithLifecycle(initialValue = null)
@@ -1466,12 +1578,16 @@ fun BottomSheetPlayer(
 
             fun seekToPosition(target: Long) {
                 val clampedTarget = target.coerceIn(0L, duration.takeIf { it > 0L } ?: Long.MAX_VALUE)
+                val castSeekOrigin = pendingSeekPosition ?: castPosition
                 pendingSeekPosition = clampedTarget
                 if (mediaMetadata.isEpisode) {
                     subtitleResyncToken++
                 }
                 if (isCasting) {
                     castHandler?.seekTo(clampedTarget)
+                    if (mediaMetadata.isEpisode) {
+                        podcastSubtitleManager?.onPlaybackSeek(mediaMetadata.id, castSeekOrigin, clampedTarget)
+                    }
                     lastManualSeekTime = System.currentTimeMillis()
                 } else {
                     playerConnection.player.seekTo(clampedTarget)
@@ -1975,7 +2091,7 @@ fun BottomSheetPlayer(
                                         positionProvider = { effectivePosition },
                                     )
                                 }
-                                PlayerContentMode.SUBTITLES -> {
+                                PlayerContentMode.SUBTITLES -> key(subtitleEpisodeId) {
                                     PodcastSubtitleView(
                                         state = subtitleState,
                                         translations = subtitleTranslations,
@@ -1989,11 +2105,8 @@ fun BottomSheetPlayer(
                                         asrModelReady = subtitleModelReady,
                                         asrModelBusy = subtitleModelBusy,
                                         asrModelError = subtitleModelError,
-                                        onSeek = { target ->
-                                            if (!isListenTogetherGuest) {
-                                                playerConnection.player.seekTo(target)
-                                            }
-                                        },
+                                        offsetMs = subtitleOffsetMs,
+                                        onSeek = ::seekToSubtitlePosition,
                                         onStartTranscription = { requestOnDeviceTranscription() },
                                         onCancelTranscription = {
                                             podcastSubtitleManager?.cancelTranscription()
@@ -2073,7 +2186,7 @@ fun BottomSheetPlayer(
                                         positionProvider = { effectivePosition },
                                     )
                                 }
-                                PlayerContentMode.SUBTITLES -> {
+                                PlayerContentMode.SUBTITLES -> key(subtitleEpisodeId) {
                                     PodcastSubtitleView(
                                         state = subtitleState,
                                         translations = subtitleTranslations,
@@ -2087,11 +2200,8 @@ fun BottomSheetPlayer(
                                         asrModelReady = subtitleModelReady,
                                         asrModelBusy = subtitleModelBusy,
                                         asrModelError = subtitleModelError,
-                                        onSeek = { target ->
-                                            if (!isListenTogetherGuest) {
-                                                playerConnection.player.seekTo(target)
-                                            }
-                                        },
+                                        offsetMs = subtitleOffsetMs,
+                                        onSeek = ::seekToSubtitlePosition,
                                         onStartTranscription = { requestOnDeviceTranscription() },
                                         onCancelTranscription = {
                                             podcastSubtitleManager?.cancelTranscription()

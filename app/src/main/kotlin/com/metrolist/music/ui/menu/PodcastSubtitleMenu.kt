@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -44,6 +45,8 @@ fun PodcastSubtitleMenu(
     onDismiss: () -> Unit,
     onResync: () -> Unit,
     onConfigureAi: () -> Unit,
+    offsetProvider: () -> Int,
+    onShowOffsetDialog: () -> Unit,
 ) {
     val manager = LocalPodcastSubtitleManager.current
     var translationEnabled by rememberPreference(PodcastSubtitleTranslationEnabledKey, false)
@@ -148,6 +151,21 @@ fun PodcastSubtitleMenu(
                 onClick = {
                     onResync()
                     onDismiss()
+                },
+            ),
+            Material3MenuItemData(
+                icon = { Icon(painterResource(R.drawable.fast_forward), null) },
+                title = { Text(stringResource(R.string.podcast_subtitle_offset)) },
+                trailingContent = {
+                    Text(
+                        text = stringResource(R.string.podcast_subtitle_offset_value, offsetProvider()),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                onClick = {
+                    onDismiss()
+                    onShowOffsetDialog()
                 },
             ),
             Material3MenuItemData(

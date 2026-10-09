@@ -50,6 +50,9 @@ private const val METROLIST_REPOSITORY = "https://github.com/MetrolistGroup/Metr
 private const val PODIUM_REPOSITORY = "https://github.com/aimok04/podium"
 private const val APPLE_PODCASTS = "https://www.apple.com/apple-podcasts/"
 
+private const val MOONSHINE_REPOSITORY = "https://github.com/moonshine-ai/moonshine/tree/v0.1.5"
+private const val ONNX_RUNTIME_REPOSITORY = "https://github.com/microsoft/onnxruntime/tree/v1.23.2"
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutScreen(
@@ -179,6 +182,18 @@ fun AboutScreen(
                         title = { Text("Apple Podcasts") },
                         description = { Text(stringResource(R.string.metroverse_apple_podcasts_attribution)) },
                         onClick = { uriHandler.openUri(APPLE_PODCASTS) },
+                    ),
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.mic),
+                        title = { Text("Moonshine") },
+                        description = { Text(stringResource(R.string.metroverse_moonshine_attribution)) },
+                        onClick = { uriHandler.openUri(MOONSHINE_REPOSITORY) },
+                    ),
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.speed),
+                        title = { Text("ONNX Runtime") },
+                        description = { Text(stringResource(R.string.metroverse_onnx_attribution)) },
+                        onClick = { uriHandler.openUri(ONNX_RUNTIME_REPOSITORY) },
                     ),
                 ),
         )

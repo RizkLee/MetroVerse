@@ -51,6 +51,27 @@ class SubtitleSeekPreviewTest {
     }
 
     @Test
+    fun backfillKeepsTheTappedCueUntilPlaybackAcknowledgesTheSeek() {
+        val preview = SubtitleSeekPreview()
+        preview.request(2, 1_000, "tapped")
+        val updatedKeys = listOf("earlier", "first", "second", "tapped")
+
+        assertEquals(3, preview.index(1, updatedKeys.size, 1_250, updatedKeys::indexOf))
+        assertEquals(3, preview.index(3, updatedKeys.size, 1_500, updatedKeys::indexOf))
+        assertEquals(2, preview.index(2, updatedKeys.size, 1_750, updatedKeys::indexOf))
+    }
+
+    @Test
+    fun replacingTheTappedCueCannotPreviewAnUnrelatedCueAtTheSameIndex() {
+        val preview = SubtitleSeekPreview()
+        preview.request(2, 1_000, "removed")
+        val updatedKeys = listOf("first", "second", "replacement")
+
+        assertEquals(0, preview.index(0, updatedKeys.size, 1_250, updatedKeys::indexOf))
+        assertEquals(1, preview.index(1, updatedKeys.size, 1_500, updatedKeys::indexOf))
+    }
+
+    @Test
     fun pausedSeekAtSharedCueBoundaryKeepsTheSelectedLineAfterTimeout() {
         val cues = listOf(
             SubtitleCue(0, 1_000, "First"),

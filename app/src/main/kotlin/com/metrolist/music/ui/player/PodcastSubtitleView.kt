@@ -13,7 +13,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.layout.Arrangement
@@ -31,8 +30,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -51,11 +52,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -64,16 +68,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.metrolist.music.R
+import com.metrolist.music.podcast.transcript.AsrRecognitionPhase
 import com.metrolist.music.podcast.transcript.PodcastAsrSupport
 import com.metrolist.music.podcast.transcript.PodcastSubtitleState
 import com.metrolist.music.podcast.transcript.PodcastTranslationStatus
 import com.metrolist.music.podcast.transcript.SubtitleCue
+import com.metrolist.music.podcast.transcript.SubtitleTimingOffset
 import kotlinx.coroutines.delay
 import com.metrolist.music.ui.utils.fadingEdge
 
+private val SubtitleCueSelectionSaver = listSaver<Set<String>, String>(
+    save = { it.toList() },
+    restore = { it.toSet() },
+)
+
 /**
  * Full-size podcast transcript view shown in the player's thumbnail slot (the same area the
- * inline lyrics use). Displays whole lines without truncation, keeps the active line centered
+ * inline lyrics use). Displays whole lines without truncation, keeps the active line near the top
  * with a lyrics-like highlight, and offers the on-device recognition entry point directly when
  * the episode has no transcript.
  */
@@ -91,6 +102,7 @@ fun PodcastSubtitleView(
     asrModelReady: Boolean = false,
     asrModelBusy: Boolean = false,
     asrModelError: String? = null,
+    offsetMs: Int = 0,
     onSeek: (Long) -> Unit = {},
     onStartTranscription: () -> Unit = {},
     onCancelTranscription: () -> Unit = {},
@@ -182,6 +194,7 @@ fun PodcastSubtitleView(
                     if (state is PodcastSubtitleState.Transcribing) {
                         TranscriptionProgressBar(
                             progressPercent = state.progressPercent,
+                            phase = state.phase,
                             textColor = textColor,
                             onCancel = onCancelTranscription,
                             modifier = Modifier
@@ -217,6 +230,7 @@ fun PodcastSubtitleView(
                                 Spacer(Modifier.width(8.dp))
                                 Text(stringResource(
                                     if (state.hasPendingSave || state.transcript.isComplete) R.string.podcast_subtitle_retry_save
+                                    else if (!state.canResume) R.string.podcast_subtitle_asr_retry
                                     else R.string.podcast_subtitle_resume,
                                 ))
                             }
@@ -227,6 +241,7 @@ fun PodcastSubtitleView(
                             cues = cues,
                             translations = translations,
                             positionProvider = positionProvider,
+                            offsetMs = offsetMs,
                             showTranslation = showTranslation,
                             translationMissingCredentials = translationMissingCredentials,
                             textColor = textColor,
@@ -250,6 +265,7 @@ private fun SubtitleCueList(
     cues: List<SubtitleCue>,
     translations: Map<Int, String>,
     positionProvider: () -> Long,
+    offsetMs: Int,
     showTranslation: Boolean,
     translationMissingCredentials: Boolean,
     textColor: Color,
@@ -262,19 +278,31 @@ private fun SubtitleCueList(
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
+    val cueIdentityCache = remember { SubtitleCueIdentityCache() }
+    val keyedCues = remember(cues) { cueIdentityCache.keyedCues(cues) }
     val scope = rememberCoroutineScope()
     val autoScrollController = remember(scope) { SubtitleAutoScrollController(scope) }
     val autoScroll by autoScrollController.following.collectAsStateWithLifecycle()
     val seekPreview = remember { SubtitleSeekPreview() }
     val currentPositionProvider by rememberUpdatedState(positionProvider)
+    val currentOffsetMs by rememberUpdatedState(offsetMs)
     val currentCueChanged by rememberUpdatedState(onCurrentCueChanged)
-    var currentIndex by remember { mutableIntStateOf(PodcastAsrSupport.cueIndexAt(cues, positionProvider())) }
+    var currentIndex by remember {
+        mutableIntStateOf(PodcastAsrSupport.cueIndexAt(cues, SubtitleTimingOffset.subtitlePosition(positionProvider(), offsetMs)))
+    }
     var selectionMode by rememberSaveable { mutableStateOf(false) }
-    var selectedIndices by rememberSaveable { mutableStateOf<Set<Int>>(emptySet()) }
+    var selectedCueKeys by rememberSaveable(stateSaver = SubtitleCueSelectionSaver) {
+        mutableStateOf<Set<String>>(emptySet())
+    }
+    val selectedCues = remember(keyedCues, selectedCueKeys) { selectedSubtitleCues(keyedCues, selectedCueKeys) }
+    var translationHeaderHeightPx by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(cues) {
-        selectionMode = false
-        selectedIndices = emptySet()
+    LaunchedEffect(keyedCues) {
+        selectedCueKeys = retainSubtitleCueSelection(keyedCues, selectedCueKeys)
+    }
+
+    LaunchedEffect(selectionMode) {
+        if (selectionMode) autoScrollController.pause()
     }
 
     // Follow playback like the lyrics view, but pause while the user drags through the
@@ -293,9 +321,13 @@ private fun SubtitleCueList(
     LaunchedEffect(cues) {
         while (true) {
             currentIndex = seekPreview.index(
-                PodcastAsrSupport.cueIndexAt(cues, currentPositionProvider()),
+                PodcastAsrSupport.cueIndexAt(
+                    cues,
+                    SubtitleTimingOffset.subtitlePosition(currentPositionProvider(), currentOffsetMs),
+                ),
                 cues.size,
                 SystemClock.elapsedRealtime(),
+                cueIndexForKey = { key -> keyedCues.indexOfFirst { it.key == key } },
             )
             currentCueChanged(currentIndex)
             delay(positionUpdateIntervalMs)
@@ -303,29 +335,39 @@ private fun SubtitleCueList(
     }
 
     LaunchedEffect(resyncToken) {
-        autoScrollController.resume()
+        if (!selectionMode) autoScrollController.resume()
     }
 
     val hintCount = if (translationMissingCredentials && showTranslation) 1 else 0
-    LaunchedEffect(currentIndex, autoScroll, cues.size, resyncToken, hintCount) {
-        if (autoScroll && currentIndex >= 0 && cues.isNotEmpty()) {
-            listState.animateScrollToItem(currentIndex.coerceIn(0, cues.lastIndex) + hintCount)
-        }
-    }
-
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val density = LocalDensity.current
+        val safeTop = WindowInsets.systemBars.asPaddingValues().calculateTopPadding() + 12.dp
+        val anchorTop = with(density) {
+            subtitleAnchorTopPx(
+                viewportHeightPx = maxHeight.toPx(),
+                activeLineHeightPx = 27.sp.toPx(),
+                safeTopPx = safeTop.toPx(),
+                headerHeightPx = if (translationStatus is PodcastTranslationStatus.Idle) 0f else translationHeaderHeightPx.toFloat(),
+                headerGapPx = 12.dp.toPx(),
+            ).toDp()
+        }
+        LaunchedEffect(currentIndex, autoScroll, selectionMode, cues.size, resyncToken, hintCount, anchorTop) {
+            if (autoScroll && !selectionMode && currentIndex >= 0 && cues.isNotEmpty()) {
+                listState.animateScrollToItem(currentIndex.coerceIn(0, cues.lastIndex) + hintCount)
+            }
+        }
         LazyColumn(
             state = listState,
             horizontalAlignment = Alignment.Start,
             contentPadding = PaddingValues(
                 start = 24.dp,
                 end = 24.dp,
-                top = maxHeight * 0.34f,
-                bottom = maxHeight * 0.42f,
+                top = anchorTop,
+                bottom = (maxHeight - anchorTop).coerceAtLeast(0.dp),
             ),
             modifier = Modifier
                 .fillMaxSize()
-                .fadingEdge(top = 88.dp, bottom = 112.dp),
+                .fadingEdge(top = (anchorTop / 2).coerceAtMost(32.dp), bottom = 32.dp),
         ) {
             if (translationMissingCredentials && showTranslation) {
                 item(key = "translation-hint") {
@@ -338,31 +380,31 @@ private fun SubtitleCueList(
                     )
                 }
             }
-            items(count = cues.size, key = { index -> index }) { index ->
-                val cue = cues[index]
+            itemsIndexed(items = keyedCues, key = { _, item -> item.key }) { index, item ->
+                val cue = item.cue
                 SubtitleCueRow(
                     cue = cue,
                     translation = translations[index],
                     active = index == currentIndex,
-                    selected = selectedIndices.contains(index),
+                    selected = item.key in selectedCueKeys,
                     showTranslation = showTranslation,
                     textColor = textColor,
                     onClick = {
                         if (selectionMode) {
-                            selectedIndices = selectedIndices.toMutableSet().also {
-                                if (!it.add(index)) it.remove(index)
+                            selectedCueKeys = selectedCueKeys.toMutableSet().also {
+                                if (!it.add(item.key)) it.remove(item.key)
                             }
                         } else {
-                            seekPreview.request(index, SystemClock.elapsedRealtime())
+                            seekPreview.request(index, SystemClock.elapsedRealtime(), item.key)
                             currentIndex = index
                             currentCueChanged(index)
                             autoScrollController.resume()
-                            onSeek(cue.startMs)
+                            onSeek(SubtitleTimingOffset.playbackPosition(cue.startMs, offsetMs))
                         }
                     },
                     onLongClick = {
                         selectionMode = true
-                        selectedIndices = selectedIndices + index
+                        selectedCueKeys = selectedCueKeys + item.key
                         autoScrollController.pause()
                     },
                 )
@@ -372,7 +414,10 @@ private fun SubtitleCueList(
             status = translationStatus,
             textColor = textColor,
             onRetry = onRetryTranslation,
-            modifier = Modifier.align(Alignment.TopCenter).padding(top = 56.dp),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = safeTop, start = 24.dp, end = 24.dp)
+                .onSizeChanged { translationHeaderHeightPx = it.height },
         )
 
         AnimatedVisibility(
@@ -385,18 +430,18 @@ private fun SubtitleCueList(
                 FilledTonalButton(
                     onClick = {
                         selectionMode = false
-                        selectedIndices = emptySet()
+                        selectedCueKeys = emptySet()
                         autoScrollController.resume()
                     },
                 ) {
                     Icon(painterResource(R.drawable.close), stringResource(R.string.cancel))
                 }
                 FilledTonalButton(
-                    enabled = selectedIndices.isNotEmpty(),
+                    enabled = selectedCues.isNotEmpty(),
                     onClick = {
-                        onShareCues(selectedIndices.sorted().mapNotNull(cues::getOrNull))
+                        onShareCues(selectedCues)
                         selectionMode = false
-                        selectedIndices = emptySet()
+                        selectedCueKeys = emptySet()
                         autoScrollController.resume()
                     },
                 ) {
@@ -501,6 +546,7 @@ private fun SubtitleCueRow(
         modifier =
             Modifier
                 .fillMaxWidth()
+                .heightIn(min = 48.dp)
                 .combinedClickable(
                     onClick = onClick,
                     onLongClick = onLongClick,
@@ -548,34 +594,35 @@ private fun SubtitleCueRow(
 @Composable
 private fun TranscriptionProgressBar(
     progressPercent: Int,
+    phase: AsrRecognitionPhase,
     textColor: Color,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    Column(
+        verticalArrangement = Arrangement.spacedBy(4.dp),
         modifier = modifier,
     ) {
-        Text(
-            text = stringResource(R.string.podcast_subtitle_asr_running, progressPercent),
-            style = MaterialTheme.typography.labelMedium,
-            color = textColor.copy(alpha = 0.8f),
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = when (phase) {
+                    AsrRecognitionPhase.PREPARING -> stringResource(R.string.podcast_subtitle_asr_preparing) + " $progressPercent%"
+                    AsrRecognitionPhase.RESUMING -> stringResource(R.string.podcast_subtitle_asr_resuming) + " $progressPercent%"
+                    AsrRecognitionPhase.RECOGNIZING -> stringResource(R.string.podcast_subtitle_asr_running, progressPercent)
+                },
+                style = MaterialTheme.typography.labelMedium,
+                color = textColor.copy(alpha = 0.8f),
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = onCancel) {
+                Text(stringResource(R.string.podcast_subtitle_asr_cancel), color = textColor)
+            }
+        }
         LinearProgressIndicator(
             progress = { progressPercent / 100f },
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.fillMaxWidth(),
             color = textColor.copy(alpha = 0.85f),
             trackColor = textColor.copy(alpha = 0.2f),
-        )
-        Text(
-            text = stringResource(R.string.podcast_subtitle_asr_cancel),
-            style = MaterialTheme.typography.labelMedium,
-            color = textColor,
-            modifier =
-                Modifier
-                    .clickable(onClick = onCancel)
-                    .padding(4.dp),
         )
     }
 }
