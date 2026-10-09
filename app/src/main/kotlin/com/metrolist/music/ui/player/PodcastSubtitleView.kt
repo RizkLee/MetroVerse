@@ -13,6 +13,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.systemBars
@@ -62,7 +64,9 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -599,31 +603,66 @@ private fun TranscriptionProgressBar(
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-        modifier = modifier,
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = when (phase) {
-                    AsrRecognitionPhase.PREPARING -> stringResource(R.string.podcast_subtitle_asr_preparing) + " $progressPercent%"
-                    AsrRecognitionPhase.RESUMING -> stringResource(R.string.podcast_subtitle_asr_resuming) + " $progressPercent%"
-                    AsrRecognitionPhase.RECOGNIZING -> stringResource(R.string.podcast_subtitle_asr_running, progressPercent)
-                },
-                style = MaterialTheme.typography.labelMedium,
-                color = textColor.copy(alpha = 0.8f),
-                modifier = Modifier.weight(1f),
-            )
-            TextButton(onClick = onCancel) {
-                Text(stringResource(R.string.podcast_subtitle_asr_cancel), color = textColor)
+    val statusLabel = when (phase) {
+        AsrRecognitionPhase.PREPARING -> stringResource(R.string.podcast_subtitle_asr_preparing) + " $progressPercent%"
+        AsrRecognitionPhase.RESUMING -> stringResource(R.string.podcast_subtitle_asr_resuming) + " $progressPercent%"
+        AsrRecognitionPhase.RECOGNIZING -> stringResource(R.string.podcast_subtitle_asr_running, progressPercent)
+    }
+    val cancelLabel = stringResource(R.string.podcast_subtitle_asr_cancel)
+    val labelStyle = MaterialTheme.typography.labelMedium
+    val textMeasurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val minimumProgressWidth = 48.dp
+    val rowSpacing = 10.dp
+    val cancelPadding = 4.dp
+    BoxWithConstraints(modifier = modifier) {
+        val textWidthPx = textMeasurer.measure(statusLabel, labelStyle, softWrap = false).size.width +
+            textMeasurer.measure(cancelLabel, labelStyle, softWrap = false).size.width
+        val controlsWidthPx = with(density) {
+            minimumProgressWidth.roundToPx() + rowSpacing.roundToPx() * 2 + cancelPadding.roundToPx() * 2
+        }
+        val inlineStatus = phase == AsrRecognitionPhase.RECOGNIZING &&
+            textWidthPx + controlsWidthPx <= constraints.maxWidth
+        val maximumCancelWidth = (maxWidth - minimumProgressWidth - rowSpacing).coerceAtLeast(0.dp)
+        Column(
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            if (!inlineStatus) {
+                Text(
+                    text = statusLabel,
+                    style = labelStyle,
+                    color = textColor.copy(alpha = 0.8f),
+                )
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(rowSpacing),
+            ) {
+                if (inlineStatus) {
+                    Text(
+                        text = statusLabel,
+                        style = labelStyle,
+                        color = textColor.copy(alpha = 0.8f),
+                    )
+                }
+                LinearProgressIndicator(
+                    progress = { progressPercent / 100f },
+                    modifier = Modifier.weight(1f),
+                    color = textColor.copy(alpha = 0.85f),
+                    trackColor = textColor.copy(alpha = 0.2f),
+                )
+                Text(
+                    text = cancelLabel,
+                    style = labelStyle,
+                    color = textColor,
+                    modifier = Modifier
+                        .widthIn(max = maximumCancelWidth)
+                        .clickable(role = Role.Button, onClick = onCancel)
+                        .padding(cancelPadding),
+                )
             }
         }
-        LinearProgressIndicator(
-            progress = { progressPercent / 100f },
-            modifier = Modifier.fillMaxWidth(),
-            color = textColor.copy(alpha = 0.85f),
-            trackColor = textColor.copy(alpha = 0.2f),
-        )
     }
 }
 

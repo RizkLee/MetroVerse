@@ -8,7 +8,7 @@ All notable MetroVerse-specific changes are recorded here. Upstream Metrolist hi
 
 - Podcast subtitles from RSS transcript files, with timed highlighting, tap-to-seek, timing adjustment, fullscreen viewing, and selected-line sharing.
 - Experimental on-device English subtitle generation with Moonshine Small Streaming, including model download, local import, and deletion.
-- On-device subtitles prioritize the listening position, adapt to settled seeks, and fill missing sections afterward.
+- On-device subtitles prioritize the listening position, restart slightly ahead after settled seeks, and fill missing sections afterward.
 - Bilingual AI podcast subtitles, with current-position translation and batched prefetching through the configured translation service.
 - A separate storage limit and cleanup controls for podcast subtitles, lyrics, and translations, with protection for manually edited lyrics and active content.
 
@@ -19,10 +19,12 @@ All notable MetroVerse-specific changes are recorded here. Upstream Metrolist hi
 - Podcast playback opens on the cover view; subtitle generation explains the model, English-only support, and device requirements before download.
 - Added Moonshine and ONNX Runtime attribution in About and made more room for long bilingual subtitles.
 - Widened lyric-share images to fit longer song titles and updated the notification icon.
+- Restored compact subtitle recognition progress and matched subtitle fullscreen controls to lyric controls.
 
 ### Fixed
 
 - Lyrics can scroll back to the first line without excessive empty space after the last line. Lyric positioning and word highlighting remain aligned as layouts change.
+- Restored a brief whole-line highlight animation without shifting individual letters or hyphenated words.
 - Tapping lyrics or subtitles follows the selected line directly, without first returning to the old playback position.
 - Interrupted subtitle generation preserves completed sentences and resumes from a safe recognition boundary; translations stay matched to their source sentences.
 - Subtitle recognition keeps media timestamp gaps intact and seeks to saved progress when the audio source supports it; recovery stages are shown separately.

@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -36,14 +35,11 @@ import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
@@ -67,64 +63,39 @@ import com.metrolist.music.playback.PlayerConnection
 import com.metrolist.music.ui.screens.settings.LyricsPosition
 import kotlinx.coroutines.isActive
 import kotlin.math.abs
-import kotlin.math.cos
-import kotlin.math.exp
-import kotlin.math.sin
-import kotlin.math.PI
 
-private data class HyphenGroupWord(
-    val pos: Int,
-    val size: Int,
-    val isLast: Boolean,
-    val groupStartMs: Long,
-    val groupEndMs: Long
-)
+internal fun splitLyricsHighlightWords(words: List<WordTimestamp>): List<WordTimestamp> =
+    words.flatMap { word ->
+        val shouldSplit = word.text.contains('-') && word.text.length > 1 &&
+            (!word.hasTrailingSpace || words.size == 1)
+        if (!shouldSplit) return@flatMap listOf(word)
 
-/**
- * Horizontal/vertical extra scale for a hyphen-group segment.
- *
- * [layoutDelta] is the only part that may push neighbouring glyphs (smooth crescendo spread).
- * [visualDelta] additionally carries the post-group spring, which must stay visual-only:
- * feeding the spring into layout makes the whole current line shake left/right.
- */
-internal data class HyphenCrescendo(
-    val layoutDelta: Float,
-    val visualDelta: Float,
-)
+        val segments = mutableListOf<String>()
+        var start = 0
+        for (index in word.text.indices) {
+            if (word.text[index] == '-') {
+                segments.add(word.text.substring(start, index + 1))
+                start = index + 1
+            }
+        }
+        if (start < word.text.length) {
+            segments.add(word.text.substring(start))
+        }
 
-internal fun hyphenCrescendoDeltas(
-    pos: Int,
-    isLast: Boolean,
-    groupEndMs: Long,
-    sungFactor: Float,
-    smoothPositionMs: Long,
-): HyphenCrescendo {
-    val p = sungFactor
-    val timeSinceEnd = (smoothPositionMs - groupEndMs).toFloat()
-    val exitDuration = 600f
-    val pOut = (timeSinceEnd / exitDuration).coerceIn(0f, 1f)
-    val peakScale = 0.06f
-    val decay = 3.5f
-    val freq = 5.0f
-    val baseScalePerSegment = 0.012f
-
-    return if (pOut > 0f) {
-        val baseAtEnd = pos * baseScalePerSegment
-        val totalAtEnd = baseAtEnd + peakScale
-        val springOut = totalAtEnd * exp(-decay * pOut) * cos(freq * pOut * PI.toFloat()) * (1f - pOut)
-        // Layout releases smoothly; only the spring residual is visual.
-        val layout = baseAtEnd * (1f - pOut)
-        HyphenCrescendo(layoutDelta = layout, visualDelta = springOut)
-    } else if (isLast) {
-        val base = pos * baseScalePerSegment
-        val springPart = peakScale * (1f - exp(-decay * p) * cos(freq * p * PI.toFloat()) * (1f - p))
-        HyphenCrescendo(layoutDelta = base, visualDelta = base + springPart)
-    } else {
-        val boost = if (p > 0f) 0.02f * (1f - p) else 0f
-        val base = (pos * baseScalePerSegment) + boost
-        HyphenCrescendo(layoutDelta = base, visualDelta = base)
+        if (segments.size <= 1) {
+            listOf(word)
+        } else {
+            val segmentDuration = (word.endTime - word.startTime) / segments.size
+            segments.mapIndexed { index, segmentText ->
+                WordTimestamp(
+                    text = segmentText,
+                    startTime = word.startTime + index * segmentDuration,
+                    endTime = word.startTime + (index + 1) * segmentDuration,
+                    hasTrailingSpace = index == segments.lastIndex && word.hasTrailingSpace,
+                )
+            }
+        }
     }
-}
 
 private fun String.containsRtl(): Boolean {
     for (c in this) {
@@ -187,7 +158,11 @@ internal fun LyricsLine(
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val density = LocalDensity.current
+    val lineScale = rememberLyricsLineScale(isSynced, isActiveLine, item.isBackground)
+    val horizontalPadding = when (lyricsTextPosition) {
+        LyricsPosition.LEFT, LyricsPosition.RIGHT -> 11.dp
+        LyricsPosition.CENTER -> 24.dp
+    }
     
     val itemModifier = modifier
         .fillMaxWidth()
@@ -199,8 +174,8 @@ internal fun LyricsLine(
         )
         .background(if (isSelected && isSelectionModeActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else Color.Transparent)
         .padding(
-            start = when (lyricsTextPosition) { LyricsPosition.LEFT, LyricsPosition.RIGHT -> 11.dp; LyricsPosition.CENTER -> 24.dp },
-            end = when (lyricsTextPosition) { LyricsPosition.LEFT, LyricsPosition.RIGHT -> 11.dp; LyricsPosition.CENTER -> 24.dp },
+            start = horizontalPadding,
+            end = horizontalPadding,
             top = if (item.isBackground) 0.dp else 12.dp,
             bottom = if (item.isBackground) 2.dp else 12.dp // simplified gap logic
         )
@@ -280,46 +255,54 @@ internal fun LyricsLine(
                     )
                 )
 
-                val effectiveWords = if (item.words?.isNotEmpty() == true) {
-                    item.words
-                } else if (mainText != null) {
-                    remember(mainText, item.time) {
-                        val words = mainText.split(Regex("\\s+")).filter { it.isNotBlank() }
-                        val wordDurationSec = 0.18
-                        val wordStaggerSec = 0.03
-                        val startTimeSec = item.time / 1000.0
-                        words.mapIndexed { idx, wordText ->
-                            WordTimestamp(
-                                text = wordText,
-                                startTime = startTimeSec + (idx * wordStaggerSec),
-                                endTime = startTimeSec + (idx * wordStaggerSec) + wordDurationSec,
-                                hasTrailingSpace = idx < words.size - 1
-                            )
+                val effectiveWords = item.words?.takeIf { it.isNotEmpty() }
+                // Scaling the whole text layer leaves measured row heights, glyph origins and
+                // word spacing unchanged, including hyphenated lyrics and wrapped lines.
+                Box(
+                    modifier = Modifier.fillMaxWidth().graphicsLayer {
+                        val horizontalPivot = when (agentTextAlign) {
+                            TextAlign.Left -> 0f
+                            TextAlign.Right -> 1f
+                            else -> 0.5f
                         }
+                        val boundedScale = boundedLyricsLineScale(
+                            animatedScale = lineScale.value,
+                            widthPx = size.width,
+                            heightPx = size.height,
+                            horizontalPaddingPx = horizontalPadding.toPx(),
+                            // Romanized lyrics have the smallest following gap (2 dp).
+                            verticalPaddingPx = 2.dp.toPx(),
+                            pivotFractionX = horizontalPivot,
+                        )
+                        scaleX = boundedScale
+                        scaleY = boundedScale
+                        transformOrigin = TransformOrigin(
+                            pivotFractionX = horizontalPivot,
+                            pivotFractionY = 0.5f,
+                        )
                     }
-                } else null
-
-                if (isSynced && effectiveWords != null && (isActiveLine || abs(index - displayedCurrentLineIndex) <= 3) && mainText != null) {
-                    WordLevelLyrics(
-                        mainText = mainText,
-                        words = effectiveWords,
-                        isActiveLine = isActiveLine,
-                        currentPositionState = currentPositionState,
-                        lyricsOffset = lyricsOffset,
-                        playerConnection = playerConnection,
-                        lyricStyle = lyricStyle,
-                        lineColor = lineColor,
-                        expressiveAccent = expressiveAccent,
-                        isBackground = item.isBackground,
-                        focusedAlpha = focusedAlpha,
-                        alignment = agentTextAlign
-                    )
-                } else {
-                    Text(
-                        text = mainText ?: "",
-                        style = lyricStyle.copy(color = if (isActiveLine) expressiveAccent else lineColor),
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                ) {
+                    if (isSynced && effectiveWords != null && (isActiveLine || abs(index - displayedCurrentLineIndex) <= 3) && mainText != null) {
+                        WordLevelLyrics(
+                            mainText = mainText,
+                            words = effectiveWords,
+                            isActiveLine = isActiveLine,
+                            currentPositionState = currentPositionState,
+                            lyricsOffset = lyricsOffset,
+                            playerConnection = playerConnection,
+                            lyricStyle = lyricStyle,
+                            lineColor = lineColor,
+                            expressiveAccent = expressiveAccent,
+                            isBackground = item.isBackground,
+                            focusedAlpha = focusedAlpha,
+                        )
+                    } else {
+                        Text(
+                            text = mainText ?: "",
+                            style = lyricStyle.copy(color = if (isActiveLine) expressiveAccent else lineColor),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
                 
                 if (romanizeLyrics && enabledLanguages.isNotEmpty()) {
@@ -376,7 +359,6 @@ private fun WordLevelLyrics(
     expressiveAccent: Color,
     isBackground: Boolean,
     focusedAlpha: Float,
-    alignment: TextAlign
 ) {
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
@@ -413,38 +395,7 @@ private fun WordLevelLyrics(
         }
     }
 
-    val (effectiveWords, effectiveToOriginalIdx) = remember(words, isBackground) {
-        words.flatMapIndexed { originalIdx, word ->
-            val shouldSplit = word.text.contains('-') && word.text.length > 1 &&
-                (!word.hasTrailingSpace || words.size == 1)
-            if (shouldSplit) {
-                val segments = mutableListOf<String>()
-                var start = 0
-                for (i in 0 until word.text.length) {
-                    if (word.text[i] == '-') {
-                        segments.add(word.text.substring(start, i + 1))
-                        start = i + 1
-                    }
-                }
-                if (start < word.text.length) {
-                    segments.add(word.text.substring(start))
-                }
-
-                if (segments.size > 1) {
-                    val totalDuration = word.endTime - word.startTime
-                    val segmentDuration = totalDuration / segments.size
-                    segments.mapIndexed { index, segmentText ->
-                        WordTimestamp(
-                            text = segmentText,
-                            startTime = word.startTime + index * segmentDuration,
-                            endTime = word.startTime + (index + 1) * segmentDuration,
-                            hasTrailingSpace = if (index == segments.size - 1) word.hasTrailingSpace else false
-                        ) to originalIdx
-                    }
-                } else listOf(word to originalIdx)
-            } else listOf(word to originalIdx)
-        }.let { data -> data.map { it.first } to data.map { it.second } }
-    }
+    val effectiveWords = remember(words) { splitLyricsHighlightWords(words) }
 
     // Break mainText into grapheme clusters so that multi-codepoint glyphs
     // (Devanagari/Bengali matras, Arabic ligatures, emoji, etc.) are treated
@@ -489,7 +440,6 @@ private fun WordLevelLyrics(
                 while (clCursor < clusterCount && clusterCharOffsets[clCursor] < indexInMain) {
                     clCursor++
                 }
-                val firstClIdx = clCursor
                 // Collect all clusters in the word range [indexInMain, wordEndInMain)
                 val wordClusterIndices = mutableListOf<Int>()
                 while (clCursor < clusterCount && clusterCharOffsets[clCursor] < wordEndInMain) {
@@ -515,26 +465,6 @@ private fun WordLevelLyrics(
             }
         }
         Triple(wordIdxMap, charInWordMap, wordLenMap)
-    }
-
-    val hyphenGroupData = remember(effectiveWords) {
-        val map = mutableMapOf<Int, HyphenGroupWord>()
-        var currentGroup = mutableListOf<Int>()
-        effectiveWords.forEachIndexed { wordIdx, word ->
-            currentGroup.add(wordIdx)
-            if (!word.text.endsWith("-")) {
-                if (currentGroup.size > 1) {
-                    val groupSize = currentGroup.size
-                    val groupStartMs = (effectiveWords[currentGroup.first()].startTime * 1000).toLong()
-                    val groupEndMs = (word.endTime * 1000).toLong()
-                    currentGroup.forEachIndexed { pos, idx ->
-                        map[idx] = HyphenGroupWord(pos, groupSize, pos == groupSize - 1, groupStartMs, groupEndMs)
-                    }
-                }
-                currentGroup = mutableListOf()
-            }
-        }
-        map
     }
 
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
@@ -631,67 +561,14 @@ private fun WordLevelLyrics(
                     Triple(sungFactor, word, isWordSung)
                 }
 
-                val wordWobbles = FloatArray(words.size)
-                words.forEachIndexed { wordIdx, word ->
-                    val startMs = (word.startTime * 1000).toLong()
-                    val timeSinceStart = (smoothPosition - startMs).toFloat()
-                    val wobble = if (timeSinceStart in 0f..750f) {
-                        if (timeSinceStart < 125f) timeSinceStart / 125f
-                        else (1f - (timeSinceStart - 125f) / 625f).coerceAtLeast(0f)
-                    } else 0f
-                    wordWobbles[wordIdx] = wobble
-                }
-
-                val lineCurrentPushes = FloatArray(layoutResult.lineCount)
-                val lineTotalPushes = FloatArray(layoutResult.lineCount)
-                
-                // Pre-calculate total pushes per line to handle alignment correctly.
-                // Iterate over cluster indices so each visual glyph unit is one slot.
-                // Only the smooth hyphen crescendo base may push neighbours. The per-letter
-                // nudge and the word-start wobble are visual-only: with multiple words on a
-                // line each wobble used to shove the rest of the row and jitter word positions.
-                for (i in 0 until clusterCount) {
-                    val charOffset = clusterCharOffsets[i]
-                    val lineIdx = layoutResult.getLineForOffset(charOffset)
-                    val wordIdx = wordIdxMap[i]
-
-                    val sungFactor = if (wordIdx != -1) wordFactors[wordIdx].first else 0f
-
-                    var crescendoLayout = 0f
-                    val groupWord = if (wordIdx != -1) hyphenGroupData[wordIdx] else null
-                    if (groupWord != null) {
-                        crescendoLayout = hyphenCrescendoDeltas(
-                            pos = groupWord.pos,
-                            isLast = groupWord.isLast,
-                            groupEndMs = groupWord.groupEndMs,
-                            sungFactor = sungFactor,
-                            smoothPositionMs = smoothPosition,
-                        ).layoutDelta
-                    }
-
-                    val charBounds = layoutResult.getBoundingBox(charOffset)
-                    lineTotalPushes[lineIdx] += charBounds.width * crescendoLayout
-                }
-
                 // Main drawing loop: iterate over cluster indices so each visual
                 // glyph (including multi-codepoint Devanagari clusters) is one unit.
                 for (i in 0 until clusterCount) {
                     val charOffset = clusterCharOffsets[i]
-                    val lineIdx = layoutResult.getLineForOffset(charOffset)
                     val charBounds = layoutResult.getBoundingBox(charOffset)
                     val wordIdx = wordIdxMap[i]
-                    val originalWordIdx = if (wordIdx != -1) effectiveToOriginalIdx[wordIdx] else -1
-                    
-                    val alignShift = when(alignment) {
-                        TextAlign.Center -> -lineTotalPushes[lineIdx] / 2f
-                        TextAlign.Right -> -lineTotalPushes[lineIdx]
-                        else -> 0f
-                    }
                     
                     val (sungFactor, wordItem, isWordSung) = if (wordIdx != -1) wordFactors[wordIdx] else Triple(0f, null, false)
-                    val wobble = if (originalWordIdx != -1) wordWobbles[originalWordIdx] else 0f
-                    val wobbleX = wobble * 0.025f
-                    val wobbleY = wobble * 0.015f
                     
                     val charLp = if (wordItem != null) {
                         val sMs = wordItem.startTime * 1000
@@ -704,57 +581,7 @@ private fun WordLevelLyrics(
 
                     val shouldGlow = wordItem != null && !isWordSung && sungFactor > 0.001f
 
-                    var crescendoLayout = 0f
-                    var crescendoVisual = 0f
-                    val groupWord = if (wordIdx != -1) hyphenGroupData[wordIdx] else null
-                    if (groupWord != null) {
-                        val crescendo = hyphenCrescendoDeltas(
-                            pos = groupWord.pos,
-                            isLast = groupWord.isLast,
-                            groupEndMs = groupWord.groupEndMs,
-                            sungFactor = sungFactor,
-                            smoothPositionMs = smoothPosition,
-                        )
-                        crescendoLayout = crescendo.layoutDelta
-                        crescendoVisual = crescendo.visualDelta
-                    }
-
-                    val nudgeStrength = 0.038f
-                    val nudgeScale = if (wordItem != null && !isWordSung && sungFactor > 0f) {
-                        nudgeStrength * sin(charLp * PI.toFloat()) * exp(-3f * charLp)
-                    } else 0f
-
-                    // Layout advance is hyphen-base only. Wobble/nudge/spring stay visual so
-                    // multi-word lines keep stable letter and word positions while singing.
-                    val layoutAdvance = crescendoLayout
-                    val charScaleX = 1f + wobbleX + crescendoVisual
-                    val charScaleY = 1f + wobbleY + crescendoVisual + nudgeScale
-
-                    withTransform({
-                        var waveOffset = 0f
-                        if (groupWord != null) {
-                            val wallTime = System.currentTimeMillis()
-                            val adjSmoothPos = smoothPosition
-                            val timeInGroup = (adjSmoothPos - groupWord.groupStartMs).toFloat()
-                            val timeToGroupEnd = (groupWord.groupEndMs - adjSmoothPos).toFloat()
-                            val waveFade = (timeInGroup / 200f).coerceIn(0f, 1f) * (timeToGroupEnd / 200f).coerceIn(0f, 1f)
-                            if (waveFade > 0.01f) {
-                                val waveSpeed = 0.006f
-                                val waveHeight = 3.24f
-                                val phaseOffset = i * 0.4f
-                                waveOffset = sin(wallTime * waveSpeed + phaseOffset) * waveHeight * waveFade
-                            }
-                        }
-
-                        translate(left = alignShift + lineCurrentPushes[lineIdx] + charBounds.left, top = charBounds.top + waveOffset)
-                        if (wordIdx != -1) {
-                            scale(
-                                charScaleX,
-                                charScaleY,
-                                pivot = Offset(charBounds.width / 2f, charBounds.height)
-                            )
-                        }
-                    }) {
+                    translate(left = charBounds.left, top = charBounds.top) {
                         if (shouldGlow) {
                             val sMs = wordItem.startTime * 1000
                             val eMs = wordItem.endTime * 1000
@@ -793,7 +620,6 @@ private fun WordLevelLyrics(
                             }
                         }
                     }
-                    lineCurrentPushes[lineIdx] += charBounds.width * layoutAdvance
                 }
             }
         }

@@ -93,6 +93,51 @@ class AsrRecognitionPlanTest {
     }
 
     @Test
+    fun `a forward seek gets a five second lead without marking the skipped audio complete`() {
+        val plan = AsrRecognitionPlan(listOf(AsrAudioRange(0, 60_000)))
+        plan.defer(60_000)
+        val restart = plan.startAfterSeek(600_000, 900_000)
+        assertEquals(AsrWorkRange(605_000, null), plan.next(restart))
+        assertEquals(listOf(AsrAudioRange(0, 60_000)), plan.processedRanges)
+        plan.record(restart, 900_000)
+        plan.reachedEnd(900_000)
+        assertEquals(AsrWorkRange(60_000, 605_000), plan.next())
+        plan.record(60_000, 605_000)
+        assertNull(plan.next())
+    }
+
+    @Test
+    fun `a backward seek keeps its lead-in missing after returning to the interrupted stream`() {
+        val plan = AsrRecognitionPlan(listOf(AsrAudioRange(600_000, 900_000)))
+        plan.defer(900_000)
+        val restart = plan.startAfterSeek(300_000)
+        assertEquals(AsrWorkRange(305_000, 600_000), plan.next(restart))
+        plan.record(restart, 600_000)
+        assertEquals(AsrWorkRange(900_000, null), plan.next())
+        plan.record(900_000, 1_200_000)
+        plan.reachedEnd(1_200_000)
+        assertEquals(AsrWorkRange(0, 305_000), plan.next())
+    }
+
+    @Test
+    fun `short gaps and the episode tail are recognized without another tiny fragment`() {
+        val plan = AsrRecognitionPlan(listOf(AsrAudioRange(600_000, 900_000)))
+        assertEquals(595_000, plan.startAfterSeek(595_000))
+        assertEquals(895_000, AsrRecognitionPlan().startAfterSeek(895_000, 900_000))
+        plan.reachedEnd(1_200_000)
+        assertEquals(1_195_000, plan.startAfterSeek(1_195_000))
+        assertEquals(AsrWorkRange(1_195_000, 1_200_000), plan.next(plan.startAfterSeek(1_195_000)))
+    }
+
+    @Test
+    fun `a short metadata duration never truncates recognition after a seek`() {
+        val plan = AsrRecognitionPlan()
+        val restart = plan.startAfterSeek(1_010_000, 1_000_000)
+        assertEquals(AsrWorkRange(1_015_000, null), plan.next(restart))
+        assertEquals(0, plan.progress(1_000_000))
+    }
+
+    @Test
     fun `small forward jumps including two minutes retain the recognizer`() {
         assertFalse(shouldPrioritizeAsrSeek(AsrSeekTarget(100_000, 220_000), 0, 120_000, emptyList()))
         assertTrue(shouldPrioritizeAsrSeek(AsrSeekTarget(100_000, 220_001), 0, 120_000, emptyList()))

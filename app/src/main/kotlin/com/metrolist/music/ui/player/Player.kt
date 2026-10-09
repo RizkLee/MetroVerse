@@ -1318,10 +1318,10 @@ fun BottomSheetPlayer(
                                             containerColor = textButtonColor,
                                             contentColor = iconButtonColor,
                                         ),
-                                    modifier = Modifier.size(48.dp),
+                                    modifier = Modifier.size(42.dp),
                                 ) {
                                     Icon(
-                                        painter = painterResource(if (subtitleViewVisible && isFullScreen) R.drawable.close else R.drawable.fullscreen),
+                                        painter = painterResource(R.drawable.fullscreen),
                                         contentDescription = if (subtitleViewVisible) stringResource(
                                             if (isFullScreen) R.string.podcast_subtitle_exit_fullscreen else R.string.podcast_subtitle_fullscreen,
                                         ) else null,
@@ -1461,13 +1461,13 @@ fun BottomSheetPlayer(
                             Box(
                                 modifier =
                                     Modifier
-                                        .size(48.dp)
+                                        .size(40.dp)
                                         .clip(RoundedCornerShape(24.dp))
                                         .background(textButtonColor)
                                         .clickable { isFullScreen = !isFullScreen },
                             ) {
                                 Icon(
-                                    painter = painterResource(if (subtitleViewVisible && isFullScreen) R.drawable.close else R.drawable.fullscreen),
+                                    painter = painterResource(R.drawable.fullscreen),
                                     contentDescription = if (subtitleViewVisible) stringResource(
                                         if (isFullScreen) R.string.podcast_subtitle_exit_fullscreen else R.string.podcast_subtitle_fullscreen,
                                     ) else null,

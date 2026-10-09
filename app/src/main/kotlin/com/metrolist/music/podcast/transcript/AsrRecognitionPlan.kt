@@ -141,6 +141,19 @@ internal class AsrRecognitionPlan(
         return missingAtOrAfter(0)
     }
 
+    fun startAfterSeek(positionMs: Long, durationHintMs: Long = 0L): Long {
+        val missing = missingAtOrAfter(positionMs) ?: return positionMs
+        val endMs = missing.endMs ?: durationHintMs.takeIf { it > missing.startMs }
+        val isShortRange = endMs != null && endMs - missing.startMs <= SEEK_LEAD_MS * 2
+        // Give a restarted stream a small head start while playback continues. Coverage is
+        // unchanged so the skipped lead-in is backfilled; avoid creating tiny tail fragments.
+        return if (isShortRange || missing.startMs > Long.MAX_VALUE - SEEK_LEAD_MS) {
+            missing.startMs
+        } else {
+            missing.startMs + SEEK_LEAD_MS
+        }
+    }
+
     fun progress(durationHintMs: Long, activeRange: AsrAudioRange? = null): Int {
         val ranges = activeRange?.let { mergeAsrRanges(processedRanges + it) } ?: processedRanges
         val duration = audioEndMs ?: maxOf(durationHintMs, ranges.lastOrNull()?.endMs ?: 0)
@@ -161,6 +174,10 @@ internal class AsrRecognitionPlan(
     private fun boundedRange(startMs: Long, proposedEndMs: Long?): AsrWorkRange? {
         val end = audioEndMs?.let { minOf(it, proposedEndMs ?: it) } ?: proposedEndMs
         return if (end != null && startMs >= end) null else AsrWorkRange(startMs, end)
+    }
+
+    private companion object {
+        const val SEEK_LEAD_MS = 5_000L
     }
 }
 

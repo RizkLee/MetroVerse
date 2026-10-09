@@ -200,8 +200,9 @@ class OnDeviceTranscriber @Inject constructor(
                                 val endMs = totalSamples / (SAMPLE_RATE / 1_000)
                                 finishCurrentStream(endMs, endMs - streamOwnedStartMs >= MIN_INTERRUPTED_AUDIO_MS)
                                 plan.defer(safeResumeMs)
-                                preferredStart = seek.positionMs
-                                diagnostics.record("reprioritized", seek.positionMs, savedCues.size)
+                                val restartMs = plan.startAfterSeek(seek.positionMs, durationHintMs)
+                                preferredStart = restartMs
+                                diagnostics.record("reprioritized", restartMs, savedCues.size)
                             } else {
                                 val completedRange = checkNotNull(decoded)
                                 val endMs = completedRange.endSample / (SAMPLE_RATE / 1_000)
