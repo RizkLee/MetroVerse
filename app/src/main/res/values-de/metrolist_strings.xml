@@ -929,7 +929,7 @@
     <string name="podcast_subtitles_translation_desc">Übersetzt Untertitel mit dem für Liedtexte konfigurierten KI-Dienst. Standardmäßig aus</string>
     <string name="podcast_subtitles_bilingual">Zweisprachige Untertitel</string>
     <string name="podcast_subtitles_bilingual_desc">Zeigt den Originaltext zusammen mit der Übersetzung</string>
-    <string name="podcast_asr_experimental_desc">Moonshine Small Streaming · Englisch · Etwa %1$s</string>
+    <string name="podcast_asr_experimental_desc">Moonshine Small Streaming · Downloadgröße: %1$s</string>
     <string name="podcast_asr_language">Erkennungssprache</string>
     <string name="podcast_asr_language_auto">Automatisch</string>
     <string name="podcast_asr_language_zh">Chinesisch</string>
@@ -977,7 +977,22 @@
     <string name="ai_configure_api_key">API-Schlüssel einrichten</string>
     <string name="podcast_subtitle_incomplete">Untertitel sind unvollständig</string>
     <string name="podcast_subtitle_resume">Untertitel weiter erstellen</string>
-    <string name="podcast_asr_device_warning">Experimentelle Funktion. Benötigt viel Arbeitsspeicher und Rechenleistung; die Erkennung kann Wärmeentwicklung und Akkuverbrauch erhöhen.</string>
+    <string name="podcast_asr_device_warning">Experimentell; die Erkennung kann Wärmeentwicklung und Akkuverbrauch erhöhen.</string>
     <string name="podcast_subtitle_save_failed">Untertitel konnten nicht gespeichert werden. Die aktuellen Untertitel bleiben sichtbar.</string>
     <string name="podcast_subtitle_retry_save">Untertitel erneut speichern</string>
+    <string name="podcast_asr_english_only">Erkennt ausschließlich englische Sprache.</string>
+    <string name="podcast_asr_performance_notice">Benötigt viel Arbeitsspeicher und Rechenleistung.</string>
+    <string name="metroverse_moonshine_attribution">Englisches Small-Streaming-Modell und Moonshine-Voice-Laufzeit 0.1.5 · MIT-Lizenz.</string>
+    <string name="metroverse_onnx_attribution">Laufzeit für lokale Modellinferenz, Version 1.23.2 · MIT-Lizenz.</string>
+    <string name="podcast_subtitle_asr_preparing">Erkennung wird vorbereitet…</string>
+    <string name="podcast_subtitle_offset">Untertitelzeitpunkt</string>
+    <string name="podcast_subtitle_offset_description">Gilt nur für diese Folge. Positive Werte zeigen Untertitel früher, negative Werte später an.</string>
+    <string name="podcast_subtitle_offset_label">Versatz (ms)</string>
+    <string name="podcast_subtitle_offset_value">%1$+d ms</string>
+    <string name="podcast_subtitle_offset_earlier">Untertitel 50 ms früher anzeigen</string>
+    <string name="podcast_subtitle_offset_later">Untertitel 50 ms später anzeigen</string>
+    <string name="podcast_subtitle_fullscreen">Untertitel im Vollbild anzeigen</string>
+    <string name="podcast_subtitle_exit_fullscreen">Vollbild verlassen</string>
+    <string name="podcast_subtitle_audio_changed">Das Audio stimmt nicht mit dem gespeicherten Fortschritt überein. Erstelle die Untertitel erneut.</string>
+    <string name="podcast_subtitle_asr_resuming">Erkennung wird fortgesetzt…</string>
 </resources>

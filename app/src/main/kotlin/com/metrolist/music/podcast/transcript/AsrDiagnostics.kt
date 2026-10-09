@@ -15,9 +15,32 @@ internal class AsrDiagnostics {
     private val startedAt = SystemClock.elapsedRealtime()
     private var lastReportAt = startedAt
     private var inferenceMs = 0L
+    private var inferredSamples = 0L
+    private var resumeMs = 0L
 
-    fun addInference(elapsedMs: Long) {
-        if (BuildConfig.DEBUG) inferenceMs += elapsedMs
+    fun addInference(elapsedMs: Long, audioSamples: Int = 0) {
+        if (BuildConfig.DEBUG) {
+            inferenceMs += elapsedMs
+            inferredSamples += audioSamples
+        }
+    }
+
+    fun resume(positionMs: Long, coveredMs: Long, retainedCues: Int, reason: String) {
+        resumeMs = positionMs
+        if (BuildConfig.DEBUG) Timber.tag("PodcastAsr").d(
+            "stage=resume resumeMs=%d coveredMs=%d retainedCues=%d reason=%s",
+            positionMs, coveredMs, retainedCues, reason,
+        )
+    }
+
+    fun seek(requestedMs: Long, actualMs: Long, fallback: Boolean) {
+        if (BuildConfig.DEBUG) Timber.tag("PodcastAsr").d(
+            "stage=seek requestedMs=%d actualMs=%d sequentialFallback=%b", requestedMs, actualMs, fallback,
+        )
+    }
+
+    fun gap(fromMs: Long, toMs: Long) {
+        if (BuildConfig.DEBUG) Timber.tag("PodcastAsr").d("stage=media_gap fromMs=%d toMs=%d", fromMs, toMs)
     }
 
     fun progress(audioMs: Long, cueCount: Int) {
@@ -31,10 +54,12 @@ internal class AsrDiagnostics {
         val runtime = Runtime.getRuntime()
         val now = SystemClock.elapsedRealtime()
         Timber.tag("PodcastAsr").d(
-            "stage=%s elapsedMs=%d audioMs=%d inferenceMs=%d cues=%d javaKiB=%d nativeKiB=%d pssKiB=%d",
+            "stage=%s elapsedMs=%d audioMs=%d resumeMs=%d inferredAudioMs=%d inferenceMs=%d cues=%d javaKiB=%d nativeKiB=%d pssKiB=%d",
             stage,
             now - startedAt,
             audioMs,
+            resumeMs,
+            inferredSamples / 16,
             inferenceMs,
             cueCount,
             (runtime.totalMemory() - runtime.freeMemory()) / 1_024,

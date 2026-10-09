@@ -49,6 +49,8 @@ data class EpisodeTranscript(
     val resumePositionMs: Long = 0,
     val mediaSourceFingerprint: String? = null,
     val recognizerFingerprint: String? = null,
+    val processedRanges: List<AsrAudioRange>? = null,
+    val audioDurationMs: Long? = null,
 )
 
 data class PodcastTextCacheEntry(
@@ -92,6 +94,8 @@ private data class StoredTranscript(
     val resumePositionMs: Long = 0,
     val mediaSourceFingerprint: String? = null,
     val recognizerFingerprint: String? = null,
+    val processedRanges: List<AsrAudioRange>? = null,
+    val audioDurationMs: Long? = null,
 )
 
 @Serializable
@@ -351,6 +355,7 @@ class TranscriptRepository @Inject constructor(
                 try {
                     require(transcript.resumePositionMs >= 0)
                     require(transcript.progressPercent in 0..(if (transcript.isComplete) 100 else 99))
+                    require(transcript.audioDurationMs == null || transcript.audioDurationMs >= 0)
                     writeSubtitleCacheAtomically(
                         transcriptFile(episodeId),
                         json.encodeToString(
@@ -363,6 +368,8 @@ class TranscriptRepository @Inject constructor(
                                 resumePositionMs = transcript.resumePositionMs,
                                 mediaSourceFingerprint = transcript.mediaSourceFingerprint,
                                 recognizerFingerprint = transcript.recognizerFingerprint,
+                                processedRanges = transcript.processedRanges,
+                                audioDurationMs = transcript.audioDurationMs,
                             ),
                         ),
                     )
@@ -372,7 +379,9 @@ class TranscriptRepository @Inject constructor(
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Exception) {
-                    if (transcript.source == TranscriptSource.ON_DEVICE && transcript.cues.isNotEmpty()) {
+                    if (transcript.source == TranscriptSource.ON_DEVICE &&
+                        (transcript.cues.isNotEmpty() || !transcript.processedRanges.isNullOrEmpty())
+                    ) {
                         retainPending(pendingTranscriptSaves, episodeId, transcript)
                     }
                     Result.failure(error)
@@ -390,6 +399,7 @@ class TranscriptRepository @Inject constructor(
         if (!file.exists()) return@runCatching null
         val stored = json.decodeFromString<StoredTranscript>(file.readText())
         if (stored.resumePositionMs < 0 || stored.progressPercent !in 0..100) return@runCatching null
+        if (stored.audioDurationMs != null && stored.audioDurationMs < 0) return@runCatching null
         EpisodeTranscript(
             episodeId = episodeId,
             source = stored.source,
@@ -400,6 +410,8 @@ class TranscriptRepository @Inject constructor(
             resumePositionMs = stored.resumePositionMs,
             mediaSourceFingerprint = stored.mediaSourceFingerprint,
             recognizerFingerprint = stored.recognizerFingerprint,
+            processedRanges = stored.processedRanges?.let(::mergeAsrRanges),
+            audioDurationMs = stored.audioDurationMs,
         ).also { touch(file) }
     }.getOrNull()
 

@@ -932,7 +932,7 @@
     <string name="podcast_subtitles_translation_desc">Traduce los subtítulos con el servicio de IA configurado para letras. Desactivado por defecto</string>
     <string name="podcast_subtitles_bilingual">Subtítulos bilingües</string>
     <string name="podcast_subtitles_bilingual_desc">Muestra la línea original junto con su traducción</string>
-    <string name="podcast_asr_experimental_desc">Moonshine Small Streaming · Inglés · Aproximadamente %1$s</string>
+    <string name="podcast_asr_experimental_desc">Moonshine Small Streaming · Tamaño de descarga: %1$s</string>
     <string name="podcast_asr_language">Idioma de reconocimiento</string>
     <string name="podcast_asr_language_auto">Detección automática</string>
     <string name="podcast_asr_language_zh">Chino</string>
@@ -980,7 +980,22 @@
     <string name="ai_configure_api_key">Configurar clave API</string>
     <string name="podcast_subtitle_incomplete">Los subtítulos están incompletos</string>
     <string name="podcast_subtitle_resume">Continuar generando subtítulos</string>
-    <string name="podcast_asr_device_warning">Función experimental. Requiere bastante memoria y capacidad de procesamiento; el reconocimiento puede aumentar el calor y el consumo de batería.</string>
+    <string name="podcast_asr_device_warning">Experimental; el reconocimiento puede aumentar el calor y el consumo de batería.</string>
     <string name="podcast_subtitle_save_failed">No se pudieron guardar los subtítulos. Los subtítulos actuales siguen disponibles.</string>
     <string name="podcast_subtitle_retry_save">Reintentar guardar subtítulos</string>
+    <string name="podcast_asr_english_only">Solo reconoce voz en inglés.</string>
+    <string name="podcast_asr_performance_notice">Requiere bastante memoria y capacidad de procesamiento.</string>
+    <string name="metroverse_moonshine_attribution">Modelo Small Streaming en inglés y motor Moonshine Voice 0.1.5 · Licencia MIT.</string>
+    <string name="metroverse_onnx_attribution">Motor de inferencia local, versión 1.23.2 · Licencia MIT.</string>
+    <string name="podcast_subtitle_asr_preparing">Preparando reconocimiento…</string>
+    <string name="podcast_subtitle_offset">Sincronización de subtítulos</string>
+    <string name="podcast_subtitle_offset_description">Solo afecta a este episodio. Los valores positivos adelantan los subtítulos; los negativos los retrasan.</string>
+    <string name="podcast_subtitle_offset_label">Desfase (ms)</string>
+    <string name="podcast_subtitle_offset_value">%1$+d ms</string>
+    <string name="podcast_subtitle_offset_earlier">Mostrar subtítulos 50 ms antes</string>
+    <string name="podcast_subtitle_offset_later">Mostrar subtítulos 50 ms después</string>
+    <string name="podcast_subtitle_fullscreen">Ampliar subtítulos</string>
+    <string name="podcast_subtitle_exit_fullscreen">Salir de pantalla completa</string>
+    <string name="podcast_subtitle_audio_changed">El audio no coincide con el progreso guardado. Vuelve a generar los subtítulos.</string>
+    <string name="podcast_subtitle_asr_resuming">Reanudando reconocimiento…</string>
 </resources>

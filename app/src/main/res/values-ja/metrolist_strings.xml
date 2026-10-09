@@ -893,7 +893,7 @@
     <string name="podcast_subtitles_translation_desc">歌詞翻訳と同じ AI サービスで字幕を翻訳します。既定ではオフ</string>
     <string name="podcast_subtitles_bilingual">バイリンガル字幕</string>
     <string name="podcast_subtitles_bilingual_desc">翻訳とともに原文を表示します</string>
-    <string name="podcast_asr_experimental_desc">Moonshine Small Streaming · 英語 · 約 %1$s</string>
+    <string name="podcast_asr_experimental_desc">Moonshine Small Streaming · ダウンロード容量：%1$s</string>
     <string name="podcast_asr_language">認識言語</string>
     <string name="podcast_asr_language_auto">自動検出</string>
     <string name="podcast_asr_language_zh">中国語</string>
@@ -941,7 +941,22 @@
     <string name="ai_configure_api_key">API キーを設定</string>
     <string name="podcast_subtitle_incomplete">字幕の生成は未完了です</string>
     <string name="podcast_subtitle_resume">字幕の生成を続ける</string>
-    <string name="podcast_asr_device_warning">試験的な機能です。多くのメモリと処理性能が必要で、認識中は発熱やバッテリー消費が増える場合があります。</string>
+    <string name="podcast_asr_device_warning">試験的な機能のため、認識中は発熱やバッテリー消費が増える場合があります。</string>
     <string name="podcast_subtitle_save_failed">字幕を保存できませんでした。現在の字幕は引き続き表示できます。</string>
     <string name="podcast_subtitle_retry_save">字幕の保存を再試行</string>
+    <string name="podcast_asr_english_only">英語の音声認識のみに対応しています。</string>
+    <string name="podcast_asr_performance_notice">多くのメモリと高い処理性能が必要です。</string>
+    <string name="metroverse_moonshine_attribution">英語の Small Streaming モデルと Moonshine Voice 0.1.5 ランタイム · MIT ライセンス。</string>
+    <string name="metroverse_onnx_attribution">端末内でモデルを実行するランタイム、バージョン 1.23.2 · MIT ライセンス。</string>
+    <string name="podcast_subtitle_asr_preparing">認識を準備中…</string>
+    <string name="podcast_subtitle_offset">字幕のタイミング</string>
+    <string name="podcast_subtitle_offset_description">このエピソードのみに適用されます。正の値は字幕を早く表示し、負の値は遅く表示します。</string>
+    <string name="podcast_subtitle_offset_label">時間調整（ミリ秒）</string>
+    <string name="podcast_subtitle_offset_value">%1$+d ミリ秒</string>
+    <string name="podcast_subtitle_offset_earlier">字幕を 50 ミリ秒早く表示</string>
+    <string name="podcast_subtitle_offset_later">字幕を 50 ミリ秒遅く表示</string>
+    <string name="podcast_subtitle_fullscreen">字幕を全画面表示</string>
+    <string name="podcast_subtitle_exit_fullscreen">全画面表示を終了</string>
+    <string name="podcast_subtitle_audio_changed">音声が保存された進捗と一致しません。字幕を再生成してください。</string>
+    <string name="podcast_subtitle_asr_resuming">認識を再開中…</string>
 </resources>

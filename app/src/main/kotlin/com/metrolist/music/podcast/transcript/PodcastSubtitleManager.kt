@@ -58,6 +58,7 @@ sealed interface PodcastSubtitleState {
         val transcript: EpisodeTranscript,
         val message: String? = null,
         val hasPendingSave: Boolean = false,
+        val canResume: Boolean = true,
     ) : PodcastSubtitleState
 
     /** No transcript exists for this episode; on-device recognition can be started manually. */
@@ -67,6 +68,7 @@ sealed interface PodcastSubtitleState {
     data class Transcribing(
         val cues: List<SubtitleCue>,
         val progressPercent: Int,
+        val phase: AsrRecognitionPhase = AsrRecognitionPhase.RECOGNIZING,
     ) : PodcastSubtitleState
 
     data class TranscriptionFailed(val message: String) : PodcastSubtitleState
@@ -119,6 +121,7 @@ class PodcastSubtitleManager @Inject constructor(
     private var transcriptionJob: Job? = null
     private var currentCheckpoint: EpisodeTranscript? = null
     private var currentMediaSourceFingerprint: String? = null
+    private val seekRequests = AsrSeekRequests(SystemClock::elapsedRealtime)
     private val translationCoordinator = SubtitleTranslationCoordinator(
         scope = CoroutineScope(scope.coroutineContext + Dispatchers.Main.immediate),
         load = transcriptRepository::loadTranslation,
@@ -310,18 +313,21 @@ class PodcastSubtitleManager @Inject constructor(
     private fun showTranscript(transcript: EpisodeTranscript, message: String? = null) {
         currentCheckpoint = transcript.takeIf { it.source == TranscriptSource.ON_DEVICE }
         _state.value = if (transcript.isComplete) PodcastSubtitleState.Ready(transcript)
-        else PodcastSubtitleState.Partial(transcript, message)
+        else PodcastSubtitleState.Partial(transcript, message, canResume = transcript.recognizerFingerprint == OnDeviceTranscriber.checkpointIdentity())
         translationCoordinator.updateCues(transcript.cues, isStreaming = false)
     }
 
     private fun showInterruptedTranscript(transcript: EpisodeTranscript, message: String? = null, hasPendingSave: Boolean = false) {
         currentCheckpoint = transcript
-        _state.value = PodcastSubtitleState.Partial(transcript, message, hasPendingSave)
+        _state.value = PodcastSubtitleState.Partial(
+            transcript, message, hasPendingSave,
+            canResume = transcript.recognizerFingerprint == OnDeviceTranscriber.checkpointIdentity(),
+        )
         translationCoordinator.updateCues(transcript.cues, isStreaming = false)
     }
 
     /** Downloads and recognizes English speech on-device. */
-    fun startTranscription(metadata: MediaMetadata, durationMs: Long) {
+    fun startTranscription(metadata: MediaMetadata, durationMs: Long, positionProvider: () -> Long = { 0L }) {
         if (transcriptionJob?.isActive == true) return
         val pendingSave = (_state.value as? PodcastSubtitleState.Partial)?.takeIf {
             it.transcript.episodeId == metadata.id && (it.hasPendingSave || it.transcript.isComplete)
@@ -338,7 +344,7 @@ class PodcastSubtitleManager @Inject constructor(
             prepareModel(
                 onPrepared = {
                     if (isCurrentSubtitleRequest(requestedGeneration, episodeGeneration, episodeId, currentEpisodeId)) {
-                        startTranscription(metadata, durationMs)
+                        startTranscription(metadata, durationMs, positionProvider)
                     }
                 },
                 onFailure = { message ->
@@ -359,6 +365,7 @@ class PodcastSubtitleManager @Inject constructor(
         val requestedGeneration = episodeGeneration
         val sourceFingerprint = subtitleCacheFingerprint("asr-source-v1", mediaUrl)
         val recognizerFingerprint = OnDeviceTranscriber.checkpointIdentity()
+        seekRequests.clear()
         currentEpisodeId = episodeId
         currentMediaSourceFingerprint = sourceFingerprint
         TextCacheSignals.protect(CACHE_PROTECTION_OWNER, episodeId)
@@ -378,30 +385,32 @@ class PodcastSubtitleManager @Inject constructor(
                 ?: previousCheckpoint?.takeIf { it.mediaSourceFingerprint == sourceFingerprint }
             currentCoroutineContext().ensureActive()
             if (!ownsRequest()) return@launch
-            val resumePosition = subtitleResumePosition(recovered, sourceFingerprint, recognizerFingerprint)
+            val recovery = recoverAsrProgress(recovered, sourceFingerprint, recognizerFingerprint, positionProvider())
             val initial = EpisodeTranscript(
-                episodeId, TranscriptSource.ON_DEVICE, recovered?.cues.orEmpty(), "en",
+                episodeId, TranscriptSource.ON_DEVICE, recovery.cues, "en",
                 isComplete = false,
-                progressPercent = recovered?.progressPercent ?: 0,
-                resumePositionMs = resumePosition,
+                progressPercent = if (recovery.reason == "saved_checkpoint") recovered?.progressPercent ?: 0 else 0,
+                resumePositionMs = recovery.positionMs,
                 mediaSourceFingerprint = sourceFingerprint,
                 recognizerFingerprint = recognizerFingerprint,
+                processedRanges = recovery.ranges,
+                audioDurationMs = recovered?.audioDurationMs.takeIf { recovery.reason == "saved_checkpoint" },
             )
             val latest = AtomicReference(initial)
             currentCheckpoint = initial
-            _state.value = PodcastSubtitleState.Transcribing(initial.cues, initial.progressPercent)
+            _state.value = PodcastSubtitleState.Transcribing(initial.cues, initial.progressPercent, AsrRecognitionPhase.PREPARING)
             translationCoordinator.updateCues(initial.cues, isStreaming = true)
             var completed = false
             var failureMessage: String? = null
             TextCacheSignals.protect(TRANSCRIPTION_CACHE_OWNER, episodeId)
             coroutineScope {
-                val displayUpdates = Channel<EpisodeTranscript>(Channel.CONFLATED)
+                val displayUpdates = Channel<Pair<EpisodeTranscript, AsrRecognitionPhase>>(Channel.CONFLATED)
                 val checkpointUpdates = Channel<Unit>(Channel.CONFLATED)
                 val displayJob = launch(Dispatchers.Main.immediate) {
-                    for (snapshot in displayUpdates) {
+                    for ((snapshot, phase) in displayUpdates) {
                         if (ownerJob.isActive && ownsRequest()) {
                             currentCheckpoint = snapshot
-                            _state.value = PodcastSubtitleState.Transcribing(snapshot.cues, snapshot.progressPercent)
+                            _state.value = PodcastSubtitleState.Transcribing(snapshot.cues, snapshot.progressPercent, phase)
                             translationCoordinator.updateCues(snapshot.cues, isStreaming = true)
                         }
                     }
@@ -413,7 +422,7 @@ class PodcastSubtitleManager @Inject constructor(
                         val remaining = nextWriteAt - SystemClock.elapsedRealtime()
                         if (remaining > 0) delay(remaining)
                         val snapshot = latest.get()
-                        if (snapshot.cues.isEmpty() || snapshot == saved) continue
+                        if ((snapshot.cues.isEmpty() && snapshot.processedRanges.isNullOrEmpty()) || snapshot == saved) continue
                         nextWriteAt = SystemClock.elapsedRealtime() + CHECKPOINT_INTERVAL_MS
                         if (transcriptRepository.storeOnDeviceTranscript(snapshot).isSuccess) saved = snapshot
                     }
@@ -422,31 +431,43 @@ class PodcastSubtitleManager @Inject constructor(
                     val result = transcriber.transcribe(
                         source = mediaUrl,
                         totalDurationMs = durationMs,
-                        resumePositionMs = resumePosition,
-                        retainedCues = recovered?.cues.orEmpty(),
-                    ) { cues, percent, safeResumePosition ->
+                        resumePositionMs = recovery.positionMs,
+                        retainedCues = recovery.cues,
+                        processedRanges = recovery.ranges,
+                        recoveryReason = recovery.reason,
+                        pollSeek = seekRequests::poll,
+                    ) { partial ->
                         if (ownerJob.isActive && ownsRequest()) {
                             val incoming = initial.copy(
-                                cues = cues,
-                                progressPercent = percent.coerceIn(0, 99),
-                                resumePositionMs = safeResumePosition,
+                                cues = partial.cues,
+                                progressPercent = partial.progressPercent.coerceIn(0, 99),
+                                resumePositionMs = partial.resumePositionMs,
+                                processedRanges = partial.processedRanges,
+                                audioDurationMs = partial.audioDurationMs,
                             )
                             val snapshot = mergeSubtitleCheckpoint(latest.get(), incoming)
                             latest.set(snapshot)
-                            displayUpdates.trySend(snapshot)
+                            val phase = if (partial.phase == AsrRecognitionPhase.RECOGNIZING &&
+                                partial.progressPercent < initial.progressPercent
+                            ) AsrRecognitionPhase.RESUMING else partial.phase
+                            displayUpdates.trySend(snapshot to phase)
                             checkpointUpdates.trySend(Unit)
                         }
                     }
                     currentCoroutineContext().ensureActive()
                     if (!ownsRequest()) return@coroutineScope
-                    val (cues, language) = result.getOrThrow()
+                    val recognized = result.getOrThrow()
+                    val cues = recognized.cues
                     if (cues.isEmpty()) {
                         failureMessage = context.getString(R.string.podcast_subtitle_asr_empty)
                         return@coroutineScope
                     }
                     displayJob.cancelAndJoin()
                     checkpointJob.cancelAndJoin()
-                    val finished = latest.get().copy(cues = cues, language = language, isComplete = true, progressPercent = 100)
+                    val finished = latest.get().copy(
+                        cues = cues, language = "en", isComplete = true, progressPercent = 100,
+                        processedRanges = recognized.processedRanges, audioDurationMs = recognized.audioDurationMs,
+                    )
                     latest.set(finished)
                     val persisted = withContext(NonCancellable) { transcriptRepository.storeOnDeviceTranscript(finished).isSuccess }
                     if (!persisted) {
@@ -457,6 +478,12 @@ class PodcastSubtitleManager @Inject constructor(
                     if (ownsRequest()) showTranscript(finished)
                 } catch (error: CancellationException) {
                     throw error
+                } catch (_: AsrRecordingChangedException) {
+                    failureMessage = context.getString(R.string.podcast_subtitle_audio_changed)
+                    latest.set(latest.get().copy(
+                        recognizerFingerprint = "requires-regeneration", processedRanges = emptyList(),
+                        resumePositionMs = 0, progressPercent = 0,
+                    ))
                 } catch (_: Exception) {
                     failureMessage = context.getString(R.string.podcast_subtitle_asr_failed)
                 } finally {
@@ -467,10 +494,10 @@ class PodcastSubtitleManager @Inject constructor(
                         checkpointUpdates.close()
                         if (!completed) {
                             val snapshot = latest.get()
-                            val persisted = snapshot.cues.isEmpty() ||
+                            val persisted = (snapshot.cues.isEmpty() && snapshot.processedRanges.isNullOrEmpty()) ||
                                 (!snapshot.isComplete && transcriptRepository.storeOnDeviceTranscript(snapshot).isSuccess)
                             if (ownsRequest()) {
-                                if (snapshot.cues.isNotEmpty()) {
+                                if (snapshot.cues.isNotEmpty() || !snapshot.processedRanges.isNullOrEmpty()) {
                                     showInterruptedTranscript(
                                         snapshot,
                                         if (persisted) failureMessage else context.getString(R.string.podcast_subtitle_save_failed),
@@ -519,12 +546,19 @@ class PodcastSubtitleManager @Inject constructor(
     }
 
     fun cancelTranscription() {
+        seekRequests.clear()
         transcriptionJob?.cancel()
         if (_modelDownloadProgress.value != null) modelOperationJob?.cancel()
         if (_state.value is PodcastSubtitleState.Transcribing) {
             val saved = currentCheckpoint?.takeIf { it.cues.isNotEmpty() }
             if (saved != null) showInterruptedTranscript(saved)
             else _state.value = PodcastSubtitleState.Unavailable
+        }
+    }
+
+    fun onPlaybackSeek(episodeId: String, previousPositionMs: Long, positionMs: Long) {
+        if (episodeId == currentEpisodeId && transcriptionJob?.isActive == true) {
+            seekRequests.offer(previousPositionMs, positionMs)
         }
     }
 
@@ -563,6 +597,7 @@ class PodcastSubtitleManager @Inject constructor(
     }
 
     private fun reset(next: PodcastSubtitleState) {
+        seekRequests.clear()
         episodeGeneration++
         transcriptLoadJob?.cancel()
         transcriptLoadJob = null

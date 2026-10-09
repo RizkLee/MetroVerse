@@ -80,6 +80,27 @@ class SubtitleTranslationCoordinatorTest {
     }
 
     @Test
+    fun `backfilling an earlier range preserves translation focus and does not translate the new prefix`() = runBlocking {
+        withTimeout(5_000) {
+            val tail = cues.drop(60)
+            val cache = tail.associate { subtitleCueFingerprint(it) to "translated ${it.text}" }
+            val harness = Harness(this, cache)
+            try {
+                harness.coordinator.request("episode", 40, tail, config)
+                harness.settle()
+                harness.coordinator.updateCues(cues)
+                harness.settle()
+                harness.now = 10_000
+                harness.coordinator.updateCues(cues)
+                harness.settle()
+                assertEquals("translated cue-100", harness.visible[100])
+                assertFalse(harness.visible.containsKey(40))
+                assertTrue(harness.requests.tryReceive().isFailure)
+            } finally { harness.close() }
+        }
+    }
+
+    @Test
     fun `busy request retains the newest position and success notice does not hold the worker`() = runBlocking {
         withTimeout(5_000) {
             val harness = Harness(this)

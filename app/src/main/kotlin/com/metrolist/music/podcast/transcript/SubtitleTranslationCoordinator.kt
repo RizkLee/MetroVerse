@@ -85,7 +85,8 @@ internal class SubtitleTranslationCoordinator(
             centerIndex,
             isStreaming,
             latest?.takeIf { it.requestKey == requestKey }?.let {
-                it.prioritizeSeek || kotlin.math.abs(it.centerIndex - centerIndex) >= SEEK_PRIORITY_DISTANCE
+                it.prioritizeSeek || (kotlin.math.abs(it.centerIndex - centerIndex) >= SEEK_PRIORITY_DISTANCE &&
+                    it.cues.getOrNull(it.centerIndex)?.cue != cues.getOrNull(centerIndex))
             } ?: false,
         )
         val restart = latest?.requestKey != requestKey || worker?.isActive != true
@@ -150,7 +151,11 @@ internal class SubtitleTranslationCoordinator(
 
     fun updateCues(cues: List<SubtitleCue>, isStreaming: Boolean? = null) {
         val demand = latest ?: return
-        request(demand.episodeId, demand.centerIndex, cues, demand.config, isStreaming ?: demand.isStreaming)
+        val previousCenter = demand.cues.getOrNull(demand.centerIndex)?.cue
+        val centerIndex = previousCenter?.let { previous ->
+            cues.indexOf(previous).takeIf { it >= 0 } ?: PodcastAsrSupport.cueIndexAt(cues, previous.startMs)
+        } ?: demand.centerIndex
+        request(demand.episodeId, centerIndex, cues, demand.config, isStreaming ?: demand.isStreaming)
     }
 
     fun retry() {

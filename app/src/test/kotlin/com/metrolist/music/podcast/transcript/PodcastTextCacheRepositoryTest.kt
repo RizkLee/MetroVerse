@@ -35,6 +35,7 @@ class PodcastTextCacheRepositoryTest {
     val temporaryFolder = TemporaryFolder()
 
     private lateinit var filesDir: File
+    private lateinit var context: ContextWrapper
     private lateinit var repository: TranscriptRepository
     private val episodeId = "rss_episode_${"a".repeat(40)}"
     private val key = episodeId.takeLast(48)
@@ -46,7 +47,7 @@ class PodcastTextCacheRepositoryTest {
     @Before
     fun setUp() {
         filesDir = temporaryFolder.newFolder("files")
-        val context = object : ContextWrapper(ApplicationProvider.getApplicationContext<Application>()) {
+        context = object : ContextWrapper(ApplicationProvider.getApplicationContext<Application>()) {
             override fun getFilesDir(): File = this@PodcastTextCacheRepositoryTest.filesDir
         }
         repository = TranscriptRepository(context)
@@ -131,6 +132,17 @@ class PodcastTextCacheRepositoryTest {
         val complete = checkpoint.copy(isComplete = true, progressPercent = 100)
         assertTrue(repository.storeOnDeviceTranscript(complete).isSuccess)
         assertEquals(complete, repository.cachedTranscript(episodeId))
+    }
+
+    @Test
+    fun `noncontiguous recognition ranges survive a fresh repository including silent intervals`() = runBlocking {
+        val checkpoint = EpisodeTranscript(
+            episodeId, TranscriptSource.ON_DEVICE, emptyList(), "en", isComplete = false,
+            resumePositionMs = 900_000, processedRanges = listOf(AsrAudioRange(600_000, 900_000)),
+            audioDurationMs = 1_000_000,
+        )
+        assertTrue(repository.storeOnDeviceTranscript(checkpoint).isSuccess)
+        assertEquals(checkpoint, TranscriptRepository(context).cachedTranscript(episodeId))
     }
 
     @Test

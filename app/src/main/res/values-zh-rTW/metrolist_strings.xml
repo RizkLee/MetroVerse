@@ -866,7 +866,7 @@
     <string name="podcast_subtitles_translation_desc">使用與歌詞翻譯相同的 AI 服務翻譯字幕。預設關閉</string>
     <string name="podcast_subtitles_bilingual">雙語字幕</string>
     <string name="podcast_subtitles_bilingual_desc">在譯文旁同時顯示原文</string>
-    <string name="podcast_asr_experimental_desc">Moonshine Small Streaming · 英語 · 約 %1$s</string>
+    <string name="podcast_asr_experimental_desc">Moonshine Small Streaming · 下載大小：%1$s</string>
     <string name="podcast_asr_language">辨識語言</string>
     <string name="podcast_asr_language_auto">自動偵測</string>
     <string name="podcast_asr_language_zh">中文</string>
@@ -914,7 +914,22 @@
     <string name="ai_configure_api_key">設定 API 金鑰</string>
     <string name="podcast_subtitle_incomplete">字幕尚未產生完畢</string>
     <string name="podcast_subtitle_resume">繼續產生字幕</string>
-    <string name="podcast_asr_device_warning">實驗性功能，對手機記憶體和效能要求較高，辨識時可能發熱並增加耗電。</string>
+    <string name="podcast_asr_device_warning">實驗性功能，辨識時可能發熱並增加耗電。</string>
     <string name="podcast_subtitle_save_failed">無法儲存字幕，目前仍可查看已產生的字幕。</string>
     <string name="podcast_subtitle_retry_save">重試儲存字幕</string>
+    <string name="podcast_asr_english_only">僅支援英語語音辨識。</string>
+    <string name="podcast_asr_performance_notice">對手機記憶體和處理效能要求較高。</string>
+    <string name="metroverse_moonshine_attribution">英語 Small Streaming 模型及 Moonshine Voice 0.1.5 執行階段 · MIT 授權。</string>
+    <string name="metroverse_onnx_attribution">本機模型推論執行階段 1.23.2 · MIT 授權。</string>
+    <string name="podcast_subtitle_asr_preparing">正在準備辨識…</string>
+    <string name="podcast_subtitle_offset">字幕時間校準</string>
+    <string name="podcast_subtitle_offset_description">僅調整目前單集。正值讓字幕提前，負值讓字幕延後。</string>
+    <string name="podcast_subtitle_offset_label">偏移（毫秒）</string>
+    <string name="podcast_subtitle_offset_value">%1$+d 毫秒</string>
+    <string name="podcast_subtitle_offset_earlier">字幕提前 50 毫秒</string>
+    <string name="podcast_subtitle_offset_later">字幕延後 50 毫秒</string>
+    <string name="podcast_subtitle_fullscreen">展開字幕</string>
+    <string name="podcast_subtitle_exit_fullscreen">結束全螢幕</string>
+    <string name="podcast_subtitle_audio_changed">音訊與已儲存的進度不一致，請重新產生字幕。</string>
+    <string name="podcast_subtitle_asr_resuming">正在恢復辨識…</string>
 </resources>

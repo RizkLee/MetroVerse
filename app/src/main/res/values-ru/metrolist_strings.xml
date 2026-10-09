@@ -943,7 +943,7 @@
     <string name="podcast_subtitles_translation_desc">Переводит субтитры тем же ИИ-сервисом, что и тексты песен. По умолчанию выключено</string>
     <string name="podcast_subtitles_bilingual">Двуязычные субтитры</string>
     <string name="podcast_subtitles_bilingual_desc">Показывать оригинальную строку вместе с переводом</string>
-    <string name="podcast_asr_experimental_desc">Moonshine Small Streaming · Английский · Около %1$s</string>
+    <string name="podcast_asr_experimental_desc">Moonshine Small Streaming · Размер загрузки: %1$s</string>
     <string name="podcast_asr_language">Язык распознавания</string>
     <string name="podcast_asr_language_auto">Автоопределение</string>
     <string name="podcast_asr_language_zh">Китайский</string>
@@ -991,7 +991,22 @@
     <string name="ai_configure_api_key">Настроить ключ API</string>
     <string name="podcast_subtitle_incomplete">Субтитры созданы не полностью</string>
     <string name="podcast_subtitle_resume">Продолжить создание субтитров</string>
-    <string name="podcast_asr_device_warning">Экспериментальная функция. Требует много памяти и вычислительных ресурсов; распознавание может усилить нагрев и расход заряда.</string>
+    <string name="podcast_asr_device_warning">Экспериментальная функция; распознавание может усилить нагрев и расход заряда.</string>
     <string name="podcast_subtitle_save_failed">Не удалось сохранить субтитры. Текущие субтитры по-прежнему доступны.</string>
     <string name="podcast_subtitle_retry_save">Повторить сохранение субтитров</string>
+    <string name="podcast_asr_english_only">Распознаёт речь только на английском языке.</string>
+    <string name="podcast_asr_performance_notice">Требует много памяти и вычислительных ресурсов.</string>
+    <string name="metroverse_moonshine_attribution">Английская модель Small Streaming и среда Moonshine Voice 0.1.5 · Лицензия MIT.</string>
+    <string name="metroverse_onnx_attribution">Среда локального выполнения моделей, версия 1.23.2 · Лицензия MIT.</string>
+    <string name="podcast_subtitle_asr_preparing">Подготовка распознавания…</string>
+    <string name="podcast_subtitle_offset">Время показа субтитров</string>
+    <string name="podcast_subtitle_offset_description">Только для этого эпизода. Положительные значения показывают субтитры раньше, отрицательные — позже.</string>
+    <string name="podcast_subtitle_offset_label">Сдвиг (мс)</string>
+    <string name="podcast_subtitle_offset_value">%1$+d мс</string>
+    <string name="podcast_subtitle_offset_earlier">Показывать субтитры на 50 мс раньше</string>
+    <string name="podcast_subtitle_offset_later">Показывать субтитры на 50 мс позже</string>
+    <string name="podcast_subtitle_fullscreen">Развернуть субтитры</string>
+    <string name="podcast_subtitle_exit_fullscreen">Выйти из полноэкранного режима</string>
+    <string name="podcast_subtitle_audio_changed">Аудио не соответствует сохранённому прогрессу. Создайте субтитры заново.</string>
+    <string name="podcast_subtitle_asr_resuming">Возобновление распознавания…</string>
 </resources>

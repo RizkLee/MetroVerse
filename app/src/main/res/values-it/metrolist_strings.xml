@@ -929,7 +929,7 @@
     <string name="podcast_subtitles_translation_desc">Traduce i sottotitoli con il servizio IA configurato per i testi. Disattivato per impostazione predefinita</string>
     <string name="podcast_subtitles_bilingual">Sottotitoli bilingue</string>
     <string name="podcast_subtitles_bilingual_desc">Mostra la riga originale insieme alla traduzione</string>
-    <string name="podcast_asr_experimental_desc">Moonshine Small Streaming · Inglese · Circa %1$s</string>
+    <string name="podcast_asr_experimental_desc">Moonshine Small Streaming · Dimensioni download: %1$s</string>
     <string name="podcast_asr_language">Lingua di riconoscimento</string>
     <string name="podcast_asr_language_auto">Rilevamento automatico</string>
     <string name="podcast_asr_language_zh">Cinese</string>
@@ -977,7 +977,22 @@
     <string name="ai_configure_api_key">Configura chiave API</string>
     <string name="podcast_subtitle_incomplete">I sottotitoli sono incompleti</string>
     <string name="podcast_subtitle_resume">Continua a generare i sottotitoli</string>
-    <string name="podcast_asr_device_warning">Funzione sperimentale. Richiede molta memoria e potenza di elaborazione; il riconoscimento può aumentare il calore e il consumo della batteria.</string>
+    <string name="podcast_asr_device_warning">Sperimentale; il riconoscimento può aumentare il calore e il consumo della batteria.</string>
     <string name="podcast_subtitle_save_failed">Impossibile salvare i sottotitoli. Quelli attuali sono ancora disponibili.</string>
     <string name="podcast_subtitle_retry_save">Riprova a salvare i sottotitoli</string>
+    <string name="podcast_asr_english_only">Riconosce solo il parlato in inglese.</string>
+    <string name="podcast_asr_performance_notice">Richiede molta memoria e capacità di elaborazione.</string>
+    <string name="metroverse_moonshine_attribution">Modello Small Streaming inglese e runtime Moonshine Voice 0.1.5 · Licenza MIT.</string>
+    <string name="metroverse_onnx_attribution">Runtime di inferenza sul dispositivo, versione 1.23.2 · Licenza MIT.</string>
+    <string name="podcast_subtitle_asr_preparing">Preparazione del riconoscimento…</string>
+    <string name="podcast_subtitle_offset">Sincronizzazione sottotitoli</string>
+    <string name="podcast_subtitle_offset_description">Solo per questo episodio. I valori positivi anticipano i sottotitoli; quelli negativi li ritardano.</string>
+    <string name="podcast_subtitle_offset_label">Scostamento (ms)</string>
+    <string name="podcast_subtitle_offset_value">%1$+d ms</string>
+    <string name="podcast_subtitle_offset_earlier">Anticipa i sottotitoli di 50 ms</string>
+    <string name="podcast_subtitle_offset_later">Ritarda i sottotitoli di 50 ms</string>
+    <string name="podcast_subtitle_fullscreen">Espandi sottotitoli</string>
+    <string name="podcast_subtitle_exit_fullscreen">Esci da schermo intero</string>
+    <string name="podcast_subtitle_audio_changed">L’audio non corrisponde ai progressi salvati. Genera di nuovo i sottotitoli.</string>
+    <string name="podcast_subtitle_asr_resuming">Ripresa del riconoscimento…</string>
 </resources>

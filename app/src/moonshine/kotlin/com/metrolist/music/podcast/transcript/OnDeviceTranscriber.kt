@@ -37,70 +37,196 @@ class OnDeviceTranscriber @Inject constructor(
         removeRetiredAsrModelFiles(context.filesDir)
     }
 
-    suspend fun transcribe(
+    internal suspend fun transcribe(
         source: String,
         totalDurationMs: Long,
         resumePositionMs: Long = 0L,
         retainedCues: List<SubtitleCue> = emptyList(),
-        onPartial: (cues: List<SubtitleCue>, progressPercent: Int, resumePositionMs: Long) -> Unit,
-    ): Result<Pair<List<SubtitleCue>, String?>> = withContext(Dispatchers.Default) {
+        processedRanges: List<AsrAudioRange> = emptyList(),
+        recoveryReason: String = "fresh",
+        pollSeek: () -> AsrSeekTarget? = { null },
+        onPartial: (AsrRecognitionSnapshot) -> Unit,
+    ): Result<AsrRecognitionSnapshot> = withContext(Dispatchers.Default) {
         try {
             val result = modelStore.withModel { directory ->
                 val diagnostics = AsrDiagnostics()
                 val coroutineContext = currentCoroutineContext()
                 coroutineContext.ensureActive()
-                val resumeCursor = AsrResumeCursor(resumePositionMs, SAMPLE_RATE)
-                val transcript = AsrTranscriptAccumulator(SAMPLE_RATE, resumeCursor.resumeSample, retainedCues)
-                var totalSamples = resumeCursor.resumeSample
+                val plan = AsrRecognitionPlan(processedRanges)
+                var savedCues = retainedCues.sortedBy { it.startMs }
+                var totalSamples = resumePositionMs * (SAMPLE_RATE / 1_000)
+                var safeResumeMs = resumePositionMs
+                var durationHintMs = totalDurationMs
+                var streamOwnedStartMs = resumePositionMs
+                var transcript: AsrTranscriptAccumulator? = null
                 var stream = -1
+                var lastStableCues: List<SubtitleCue>? = null
+                var visibleCues = savedCues
+                diagnostics.resume(resumePositionMs, processedRanges.sumOf { it.endMs - it.startMs }, retainedCues.size, recoveryReason)
                 val handle = MoonshineNative.create(directory.absolutePath)
 
                 try {
                     diagnostics.record("model_loaded")
                     fun merge(lines: Array<MoonshineLine>) {
-                        lines.forEach { transcript.update(it.id, it.text, it.startTimeSeconds, it.durationSeconds, it.complete) }
+                        val current = checkNotNull(transcript)
+                        lines.forEach { current.update(it.id, it.text, it.startTimeSeconds, it.durationSeconds, it.complete) }
                     }
 
-                    fun finishCurrentStream() {
-                        merge(MoonshineNative.finishStream(handle, stream))
-                        transcript.finishStream(totalSamples)
-                        MoonshineNative.freeStream(handle, stream)
-                        stream = -1
+                    fun snapshot(phase: AsrRecognitionPhase = AsrRecognitionPhase.RECOGNIZING): AsrRecognitionSnapshot {
+                        val stable = transcript?.snapshot(totalSamples)
+                        if (stable !== lastStableCues) {
+                            visibleCues = if (stable == null) savedCues else replaceAsrRangeCues(
+                                savedCues, stable, streamOwnedStartMs,
+                                stable.lastOrNull()?.endMs ?: streamOwnedStartMs,
+                            )
+                            lastStableCues = stable
+                        }
+                        val endMs = totalSamples / (SAMPLE_RATE / 1_000)
+                        val activeRange = if (transcript != null && endMs > streamOwnedStartMs) {
+                            AsrAudioRange(streamOwnedStartMs, endMs)
+                        } else null
+                        return AsrRecognitionSnapshot(
+                            visibleCues, plan.processedRanges, safeResumeMs,
+                            plan.progress(durationHintMs, activeRange), plan.audioEndMs, phase,
+                        )
                     }
 
-                    stream = MoonshineNative.createStream(handle)
-                    PodcastAudioDecoder.decodeToPcmChunks(source, SAMPLE_RATE * 2, { coroutineContext.ensureActive() }) { decoded, _ ->
-                        coroutineContext.ensureActive()
-                        val samples = resumeCursor.remaining(decoded)
-                        if (samples.isNotEmpty()) {
-                            val inferenceStarted = SystemClock.elapsedRealtime()
-                            merge(MoonshineNative.acceptAudio(handle, stream, samples))
-                            diagnostics.addInference(SystemClock.elapsedRealtime() - inferenceStarted)
-                            totalSamples += samples.size
-                            coroutineContext.ensureActive()
-
-                            // Only a finalized native stream is a safe restart boundary. Keep
-                            // the unfinished stream in the visible snapshot, but reprocess it on resume.
-                            if (shouldRotateAsrStream((totalSamples - transcript.streamStartSample) * 1_000 / SAMPLE_RATE, transcript.hasIncompleteLines)) {
-                                finishCurrentStream()
-                                diagnostics.record("stream_finished", totalSamples * 1_000 / SAMPLE_RATE)
-                                stream = MoonshineNative.createStream(handle)
+                    fun finishCurrentStream(endMs: Long, finalizeIncomplete: Boolean = true) {
+                        val current = transcript ?: return
+                        try {
+                            if (finalizeIncomplete) {
+                                val started = SystemClock.elapsedRealtime()
+                                merge(MoonshineNative.finishStream(handle, stream))
+                                diagnostics.addInference(SystemClock.elapsedRealtime() - started)
                             }
-                            val cues = transcript.snapshot(totalSamples)
-                            val progress = if (totalDurationMs > 0) {
-                                (totalSamples * 100_000L / SAMPLE_RATE / totalDurationMs).toInt().coerceIn(0, 99)
-                            } else 0
-                            onPartial(cues, progress, transcript.streamStartSample * 1_000 / SAMPLE_RATE)
-                            diagnostics.progress(totalSamples * 1_000 / SAMPLE_RATE, cues.size)
+                            val stable = current.snapshot(totalSamples)
+                            // A rapid second seek discards only the unfinished hypothesis. Already
+                            // finalized text remains valid, even when the user listened for <15s.
+                            val safeEnd = if (!finalizeIncomplete) {
+                                // No returned line does not prove silence: VAD may still buffer speech.
+                                finalizedAsrBoundary(streamOwnedStartMs, endMs, stable)
+                            } else endMs
+                            savedCues = replaceAsrRangeCues(savedCues, stable, streamOwnedStartMs, safeEnd)
+                            plan.record(streamOwnedStartMs, safeEnd)
+                            safeResumeMs = safeEnd.coerceAtLeast(streamOwnedStartMs)
+                        } finally {
+                            val finishedStream = stream
+                            stream = -1
+                            transcript = null
+                            lastStableCues = null
+                            visibleCues = savedCues
+                            MoonshineNative.freeStream(handle, finishedStream)
+                        }
+                    }
+
+                    PodcastAudioDecoder.open(source) { coroutineContext.ensureActive() }.use { decoder ->
+                        durationHintMs = decoder.durationMs.takeIf { it > 0 } ?: totalDurationMs
+                        diagnostics.record("audio_ready")
+                        var preferredStart: Long? = resumePositionMs
+                        while (true) {
+                            coroutineContext.ensureActive()
+                            val work = plan.next(preferredStart) ?: break
+                            preferredStart = null
+                            safeResumeMs = work.startMs
+                            streamOwnedStartMs = work.startMs
+                            totalSamples = work.startMs * (SAMPLE_RATE / 1_000)
+                            var acceptedEndSample: Long? = null
+                            var requestedSeek: AsrSeekTarget? = null
+                            fun checkDecode() {
+                                coroutineContext.ensureActive()
+                                val target = requestedSeek ?: pollSeek()
+                                if (target != null && (requestedSeek != null || shouldPrioritizeAsrSeek(
+                                        target, work.startMs, totalSamples / (SAMPLE_RATE / 1_000), plan.processedRanges,
+                                    ))
+                                ) {
+                                    requestedSeek = target
+                                    throw RecognitionReposition()
+                                }
+                            }
+                            onPartial(snapshot(AsrRecognitionPhase.PREPARING))
+                            val decoded = try {
+                                decoder.decodeRange(
+                                    startMs = (work.startMs - CONTEXT_AUDIO_MS).coerceAtLeast(0),
+                                    endMs = work.endMs,
+                                    checkCancelled = ::checkDecode,
+                                    onSeek = { diagnostics.seek(it.requestedMs, it.actualMs, it.usedFallback) },
+                                ) { chunk ->
+                                    coroutineContext.ensureActive()
+                                    checkDecode()
+                                    val previousEnd = acceptedEndSample
+                                    if (previousEnd != null && chunk.startSample != previousEnd) {
+                                        check(chunk.startSample > previousEnd) { "Recognition media time moved backwards" }
+                                        val previousMs = previousEnd / (SAMPLE_RATE / 1_000)
+                                        finishCurrentStream(previousMs)
+                                        plan.record(maxOf(work.startMs, previousMs), chunk.startMs)
+                                        streamOwnedStartMs = maxOf(work.startMs, chunk.startMs)
+                                        diagnostics.gap(previousMs, chunk.startMs)
+                                    } else if (previousEnd == null && chunk.startMs > work.startMs) {
+                                        plan.record(work.startMs, chunk.startMs)
+                                        streamOwnedStartMs = chunk.startMs
+                                    }
+                                    if (stream < 0) {
+                                        stream = MoonshineNative.createStream(handle)
+                                        transcript = AsrTranscriptAccumulator(SAMPLE_RATE, chunk.startSample)
+                                        safeResumeMs = streamOwnedStartMs
+                                    }
+                                    val inferenceStarted = SystemClock.elapsedRealtime()
+                                    merge(MoonshineNative.acceptAudio(handle, stream, chunk.samples))
+                                    diagnostics.addInference(SystemClock.elapsedRealtime() - inferenceStarted, chunk.samples.size)
+                                    totalSamples = chunk.endSample
+                                    acceptedEndSample = chunk.endSample
+                                    coroutineContext.ensureActive()
+                                    val current = checkNotNull(transcript)
+                                    if (shouldRotateAsrStream(
+                                            (totalSamples - current.streamStartSample) * 1_000 / SAMPLE_RATE,
+                                            current.hasIncompleteLines,
+                                        )
+                                    ) {
+                                        finishCurrentStream(chunk.endMs)
+                                        streamOwnedStartMs = chunk.endMs
+                                        diagnostics.record("stream_finished", chunk.endMs)
+                                    }
+                                    val partial = snapshot()
+                                    onPartial(partial)
+                                    diagnostics.progress(chunk.endMs, partial.cues.size)
+                                    true
+                                }
+                            } catch (_: RecognitionReposition) {
+                                null
+                            }
+                            coroutineContext.ensureActive()
+                            val seek = requestedSeek
+                            if (seek != null) {
+                                val endMs = totalSamples / (SAMPLE_RATE / 1_000)
+                                finishCurrentStream(endMs, endMs - streamOwnedStartMs >= MIN_INTERRUPTED_AUDIO_MS)
+                                plan.defer(safeResumeMs)
+                                preferredStart = seek.positionMs
+                                diagnostics.record("reprioritized", seek.positionMs, savedCues.size)
+                            } else {
+                                val completedRange = checkNotNull(decoded)
+                                val endMs = completedRange.endSample / (SAMPLE_RATE / 1_000)
+                                finishCurrentStream(endMs)
+                                if (completedRange.reachedRangeEnd) plan.record(work.startMs, checkNotNull(work.endMs))
+                                if (completedRange.reachedEndOfInput && !completedRange.reachedRangeEnd) {
+                                    verifyAsrMediaEnd(endMs, processedRanges, retainedCues)
+                                    plan.record(work.startMs, endMs)
+                                    plan.reachedEnd(endMs)
+                                    savedCues = savedCues.mapNotNull { cue ->
+                                        val end = minOf(cue.endMs, endMs)
+                                        if (end > cue.startMs) cue.copy(endMs = end) else null
+                                    }
+                                    visibleCues = savedCues
+                                }
+                                check(completedRange.reachedRangeEnd || completedRange.reachedEndOfInput) { "Recognition made no media progress" }
+                                safeResumeMs = endMs
+                            }
+                            onPartial(snapshot())
                         }
                     }
                     coroutineContext.ensureActive()
-                    resumeCursor.verifyEndOfInput()
-                    finishCurrentStream()
-                    val cues = transcript.snapshot(totalSamples)
-                    onPartial(cues, 99, transcript.streamStartSample * 1_000 / SAMPLE_RATE)
-                    diagnostics.record("recognition_finished", totalSamples * 1_000 / SAMPLE_RATE, cues.size)
-                    cues to "en"
+                    val finished = snapshot()
+                    diagnostics.record("recognition_finished", totalSamples / (SAMPLE_RATE / 1_000), finished.cues.size)
+                    finished
                 } finally {
                     if (stream >= 0) runCatching { MoonshineNative.freeStream(handle, stream) }
                     MoonshineNative.close(handle)
@@ -111,7 +237,10 @@ class OnDeviceTranscriber @Inject constructor(
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
-            Result.failure(if (error is AsrModelPreparationException) error else IllegalStateException(context.getString(R.string.podcast_subtitle_asr_failed), error))
+            Result.failure(
+                if (error is AsrModelPreparationException || error is AsrRecordingChangedException) error
+                else IllegalStateException(context.getString(R.string.podcast_subtitle_asr_failed), error),
+            )
         } catch (error: LinkageError) {
             Result.failure(IllegalStateException(context.getString(R.string.podcast_subtitle_asr_failed), error))
         }
@@ -119,7 +248,11 @@ class OnDeviceTranscriber @Inject constructor(
 
     companion object {
         const val SAMPLE_RATE = 16_000
+        private const val CONTEXT_AUDIO_MS = 8_000L
+        private const val MIN_INTERRUPTED_AUDIO_MS = 15_000L
         fun checkpointIdentity(): String = "moonshine-small-streaming-en-quantized_26_08_21-v1"
         fun approximateModelDownloadBytes(): Long = MoonshineModelFiles.artifacts.sumOf { it.bytes }
     }
+
+    private class RecognitionReposition : RuntimeException(null, null, false, false)
 }

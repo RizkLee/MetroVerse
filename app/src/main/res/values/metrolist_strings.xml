@@ -927,7 +927,7 @@
     <string name="metroverse_metrolist_relationship">MetroVerse is based on Metrolist and retains its music architecture, interface foundations, contributors, and GPL history.</string>
     <string name="metroverse_podium_relationship">The RSS and Apple Podcasts integration was developed by studying and adapting concepts from Podium under GPL-3.0.</string>
     <string name="metroverse_apple_podcasts_attribution">Apple Podcasts provides public discovery, charts, search metadata, and artwork. MetroVerse plays public RSS feeds independently and is not affiliated with Apple.</string>
-    <string name="metroverse_changelog_body">MetroVerse 1.0.0\n\n• Podcast subtitles with tap-to-seek, sharing and bilingual AI translation\n• Experimental on-device English subtitles with Moonshine Small Streaming\n• Resume interrupted subtitle generation and manage subtitle, lyric and translation storage\n• Fixed lyric scrolling, selected-line following and podcast playback controls\n• Wider lyric-share images and direct API key setup from both players\n• Preserved RSS saved episodes during library synchronization and improved translations</string>
+    <string name="metroverse_changelog_body">MetroVerse 1.0.0\n\n• Podcast subtitles with timing adjustment, fullscreen viewing, sharing and bilingual AI translation\n• Experimental Moonshine English subtitles that prioritize your listening position and fill missing sections\n• Resume subtitle generation with media timing preserved; manage subtitle, lyric and translation storage\n• Fixed lyric scrolling, selected-line following and podcast playback controls\n• Wider lyric-share images, direct API key setup and speech-model attribution in About\n• Preserved RSS saved episodes during library synchronization and improved translations</string>
     <string name="wanna_play_favorite_song">Want to play their favorite song?</string>
     <string name="yeah">Yeah!</string>
     <string name="stands_with_palestine">This project stands with Palestine 🇵🇸</string>
@@ -1143,7 +1143,7 @@
     <string name="podcast_subtitles_translation_desc">Translate subtitle lines with the AI translation service configured for lyrics. Off by default</string>
     <string name="podcast_subtitles_bilingual">Bilingual subtitles</string>
     <string name="podcast_subtitles_bilingual_desc">Show the original line together with its translation</string>
-    <string name="podcast_asr_experimental_desc">Moonshine Small Streaming · English · About %1$s</string>
+    <string name="podcast_asr_experimental_desc">Moonshine Small Streaming · Download size: %1$s</string>
     <string name="podcast_subtitle_share_failed">Could not create the subtitle image</string>
     <string name="podcast_asr_language">Recognition language</string>
     <string name="podcast_asr_language_auto">Auto detect</string>
@@ -1187,7 +1187,22 @@
     <string name="ai_configure_api_key">Set up API key</string>
     <string name="podcast_subtitle_incomplete">Subtitles are incomplete</string>
     <string name="podcast_subtitle_resume">Continue generating subtitles</string>
-    <string name="podcast_asr_device_warning">Experimental feature. Requires substantial memory and processing power; recognition may increase heat and battery use.</string>
+    <string name="podcast_asr_device_warning">Experimental; recognition may increase heat and battery use.</string>
     <string name="podcast_subtitle_save_failed">Could not save subtitles. The current subtitles are still available.</string>
     <string name="podcast_subtitle_retry_save">Retry saving subtitles</string>
+    <string name="podcast_asr_english_only">Recognizes English speech only.</string>
+    <string name="podcast_asr_performance_notice">Requires substantial memory and processing power.</string>
+    <string name="metroverse_moonshine_attribution">English Small Streaming model and Moonshine Voice 0.1.5 runtime · MIT license.</string>
+    <string name="metroverse_onnx_attribution">On-device inference runtime, version 1.23.2 · MIT license.</string>
+    <string name="podcast_subtitle_asr_preparing">Preparing recognition…</string>
+    <string name="podcast_subtitle_offset">Subtitle timing</string>
+    <string name="podcast_subtitle_offset_description">Adjust this episode only. Positive values show subtitles earlier; negative values show them later.</string>
+    <string name="podcast_subtitle_offset_label">Offset (ms)</string>
+    <string name="podcast_subtitle_offset_value">%1$+d ms</string>
+    <string name="podcast_subtitle_offset_earlier">Show subtitles 50 ms earlier</string>
+    <string name="podcast_subtitle_offset_later">Show subtitles 50 ms later</string>
+    <string name="podcast_subtitle_fullscreen">Expand subtitles</string>
+    <string name="podcast_subtitle_exit_fullscreen">Exit full screen</string>
+    <string name="podcast_subtitle_audio_changed">The audio differs from your saved progress. Generate subtitles again.</string>
+    <string name="podcast_subtitle_asr_resuming">Resuming recognition…</string>
 </resources>
