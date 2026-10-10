@@ -18,16 +18,24 @@ internal fun recoverAsrProgress(
     recognizerFingerprint: String,
     initialPositionMs: Long,
 ): AsrRecovery {
-    if (checkpoint == null) return AsrRecovery(initialPositionMs.coerceAtLeast(0), emptyList(), emptyList(), "fresh")
+    val initialStart = if (initialPositionMs < 60_000L) 0L else initialPositionMs
+    if (checkpoint == null) return AsrRecovery(initialStart, emptyList(), emptyList(), "fresh")
     if (checkpoint.mediaSourceFingerprint != mediaSourceFingerprint) {
-        return AsrRecovery(initialPositionMs.coerceAtLeast(0), emptyList(), emptyList(), "source_changed")
+        return AsrRecovery(initialStart, emptyList(), emptyList(), "source_changed")
     }
     if (checkpoint.recognizerFingerprint != recognizerFingerprint || checkpoint.isComplete) {
-        return AsrRecovery(initialPositionMs.coerceAtLeast(0), emptyList(), emptyList(), "incompatible_checkpoint")
+        return AsrRecovery(initialStart, emptyList(), emptyList(), "incompatible_checkpoint")
     }
     val position = checkpoint.resumePositionMs.coerceAtLeast(0)
     val ranges = checkpoint.processedRanges ?: if (position > 0) listOf(AsrAudioRange(0, position)) else emptyList()
-    return AsrRecovery(position, mergeAsrRanges(ranges), checkpoint.cues, "saved_checkpoint")
+    // Older streaming checkpoints saved completed text before committing its coverage. Keep
+    // those sentences covered without claiming that the unknown gaps between them are silence.
+    val cueRanges = checkpoint.cues.filter { it.startMs >= 0 && it.endMs > it.startMs }
+        .map { AsrAudioRange(it.startMs, it.endMs) }
+    val nextCoveredStart = ranges.filter { it.startMs > position }.minOfOrNull { it.startMs } ?: Long.MAX_VALUE
+    val stableEnd = checkpoint.cues.filter { it.startMs >= position && it.endMs <= nextCoveredStart }
+        .maxOfOrNull { it.endMs } ?: position
+    return AsrRecovery(maxOf(position, stableEnd), mergeAsrRanges(ranges + cueRanges), checkpoint.cues, "saved_checkpoint")
 }
 
 internal fun subtitleResumePosition(

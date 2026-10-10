@@ -437,19 +437,21 @@ class PodcastSubtitleManager @Inject constructor(
                         recoveryReason = recovery.reason,
                         pollSeek = seekRequests::poll,
                     ) { partial ->
+                        // This job also owns its final cancellation checkpoint. UI ownership may
+                        // have moved to another episode while its native inference was finishing.
+                        val incoming = initial.copy(
+                            cues = partial.cues,
+                            progressPercent = partial.progressPercent.coerceIn(0, 99),
+                            resumePositionMs = partial.resumePositionMs,
+                            processedRanges = partial.processedRanges,
+                            audioDurationMs = partial.audioDurationMs,
+                        )
+                        val snapshot = mergeSubtitleCheckpoint(latest.get(), incoming)
+                        latest.set(snapshot)
+                        val phase = if (partial.phase == AsrRecognitionPhase.RECOGNIZING &&
+                            partial.progressPercent < initial.progressPercent
+                        ) AsrRecognitionPhase.RESUMING else partial.phase
                         if (ownerJob.isActive && ownsRequest()) {
-                            val incoming = initial.copy(
-                                cues = partial.cues,
-                                progressPercent = partial.progressPercent.coerceIn(0, 99),
-                                resumePositionMs = partial.resumePositionMs,
-                                processedRanges = partial.processedRanges,
-                                audioDurationMs = partial.audioDurationMs,
-                            )
-                            val snapshot = mergeSubtitleCheckpoint(latest.get(), incoming)
-                            latest.set(snapshot)
-                            val phase = if (partial.phase == AsrRecognitionPhase.RECOGNIZING &&
-                                partial.progressPercent < initial.progressPercent
-                            ) AsrRecognitionPhase.RESUMING else partial.phase
                             displayUpdates.trySend(snapshot to phase)
                             checkpointUpdates.trySend(Unit)
                         }

@@ -5,6 +5,28 @@
 
 package com.metrolist.music.ui.component
 
+internal data class LyricsPlaybackPosition(
+    val positionMs: Long,
+    val pendingSeek: LyricsSeekTarget?,
+    val isSeeking: Boolean,
+)
+
+/** A preview exists only during scrubbing; ordinary (including paused) playback stays separate. */
+internal fun resolveLyricsPlaybackPosition(
+    observedPositionMs: Long,
+    previewPositionMs: Long?,
+    observedIndex: Int,
+    requestedSeek: LyricsSeekTarget?,
+    nowMs: Long,
+): LyricsPlaybackPosition {
+    val pending = requestedSeek?.takeIf { previewPositionMs == null && it.isPending(observedIndex, nowMs) }
+    return LyricsPlaybackPosition(
+        previewPositionMs ?: pending?.positionMs ?: observedPositionMs,
+        pending,
+        previewPositionMs != null || pending != null,
+    )
+}
+
 /** A clicked line owns the scroll target while the player is still reporting its old position. */
 internal data class LyricsSeekTarget(
     val index: Int,

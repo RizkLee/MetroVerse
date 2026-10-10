@@ -16,6 +16,36 @@ class SubtitleCheckpointTest {
     )
 
     @Test
+    fun `first minute starts from zero and later playback keeps its requested start`() {
+        for (position in listOf(-1L, 0L, 8_000L, 45_000L, 59_999L)) {
+            val fresh = recoverAsrProgress(null, "source", "model", position)
+            assertEquals(0, fresh.positionMs)
+            assertEquals(emptyList<AsrAudioRange>(), fresh.ranges)
+        }
+        assertEquals(60_000, recoverAsrProgress(null, "source", "model", 60_000).positionMs)
+        assertEquals(600_000, recoverAsrProgress(null, "source", "model", 600_000).positionMs)
+    }
+
+    @Test
+    fun `old cancelled streams resume after completed text instead of replaying the entire stream`() {
+        val saved = checkpoint(
+            listOf(SubtitleCue(610_000, 640_000, "first"), SubtitleCue(645_000, 680_000, "second")),
+            600_000,
+        ).copy(processedRanges = listOf(AsrAudioRange(0, 600_000)))
+        val recovered = recoverAsrProgress(saved, "source", "model", 20_000)
+        assertEquals(680_000, recovered.positionMs)
+        assertEquals(listOf(AsrAudioRange(0, 600_000), AsrAudioRange(610_000, 640_000), AsrAudioRange(645_000, 680_000)), recovered.ranges)
+    }
+
+    @Test
+    fun `later saved ranges do not drag a backfill cursor to the end of the episode`() {
+        val saved = checkpoint(
+            listOf(SubtitleCue(10_000, 20_000, "backfill"), SubtitleCue(600_000, 620_000, "later")), 0,
+        ).copy(processedRanges = listOf(AsrAudioRange(600_000, 900_000)))
+        assertEquals(20_000, recoverAsrProgress(saved, "source", "model", 0).positionMs)
+    }
+
+    @Test
     fun `first recognition starts at playback position without claiming the earlier audio`() {
         val recovery = recoverAsrProgress(null, "source", "model", 900_000)
         assertEquals(900_000, recovery.positionMs)
@@ -28,9 +58,9 @@ class SubtitleCheckpointTest {
         assertEquals(listOf(AsrAudioRange(0, 300_000)), recoverAsrProgress(legacy, "source", "model", 0).ranges)
         val ranges = listOf(AsrAudioRange(600_000, 900_000))
         val sparse = legacy.copy(processedRanges = ranges, resumePositionMs = 900_000)
-        assertEquals(ranges, recoverAsrProgress(sparse, "source", "model", 0).ranges)
+        assertEquals(listOf(AsrAudioRange(0, 1_000)) + ranges, recoverAsrProgress(sparse, "source", "model", 0).ranges)
         val freshFromMiddle = legacy.copy(processedRanges = emptyList(), resumePositionMs = 900_000)
-        assertEquals(emptyList<AsrAudioRange>(), recoverAsrProgress(freshFromMiddle, "source", "model", 0).ranges)
+        assertEquals(listOf(AsrAudioRange(0, 1_000)), recoverAsrProgress(freshFromMiddle, "source", "model", 0).ranges)
     }
 
     @Test

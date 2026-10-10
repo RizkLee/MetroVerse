@@ -60,7 +60,7 @@ data class AsrRecognitionSnapshot(
     val phase: AsrRecognitionPhase = AsrRecognitionPhase.RECOGNIZING,
 )
 
-internal class AsrRecordingChangedException : IllegalStateException("Audio ends before saved recognition coverage")
+internal class AsrRecordingChangedException : IllegalStateException("Podcast audio changed during recognition")
 
 internal fun verifyAsrMediaEnd(endMs: Long, savedRanges: List<AsrAudioRange>, savedCues: List<SubtitleCue>) {
     val savedEnd = maxOf(savedRanges.maxOfOrNull { it.endMs } ?: 0, savedCues.maxOfOrNull { it.endMs } ?: 0)
@@ -68,7 +68,7 @@ internal fun verifyAsrMediaEnd(endMs: Long, savedRanges: List<AsrAudioRange>, sa
 }
 
 internal fun finalizedAsrBoundary(startMs: Long, decodedEndMs: Long, stableCues: List<SubtitleCue>): Long =
-    minOf(decodedEndMs, maxOf(startMs, stableCues.maxOfOrNull { it.endMs } ?: startMs))
+    maxOf(startMs, minOf(decodedEndMs, stableCues.maxOfOrNull { it.endMs } ?: startMs))
 
 internal fun mergeAsrRanges(ranges: List<AsrAudioRange>): List<AsrAudioRange> {
     val merged = mutableListOf<AsrAudioRange>()
@@ -89,8 +89,10 @@ internal fun shouldPrioritizeAsrSeek(
     activeStartMs: Long,
     activeEndMs: Long,
     processedRanges: List<AsrAudioRange>,
+    recognizedCues: List<SubtitleCue> = emptyList(),
 ): Boolean {
     if (target.positionMs < 0 || processedRanges.any { target.positionMs in it }) return false
+    if (recognizedCues.any { target.positionMs >= it.startMs && target.positionMs < it.endMs }) return false
     if (target.positionMs in activeStartMs until activeEndMs) return false
     val forwardBy = target.positionMs - target.previousPositionMs
     return if (forwardBy > 0) {
@@ -114,6 +116,13 @@ internal class AsrRecognitionPlan(
     fun record(startMs: Long, endMs: Long) {
         if (endMs <= startMs) return
         processedRanges = mergeAsrRanges(processedRanges + AsrAudioRange(startMs.coerceAtLeast(0), endMs))
+    }
+
+    /** A completed sentence commits its decoded prefix even while the native stream continues. */
+    fun recordFinalized(startMs: Long, decodedEndMs: Long, stableCues: List<SubtitleCue>): Long {
+        val boundary = finalizedAsrBoundary(startMs, decodedEndMs, stableCues)
+        record(startMs, boundary)
+        return boundary
     }
 
     fun reachedEnd(endMs: Long) {

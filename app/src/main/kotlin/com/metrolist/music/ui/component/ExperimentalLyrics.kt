@@ -233,7 +233,8 @@ fun ExperimentalLyrics(
     sliderPositionProvider: () -> Long?,
     modifier: Modifier = Modifier,
     showLyrics: Boolean,
-    lyricsViewModel: LyricsViewModel = hiltViewModel()
+    lyricsViewModel: LyricsViewModel = hiltViewModel(),
+    playbackPositionProvider: (() -> Long)? = null,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val database = LocalDatabase.current
@@ -498,6 +499,8 @@ fun ExperimentalLyrics(
 
     var lastMainMaxSeen by remember(lyrics, lines) { mutableIntStateOf(-1) }
     var smoothPositionForSync by remember { mutableLongStateOf(0L) }
+    val latestPlaybackPositionProvider by rememberUpdatedState(playbackPositionProvider)
+    val latestSliderPositionProvider by rememberUpdatedState(sliderPositionProvider)
 
     LaunchedEffect(lyrics, lines) {
         if (lyrics.isNullOrEmpty() || lines.isEmpty()) {
@@ -505,17 +508,17 @@ fun ExperimentalLyrics(
             return@LaunchedEffect
         }
         
-        var lastPlayerPos = playerConnection.player.currentPosition
+        var lastPlayerPos = latestPlaybackPositionProvider?.invoke() ?: playerConnection.player.currentPosition
         var lastUpdateTime = System.currentTimeMillis()
         
         while (isActive) {
             withFrameNanos { _ -> }
             val now = System.currentTimeMillis()
-            val sliderPosition = sliderPositionProvider()
+            val sliderPosition = latestSliderPositionProvider()
             val observedPosition = if (sliderPosition != null) {
                 sliderPosition
             } else {
-                val playerPos = playerConnection.player.currentPosition
+                val playerPos = latestPlaybackPositionProvider?.invoke() ?: playerConnection.player.currentPosition
                 if (playerPos != lastPlayerPos) {
                     lastPlayerPos = playerPos
                     lastUpdateTime = now
@@ -525,15 +528,19 @@ fun ExperimentalLyrics(
             }
             
             val lyricsOffset = currentSong?.song?.lyricsOffset ?: 0
-            val waitingForSeek = pendingSeek?.takeIf { target ->
-                sliderPosition == null && target.isPending(
-                    playbackIndex = if (target.index in findActiveLineIndices(lines, observedPosition + lyricsOffset)) target.index else -1,
-                    nowMs = SystemClock.uptimeMillis(),
-                )
-            }
+            val playback = resolveLyricsPlaybackPosition(
+                observedPositionMs = observedPosition,
+                previewPositionMs = sliderPosition,
+                observedIndex = pendingSeek?.index?.takeIf {
+                    it in findActiveLineIndices(lines, observedPosition + lyricsOffset)
+                } ?: -1,
+                requestedSeek = pendingSeek,
+                nowMs = SystemClock.uptimeMillis(),
+            )
+            val waitingForSeek = playback.pendingSeek
             pendingSeek = waitingForSeek
-            isSeeking = sliderPosition != null || waitingForSeek != null
-            val position = waitingForSeek?.positionMs ?: observedPosition
+            isSeeking = playback.isSeeking
+            val position = playback.positionMs
             currentPositionState = position
             smoothPositionForSync = position
             
@@ -745,10 +752,14 @@ fun ExperimentalLyrics(
         // Manual scroll is clamped to the real first/last lyric positions only. Auto-scroll
         // rests at autoRestOffset (0 mid-song; pinned to the last/first line near either end)
         // instead of always 0, which used to leave a blank slab past the last line.
-        val scrollClampMin = lyricsScrollBounds.clampMin
-        val scrollClampMax = lyricsScrollBounds.clampMax
+        val manualScrollBounds = LyricsScrollBounds(
+            lyricsScrollBounds.minOffset - autoRestOffset,
+            lyricsScrollBounds.maxOffset - autoRestOffset,
+        )
+        val scrollClampMin = manualScrollBounds.clampMin
+        val scrollClampMax = manualScrollBounds.clampMax
         // The pointer coroutine survives layout updates, including translation height changes.
-        val latestScrollBounds by rememberUpdatedState(lyricsScrollBounds)
+        val latestScrollBounds by rememberUpdatedState(manualScrollBounds)
 
         LaunchedEffect(scrollClampMin, scrollClampMax, isAutoScrollEnabled) {
             if (!isAutoScrollEnabled && (userManualOffset < scrollClampMin || userManualOffset > scrollClampMax)) {
@@ -756,10 +767,23 @@ fun ExperimentalLyrics(
             }
         }
 
-        LaunchedEffect(isAutoScrollEnabled, autoRestOffset, lines, directScrollRequest) {
+        fun restOffsetForAnchor(listIndex: Int): Float {
+            val shift = positions[listIndex] ?: 0f
+            return computeAutoRestOffset(
+                contentAbove = shift - (positions[0] ?: 0f),
+                contentBelow = (positions[mergedLyricsList.lastIndex] ?: 0f) - shift,
+                lastItemHeight = resolveItemHeight(mergedLyricsList.lastIndex),
+                viewportHeight = maxHeightPx,
+                anchorY = anchorY,
+                topPadding = with(density) { LYRICS_SCROLL_TOP_PADDING_DP.toPx() },
+                bottomPadding = with(density) { LYRICS_SCROLL_BOTTOM_PADDING_DP.toPx() },
+            )
+        }
+
+        LaunchedEffect(isAutoScrollEnabled, lines, directScrollRequest) {
             if (isAutoScrollEnabled) {
                 val start = userManualOffset
-                val target = autoRestOffset
+                val target = 0f
                 if (abs(start - target) < 1f) {
                     userManualOffset = target
                     withFrameNanos { }
@@ -825,7 +849,7 @@ fun ExperimentalLyrics(
                         mergedLyricsList.indexOfFirst {
                             it is LyricsListItem.Line && it.index == target
                         }.coerceAtLeast(0)
-                    userManualOffset += positions[listIdx] ?: 0f
+                    userManualOffset += (positions[listIdx] ?: 0f) + autoRestOffset - restOffsetForAnchor(listIdx)
                     deferredCurrentLineIndex = target
                     scrollTargetIndex = target
                 }
@@ -915,7 +939,7 @@ fun ExperimentalLyrics(
                 val currentEffectivePosition = currentPositionState + lyricsOffsetVal
                 
                 if (isLyricsProviderShown) {
-                    val targetProviderBase = anchorY + (positions[0] ?: 0f) - with(density) { 32.dp.toPx() }
+                    val targetProviderBase = lyricsItemScreenOffset(anchorY, positions[0] ?: 0f, autoRestOffset) - with(density) { 32.dp.toPx() }
                     val animatedProviderBase by animateFloatAsState(
                         targetValue = targetProviderBase,
                         animationSpec = if (isInitialLayout || !isAutoScrollEnabled || isDirectScroll) snap()
@@ -934,7 +958,9 @@ fun ExperimentalLyrics(
                 mergedLyricsList.forEachIndexed { listIndex, listItem ->
                     key(listItem) {
                         val distance = abs(listIndex - activeListIndex)
-                        val targetOffset = anchorY + positions.getOrDefault(listIndex, (listIndex - activeListIndex) * lineHeightPx)
+                        val targetOffset = lyricsItemScreenOffset(
+                            anchorY, positions.getOrDefault(listIndex, (listIndex - activeListIndex) * lineHeightPx), autoRestOffset,
+                        )
                         val animatedOffset by animateFloatAsState(
                             targetValue = targetOffset,
                             animationSpec = if (isInitialLayout || !isAutoScrollEnabled || isDirectScroll) snap()
@@ -994,7 +1020,7 @@ fun ExperimentalLyrics(
                                             } else if (changeLyrics && !isGuest) {
                                                 flingJob?.cancel()
                                                 // Rebase the clicked row in place; only the shared offset animates to its new anchor.
-                                                userManualOffset += animatedOffset - anchorY
+                                                userManualOffset += animatedOffset - anchorY - restOffsetForAnchor(listIndex)
                                                 scrollTargetIndex = index
                                                 deferredCurrentLineIndex = index
                                                 lastMainMaxSeen = index

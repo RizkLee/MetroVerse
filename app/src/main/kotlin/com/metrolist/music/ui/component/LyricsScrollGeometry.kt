@@ -5,6 +5,10 @@
 
 package com.metrolist.music.ui.component
 
+/** Animate the final coordinate: opposite anchor/boundary shifts must cancel before motion. */
+internal fun lyricsItemScreenOffset(anchorY: Float, relativeOffset: Float, restOffset: Float): Float =
+    anchorY + relativeOffset + restOffset
+
 /** A gap belongs to the item after it, regardless of which line currently owns the anchor. */
 internal fun computeLyricsItemPositions(
     itemHeights: List<Float>,

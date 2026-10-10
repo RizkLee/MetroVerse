@@ -16,6 +16,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.job
 import kotlinx.coroutines.withContext
 
 /** Uses the streaming recognizer without retaining decoded audio for the entire episode. */
@@ -64,6 +65,7 @@ class OnDeviceTranscriber @Inject constructor(
                 var visibleCues = savedCues
                 diagnostics.resume(resumePositionMs, processedRanges.sumOf { it.endMs - it.startMs }, retainedCues.size, recoveryReason)
                 val handle = MoonshineNative.create(directory.absolutePath)
+                var publishCheckpoint: (() -> Unit)? = null
 
                 try {
                     diagnostics.record("model_loaded")
@@ -75,9 +77,13 @@ class OnDeviceTranscriber @Inject constructor(
                     fun snapshot(phase: AsrRecognitionPhase = AsrRecognitionPhase.RECOGNIZING): AsrRecognitionSnapshot {
                         val stable = transcript?.snapshot(totalSamples)
                         if (stable !== lastStableCues) {
+                            if (stable != null) {
+                                safeResumeMs = plan.recordFinalized(
+                                    streamOwnedStartMs, totalSamples / (SAMPLE_RATE / 1_000), stable,
+                                )
+                            }
                             visibleCues = if (stable == null) savedCues else replaceAsrRangeCues(
-                                savedCues, stable, streamOwnedStartMs,
-                                stable.lastOrNull()?.endMs ?: streamOwnedStartMs,
+                                savedCues, stable, streamOwnedStartMs, safeResumeMs,
                             )
                             lastStableCues = stable
                         }
@@ -90,6 +96,8 @@ class OnDeviceTranscriber @Inject constructor(
                             plan.progress(durationHintMs, activeRange), plan.audioEndMs, phase,
                         )
                     }
+
+                    publishCheckpoint = { onPartial(snapshot()) }
 
                     fun finishCurrentStream(endMs: Long, finalizeIncomplete: Boolean = true) {
                         val current = transcript ?: return
@@ -119,7 +127,7 @@ class OnDeviceTranscriber @Inject constructor(
                         }
                     }
 
-                    PodcastAudioDecoder.open(source) { coroutineContext.ensureActive() }.use { decoder ->
+                    PodcastAudioDecoder.open(context, source, coroutineContext.job) { coroutineContext.ensureActive() }.use { decoder ->
                         durationHintMs = decoder.durationMs.takeIf { it > 0 } ?: totalDurationMs
                         diagnostics.record("audio_ready")
                         var preferredStart: Long? = resumePositionMs
@@ -136,7 +144,7 @@ class OnDeviceTranscriber @Inject constructor(
                                 coroutineContext.ensureActive()
                                 val target = requestedSeek ?: pollSeek()
                                 if (target != null && (requestedSeek != null || shouldPrioritizeAsrSeek(
-                                        target, work.startMs, totalSamples / (SAMPLE_RATE / 1_000), plan.processedRanges,
+                                        target, work.startMs, totalSamples / (SAMPLE_RATE / 1_000), plan.processedRanges, savedCues,
                                     ))
                                 ) {
                                     requestedSeek = target
@@ -229,7 +237,12 @@ class OnDeviceTranscriber @Inject constructor(
                     diagnostics.record("recognition_finished", totalSamples / (SAMPLE_RATE / 1_000), finished.cues.size)
                     finished
                 } finally {
-                    if (stream >= 0) runCatching { MoonshineNative.freeStream(handle, stream) }
+                    if (stream >= 0) {
+                        // Cancellation cannot finalize a native hypothesis, but completed sentences
+                        // must still advance the durable cursor before the stream is released.
+                        runCatching { publishCheckpoint?.invoke() }
+                        runCatching { MoonshineNative.freeStream(handle, stream) }
+                    }
                     MoonshineNative.close(handle)
                     diagnostics.record("model_released", totalSamples * 1_000 / SAMPLE_RATE)
                 }

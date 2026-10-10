@@ -2088,7 +2088,8 @@ fun BottomSheetPlayer(
                                     InlineLyricsView(
                                         mediaMetadata = mediaMetadata,
                                         showLyrics = true,
-                                        positionProvider = { effectivePosition },
+                                        positionProvider = { if (isCasting) castPosition else playerConnection.player.currentPosition },
+                                        sliderPositionProvider = sliderPositionProvider,
                                     )
                                 }
                                 PlayerContentMode.SUBTITLES -> key(subtitleEpisodeId) {
@@ -2183,7 +2184,8 @@ fun BottomSheetPlayer(
                                     InlineLyricsView(
                                         mediaMetadata = mediaMetadata,
                                         showLyrics = true,
-                                        positionProvider = { effectivePosition },
+                                        positionProvider = { if (isCasting) castPosition else playerConnection.player.currentPosition },
+                                        sliderPositionProvider = sliderPositionProvider,
                                     )
                                 }
                                 PlayerContentMode.SUBTITLES -> key(subtitleEpisodeId) {
@@ -2301,6 +2303,7 @@ fun InlineLyricsView(
     mediaMetadata: MediaMetadata?,
     showLyrics: Boolean,
     positionProvider: () -> Long,
+    sliderPositionProvider: () -> Long?,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val currentLyrics by playerConnection.currentLyrics.collectAsStateWithLifecycle(initialValue = null)
@@ -2337,7 +2340,8 @@ fun InlineLyricsView(
             else -> {
                 val lyricsContent: @Composable () -> Unit = {
                     Lyrics(
-                        sliderPositionProvider = positionProvider,
+                        sliderPositionProvider = sliderPositionProvider,
+                        playbackPositionProvider = positionProvider,
                         modifier = Modifier.padding(horizontal = 24.dp),
                         showLyrics = showLyrics,
                     )

@@ -202,6 +202,7 @@ fun OriginalLyrics(
     sliderPositionProvider: () -> Long?,
     modifier: Modifier = Modifier,
     showLyrics: Boolean,
+    playbackPositionProvider: (() -> Long)? = null,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val database = LocalDatabase.current
@@ -634,6 +635,8 @@ fun OriginalLyrics(
         selectedIndices.clear()
     }
 
+    val latestPlaybackPositionProvider by rememberUpdatedState(playbackPositionProvider)
+    val latestSliderPositionProvider by rememberUpdatedState(sliderPositionProvider)
     LaunchedEffect(lyrics) {
         if (lyrics.isNullOrEmpty() || !lyrics.startsWith("[")) {
             currentLineIndex = -1
@@ -641,17 +644,21 @@ fun OriginalLyrics(
         }
         while (isActive) {
             delay(8) // Faster update for word-by-word animation
-            val sliderPosition = sliderPositionProvider()
-            val observedPosition = sliderPosition ?: playerConnection.player.currentPosition
+            val sliderPosition = latestSliderPositionProvider()
+            val observedPosition = sliderPosition ?: latestPlaybackPositionProvider?.invoke() ?: playerConnection.player.currentPosition
             val lyricsOffset = currentSong?.song?.lyricsOffset ?: 0
             val observedIndex = findCurrentLineIndex(lines, observedPosition + lyricsOffset)
-            val waitingForSeek = pendingSeek?.takeIf {
-                sliderPosition == null && it.isPending(observedIndex, SystemClock.uptimeMillis())
-            }
-            pendingSeek = waitingForSeek
-            isSeeking = sliderPosition != null || waitingForSeek != null
-            currentPlaybackPosition = waitingForSeek?.positionMs ?: observedPosition
-            currentLineIndex = waitingForSeek?.index ?: observedIndex
+            val playback = resolveLyricsPlaybackPosition(
+                observedPositionMs = observedPosition,
+                previewPositionMs = sliderPosition,
+                observedIndex = observedIndex,
+                requestedSeek = pendingSeek,
+                nowMs = SystemClock.uptimeMillis(),
+            )
+            pendingSeek = playback.pendingSeek
+            isSeeking = playback.isSeeking
+            currentPlaybackPosition = playback.positionMs
+            currentLineIndex = playback.pendingSeek?.index ?: observedIndex
         }
     }
 

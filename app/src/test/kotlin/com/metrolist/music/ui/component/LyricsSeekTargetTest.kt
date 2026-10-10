@@ -5,11 +5,42 @@
 
 package com.metrolist.music.ui.component
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LyricsSeekTargetTest {
+    @Test
+    fun `ordinary playback cannot clear a click while its old position is still reported`() {
+        val target = LyricsSeekTarget(12, 60_000, 1_000)
+        val waiting = resolveLyricsPlaybackPosition(12_000, null, 3, target, 1_100)
+        assertEquals(60_000, waiting.positionMs)
+        assertEquals(target, waiting.pendingSeek)
+        assertTrue(waiting.isSeeking)
+    }
+
+    @Test
+    fun `paused seek uses the player confirmation without waiting for playback to resume`() {
+        val target = LyricsSeekTarget(12, 60_000, 1_000)
+        val confirmed = resolveLyricsPlaybackPosition(60_000, null, 12, target, 1_100)
+        assertEquals(60_000, confirmed.positionMs)
+        assertNull(confirmed.pendingSeek)
+        assertFalse(confirmed.isSeeking)
+        val paused = resolveLyricsPlaybackPosition(60_000, null, 12, confirmed.pendingSeek, 20_000)
+        assertEquals(60_000, paused.positionMs)
+        assertFalse(paused.isSeeking)
+    }
+
+    @Test
+    fun `an actual scrub takes ownership from an earlier clicked line`() {
+        val preview = resolveLyricsPlaybackPosition(12_000, 90_000, 3, LyricsSeekTarget(12, 60_000, 1_000), 1_100)
+        assertEquals(90_000, preview.positionMs)
+        assertNull(preview.pendingSeek)
+        assertTrue(preview.isSeeking)
+    }
+
     @Test
     fun `old playback indices cannot reclaim a clicked target before confirmation`() {
         val target = LyricsSeekTarget(index = 12, positionMs = 60_000L, requestedAtMs = 1_000L)

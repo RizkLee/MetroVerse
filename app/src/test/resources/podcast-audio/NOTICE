@@ -1,0 +1,15 @@
+AndroidX Media test fixtures (Apache License, Version 2.0).
+Source revision: https://github.com/androidx/media/tree/1.10.1
+Original directory: libraries/test_data/src/test/assets/media/
+
+Local file      Original file
+sample.aac      aac/bbb_1ch_8kHz_aac_lc.aac
+sample.m4a      mp4/bbb_1ch_8kHz_aac_lc.m4a
+sample.opus     ogg/bear.opus
+sample.ogg      ogg/bear_vorbis.ogg
+sample.flac     flac/bear.flac
+xing.mp3        mp3/bear-vbr-xing-header.mp3
+vbri.mp3        mp3/bear-vbr-vbri-header.mp3
+
+Fixtures are unmodified and used only by JVM regression tests.
+See the accompanying LICENSE file for the AndroidX Media license.

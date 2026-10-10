@@ -11,6 +11,19 @@ import org.junit.Test
 
 class LyricsScrollGeometryTest {
     @Test
+    fun `top pinned rows have no opposing animations when the anchor advances`() {
+        val heights = List(8) { 80f }
+        val gaps = List(8) { 12f }
+        val anchorY = 350f
+        for (active in 0..3) {
+            val positions = computeLyricsItemPositions(heights, gaps, active)
+            val rest = computeAutoRestOffset(-positions.getValue(0), positions.getValue(7), 80f, 600f, anchorY, 24f, 24f)
+            assertEquals(24f, lyricsItemScreenOffset(anchorY, positions.getValue(0), rest), 0.01f)
+            assertEquals(116f, lyricsItemScreenOffset(anchorY, positions.getValue(1), rest), 0.01f)
+        }
+    }
+
+    @Test
     fun `background vocals and collapsed intervals keep the same spacing across anchors`() {
         val heights = listOf(160f, 72f, 0f, 280f, 120f)
         val gaps = listOf(0f, 0f, 0f, 16f, 16f)

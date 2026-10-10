@@ -5,13 +5,27 @@
 
 package com.metrolist.music.podcast.transcript
 
+import android.content.Context
 import android.media.AudioFormat
 import android.media.MediaCodec
-import android.media.MediaExtractor
 import android.media.MediaFormat
+import androidx.core.net.toUri
+import androidx.media3.common.C
+import androidx.media3.common.MimeTypes
+import androidx.media3.common.util.MediaFormatUtil
+import androidx.media3.datasource.DataSpec
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.okhttp.OkHttpDataSource
 import com.metrolist.music.podcast.PODCAST_USER_AGENT
+import kotlinx.coroutines.Job
+import okhttp3.Call
+import okhttp3.OkHttpClient
 import java.io.Closeable
+import java.io.IOException
+import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 
 /** Streams bounded ranges from one opened audio source without retaining an episode's PCM. */
 internal object PodcastAudioDecoder {
@@ -25,36 +39,50 @@ internal object PodcastAudioDecoder {
         val stoppedEarly: Boolean,
     )
 
-    fun open(source: String, checkCancelled: () -> Unit = {}): Session {
+    private val httpClient = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .build()
+
+    fun open(context: Context, source: String, ownerJob: Job? = null, checkCancelled: () -> Unit = {}): Session {
         checkCancelled()
-        val extractor = MediaExtractor()
-        try {
-            extractor.setDataSource(source, mapOf("User-Agent" to PODCAST_USER_AGENT))
+        // A child with no coroutine completes immediately on parent cancellation, so its
+        // handler can abort socket reads while the recognition coroutine is still unwinding.
+        val connectionJob = ownerJob?.let { Job(it) }
+        val activeCall = AtomicReference<Call?>(null)
+        connectionJob?.invokeOnCompletion {
+            if (connectionJob.isCancelled) activeCall.get()?.cancel()
+        }
+        val callFactory = Call.Factory { request ->
             checkCancelled()
-            for (index in 0 until extractor.trackCount) {
-                val format = extractor.getTrackFormat(index)
-                if (format.getString(MediaFormat.KEY_MIME).orEmpty().startsWith("audio/")) {
-                    extractor.selectTrack(index)
-                    return Session(extractor, format, extractor.sampleTime)
-                }
+            httpClient.newCall(request).also { call ->
+                activeCall.set(call)
+                if (connectionJob?.isCancelled == true) call.cancel()
             }
-            error("No audio track")
+        }
+        val dataSource = DefaultDataSource.Factory(
+            context,
+            OkHttpDataSource.Factory(callFactory).setUserAgent(PODCAST_USER_AGENT),
+        ).createDataSource()
+        val extractor = PodcastAudioExtractor(dataSource, DataSpec(source.toUri()), checkCancelled)
+        return try {
+            extractor.prepare()
+            Session(extractor, MediaFormatUtil.createMediaFormatFromFormat(extractor.format)) { connectionJob?.complete() }
         } catch (error: Throwable) {
-            extractor.release()
+            connectionJob?.complete()
+            extractor.close()
             throw error
         }
     }
 
-    /** Used serially by one recognition task; seeking retains this source's extractor. */
+    /** Used serially by one recognition task; seeking retains the container's seek map. */
     class Session internal constructor(
-        private val extractor: MediaExtractor,
+        private val extractor: PodcastAudioExtractor,
         private val format: MediaFormat,
-        private val initialSampleTimeUs: Long,
+        private val onClosed: () -> Unit = {},
     ) : Closeable {
         // Track metadata is a hint, never the cutoff for decoding the episode's tail.
-        val durationMs: Long = if (format.containsKey(MediaFormat.KEY_DURATION)) {
-            format.getLong(MediaFormat.KEY_DURATION).coerceAtLeast(0L) / 1_000
-        } else 0L
+        val durationMs: Long get() = extractor.durationMs
 
         private var closed = false
         private var decoding = false
@@ -74,49 +102,113 @@ internal object PodcastAudioDecoder {
             decoding = true
             try {
                 checkCancelled()
-                onSeek(seek(startMs, checkCancelled))
+                val seekInfo = seek(startMs, checkCancelled)
+                onSeek(seekInfo)
                 checkCancelled()
-                return decodePositionedRange(startMs, endMs, chunkSamples, checkCancelled, onChunk)
+                return if (extractor.format.sampleMimeType == MimeTypes.AUDIO_RAW) {
+                    decodeRawRange(startMs, endMs, chunkSamples, checkCancelled, onChunk)
+                } else {
+                    decodePositionedRange(startMs, endMs, chunkSamples, seekInfo.usedFallback, checkCancelled, onChunk)
+                }
             } finally {
                 decoding = false
             }
         }
 
         private fun seek(startMs: Long, checkCancelled: () -> Unit): SeekInfo {
-            val requestedUs = startMs * 1_000
-            var seekFailed = false
-            try {
-                extractor.seekTo(requestedUs, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
-            } catch (_: Exception) {
-                checkCancelled()
-                seekFailed = true
+            val position = extractor.seek(startMs, checkCancelled)
+            return SeekInfo(position.requestedMs, position.actualMs, position.sequential)
+        }
+
+        private fun decodeRawRange(
+            startMs: Long,
+            endMs: Long?,
+            chunkSamples: Int,
+            checkCancelled: () -> Unit,
+            onChunk: (TimedPcmChunk) -> Boolean,
+        ): DecodeResult {
+            val audio = extractor.format
+            val rate = audio.sampleRate
+            val channels = audio.channelCount
+            val encoding = audio.pcmEncoding
+            check(rate > 0 && channels > 0)
+            val bytesPerSample = when (encoding) {
+                C.ENCODING_PCM_8BIT -> 1
+                C.ENCODING_PCM_16BIT -> 2
+                C.ENCODING_PCM_24BIT -> 3
+                C.ENCODING_PCM_32BIT, C.ENCODING_PCM_FLOAT -> 4
+                else -> error("Unsupported podcast PCM encoding")
             }
-            checkCancelled()
-            var actualUs = extractor.sampleTime
-            var usedFallback = startMs > 0 && actualUs == initialSampleTimeUs && actualUs < requestedUs
-            if (seekFailed || actualUs < 0 || actualUs > requestedUs && actualUs != initialSampleTimeUs) {
-                // Never reopen the URL here: a second request can return different dynamic ads.
-                // An extractor that cannot safely rewind must fail instead of inventing an offset.
-                try {
-                    extractor.seekTo(0L, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
-                } catch (error: Exception) {
-                    checkCancelled()
-                    check(extractor.sampleTime == initialSampleTimeUs) {
-                        "Audio source cannot return to a known media position: ${error.javaClass.simpleName}"
+            val clock = PcmTimestampTracker()
+            var resampler: StreamingPcmResampler? = null
+            var segmentStart = 0L
+            val samplesPerMs = ASR_PCM_SAMPLE_RATE / 1_000
+            val chunks = TimedPcmChunkBuffer(startMs * samplesPerMs, endMs?.times(samplesPerMs), chunkSamples) {
+                checkCancelled()
+                onChunk(it)
+            }
+            fun finishSegment() {
+                resampler?.let { current ->
+                    val firstSample = segmentStart + current.outputSampleCount
+                    chunks.append(current.finish(), firstSample)
+                }
+                chunks.finishSegment()
+            }
+            var endOfInput = false
+            while (chunks.isActive) {
+                checkCancelled()
+                val sample = extractor.nextSample()
+                if (sample == null) {
+                    endOfInput = true
+                    break
+                }
+                if (sample.data.isEmpty()) continue
+                check(sample.data.size % (bytesPerSample * channels) == 0)
+                val buffer = ByteBuffer.wrap(sample.data).order(ByteOrder.LITTLE_ENDIAN)
+                val pcm = FloatArray(sample.data.size / bytesPerSample) {
+                    when (encoding) {
+                        C.ENCODING_PCM_8BIT -> ((buffer.get().toInt() and 0xff) - 128) / 128f
+                        C.ENCODING_PCM_16BIT -> buffer.short / 32768f
+                        C.ENCODING_PCM_24BIT -> {
+                            val value = (buffer.get().toInt() and 0xff) or
+                                ((buffer.get().toInt() and 0xff) shl 8) or (buffer.get().toInt() shl 16)
+                            value / 8388608f
+                        }
+                        C.ENCODING_PCM_32BIT -> buffer.int / 2147483648f
+                        else -> buffer.float
                     }
                 }
-                checkCancelled()
-                actualUs = extractor.sampleTime
-                check(actualUs == initialSampleTimeUs) { "Audio source cannot return to its beginning" }
-                usedFallback = true
+                val position = clock.locate(sample.timeUs, pcm.size / channels, rate, channels)
+                if (position.startsNewSegment) {
+                    finishSegment()
+                    if (!chunks.isActive) break
+                    resampler = StreamingPcmResampler(rate, channels)
+                    segmentStart = position.segmentStartSample
+                }
+                val skip = position.skipFrames * channels
+                if (skip < pcm.size) {
+                    val current = checkNotNull(resampler)
+                    val first = segmentStart + current.outputSampleCount
+                    chunks.append(current.process(if (skip == 0) pcm else pcm.copyOfRange(skip, pcm.size)), first)
+                }
             }
-            return SeekInfo(startMs, actualUs.coerceAtLeast(0L) / 1_000, usedFallback)
+            if (chunks.isActive) finishSegment()
+            checkCancelled()
+            return DecodeResult(
+                endSample = if (chunks.reachedRangeEnd && endMs != null) {
+                    endMs * samplesPerMs
+                } else chunks.emittedEndSample ?: clock.endSample,
+                reachedRangeEnd = chunks.reachedRangeEnd,
+                reachedEndOfInput = endOfInput,
+                stoppedEarly = chunks.stoppedEarly,
+            )
         }
 
         private fun decodePositionedRange(
             startMs: Long,
             endMs: Long?,
             chunkSamples: Int,
+            sequentialFallback: Boolean,
             checkCancelled: () -> Unit,
             onChunk: (TimedPcmChunk) -> Boolean,
         ): DecodeResult {
@@ -152,19 +244,36 @@ internal object PodcastAudioDecoder {
                 codec.start()
                 val bufferInfo = MediaCodec.BufferInfo()
                 var inputDone = false
+                var queuedMedia = false
                 while (!outputDone && chunks.isActive) {
                     checkCancelled()
                     if (!inputDone) {
                         val inputIndex = codec.dequeueInputBuffer(10_000)
                         if (inputIndex >= 0) {
                             val inputBuffer = checkNotNull(codec.getInputBuffer(inputIndex))
-                            val sampleSize = extractor.readSampleData(inputBuffer, 0)
-                            if (sampleSize < 0) {
+                            var sample = extractor.nextSample()
+                            // Unindexed sources may still require reading earlier compressed frames;
+                            // they do not need codec decoding or resampling before the preroll.
+                            val prerollUs = (startMs - 1_000).coerceAtLeast(0) * 1_000
+                            var skippedMedia = false
+                            while (sequentialFallback && sample != null && sample.timeUs < prerollUs) {
+                                skippedMedia = true
+                                checkCancelled()
+                                sample = extractor.nextSample()
+                            }
+                            if (sample == null) {
+                                if (skippedMedia && !queuedMedia) {
+                                    // No PCM was decoded, so a zero endpoint cannot establish that
+                                    // saved subtitles belong to a different recording.
+                                    throw IOException("Podcast audio ended before the requested recognition range")
+                                }
                                 codec.queueInputBuffer(inputIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
                                 inputDone = true
                             } else {
-                                codec.queueInputBuffer(inputIndex, 0, sampleSize, extractor.sampleTime, 0)
-                                extractor.advance()
+                                check(sample.data.size <= inputBuffer.remaining()) { "Podcast sample exceeds codec input capacity" }
+                                inputBuffer.put(sample.data)
+                                queuedMedia = true
+                                codec.queueInputBuffer(inputIndex, 0, sample.data.size, sample.timeUs, 0)
                             }
                         }
                     }
@@ -259,7 +368,11 @@ internal object PodcastAudioDecoder {
             if (!closed) {
                 check(!decoding) { "Cannot close an active audio decoder" }
                 closed = true
-                extractor.release()
+                try {
+                    extractor.close()
+                } finally {
+                    onClosed()
+                }
             }
         }
     }

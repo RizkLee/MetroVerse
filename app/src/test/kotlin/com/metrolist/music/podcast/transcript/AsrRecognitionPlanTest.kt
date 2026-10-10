@@ -13,6 +13,40 @@ import org.junit.Test
 
 class AsrRecognitionPlanTest {
     @Test
+    fun `completed sentences commit their boundary before the five minute native stream ends`() {
+        val plan = AsrRecognitionPlan(listOf(AsrAudioRange(0, 600_000)))
+        val completed = listOf(SubtitleCue(610_000, 640_000, "complete sentence"))
+        assertEquals(640_000, plan.recordFinalized(600_000, 650_000, completed))
+        assertEquals(listOf(AsrAudioRange(0, 640_000)), plan.processedRanges)
+        assertEquals(AsrWorkRange(640_000, null), plan.next(640_000))
+        assertFalse(shouldPrioritizeAsrSeek(AsrSeekTarget(1_000_000, 620_000), 800_000, 820_000, plan.processedRanges))
+    }
+
+    @Test
+    fun `incomplete speech and preroll cannot advance a durable checkpoint`() {
+        val plan = AsrRecognitionPlan()
+        assertEquals(600_000, plan.recordFinalized(600_000, 610_000, emptyList()))
+        assertTrue(plan.processedRanges.isEmpty())
+        assertEquals(600_000, plan.recordFinalized(600_000, 610_000, listOf(SubtitleCue(592_000, 598_000, "context"))))
+        assertTrue(plan.processedRanges.isEmpty())
+    }
+
+    @Test
+    fun `cancellation during resume context cannot move the durable cursor before its owned range`() {
+        val plan = AsrRecognitionPlan(listOf(AsrAudioRange(0, 600_000)))
+        assertEquals(600_000, plan.recordFinalized(600_000, 594_000, emptyList()))
+        assertEquals(600_000, plan.recordFinalized(600_000, 598_000, listOf(SubtitleCue(592_000, 596_000, "context"))))
+        assertEquals(listOf(AsrAudioRange(0, 600_000)), plan.processedRanges)
+    }
+
+    @Test
+    fun `a retained sentence cannot be treated as missing when old coverage lags behind it`() {
+        val cues = listOf(SubtitleCue(600_000, 610_000, "retained"))
+        assertFalse(shouldPrioritizeAsrSeek(AsrSeekTarget(0, 605_000), 0, 20_000, emptyList(), cues))
+        assertTrue(shouldPrioritizeAsrSeek(AsrSeekTarget(0, 610_000), 0, 20_000, emptyList(), cues))
+    }
+
+    @Test
     fun `abandoned short audio without returned lines stays missing because VAD may still buffer speech`() {
         assertEquals(100_000, finalizedAsrBoundary(100_000, 110_000, emptyList()))
         assertEquals(104_000, finalizedAsrBoundary(100_000, 110_000, listOf(SubtitleCue(100_000, 104_000, "final"))))
