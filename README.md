@@ -26,11 +26,9 @@
 </p>
 
 > [!TIP]
-> **MetroVerse v1.0.0 · Music + podcasts, together · 音乐与播客，听得更自在**
+> I’m excited to introduce MetroVerse v1.0.0! Built-in podcast transcripts, on-device subtitle generation, podcast subtitle translation, smoother lyrics, and the move to InnerTubeX all come together in this release. It’s our most complete music and podcast experience yet, with plenty of improvements to make everyday listening feel better. I’d love for you to try it now and enjoy what’s new!
 >
-> I’m excited to introduce MetroVerse v1.0.0! Built-in podcast transcripts, on-device subtitle generation, podcast subtitle translation, smoother lyrics, and the move to InnerTubeX all come together in this release. It’s our most complete music and podcast experience yet, with plenty of improvements to make everyday listening feel better.
->
-> 很高兴和大家分享 MetroVerse v1.0.0！这次带来了播客原生字幕、端侧模型识别字幕、播客字幕翻译、更顺手的歌词显示，以及 InnerTubeX 迁移等一大批更新。这是我们迄今最完整、最顺手的「音乐 + 播客」体验，希望你也会喜欢。
+> 很高兴带来全新的 MetroVerse v1.0.0 版本！本次更新带来了播客原生字幕、端侧模型识别字幕、播客字幕翻译、优化的歌词显示，以及 InnerTubeX 迁移等大量更新。这些造就了我们迄今最完整、最舒适的「音乐 + 播客」一体化体验。欢迎体验新功能！
 
 ## Screenshots
 
@@ -43,11 +41,11 @@
     <td width="180"><img src="fastlane/metadata/android/en-US/images/screenshots/05-podcast-caption.jpg" alt="Podcast subtitles with timed sentence highlighting" width="180" height="400" /></td>
   </tr>
   <tr>
-    <td align="center">Podcast · 播客首页</td>
-    <td align="center">Show details · 节目详情</td>
-    <td align="center">Artist · 歌手详情</td>
-    <td align="center">Player · 播客播放</td>
-    <td align="center">Subtitles · 播客字幕</td>
+    <td align="center">Podcast</td>
+    <td align="center">Show details</td>
+    <td align="center">Artist details</td>
+    <td align="center">Now Playing</td>
+    <td align="center">Podcast captions</td>
   </tr>
 </table>
 
@@ -65,12 +63,11 @@ It keeps the familiar Material 3 Expressive interaction model inherited from Met
 - 🔓 **Unrestricted & Ad-Free:** Say goodbye to annoying ads and playback restrictions. Enjoy seamless background playback and download your favorite songs for offline listening.
 - 🎵 **All-in-one Audio:** Seamlessly integrates YouTube Music with open-source RSS podcasts and features dedicated interfaces—such as a specialized player—designed specifically for podcasts.
 - 🎙️ **Powerful Podcast Engine:** Discover shows via Apple Podcasts charts or direct RSS/Atom import. Features episode resume, playback speed controls, and a gradual sleep-timer fade.
-- 📖 **Read along with podcasts:** Publisher-provided RSS transcripts become timed subtitles, with sentence highlighting, tap-to-seek, timing adjustment, fullscreen reading, and sharing.
-- 🧠 **Generate subtitles on your phone:** Experimental Moonshine recognition creates English subtitles for RSS podcasts, prioritizes your listening position, and resumes interrupted work. Download the model once or import it locally.
-- 🌍 **Bilingual listening:** Translate podcast subtitles through your configured AI provider and follow the original and translation together. Music also gets synced and word-timed lyrics, where available, with translation and tap-to-seek.
+- 📖 **Podcast Subtitle Support:** RSS podcasts now support both native subtitles and on-device AI-generated subtitles. Features include sentence-by-sentence highlighting, tap-to-jump navigation, timestamp synchronization, full-screen reading, and subtitle sharing. The Moonshine model powers on-device English subtitle recognition.
+- 🌍 **Bilingual Listening:** Use your configured AI service to translate podcast subtitles and display the original text alongside the translation. AI-powered lyric translation is also supported for music.
 - 🪶 **Modern & Lightweight:** Built on the robust Media3 player. Fast, responsive, battery-friendly, and fully supports Android Auto.
 
-On-device recognition currently supports English RSS audio on compatible ARM64 devices. Speech recognition runs on your phone; optional AI translation sends subtitle text to the provider you configure. YouTube Music podcasts do not offer on-device recognition.
+On-device recognition currently supports English podcast audio.
 
 ### Project lineage
 
@@ -79,7 +76,7 @@ MetroVerse is built from established GPL-3.0 work:
 - [Metrolist](https://github.com/MetrolistGroup/Metrolist) provides the music architecture, Jetpack Compose foundation, player, queue, downloads, database, and most inherited functionality.
 - [Podium](https://github.com/aimok04/podium) was studied as a GPL-3.0 reference for Apple Podcasts discovery, RSS parsing, subscriptions, and genre-based podcast browsing.
 - [InnerTubeX](https://github.com/MetrolistGroup/innertubex/tree/v0.5.2) provides YouTube playback extraction, stream fallback, and download resolution.
-- MetroVerse integrates those podcast concepts into Metrolist's existing architecture. It does not embed Podium directly.
+- MetroVerse integrates those podcast implementation concepts into Metrolist's existing architecture.
 
 MetroVerse is not an official release of Metrolist or Podium and is not affiliated with Apple, Google, or YouTube. Original copyright notices, source headers, and contribution history remain preserved. See [NOTICE.md](NOTICE.md) and [LICENSE](LICENSE).
 
@@ -150,9 +147,9 @@ Please ensure you comply with the terms of any services and podcast feeds you ac
 
 ## 简体中文
 
-MetroVerse 是一个独立维护的修改版 [Metrolist](https://github.com/MetrolistGroup/Metrolist) Android 音频客户端，整合了完整的 YouTube Music 与 Open RSS 播客，带来了全新、舒适、优雅的体验。
+MetroVerse 是一个独立维护的修改版 [Metrolist](https://github.com/MetrolistGroup/Metrolist) Android 音频客户端，整合了 YouTube Music 与 Open RSS 播客，带来了全新、舒适、优雅的体验。
 
-应用延续了 Metrolist 熟悉的 Material 3 Expressive 交互方式，并原生加入了 Open RSS 播客功能。此外，修改了原 Metrolist 应用部分操作逻辑，使之更加顺手好用。使用 Apple Podcasts 发现公开订阅源，不需要 Apple 账号。
+应用延续了 Metrolist 熟悉的 Material 3 Expressive 交互方式，并原生加入了 Open RSS 播客等诸多功能。此外，修改了原 Metrolist 应用部分操作逻辑，使之更加顺手好用。使用 Apple Podcasts 发现公开订阅源，不需要 Apple 账号。
 
 ### 亮点
 
@@ -160,12 +157,11 @@ MetroVerse 是一个独立维护的修改版 [Metrolist](https://github.com/Metr
 - 🔓 **纯净体验：** 彻底告别烦人的广告！解除各种播放限制，支持后台播放，并提供音乐与播客下载功能。
 - 🎵 **聚合播放：** 无缝融合 YouTube Music 与开源 RSS 播客。并为播客专门设计了播放器等诸多页面。
 - 🎙️ **强大的播客引擎：** 内置 Apple Podcasts 榜单发现与 RSS/Atom 直连订阅，支持断点续播、倍速控制与睡眠渐弱暂停。
-- 📖 **播客也能边听边看：** 将 RSS 节目提供的原生字幕融入播放器，支持逐句高亮、点击跳转、时间校准、全屏阅读和字幕分享。
-- 🧠 **手机自己生成字幕：** 实验性 Moonshine 端侧模型可为 RSS 播客识别英文字幕，优先识别当前收听位置，并在中断后继续。模型支持一次下载或本地导入。
-- 🌍 **双语聆听：** 使用你配置的 AI 服务翻译播客字幕，原文与译文一起显示。音乐同样支持同步歌词、可用时的逐词高亮、翻译和点击跳转。
+- 📖 **支持播客字幕：** RSS 播客现已支持显示原生字幕与端侧模型识别字幕，支持逐句高亮、点击跳转、时间校准、全屏阅读和字幕分享。Moonshine 模型为端侧识别英文字幕提供支持。
+- 🌍 **双语聆听：** 使用你配置的 AI 服务翻译播客字幕，将原文与译文一起显示。音乐同样支持 AI 歌词翻译。
 - 🪶 **极致轻量：** 基于先进的 Media3 播放器打造，响应迅速、流畅省电，且原生支持 Android Auto。
 
-端侧识别目前面向兼容 ARM64 设备上的英文 RSS 音频。语音识别在手机本机运行；启用 AI 翻译后，字幕文本会发送给你配置的服务。YouTube Music 播客不提供端侧识别入口。
+端侧字幕识别目前面向英文 RSS 播客。
 
 ### 项目来源
 
@@ -174,7 +170,7 @@ MetroVerse 建立在以下 GPL-3.0 项目的工作之上：
 - [Metrolist](https://github.com/MetrolistGroup/Metrolist) 提供音乐架构、Jetpack Compose 界面基础、播放器、队列、下载、数据库及大部分继承功能。
 - [Podium](https://github.com/aimok04/podium) 是 Apple Podcasts 发现、RSS 解析、订阅和播客分类浏览的 GPL-3.0 参考实现。
 - [InnerTubeX](https://github.com/MetrolistGroup/innertubex/tree/v0.5.2) 提供 YouTube 播放解析、音源回退和下载解析。
-- MetroVerse 将这些播客思路整合进 Metrolist 的既有架构，但并未直接嵌入 Podium。
+- MetroVerse 将这些播客功能的实现思路整合进 Metrolist 的既有架构。
 
 MetroVerse 不是 Metrolist 或 Podium 的官方版本，与 Apple、Google 或 YouTube 没有隶属关系。原项目版权、源码头和贡献历史均保留，详见 [NOTICE.md](NOTICE.md) 与 [LICENSE](LICENSE)。
 
