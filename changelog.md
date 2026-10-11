@@ -14,8 +14,13 @@ All notable MetroVerse-specific changes are recorded here. Upstream Metrolist hi
 
 ### Changed
 
+- Ported selected Metrolist 13.7.0 improvements and adopted InnerTubeX for YouTube playback, stream fallback, and download resolution.
+- Reordered player controls; podcasts show playback speed in place of repeat. Adjusted lyric and subtitle icons within their buttons.
+- Audio quality now defaults to High while preserving saved choices.
+- Enlarged the subtitle edge fades to keep text farther from the status bar and episode information.
+- Cached music lists update directly when cached content changes.
 - Moved podcast subtitle settings into AI lyrics and podcast subtitle translation settings; translated subtitles always display bilingually.
-- Both player translation menus remain available before setup and link directly to API key configuration.
+- Both player translation menus remain available before setup and open AI settings with the API key item brought into view and highlighted.
 - Podcast playback opens on the cover view; subtitle generation explains the model, English-only support, and device requirements before download.
 - Added Moonshine and ONNX Runtime attribution in About and made more room for long bilingual subtitles.
 - Widened lyric-share images to fit longer song titles and updated the notification icon.
@@ -23,6 +28,9 @@ All notable MetroVerse-specific changes are recorded here. Upstream Metrolist hi
 
 ### Fixed
 
+- Backward seeks and short gaps in line-timed lyrics no longer reset or stall lyric scrolling; realignment follows the current playback time.
+- Account changes and cancelled Wrapped playback requests no longer prepare audio from an outdated request.
+- YouTube download retries respect disabled stream sources and handle streams with incomplete size information.
 - Lyrics can scroll back to the first line without excessive empty space after the last line. Lyric positioning and word highlighting remain aligned as layouts change.
 - Restored a brief whole-line highlight animation without shifting individual letters or hyphenated words.
 - Tapping lyrics or subtitles follows the selected line directly, without first returning to the old playback position.

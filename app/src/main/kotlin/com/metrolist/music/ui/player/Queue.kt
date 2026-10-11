@@ -36,6 +36,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
@@ -354,6 +355,7 @@ fun Queue(
                             icon = R.drawable.lyrics,
                             onClick = { onToggleLyrics() },
                             isActive = showInlineLyrics,
+                            iconOffsetX = (-2).dp,
                             shape = repeatShape,
                             modifier = Modifier.size(buttonSize),
                             textButtonColor = textButtonColor,
@@ -368,6 +370,7 @@ fun Queue(
                             icon = R.drawable.subtitles,
                             onClick = onTogglePodcastSubtitles,
                             isActive = podcastSubtitlesActive,
+                            iconOffsetX = (-2).dp,
                             shape = repeatShape,
                             modifier = Modifier.size(buttonSize),
                             textButtonColor = textButtonColor,
@@ -1169,6 +1172,7 @@ private fun PlayerQueueButton(
     textButtonColor: Color,
     iconButtonColor: Color,
     iconSize: androidx.compose.ui.unit.Dp,
+    iconOffsetX: androidx.compose.ui.unit.Dp = 0.dp,
     textBackgroundColor: Color,
     playerBackground: PlayerBackgroundStyle,
 ) {
@@ -1229,7 +1233,7 @@ private fun PlayerQueueButton(
             Icon(
                 painter = painterResource(id = icon),
                 contentDescription = null,
-                modifier = Modifier.size(iconSize),
+                modifier = Modifier.size(iconSize).offset(x = iconOffsetX),
                 tint = finalTint,
             )
         }

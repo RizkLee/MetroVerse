@@ -521,7 +521,7 @@ fun BottomSheetPlayer(
     fun configureTranslationApiKey() {
         state.collapseSoft()
         val requestId = android.os.SystemClock.elapsedRealtimeNanos()
-        navController.navigate("settings/ai?openApiKey=true&requestId=$requestId") { launchSingleTop = true }
+        navController.navigate("settings/ai?highlightApiKey=true&requestId=$requestId") { launchSingleTop = true }
     }
 
 

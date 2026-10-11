@@ -5,6 +5,11 @@
 
 package com.metrolist.music.ui.screens.settings
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,9 +37,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -68,11 +77,12 @@ import com.metrolist.music.ui.component.TextFieldDialog
 import com.metrolist.music.ui.utils.rememberEffectiveAppLanguageCode
 import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.utils.dataStore
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun AiSettings(navController: NavController, openApiKey: Boolean = false, apiKeyRequestId: Long = 0L) {
+fun AiSettings(navController: NavController, highlightApiKey: Boolean = false, apiKeyRequestId: Long = 0L) {
     val context = LocalContext.current
     val appLanguageCode = rememberEffectiveAppLanguageCode()
     var aiProvider by rememberPreference(AiProviderKey, "OpenRouter")
@@ -183,13 +193,40 @@ fun AiSettings(navController: NavController, openApiKey: Boolean = false, apiKey
     var showCustomModelInput by rememberSaveable { mutableStateOf(false) }
     var showSystemPromptDialog by rememberSaveable { mutableStateOf(false) }
     var apiKeyRequestHandled by rememberSaveable(apiKeyRequestId) { mutableStateOf(false) }
+    val apiKeyBringIntoView = remember { BringIntoViewRequester() }
+    var apiKeyRowProvider by remember { mutableStateOf<String?>(null) }
+    var apiKeyFlashOn by remember { mutableStateOf(false) }
+    val apiKeyFlashAlpha by animateFloatAsState(
+        targetValue = if (apiKeyFlashOn) 0.14f else 0f,
+        animationSpec = tween(180),
+        label = "apiKeyHighlight",
+    )
+    val highlightColor = MaterialTheme.colorScheme.primary
+    val renderedProvider = aiProvider
+    val apiKeyRowModifier = Modifier
+        .bringIntoViewRequester(apiKeyBringIntoView)
+        .onGloballyPositioned { apiKeyRowProvider = renderedProvider }
+        .drawWithContent {
+            drawContent()
+            drawRect(highlightColor.copy(alpha = apiKeyFlashAlpha))
+        }
 
-    LaunchedEffect(openApiKey, apiKeyRequestId) {
-        if (openApiKey && !apiKeyRequestHandled) {
+    LaunchedEffect(highlightApiKey, apiKeyRequestId, aiProvider) {
+        if (highlightApiKey && !apiKeyRequestHandled) {
             val provider = context.dataStore.data.first()[AiProviderKey] ?: "OpenRouter"
-            showDeeplApiKeyDialog = provider == "DeepL"
-            showApiKeyDialog = provider != "DeepL"
+            snapshotFlow { apiKeyRowProvider == provider && aiProvider == provider }.first { it }
+            apiKeyBringIntoView.bringIntoView()
             apiKeyRequestHandled = true
+            try {
+                repeat(3) {
+                    apiKeyFlashOn = true
+                    delay(300)
+                    apiKeyFlashOn = false
+                    delay(300)
+                }
+            } finally {
+                apiKeyFlashOn = false
+            }
         }
     }
 
@@ -558,6 +595,7 @@ fun AiSettings(navController: NavController, openApiKey: Boolean = false, apiKey
                                     )
                                 },
                                 onClick = { showDeeplApiKeyDialog = true },
+                                modifier = apiKeyRowModifier,
                             ),
                         )
                         add(
@@ -592,6 +630,7 @@ fun AiSettings(navController: NavController, openApiKey: Boolean = false, apiKey
                                     )
                                 },
                                 onClick = { showApiKeyDialog = true },
+                                modifier = apiKeyRowModifier,
                             ),
                         )
                         add(

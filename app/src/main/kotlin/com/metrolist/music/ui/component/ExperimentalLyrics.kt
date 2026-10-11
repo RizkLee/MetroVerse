@@ -510,22 +510,20 @@ fun ExperimentalLyrics(
         
         var lastPlayerPos = latestPlaybackPositionProvider?.invoke() ?: playerConnection.player.currentPosition
         var lastUpdateTime = System.currentTimeMillis()
+        val mainLineIndices = lines.indices.filter { !lines[it].isBackground }.toSet()
         
         while (isActive) {
             withFrameNanos { _ -> }
             val now = System.currentTimeMillis()
             val sliderPosition = latestSliderPositionProvider()
-            val observedPosition = if (sliderPosition != null) {
-                sliderPosition
-            } else {
-                val playerPos = latestPlaybackPositionProvider?.invoke() ?: playerConnection.player.currentPosition
-                if (playerPos != lastPlayerPos) {
-                    lastPlayerPos = playerPos
-                    lastUpdateTime = now
-                }
-                val elapsed = now - lastUpdateTime
-                lastPlayerPos + (if (playerConnection.player.isPlaying) elapsed else 0)
+            val previousPlayerPos = lastPlayerPos
+            val playerPos = latestPlaybackPositionProvider?.invoke() ?: playerConnection.player.currentPosition
+            if (playerPos != lastPlayerPos) {
+                lastPlayerPos = playerPos
+                lastUpdateTime = now
             }
+            val observedPosition = sliderPosition
+                ?: (lastPlayerPos + if (playerConnection.player.isPlaying) now - lastUpdateTime else 0)
             
             val lyricsOffset = currentSong?.song?.lyricsOffset ?: 0
             val playback = resolveLyricsPlaybackPosition(
@@ -573,52 +571,24 @@ fun ExperimentalLyrics(
                 }
             }
 
-            val scrollMax = scrollActiveIndices
-                .filter { lines.getOrNull(it)?.isBackground == false }
-                .maxOrNull() ?: (scrollActiveIndices.maxOrNull() ?: -1)
-
-            val isCurrentTargetStillActive = scrollTargetIndex in scrollActiveIndices
-            val anyStillActive = scrollActiveIndices.isNotEmpty()
-
-            val shouldScroll = when {
-                isSeeking -> true
-                // If current target just ended and there are other active lines, scroll to the new max
-                !isCurrentTargetStillActive && anyStillActive && scrollMax > scrollTargetIndex -> true
-                
-                // If current target just ended and no other active lines
-                !isCurrentTargetStillActive && !anyStillActive && previousScrollActiveIndices.isNotEmpty() -> true
-                
-                // If we don't have a target yet and lines became active
-                scrollTargetIndex == -1 && anyStillActive -> true
-                
-                // New line started while nothing was active before
-                previousScrollActiveIndices.isEmpty() && anyStillActive && scrollMax > scrollTargetIndex -> true
-
-                else -> false
-            }
-
-            if (shouldScroll) {
-                val targetToScroll = when {
-                    waitingForSeek != null -> waitingForSeek.index
-                    isSeeking -> scrollMax
-                    !isCurrentTargetStillActive && anyStillActive -> scrollMax
-                    !isCurrentTargetStillActive && !anyStillActive -> {
-                        (lastMainMaxSeen + 1 until lines.size).firstOrNull {
-                            lines.getOrNull(it)?.isBackground == false
-                        } ?: scrollTargetIndex
-                    }
-                    else -> scrollMax
-                }
-                if (targetToScroll != -1 && (isSeeking || targetToScroll > scrollTargetIndex)) {
-                    scrollTargetIndex = targetToScroll
-                }
-            }
-            
-            if ((isSeeking || scrollMax > lastMainMaxSeen) && scrollMax != -1) {
-                lastMainMaxSeen = scrollMax
-            }
-            
-            previousScrollActiveIndices = scrollActiveIndices
+            val resetAnchor = isSeeking || playerPos < previousPlayerPos
+            val scrollState = resolveLyricsScrollTarget(
+                state = LyricsScrollTargetState(scrollTargetIndex, lastMainMaxSeen, previousScrollActiveIndices),
+                activeIndices = scrollActiveIndices,
+                mainLineIndices = mainLineIndices,
+                previousPlaybackPositionMs = previousPlayerPos,
+                playbackPositionMs = playerPos,
+                isSeeking = isSeeking,
+                pendingSeekIndex = waitingForSeek?.index,
+                fallbackAnchorIndex = if (resetAnchor && scrollActiveIndices.isEmpty()) {
+                    findLyricsScrollAnchor(lines, effectivePosition)
+                } else {
+                    -1
+                },
+            )
+            scrollTargetIndex = scrollState.index
+            lastMainMaxSeen = scrollState.lastMainIndex
+            previousScrollActiveIndices = scrollState.previousActiveIndices
             activeLineIndices = newActiveIndices
         }
     }
@@ -660,10 +630,7 @@ fun ExperimentalLyrics(
 
     val activeListIndex by remember(mergedLyricsList, deferredCurrentLineIndex) {
         derivedStateOf {
-            mergedLyricsList.indexOfFirst { 
-                (it is LyricsListItem.Line && it.index == deferredCurrentLineIndex) ||
-                (it is LyricsListItem.Indicator && it.afterLineIndex == deferredCurrentLineIndex)
-            }.coerceAtLeast(0)
+            resolveLyricsListAnchorIndex(mergedLyricsList, deferredCurrentLineIndex)
         }
     }
 
@@ -836,22 +803,17 @@ fun ExperimentalLyrics(
         val latestResyncLyrics by rememberUpdatedState(
             newValue = {
                 flingJob?.cancel()
-                var target = scrollTargetIndex
-                if (target == -1) {
-                    target =
-                        findActiveLineIndices(
-                            lines,
-                            currentPositionState + (currentSong?.song?.lyricsOffset ?: 0),
-                        ).maxOrNull() ?: -1
-                }
+                val target = findLyricsScrollAnchor(
+                    lines,
+                    currentPositionState + (currentSong?.song?.lyricsOffset ?: 0),
+                )
                 if (target != -1) {
-                    val listIdx =
-                        mergedLyricsList.indexOfFirst {
-                            it is LyricsListItem.Line && it.index == target
-                        }.coerceAtLeast(0)
+                    val listIdx = resolveLyricsListAnchorIndex(mergedLyricsList, target)
                     userManualOffset += (positions[listIdx] ?: 0f) + autoRestOffset - restOffsetForAnchor(listIdx)
                     deferredCurrentLineIndex = target
                     scrollTargetIndex = target
+                    lastMainMaxSeen = target
+                    previousScrollActiveIndices = emptySet()
                 }
                 isDirectScroll = true
                 directScrollRequest++

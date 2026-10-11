@@ -803,10 +803,7 @@ class MusicService :
 
         audioManager.registerAudioDeviceCallback(audioDeviceCallback, null)
 
-        audioQuality = startupPrefs!![AudioQualityKey]?.let { value ->
-            if (value == "VERY_HIGH") com.metrolist.music.constants.AudioQuality.HIGH
-            else com.metrolist.music.constants.AudioQuality.entries.find { it.name == value }
-        } ?: com.metrolist.music.constants.AudioQuality.AUTO
+        audioQuality = com.metrolist.music.constants.AudioQuality.fromPreference(startupPrefs!![AudioQualityKey])
         playerVolume = MutableStateFlow((startupPrefs!![PlayerVolumeKey] ?: 1f).coerceIn(0f, 1f))
 
         initializeCast()
@@ -850,10 +847,7 @@ class MusicService :
         scope.launch {
             dataStore.data
                 .map {
-                    it[AudioQualityKey]?.let { value ->
-                        if (value == "VERY_HIGH") com.metrolist.music.constants.AudioQuality.HIGH
-                        else com.metrolist.music.constants.AudioQuality.entries.find { it.name == value }
-                    } ?: com.metrolist.music.constants.AudioQuality.AUTO
+                    com.metrolist.music.constants.AudioQuality.fromPreference(it[AudioQualityKey])
                 }.distinctUntilChanged()
                 .collect { newQuality ->
                     val oldQuality = audioQuality

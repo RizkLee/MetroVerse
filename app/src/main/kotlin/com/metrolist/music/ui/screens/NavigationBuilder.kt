@@ -446,9 +446,9 @@ fun NavGraphBuilder.navigationBuilder(
     }
 
     composable(
-        "settings/ai?openApiKey={openApiKey}&requestId={requestId}",
+        "settings/ai?highlightApiKey={highlightApiKey}&requestId={requestId}",
         arguments = listOf(
-            navArgument("openApiKey") {
+            navArgument("highlightApiKey") {
                 type = NavType.BoolType
                 defaultValue = false
             },
@@ -460,7 +460,7 @@ fun NavGraphBuilder.navigationBuilder(
     ) { entry ->
         AiSettings(
             navController,
-            openApiKey = entry.arguments?.getBoolean("openApiKey") == true,
+            highlightApiKey = entry.arguments?.getBoolean("highlightApiKey") == true,
             apiKeyRequestId = entry.arguments?.getLong("requestId") ?: 0L,
         )
     }

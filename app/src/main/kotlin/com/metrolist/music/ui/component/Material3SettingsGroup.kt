@@ -101,7 +101,7 @@ private fun Material3SettingsItemRow(
     item: Material3SettingsItem
 ) {
     Row(
-        modifier = Modifier
+        modifier = item.modifier
             .fillMaxWidth()
             .clickable(
                 enabled = item.enabled && item.onClick != null,
@@ -216,5 +216,6 @@ data class Material3SettingsItem(
     val showBadge: Boolean = false,
     val isHighlighted: Boolean = false,
     val enabled: Boolean = true,
-    val onClick: (() -> Unit)? = null
+    val onClick: (() -> Unit)? = null,
+    val modifier: Modifier = Modifier,
 )

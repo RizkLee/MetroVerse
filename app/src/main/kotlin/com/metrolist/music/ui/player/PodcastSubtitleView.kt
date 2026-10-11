@@ -371,7 +371,10 @@ private fun SubtitleCueList(
             ),
             modifier = Modifier
                 .fillMaxSize()
-                .fadingEdge(top = (anchorTop / 2).coerceAtMost(32.dp), bottom = 32.dp),
+                .fadingEdge(
+                    top = minOf(130.dp, anchorTop),
+                    bottom = minOf(160.dp, maxHeight * 0.35f),
+                ),
         ) {
             if (translationMissingCredentials && showTranslation) {
                 item(key = "translation-hint") {

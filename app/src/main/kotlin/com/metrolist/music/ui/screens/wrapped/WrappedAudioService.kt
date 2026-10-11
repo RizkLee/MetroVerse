@@ -116,8 +116,7 @@ class WrappedAudioService(
 
         return try {
             val audioQuality = context.dataStore.get(com.metrolist.music.constants.AudioQualityKey).let { value ->
-                if (value == "VERY_HIGH") AudioQuality.HIGH
-                else AudioQuality.entries.find { it.name == value } ?: AudioQuality.AUTO
+                AudioQuality.fromPreference(value)
             }
             val streamUrl = withContext(Dispatchers.IO) {
                 resolveSongUrl(songId, audioQuality, connectivityManager)

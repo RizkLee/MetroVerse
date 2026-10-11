@@ -113,6 +113,14 @@ enum class AudioQuality {
     AUTO,
     LOW,
     HIGH,
+    ;
+
+    companion object {
+        val DEFAULT: AudioQuality = HIGH
+
+        fun fromPreference(value: String?): AudioQuality =
+            if (value == "VERY_HIGH") HIGH else entries.find { it.name == value } ?: DEFAULT
+    }
 }
 
 val AudioOffload = booleanPreferencesKey("enableOffload")
