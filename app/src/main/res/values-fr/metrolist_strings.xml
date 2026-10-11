@@ -878,9 +878,6 @@
     <string name="discord_placeholder_album">Nom de l\'album</string>
     <string name="restore_database_incompatible">Impossible de restaurer la sauvegarde : version de la base de données incompatible. Vos données actuelles ont été conservées.</string>
     <string name="stream_client">Client de streaming</string>
-    <string name="format_player_hash">Hachage du lecteur</string>
-    <string name="format_cipher_support_added">Ajout de la prise en charge des algorithmes de chiffrement</string>
-    <string name="not_applicable">N/A</string>
     <string name="stream_sources">Sources de flux</string>
     <string name="stream_source_order">Ordre des flux</string>
     <string name="stream_source_web_clients">Clients Web</string>
@@ -900,6 +897,7 @@
     <string name="stream_source_web_creator_desc">Client web Creator.</string>
     <string name="stream_source_android_creator">ANDROID_CREATOR</string>
     <string name="stream_source_android_creator_desc">Client créateur Android. Désactivé par défaut ; nécessite DroidGuard.</string>
+
     <string name="error_job_cancelled">La vidéo ne peut pas être lue. Réessayez ou passez au titre suivant.</string>
     <string name="enable_landscape_scaling">Mise à l\'échelle en paysage</string>
     <string name="enable_landscape_scaling_desc">Adapter l\'interface utilisateur au mode paysage pour les écrans plus grands</string>
@@ -991,6 +989,7 @@
     <string name="podcast_asr_performance_notice">Nécessite beaucoup de mémoire et de puissance de calcul.</string>
     <string name="metroverse_moonshine_attribution">Modèle Small Streaming anglais et moteur Moonshine Voice 0.1.5 · Licence MIT.</string>
     <string name="metroverse_onnx_attribution">Moteur d’inférence sur cet appareil, version 1.23.2 · Licence MIT.</string>
+    <string name="metroverse_innertubex_attribution">Moteur d’extraction et de déchiffrement des flux YouTube Music, version 0.5.2 · GPL-3.0.</string>
     <string name="podcast_subtitle_asr_preparing">Préparation de la reconnaissance…</string>
     <string name="podcast_subtitle_offset">Synchronisation des sous-titres</string>
     <string name="podcast_subtitle_offset_description">Pour cet épisode uniquement. Les valeurs positives avancent les sous-titres ; les valeurs négatives les retardent.</string>

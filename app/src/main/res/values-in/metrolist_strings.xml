@@ -860,9 +860,6 @@
     <string name="discord_placeholder_album">Nama album</string>
     <string name="restore_database_incompatible">Tidak dapat memulihkan cadangan: versi database tidak cocok. Data Anda saat ini tetap dipertahankan.</string>
     <string name="stream_client">Klien stream</string>
-    <string name="format_player_hash">Hash pemutar</string>
-    <string name="format_cipher_support_added">Dukungan cipher ditambahkan</string>
-    <string name="not_applicable">Tidak tersedia</string>
     <string name="stream_sources">Sumber stream</string>
     <string name="stream_source_order">Urutan stream</string>
     <string name="stream_source_web_clients">Klien web</string>
@@ -882,6 +879,7 @@
     <string name="stream_source_web_creator_desc">Klien web kreator.</string>
     <string name="stream_source_android_creator">ANDROID_CREATOR</string>
     <string name="stream_source_android_creator_desc">Klien kreator Android. Nonaktif secara default; memerlukan DroidGuard.</string>
+
     <string name="error_job_cancelled">Video tidak tersedia untuk diputar. Coba lagi atau lewati ke lagu berikutnya.</string>
     <string name="enable_landscape_scaling_desc">Ukuran tampilan mode landscape untuk layar lebih besar</string>
     <string name="enable_dynamic_icon_desc">Gunakan tema dinamis untuk ikon app. Saat dimatikan, ikon menggunakan warna polos.</string>

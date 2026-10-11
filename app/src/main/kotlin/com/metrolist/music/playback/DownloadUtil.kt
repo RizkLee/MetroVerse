@@ -29,7 +29,7 @@ import com.metrolist.music.db.entities.SongEntity
 import com.metrolist.music.di.DownloadCache
 import com.metrolist.music.di.PlayerCache
 import com.metrolist.music.podcast.PODCAST_USER_AGENT
-import com.metrolist.music.utils.YTPlayerUtils
+import com.metrolist.music.utils.InnerTubeXPlayer
 import com.metrolist.music.utils.enumPreference
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -111,16 +111,15 @@ constructor(
                 return@Factory dataSpec
             }
 
-            songUrlCache[mediaId]?.let { cachedStream ->
-                return@Factory dataSpec
-                    .withUri(cachedStream.url.toUri())
-                    .withRequestHeaders(dataSpec.httpRequestHeaders + cachedStream.requestHeaders)
+            val excludedClients = runBlocking(Dispatchers.IO) { InnerTubeXPlayer.disabledStreamClients() }
+            songUrlCache.getForSession(mediaId, InnerTubeXPlayer.sessionKey(), excludedClients)?.let { cachedStream ->
+                return@Factory dataSpec.withResolvedStream(cachedStream)
             }
             val cacheGeneration = songUrlCache.generation(mediaId)
 
             val playbackData = runBlocking(Dispatchers.IO) {
                 val song = database.songEntity(mediaId)
-                YTPlayerUtils.playerResponseForPlayback(
+                InnerTubeXPlayer.playerResponseForPlayback(
                     mediaId,
                     audioQuality = audioQuality,
                     connectivityManager = connectivityManager,
@@ -128,52 +127,55 @@ constructor(
                         isExplicit = song?.explicit,
                         isUploaded = song?.isUploaded,
                     ),
+                    allowBoundedRange = false,
                 )
             }.getOrThrow()
             val format = playbackData.format
 
-            val actualContentLength = format.contentLength ?: run {
-                var length: Long? = null
+            val actualContentLength = format.contentLength?.takeIf { it > 0L } ?: run {
                 val client = OkHttpClient.Builder()
                     .proxy(YouTube.proxy)
                     .proxyAuthenticator { _, response ->
                         YouTube.proxyAuth?.let { auth ->
-                            response.request.newBuilder()
-                                .header("Proxy-Authorization", auth)
-                                .build()
-                        } ?: response.request
-                    }
-                    .build()
-                val request = okhttp3.Request.Builder()
-                    .head()
-                    .url(playbackData.streamUrl)
-                    .apply {
-                        playbackData.streamHeaders.forEach { (name, value) ->
-                            header(name, value)
+                            auth.takeIf { response.request.header("Proxy-Authorization") != it }?.let {
+                                response.request.newBuilder().header("Proxy-Authorization", it).build()
+                            }
                         }
                     }
                     .build()
+                val request = okhttp3.Request.Builder()
+                    .get()
+                    .url(playbackData.streamUrl)
+                    .apply {
+                        playbackData.streamHeaders.forEach { (name, value) -> header(name, value) }
+                        header("Range", "bytes=0-0")
+                    }
+                    .build()
                 client.newCall(request).execute().use { response ->
-                    length = response.header("Content-Length")?.toLongOrNull()
+                    if (!response.isSuccessful) throw java.io.IOException("Audio length probe failed: HTTP ${response.code}")
+                    resolvedAudioContentLength(response.code, response.header("Content-Range"), response.header("Content-Length"))
                 }
-                length ?: error("Failed to retrieve content length")
             }
 
             database.query {
-                upsert(
-                    FormatEntity(
-                        id = mediaId,
-                        itag = format.itag,
-                        mimeType = format.mimeType.split(";")[0],
-                        codecs = format.mimeType.split("codecs=")[1].removeSurrounding("\""),
-                        bitrate = format.bitrate,
-                        sampleRate = format.audioSampleRate,
-                        contentLength = actualContentLength,
-                        loudnessDb = playbackData.audioConfig?.loudnessDb,
-                        perceptualLoudnessDb = playbackData.audioConfig?.perceptualLoudnessDb,
-                        playbackUrl = playbackData.playbackTracking?.videostatsPlaybackUrl?.baseUrl
-                    ),
-                )
+                if (actualContentLength != null) {
+                    upsert(
+                        FormatEntity(
+                            id = mediaId,
+                            itag = format.itag,
+                            mimeType = format.mimeType.substringBefore(";"),
+                            codecs = format.mimeType.substringAfter("codecs=", "").trim().removeSurrounding("\""),
+                            bitrate = format.bitrate,
+                            sampleRate = format.audioSampleRate,
+                            contentLength = actualContentLength,
+                            loudnessDb = playbackData.audioConfig?.loudnessDb,
+                            perceptualLoudnessDb = playbackData.audioConfig?.perceptualLoudnessDb,
+                            playbackUrl = playbackData.playbackTracking?.videostatsPlaybackUrl?.baseUrl,
+                        ),
+                    )
+                } else {
+                    deleteFormat(mediaId)
+                }
 
                 // Metadata registration only — dateDownload is intentionally NOT set here.
                 // It belongs solely to onDownloadChanged()'s STATE_COMPLETED branch below,
@@ -193,9 +195,7 @@ constructor(
                 upsert(updatedSong)
             }
 
-            val streamUrl = playbackData.streamUrl.let {
-                "${it}&range=0-${actualContentLength}"
-            }
+            val streamUrl = playbackData.streamUrl
 
             songUrlCache.put(
                 mediaId = mediaId,
@@ -203,11 +203,19 @@ constructor(
                 requestHeaders = playbackData.streamHeaders,
                 clientName = playbackData.streamClient,
                 expiresInSeconds = playbackData.streamExpiresInSeconds,
+                requireBoundedRange = playbackData.requireBoundedRange,
+                rangeChunkSizeBytes = playbackData.rangeChunkSizeBytes,
+                useRangeChunks = playbackData.useRangeChunks,
+                sessionKey = playbackData.sessionKey,
                 expectedGeneration = cacheGeneration,
             )
-            dataSpec
-                .withUri(streamUrl.toUri())
-                .withRequestHeaders(dataSpec.httpRequestHeaders + playbackData.streamHeaders)
+            InnerTubeXPlayer.ensureCurrentSession(playbackData.sessionKey)
+            dataSpec.withResolvedStream(
+                CachedStreamUrl(
+                    streamUrl, playbackData.streamHeaders, playbackData.streamClient,
+                    playbackData.requireBoundedRange, playbackData.rangeChunkSizeBytes, playbackData.useRangeChunks,
+                ),
+            )
         }
 
     val downloadNotificationHelper =
@@ -231,7 +239,9 @@ constructor(
                         finalException: Exception?,
                     ) {
                         if (download.state == Download.STATE_FAILED && finalException.isExpiredStreamError()) {
-                            songUrlCache.invalidate(download.request.id)
+                            val mediaId = download.request.id
+                            songUrlCache.clientName(mediaId)?.let { InnerTubeXPlayer.markStreamClientFailed(mediaId, it) }
+                            songUrlCache.invalidate(mediaId)
                         }
 
                         downloads.update { map ->

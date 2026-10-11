@@ -537,6 +537,7 @@ val AndroidAutoSectionsOrderKey = stringPreferencesKey("androidAutoSectionsOrder
 val AndroidAutoTargetPlaylistKey = stringPreferencesKey("androidAutoTargetPlaylist")
 val AndroidAutoSearchLocalLimitKey = intPreferencesKey("androidAutoSearchLocalLimit")
 val InnerTubeCookieKey = stringPreferencesKey("innerTubeCookie")
+val InnerTubeAuthUserKey = stringPreferencesKey("innerTubeAuthUser")
 val AccountNameKey = stringPreferencesKey("accountName")
 val AccountEmailKey = stringPreferencesKey("accountEmail")
 val AccountChannelHandleKey = stringPreferencesKey("accountChannelHandle")

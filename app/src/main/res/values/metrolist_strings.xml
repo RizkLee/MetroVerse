@@ -1095,9 +1095,7 @@
     <string name="widget_playlists_description">Playlist shortcuts with mini-player controls</string>
     <string name="choose_something_below">Choose something below</string>
     <string name="stream_client">Stream client</string>
-    <string name="format_player_hash">Player hash</string>
-    <string name="format_cipher_support_added">Cipher support added</string>
-    <string name="not_applicable">N/A</string>
+
 
     <!-- Stream sources -->
     <string name="enable_dynamic_icon">Dynamic icon colors</string>
@@ -1121,6 +1119,7 @@
     <string name="stream_source_web_creator_desc">Creator web client.</string>
     <string name="stream_source_android_creator">ANDROID_CREATOR</string>
     <string name="stream_source_android_creator_desc">Android creator client. Off by default; needs DroidGuard.</string>
+
     <!-- Podcast subtitles -->
     <string name="podcast_subtitles">Subtitles</string>
     <string name="podcast_subtitle_loading">Loading subtitles…</string>
@@ -1194,6 +1193,7 @@
     <string name="podcast_asr_performance_notice">Requires substantial memory and processing power.</string>
     <string name="metroverse_moonshine_attribution">English Small Streaming model and Moonshine Voice 0.1.5 runtime · MIT license.</string>
     <string name="metroverse_onnx_attribution">On-device inference runtime, version 1.23.2 · MIT license.</string>
+    <string name="metroverse_innertubex_attribution">YouTube Music stream extraction and cipher engine, version 0.5.2 · GPL-3.0.</string>
     <string name="podcast_subtitle_asr_preparing">Preparing recognition…</string>
     <string name="podcast_subtitle_offset">Subtitle timing</string>
     <string name="podcast_subtitle_offset_description">Adjust this episode only. Positive values show subtitles earlier; negative values show them later.</string>

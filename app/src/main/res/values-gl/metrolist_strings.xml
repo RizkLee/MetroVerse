@@ -472,21 +472,20 @@
     <string name="stream_source_ios">iOS / iPadOS</string>
     <string name="stream_source_ios_desc">Clientes de Apple iOS e iPadOS. Desactivado por defecto; limitado ao superar ~1 MiB.</string>
     <string name="stream_source_web_creator">WEB_CREATOR</string>
+
     <string name="loudness_level">Nivel de volume</string>
     <string name="loudness_level_aggressive">Agresivo (-7 dB)</string>
     <string name="widget_playlists">Listas de reprodución</string>
     <string name="widget_playlists_description">Atallos das listas de reprodución con controis do minirreprodutor</string>
     <string name="choose_something_below">Escolle algo de abaixo</string>
     <string name="stream_client">Cliente de transmisión</string>
-    <string name="format_player_hash">Identificador do reprodutor</string>
-    <string name="format_cipher_support_added">Engadiuse compatibilidade con cifrado</string>
-    <string name="not_applicable">N/A</string>
     <string name="stream_sources">Fontes de transmisión</string>
     <string name="stream_source_order">Orde das fontes de transmisión</string>
     <string name="stream_source_web_clients">Clientes web</string>
     <string name="stream_source_web_creator_desc">Cliente web do creador.</string>
     <string name="stream_source_android_creator">ANDROID_CREATOR</string>
     <string name="stream_source_android_creator_desc">Cliente de creador para Android. Por defecto está desactivado; precisa DroidGuard.</string>
+
     <string name="upload_file_too_large">Arquivo demasiado grande (máximo 300MB)</string>
     <string name="upload_unsupported_format">Formato non compatible. Formatos compatibles: MP3, M4A, WMA, FLAC, OGG</string>
     <string name="delete_uploaded_song">Eliminar canción subida</string>

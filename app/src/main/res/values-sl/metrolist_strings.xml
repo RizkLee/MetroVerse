@@ -271,12 +271,13 @@
     <string name="loudness_level_quiet">Tiho</string>
     <string name="widget_playlists">Seznami predvajanja</string>
     <string name="choose_something_below">Izberite nekaj spodaj</string>
-    <string name="not_applicable">N/A</string>
+
     <string name="enable_dynamic_icon">Dinamične barve ikon</string>
     <string name="stream_source_tvhtml5">TVHTML5</string>
     <string name="stream_source_visionos">VisionOS</string>
     <string name="stream_source_android_vr">Android VR</string>
     <string name="stream_source_ios">iOS / iPadOS</string>
+
     <string name="filter_podcasts">Podkasti</string>
     <string name="view_podcast">Poglej podkast</string>
     <string name="podcast_channels">Podkast kanali</string>

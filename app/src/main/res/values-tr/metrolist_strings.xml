@@ -867,9 +867,6 @@
     <string name="discord_placeholder_album">Albüm adı</string>
     <string name="restore_database_incompatible">Yedek geri yüklenemiyor: veritabanı sürümü uyumsuz. Mevcut verileriniz korundu.</string>
     <string name="stream_client">Akış istemcisi</string>
-    <string name="format_player_hash">Oynatıcı hash\'i</string>
-    <string name="format_cipher_support_added">Cipher desteği eklendi</string>
-    <string name="not_applicable">Uygulanamaz</string>
     <string name="stream_sources">Akış kaynakları</string>
     <string name="stream_source_order">Akış sırası</string>
     <string name="stream_source_web_clients">Web istemcileri</string>
@@ -889,6 +886,7 @@
     <string name="stream_source_web_creator_desc">Creator web istemcisi.</string>
     <string name="stream_source_android_creator">ANDROID_CREATOR</string>
     <string name="stream_source_android_creator_desc">Android Creator istemcisi. Varsayılan olarak kapalıdır; DroidGuard gerekir.</string>
+
     <string name="error_job_cancelled">Video oynatılamıyor. Tekrar deneyin veya sonraki şarkıya geçin.</string>
     <string name="enable_landscape_scaling">Yatay Ölçekleme</string>
     <string name="enable_landscape_scaling_desc">Büyük ekranlarda yatay mod için arayüzü ölçeklendir</string>

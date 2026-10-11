@@ -871,6 +871,7 @@
     <string name="stream_client">ストリームクライアント</string>
     <string name="stream_source_web_clients">ウェブクライアント</string>
 
+
     <!-- Podcast subtitles -->
     <string name="podcast_subtitles">字幕</string>
     <string name="podcast_subtitle_loading">字幕を読み込み中…</string>
@@ -948,6 +949,7 @@
     <string name="podcast_asr_performance_notice">多くのメモリと高い処理性能が必要です。</string>
     <string name="metroverse_moonshine_attribution">英語の Small Streaming モデルと Moonshine Voice 0.1.5 ランタイム · MIT ライセンス。</string>
     <string name="metroverse_onnx_attribution">端末内でモデルを実行するランタイム、バージョン 1.23.2 · MIT ライセンス。</string>
+    <string name="metroverse_innertubex_attribution">YouTube Music のストリーム取得・復号エンジン、バージョン 0.5.2 · GPL-3.0。</string>
     <string name="podcast_subtitle_asr_preparing">認識を準備中…</string>
     <string name="podcast_subtitle_offset">字幕のタイミング</string>
     <string name="podcast_subtitle_offset_description">このエピソードのみに適用されます。正の値は字幕を早く表示し、負の値は遅く表示します。</string>

@@ -1,5 +1,8 @@
 package com.metrolist.music.playback
 
+import androidx.datastore.preferences.core.preferencesOf
+import com.metrolist.music.constants.StreamSourceVisionOSKey
+import com.metrolist.music.utils.disabledStreamClients
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -7,6 +10,33 @@ import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 
 class StreamUrlCacheTest {
+    @Test
+    fun `download retry discards its cached source after that source is disabled`() {
+        val downloadUrls = StreamUrlCache(currentTimeMillis = { 1_000L })
+        val session = com.metrolist.innertube.InnerTubeXTransport.SessionKey(0, 0)
+        downloadUrls.put("episode", "https://example.com/native-audio", emptyMap(), "VISIONOS", 60, sessionKey = session)
+        assertEquals("VISIONOS", downloadUrls.getForSession("episode", session,
+            preferencesOf().disabledStreamClients())?.clientName)
+
+        val excluded = preferencesOf(StreamSourceVisionOSKey to false).disabledStreamClients()
+        assertNull(downloadUrls.getForSession("episode", session, excluded))
+        downloadUrls.put("episode", "https://example.com/retry-audio", emptyMap(), "WEB_REMIX", 60, sessionKey = session)
+        assertEquals("WEB_REMIX", downloadUrls.getForSession("episode", session, excluded)?.clientName)
+    }
+
+    @Test
+    fun `disabled client evicts its URL and rejects a pending cache write`() {
+        val cache = StreamUrlCache(currentTimeMillis = { 1_000L })
+        val session = com.metrolist.innertube.InnerTubeXTransport.SessionKey(0, 0)
+        cache.put("song", "https://example.com/stream", emptyMap(), "TVHTML5_SIMPLY", 60, sessionKey = session)
+        val generation = cache.generation("song")
+
+        assertNull(cache.getForSession("song", session, setOf("TVHTML5_SIMPLY")))
+        assertEquals(generation + 1, cache.generation("song"))
+        assertEquals(false, cache.put("song", "https://example.com/stale", emptyMap(), "TVHTML5_SIMPLY", 60,
+            sessionKey = session, expectedGeneration = generation))
+    }
+
     @Test
     fun `fresh entry is returned with request headers`() {
         var now = 1_000L

@@ -48,6 +48,7 @@ class InnerTube {
     )
     var visitorData: String? = null
     var dataSyncId: String? = null
+    var authUser: String = "0"
     var cookie: String? = null
         set(value) {
             field = value
@@ -156,6 +157,7 @@ class InnerTube {
             append("Referer", YouTubeClient.REFERER_YOUTUBE_MUSIC)
             visitorData?.let { append("X-Goog-Visitor-Id", it) }
             if (setLogin && client.loginSupported) {
+                append("X-Goog-AuthUser", authUser)
                 cookie?.let { cookie ->
                     append("cookie", cookie)
                     if ("SAPISID" !in cookieMap) return@let
@@ -716,7 +718,7 @@ class InnerTube {
         filename: String,
         contentLength: Long
     ) = withRetry {
-        val authUser = "0"
+        val authUser = this.authUser
         httpClient.post("https://upload.youtube.com/upload/usermusic/http?authuser=$authUser") {
             headers {
                 append("X-Goog-Upload-Command", "start")

@@ -860,9 +860,6 @@
     <string name="discord_status_not_initialized">Non inizializzato</string>
     <string name="discord_error_loopback_timeout">Discord non ha inviato la risposta in tempo. Per favore riprova.</string>
     <string name="discord_error_loopback_unbound">Non è stato possibile aprire una porta callback locale. Per favore liberane una e riprova.</string>
-    <string name="format_player_hash">Hash lettore</string>
-    <string name="format_cipher_support_added">Aggiunto supporto crittografia</string>
-    <string name="not_applicable">Non applicabile</string>
     <string name="stream_sources">Fonti streaming</string>
     <string name="stream_source_order">Ordine streaming</string>
     <string name="stream_source_web_clients">Client web</string>
@@ -882,6 +879,7 @@
     <string name="stream_source_web_creator_desc">Client web creator.</string>
     <string name="stream_source_android_creator">ANDROID_CREATOR</string>
     <string name="stream_source_android_creator_desc">Client creator Android. Disattivato per impostazione predefinita; necessita di DroidGuard.</string>
+
     <string name="error_job_cancelled">Il video non è disponibile per la riproduzione. Riprova o passa al brano successivo.</string>
     <string name="discord_error_no_browser">Nessun browser trovato per completare l\'autorizzazione Discord.</string>
     <string name="discord_error_token_refresh_failed">La sessione Discord è scaduta. Per favore riconnettiti.</string>
@@ -984,6 +982,7 @@
     <string name="podcast_asr_performance_notice">Richiede molta memoria e capacità di elaborazione.</string>
     <string name="metroverse_moonshine_attribution">Modello Small Streaming inglese e runtime Moonshine Voice 0.1.5 · Licenza MIT.</string>
     <string name="metroverse_onnx_attribution">Runtime di inferenza sul dispositivo, versione 1.23.2 · Licenza MIT.</string>
+    <string name="metroverse_innertubex_attribution">Motore di estrazione e decifrazione dei flussi YouTube Music, versione 0.5.2 · GPL-3.0.</string>
     <string name="podcast_subtitle_asr_preparing">Preparazione del riconoscimento…</string>
     <string name="podcast_subtitle_offset">Sincronizzazione sottotitoli</string>
     <string name="podcast_subtitle_offset_description">Solo per questo episodio. I valori positivi anticipano i sottotitoli; quelli negativi li ritardano.</string>

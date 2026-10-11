@@ -280,21 +280,6 @@ fun Queue(
                         playerBackground = playerBackground,
                     )
 
-                    PlayerQueueButton(
-                        icon = R.drawable.bedtime,
-                        onClick = { showSleepTimerDialog = true },
-                        isActive = sleepTimerEnabled,
-                        enabled = !isListenTogetherGuest,
-                        shape = middleShape,
-                        modifier = Modifier.size(buttonSize),
-                        textButtonColor = textButtonColor,
-                        iconButtonColor = iconButtonColor,
-                        text = if (sleepTimerEnabled) makeTimeString(sleepTimerTimeLeft) else null,
-                        iconSize = iconSize,
-                        textBackgroundColor = TextBackgroundColor,
-                        playerBackground = playerBackground,
-                    )
-
                     val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsStateWithLifecycle()
                     PlayerQueueButton(
                         icon = R.drawable.shuffle,
@@ -314,10 +299,62 @@ fun Queue(
 
                     if (lyricsEnabled) {
                         PlayerQueueButton(
+                            icon =
+                                when (repeatMode) {
+                                    Player.REPEAT_MODE_ALL -> R.drawable.repeat
+                                    Player.REPEAT_MODE_ONE -> R.drawable.repeat_one
+                                    else -> R.drawable.repeat
+                                },
+                            onClick = {
+                                playerConnection.player.toggleRepeatMode()
+                            },
+                            isActive = repeatMode != Player.REPEAT_MODE_OFF,
+                            enabled = !isListenTogetherGuest,
+                            shape = middleShape,
+                            modifier = Modifier.size(buttonSize),
+                            textButtonColor = textButtonColor,
+                            iconButtonColor = iconButtonColor,
+                            iconSize = iconSize,
+                            textBackgroundColor = TextBackgroundColor,
+                            playerBackground = playerBackground,
+                        )
+                    } else {
+                        // Podcast episodes: use speed in place of repeat.
+                        PlayerQueueButton(
+                            icon = R.drawable.speed,
+                            onClick = { showPlaybackSpeedSheet = true },
+                            isActive = playerConnection.player.playbackParameters.speed != 1f,
+                            shape = middleShape,
+                            modifier = Modifier.size(buttonSize),
+                            textButtonColor = textButtonColor,
+                            iconButtonColor = iconButtonColor,
+                            iconSize = iconSize,
+                            textBackgroundColor = TextBackgroundColor,
+                            playerBackground = playerBackground,
+                        )
+                    }
+
+                    PlayerQueueButton(
+                        icon = R.drawable.bedtime,
+                        onClick = { showSleepTimerDialog = true },
+                        isActive = sleepTimerEnabled,
+                        enabled = !isListenTogetherGuest,
+                        shape = middleShape,
+                        modifier = Modifier.size(buttonSize),
+                        textButtonColor = textButtonColor,
+                        iconButtonColor = iconButtonColor,
+                        text = if (sleepTimerEnabled) makeTimeString(sleepTimerTimeLeft) else null,
+                        iconSize = iconSize,
+                        textBackgroundColor = TextBackgroundColor,
+                        playerBackground = playerBackground,
+                    )
+
+                    if (lyricsEnabled) {
+                        PlayerQueueButton(
                             icon = R.drawable.lyrics,
                             onClick = { onToggleLyrics() },
                             isActive = showInlineLyrics,
-                            shape = middleShape,
+                            shape = repeatShape,
                             modifier = Modifier.size(buttonSize),
                             textButtonColor = textButtonColor,
                             iconButtonColor = iconButtonColor,
@@ -331,43 +368,6 @@ fun Queue(
                             icon = R.drawable.subtitles,
                             onClick = onTogglePodcastSubtitles,
                             isActive = podcastSubtitlesActive,
-                            shape = middleShape,
-                            modifier = Modifier.size(buttonSize),
-                            textButtonColor = textButtonColor,
-                            iconButtonColor = iconButtonColor,
-                            iconSize = iconSize,
-                            textBackgroundColor = TextBackgroundColor,
-                            playerBackground = playerBackground,
-                        )
-                    }
-
-                    if (lyricsEnabled) {
-                        PlayerQueueButton(
-                            icon =
-                                when (repeatMode) {
-                                    Player.REPEAT_MODE_ALL -> R.drawable.repeat
-                                    Player.REPEAT_MODE_ONE -> R.drawable.repeat_one
-                                    else -> R.drawable.repeat
-                                },
-                            onClick = {
-                                playerConnection.player.toggleRepeatMode()
-                            },
-                            isActive = repeatMode != Player.REPEAT_MODE_OFF,
-                            enabled = !isListenTogetherGuest,
-                            shape = repeatShape,
-                            modifier = Modifier.size(buttonSize),
-                            textButtonColor = textButtonColor,
-                            iconButtonColor = iconButtonColor,
-                            iconSize = iconSize,
-                            textBackgroundColor = TextBackgroundColor,
-                            playerBackground = playerBackground,
-                        )
-                    } else {
-                        // Podcast episodes: the repeat slot is given to the speed button.
-                        PlayerQueueButton(
-                            icon = R.drawable.speed,
-                            onClick = { showPlaybackSpeedSheet = true },
-                            isActive = playerConnection.player.playbackParameters.speed != 1f,
                             shape = repeatShape,
                             modifier = Modifier.size(buttonSize),
                             textButtonColor = textButtonColor,

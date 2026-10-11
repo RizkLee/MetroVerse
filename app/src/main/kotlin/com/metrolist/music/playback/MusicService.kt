@@ -104,11 +104,6 @@ import com.metrolist.music.constants.AudioTrackPlaybackParamsKey
 import com.metrolist.music.constants.AutoDownloadOnLikeKey
 import com.metrolist.music.constants.AutoLoadMoreKey
 import com.metrolist.music.constants.AutoSkipNextOnErrorKey
-import com.metrolist.music.constants.StreamSourceAndroidVRKey
-import com.metrolist.music.constants.StreamSourceTVHTML5Key
-import com.metrolist.music.constants.StreamSourceVisionOSKey
-import com.metrolist.music.constants.StreamSourceWebCreatorKey
-import com.metrolist.music.constants.StreamSourceWebRemixKey
 import com.metrolist.music.constants.AutoplayKey
 import com.metrolist.music.constants.CrossfadeDurationKey
 import com.metrolist.music.constants.CrossfadeEnabledKey
@@ -212,8 +207,7 @@ import com.metrolist.music.utils.ScrobbleManager
 import com.metrolist.music.utils.SyncUtils
 import com.metrolist.music.utils.getArtistSeparator
 import com.metrolist.music.utils.joinToArtistString
-import com.metrolist.music.utils.YTPlayerUtils
-import com.metrolist.music.utils.cipher.CipherDeobfuscator
+import com.metrolist.music.utils.InnerTubeXPlayer
 import com.metrolist.music.utils.dataStore
 import com.metrolist.music.utils.get
 import com.metrolist.music.utils.reportException
@@ -1242,23 +1236,6 @@ class MusicService :
         scope.launch {
             dataStore.data.map { it[AutoLoadMoreKey] ?: true }.distinctUntilChanged().collect { cachedAutoLoadMore = it }
         }
-        // Keep YTPlayerUtils in sync with the stream source toggles (Settings → Stream sources).
-        // Map to the derived set + distinctUntilChanged so an unrelated preference write doesn't
-        // rebuild the set and rewrite the @Volatile field on every DataStore emission.
-        scope.launch {
-            dataStore.data
-                .map { prefs ->
-                    buildSet {
-                        if (prefs[StreamSourceWebRemixKey] == false) add("WEB_REMIX")
-                        if (prefs[StreamSourceTVHTML5Key] == false) add("TVHTML5")
-                        if (prefs[StreamSourceAndroidVRKey] == false) add("ANDROID_VR")
-                        if (prefs[StreamSourceVisionOSKey] == false) add("VISIONOS")
-                        if (prefs[StreamSourceWebCreatorKey] == false) add("WEB_CREATOR")
-                    }
-                }
-                .distinctUntilChanged()
-                .collect { YTPlayerUtils.disabledStreamClients = it }
-        }
 
         if (startupPrefs!![PersistentQueueKey] ?: true) {
             val queueFile = filesDir.resolve(PERSISTENT_QUEUE_FILE)
@@ -1786,7 +1763,7 @@ class MusicService :
      */
     private suspend fun recoverSong(
         mediaId: String,
-        playbackData: YTPlayerUtils.PlaybackData? = null,
+        playbackData: InnerTubeXPlayer.PlaybackData? = null,
     ) {
         val song = database.song(mediaId).first()
         val mediaMetadata =
@@ -1802,11 +1779,11 @@ class MusicService :
             song?.song?.duration?.takeIf { it != -1 }
                 ?: mediaMetadata?.duration?.takeIf { it != -1 }
                 ?: (
-                    playbackData?.videoDetails ?: YTPlayerUtils
-                        .playerResponseForMetadata(mediaId)
+                    playbackData?.videoDetails ?: InnerTubeXPlayer
+                        .playerResponseForMetadata(mediaId, contentHints = ContentHints(isUploaded = song?.song?.isUploaded))
                         .getOrNull()
                         ?.videoDetails
-                )?.lengthSeconds?.toInt()
+                )?.lengthSeconds?.toIntOrNull()
                 ?: -1
 
         database.query {
@@ -1859,7 +1836,7 @@ class MusicService :
      */
     private fun recoverSongDeduped(
         mediaId: String,
-        playbackData: YTPlayerUtils.PlaybackData? = null,
+        playbackData: InnerTubeXPlayer.PlaybackData? = null,
     ) {
         if (!recoveringSongs.add(mediaId)) return
         scope.launch(Dispatchers.IO) {
@@ -3289,6 +3266,15 @@ class MusicService :
     private fun isRemotePlaybackError(error: PlaybackException): Boolean =
         error.errorCode == PlaybackException.ERROR_CODE_REMOTE_ERROR
 
+    private fun isStreamClientError(error: PlaybackException): Boolean =
+        error.errorCode == PlaybackException.ERROR_CODE_IO_UNSPECIFIED ||
+            error.errorCode == PlaybackException.ERROR_CODE_IO_INVALID_HTTP_CONTENT_TYPE ||
+            error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS ||
+            error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED ||
+            error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED ||
+            error.errorCode == PlaybackException.ERROR_CODE_PARSING_MANIFEST_MALFORMED ||
+            error.errorCode == PlaybackException.ERROR_CODE_PARSING_MANIFEST_UNSUPPORTED
+
     override fun onPlayerError(error: PlaybackException) {
         super.onPlayerError(error)
 
@@ -3362,6 +3348,12 @@ class MusicService :
                 return
             }
 
+            isStreamClientError(error) -> {
+                Timber.tag(TAG).d("Stream client error detected (${error.errorCode}), rotating client")
+                handleStreamClientError(mediaId, failedStreamClient)
+                return
+            }
+
             !isNetworkConnected.value -> {
                 Timber.tag(TAG).d("No internet connection, waiting for connection")
                 waitOnNetworkError()
@@ -3407,14 +3399,6 @@ class MusicService :
             Timber.tag(TAG).e(e, "Failed to clear player cache for $mediaId")
         }
 
-        if (directMediaUrlCache.containsKey(mediaId)) return
-
-        try {
-            YTPlayerUtils.forceRefreshForVideo(mediaId)
-            Timber.tag(TAG).d("Cleared decryption caches for $mediaId")
-        } catch (e: Exception) {
-            Timber.tag(TAG).e(e, "Failed to clear decryption caches for $mediaId")
-        }
     }
 
     /**
@@ -3609,24 +3593,16 @@ class MusicService :
         incrementRetryCount(mediaId)
 
         songUrlCache.invalidate(mediaId)
-        if (failedStreamClient == "WEB_REMIX") {
-            YTPlayerUtils.markWebRemixFailed(mediaId)
-        }
-        Timber.tag(TAG).d("Cleared cached URL for $mediaId after $retryReason (client=$failedStreamClient)")
-
-        try {
-            YTPlayerUtils.forceRefreshForVideo(mediaId)
-        } catch (e: Exception) {
-            Timber.tag(TAG).e(e, "Failed to clear decryption caches")
-        }
+        failedStreamClient?.let { InnerTubeXPlayer.markStreamClientFailed(mediaId, it) }
+        Timber.tag(TAG).d("Cleared cached URL after $retryReason (client=$failedStreamClient)")
 
         if (refreshCipherConfig) {
             // A rejection can mean the cipher produced a wrong-but-non-throwing signature. If a
             // rate-limited refresh corrects the table, allow WEB_REMIX again on the next resolution.
             scope.launch {
-                if (CipherDeobfuscator.onStreamRejected()) {
-                    Timber.tag(TAG).d("Player config changed after stream rejection — restoring WEB_REMIX")
-                    YTPlayerUtils.clearWebRemixFailures()
+                if (InnerTubeXPlayer.refreshAfterStreamRejection()) {
+                    Timber.tag(TAG).d("Player config changed after stream rejection: restoring clients")
+                    InnerTubeXPlayer.clearStreamClientFailures()
                 }
             }
         }
@@ -3654,6 +3630,22 @@ class MusicService :
 
                 Timber.tag(TAG).d("Retrying playback for $mediaId after $retryReason")
             }
+    }
+
+    private fun handleStreamClientError(
+        mediaId: String?,
+        failedStreamClient: String?,
+    ) {
+        if (mediaId == null) {
+            handleFinalFailure()
+            return
+        }
+        refreshStreamAndRetry(
+            mediaId = mediaId,
+            failedStreamClient = failedStreamClient,
+            refreshCipherConfig = false,
+            retryReason = "stream client error",
+        )
     }
 
     /**
@@ -4117,12 +4109,11 @@ class MusicService :
                     return@Factory dataSpec
                 }
 
-                songUrlCache[mediaId]?.let { cachedStream ->
+                val excludedClients = runBlocking(Dispatchers.IO) { InnerTubeXPlayer.disabledStreamClients() }
+                songUrlCache.getForSession(mediaId, InnerTubeXPlayer.sessionKey(), excludedClients)?.let { cachedStream ->
                     recoverSongDeduped(mediaId)
                     currentStreamClient.value = cachedStream.clientName
-                    return@Factory dataSpec
-                        .withUri(cachedStream.url.toUri())
-                        .withRequestHeaders(dataSpec.httpRequestHeaders + cachedStream.requestHeaders)
+                    return@Factory dataSpec.withResolvedStream(cachedStream)
                 }
             } else {
                 Timber.tag(TAG).i("BYPASSING CACHE for $mediaId due to quality change")
@@ -4133,7 +4124,7 @@ class MusicService :
             val playbackData =
                 runBlocking(Dispatchers.IO) {
                     val song = database.songEntity(mediaId)
-                    YTPlayerUtils.playerResponseForPlayback(
+                    InnerTubeXPlayer.playerResponseForPlayback(
                         mediaId,
                         audioQuality = audioQuality,
                         connectivityManager = connectivityManager,
@@ -4191,20 +4182,25 @@ class MusicService :
                 }
 
                 database.query {
-                    upsert(
-                        FormatEntity(
-                            id = mediaId,
-                            itag = format.itag,
-                            mimeType = format.mimeType.split(";")[0],
-                            codecs = format.mimeType.split("codecs=")[1].removeSurrounding("\""),
-                            bitrate = format.bitrate,
-                            sampleRate = format.audioSampleRate,
-                            contentLength = format.contentLength!!,
-                            loudnessDb = loudnessDb,
-                            perceptualLoudnessDb = perceptualLoudnessDb,
-                            playbackUrl = nonNullPlayback.playbackTracking?.videostatsPlaybackUrl?.baseUrl,
-                        ),
-                    )
+                    val contentLength = format.contentLength?.takeIf { it > 0L }
+                    if (contentLength != null) {
+                        upsert(
+                            FormatEntity(
+                                id = mediaId,
+                                itag = format.itag,
+                                mimeType = format.mimeType.substringBefore(";"),
+                                codecs = format.mimeType.substringAfter("codecs=", "").trim().removeSurrounding("\""),
+                                bitrate = format.bitrate,
+                                sampleRate = format.audioSampleRate,
+                                contentLength = contentLength,
+                                loudnessDb = loudnessDb,
+                                perceptualLoudnessDb = perceptualLoudnessDb,
+                                playbackUrl = nonNullPlayback.playbackTracking?.videostatsPlaybackUrl?.baseUrl,
+                            ),
+                        )
+                    } else {
+                        deleteFormat(mediaId)
+                    }
                 }
                 recoverSongDeduped(mediaId, nonNullPlayback)
 
@@ -4221,6 +4217,10 @@ class MusicService :
                     requestHeaders = nonNullPlayback.streamHeaders,
                     clientName = nonNullPlayback.streamClient,
                     expiresInSeconds = nonNullPlayback.streamExpiresInSeconds,
+                    requireBoundedRange = nonNullPlayback.requireBoundedRange,
+                    rangeChunkSizeBytes = nonNullPlayback.rangeChunkSizeBytes,
+                    useRangeChunks = nonNullPlayback.useRangeChunks,
+                    sessionKey = nonNullPlayback.sessionKey,
                     expectedGeneration = cacheGeneration,
                 )
 
@@ -4228,10 +4228,18 @@ class MusicService :
                     playbackUrlCache[cacheKey(mediaId)] = it
                 }
 
-                return@Factory dataSpec
-                    .withUri(streamUrl.toUri())
-                    .subrange(dataSpec.uriPositionOffset, CHUNK_LENGTH)
-                    .withRequestHeaders(dataSpec.httpRequestHeaders + nonNullPlayback.streamHeaders)
+                InnerTubeXPlayer.ensureCurrentSession(nonNullPlayback.sessionKey)
+                return@Factory dataSpec.withResolvedStream(
+                    CachedStreamUrl(
+                        url = streamUrl,
+                        requestHeaders = nonNullPlayback.streamHeaders,
+                        clientName = nonNullPlayback.streamClient,
+                        requireBoundedRange = nonNullPlayback.requireBoundedRange,
+                        rangeChunkSizeBytes = nonNullPlayback.rangeChunkSizeBytes,
+                        useRangeChunks = nonNullPlayback.useRangeChunks,
+                        sessionKey = nonNullPlayback.sessionKey,
+                    ),
+                )
             }
         }
     }
@@ -4342,7 +4350,7 @@ class MusicService :
             scope.launch(Dispatchers.IO) {
                 val playbackUrl =
                     playbackUrlCache[cacheKey(mediaItem.mediaId)]
-                        ?: YTPlayerUtils
+                        ?: InnerTubeXPlayer
                             .playerResponseForMetadata(mediaItem.mediaId, null)
                             .getOrNull()
                             ?.playbackTracking
@@ -4996,17 +5004,19 @@ class MusicService :
         )
     }
 
-    /**
-     * Get the stream URL for a given media ID.
-     * This is used for Google Cast to send the audio URL to Chromecast.
-     */
-    suspend fun getStreamUrl(mediaId: String): String? =
+    /** Resolves a URL and its actual media type for receivers that cannot apply request headers. */
+    suspend fun getCastStream(mediaId: String): ResolvedCastStream? =
         withContext(Dispatchers.IO) {
             try {
                 val song = database.songEntity(mediaId)
-                song?.mediaUrl?.let { return@withContext it }
+                song?.mediaUrl?.let { url ->
+                    val extension = url.toUri().lastPathSegment?.substringAfterLast('.')?.lowercase()
+                    val mime = extension?.let(android.webkit.MimeTypeMap.getSingleton()::getMimeTypeFromExtension)
+                        ?: database.format(mediaId).first()?.mimeType ?: "audio/mpeg"
+                    return@withContext ResolvedCastStream(url, mime)
+                }
                 val playbackData =
-                    YTPlayerUtils
+                    InnerTubeXPlayer
                         .playerResponseForPlayback(
                             videoId = mediaId,
                             audioQuality = audioQuality,
@@ -5015,10 +5025,17 @@ class MusicService :
                                 isExplicit = song?.explicit,
                                 isUploaded = song?.isUploaded,
                             ),
+                            allowBoundedRange = false,
+                            allowCustomHeaders = false,
                         ).getOrNull()
-                playbackData?.streamUrl
+                playbackData?.let {
+                    InnerTubeXPlayer.ensureCurrentSession(it.sessionKey)
+                    ResolvedCastStream(it.streamUrl, it.format.mimeType.substringBefore(';').ifBlank { "audio/mp4" })
+                }
+            } catch (error: kotlinx.coroutines.CancellationException) {
+                throw error
             } catch (e: Exception) {
-                timber.log.Timber.e(e, "Failed to get stream URL for Cast")
+                timber.log.Timber.e("Failed to resolve Cast stream: %s", e.javaClass.simpleName)
                 null
             }
         }

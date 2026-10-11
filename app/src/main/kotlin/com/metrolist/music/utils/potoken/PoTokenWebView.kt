@@ -42,6 +42,15 @@ class PoTokenWebView private constructor(
     private val continuation: Continuation<PoTokenWebView>,
 ) {
     private val webView = WebView(context)
+    private val proxyAuth = YouTube.proxyAuth
+    private val httpClient = OkHttpClient.Builder()
+        .proxy(YouTube.proxy)
+        .proxyAuthenticator { _, response ->
+            proxyAuth?.takeIf { response.request.header("Proxy-Authorization") != it }?.let { auth ->
+                response.request.newBuilder().header("Proxy-Authorization", auth).build()
+            }
+        }
+        .build()
     private val scope = MainScope()
 
     // Guards the single-shot init continuation: initialization errors can arrive from several
@@ -453,10 +462,6 @@ class PoTokenWebView private constructor(
 
         // A live renderer mints a poToken in well under a second.
         private const val GENERATE_TIMEOUT_MS = 15_000L
-
-        private val httpClient = OkHttpClient.Builder()
-            .proxy(YouTube.proxy)
-            .build()
 
         suspend fun getNewPoTokenGenerator(context: Context): PoTokenWebView {
             var created: PoTokenWebView? = null

@@ -48,6 +48,7 @@ import com.metrolist.music.ui.utils.backToMain
 private const val METROVERSE_REPOSITORY = "https://github.com/Rizklee/MetroVerse"
 private const val METROLIST_REPOSITORY = "https://github.com/MetrolistGroup/Metrolist"
 private const val PODIUM_REPOSITORY = "https://github.com/aimok04/podium"
+private const val INNERTUBEX_REPOSITORY = "https://github.com/MetrolistGroup/innertubex/tree/v0.5.2"
 private const val APPLE_PODCASTS = "https://www.apple.com/apple-podcasts/"
 
 private const val MOONSHINE_REPOSITORY = "https://github.com/moonshine-ai/moonshine/tree/v0.1.5"
@@ -182,6 +183,12 @@ fun AboutScreen(
                         title = { Text("Apple Podcasts") },
                         description = { Text(stringResource(R.string.metroverse_apple_podcasts_attribution)) },
                         onClick = { uriHandler.openUri(APPLE_PODCASTS) },
+                    ),
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.radio),
+                        title = { Text("InnerTubeX") },
+                        description = { Text(stringResource(R.string.metroverse_innertubex_attribution)) },
+                        onClick = { uriHandler.openUri(INNERTUBEX_REPOSITORY) },
                     ),
                     Material3SettingsItem(
                         icon = painterResource(R.drawable.mic),

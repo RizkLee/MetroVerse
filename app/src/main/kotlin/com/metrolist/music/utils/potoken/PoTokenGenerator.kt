@@ -1,18 +1,24 @@
+/**
+ * Metrolist Project (C) 2026
+ * Licensed under GPL-3.0 | See git history for contributors
+ */
+
 package com.metrolist.music.utils.potoken
 
+import android.content.Context
 import android.webkit.CookieManager
-import com.metrolist.music.utils.cipher.CipherDeobfuscator
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import timber.log.Timber
 
-class PoTokenGenerator {
+class PoTokenGenerator(context: Context) {
     private val TAG = "PoTokenGenerator"
+    private val applicationContext = context.applicationContext
 
     private val webViewSupported by lazy { runCatching { CookieManager.getInstance() }.isSuccess }
     private var webViewBadImpl = false // whether the system has a bad WebView implementation
@@ -22,8 +28,7 @@ class PoTokenGenerator {
     private var webPoTokenStreamingPot: String? = null
     private var webPoTokenGenerator: PoTokenWebView? = null
 
-    fun getWebClientPoToken(videoId: String, sessionId: String): PoTokenResult? {
-        Timber.tag(TAG).d("Web-client PO token requested")
+    suspend fun getWebClientPoToken(videoId: String, sessionId: String): PoTokenResult? {
         Timber.tag(TAG).d("WebView state: supported=$webViewSupported, badImpl=$webViewBadImpl")
         if (!webViewSupported || webViewBadImpl) {
             Timber.tag(TAG).d("WebView not available: supported=$webViewSupported, badImpl=$webViewBadImpl")
@@ -31,11 +36,8 @@ class PoTokenGenerator {
         }
 
         return try {
-            Timber.tag(TAG).d("Calling runBlocking to generate poToken (timeout=${POTOKEN_TIMEOUT_MS}ms)...")
-            runBlocking {
-                withTimeout(POTOKEN_TIMEOUT_MS) {
-                    getWebClientPoToken(videoId, sessionId, forceRecreate = false)
-                }
+            withTimeout(POTOKEN_TIMEOUT_MS) {
+                getWebClientPoToken(videoId, sessionId, forceRecreate = false)
             }
         } catch (e: TimeoutCancellationException) {
             // The WebView's sandboxed process can be culled by the OS (storage pressure, low
@@ -43,31 +45,36 @@ class PoTokenGenerator {
             // playerResponseForPlayback can fall through to non-PoToken fallback clients (e.g.
             // ANDROID_VR) instead of blocking the entire playback path.
             Timber.tag(TAG).w("poToken generation timed out after ${POTOKEN_TIMEOUT_MS}ms; proceeding without PoToken")
-            runBlocking {
-                webPoTokenGenLock.withLock {
-                    try {
-                        withContext(Dispatchers.Main) {
-                            webPoTokenGenerator?.close()
-                        }
-                    } catch (closeEx: Exception) {
-                        Timber.tag(TAG).e("PO-token WebView timeout cleanup failed type=${closeEx.javaClass.simpleName}")
-                    }
-                    webPoTokenGenerator = null
-                    webPoTokenStreamingPot = null
-                    webPoTokenSessionId = null
-                }
-            }
+            clearGenerator()
+            null
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: BadWebViewException) {
+            Timber.tag(TAG).e("Could not obtain PO token because WebView is unavailable")
+            webViewBadImpl = true
             null
         } catch (e: Exception) {
-            Timber.tag(TAG).e("PO-token generation failed type=${e.javaClass.simpleName}")
-            when (e) {
-                is BadWebViewException -> {
-                    Timber.tag(TAG).e("PO-token WebView unavailable type=${e.javaClass.simpleName}")
-                    webViewBadImpl = true
-                    null
+            Timber.tag(TAG).e("PO token generation failed type=${e::class.simpleName ?: "unknown"}")
+            throw e
+        }
+    }
+
+    suspend fun close() {
+        clearGenerator()
+    }
+
+    private suspend fun clearGenerator() {
+        webPoTokenGenLock.withLock {
+            try {
+                withContext(Dispatchers.Main) {
+                    webPoTokenGenerator?.close()
                 }
-                else -> throw e // includes PoTokenException
+            } catch (error: Exception) {
+                Timber.tag(TAG).e("PO token WebView cleanup failed type=${error::class.simpleName ?: "unknown"}")
             }
+            webPoTokenGenerator = null
+            webPoTokenStreamingPot = null
+            webPoTokenSessionId = null
         }
     }
 
@@ -84,8 +91,6 @@ class PoTokenGenerator {
      * [PoTokenWebView.generatePoToken] was called
      */
     private suspend fun getWebClientPoToken(videoId: String, sessionId: String, forceRecreate: Boolean): PoTokenResult {
-        Timber.tag(TAG).d("Web PO-token generation started")
-
         val (poTokenGenerator, streamingPot, hasBeenRecreated) =
             webPoTokenGenLock.withLock {
                 val shouldRecreate =
@@ -110,7 +115,7 @@ class PoTokenGenerator {
                     webPoTokenStreamingPot = null
                     webPoTokenSessionId = null
 
-                    val newGenerator = PoTokenWebView.getNewPoTokenGenerator(CipherDeobfuscator.appContext)
+                    val newGenerator = PoTokenWebView.getNewPoTokenGenerator(applicationContext)
 
                     // The streaming poToken needs to be generated exactly once before generating
                     // any other (player) tokens.
@@ -133,6 +138,8 @@ class PoTokenGenerator {
 
         val playerPot = try {
             poTokenGenerator.generatePoToken(videoId)
+        } catch (error: CancellationException) {
+            throw error
         } catch (throwable: Throwable) {
             if (hasBeenRecreated) {
                 // the poTokenGenerator has just been recreated (and possibly this is already the
@@ -142,7 +149,7 @@ class PoTokenGenerator {
                 // retry, this time recreating the [webPoTokenGenerator] from scratch;
                 // this might happen for example if the app goes in the background and the WebView
                 // content is lost
-                Timber.tag(TAG).e("PO-token generation failed; retrying type=${throwable.javaClass.simpleName}")
+                Timber.tag(TAG).e("PO-token generation failed; recreating WebView")
                 return getWebClientPoToken(videoId = videoId, sessionId = sessionId, forceRecreate = true)
             }
         }

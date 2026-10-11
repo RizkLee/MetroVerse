@@ -31,12 +31,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
 import com.metrolist.innertube.YouTube
+import com.metrolist.innertube.normalizeYouTubeAuthUser
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
 import com.metrolist.music.constants.AccountChannelHandleKey
 import com.metrolist.music.constants.AccountEmailKey
 import com.metrolist.music.constants.AccountNameKey
 import com.metrolist.music.constants.DataSyncIdKey
+import com.metrolist.music.constants.InnerTubeAuthUserKey
 import com.metrolist.music.constants.InnerTubeCookieKey
 import com.metrolist.music.constants.VisitorDataKey
 import com.metrolist.music.ui.component.IconButton
@@ -45,8 +47,13 @@ import com.metrolist.music.utils.reportException
 import com.metrolist.music.utils.safeDataStoreEdit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import org.json.JSONObject
+import org.json.JSONTokener
 import timber.log.Timber
+import kotlin.coroutines.resume
 
 @SuppressLint("SetJavaScriptEnabled")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -56,7 +63,7 @@ fun LoginScreen(navController: NavController) {
     val coroutineScope = rememberCoroutineScope()
     var isCompletingLogin by remember { mutableStateOf(false) }
 
-    var webView: WebView? = null
+    var webView by remember { mutableStateOf<WebView?>(null) }
     var visitorDataFromWeb by remember { mutableStateOf("") }
     var dataSyncIdFromWeb by remember { mutableStateOf("") }
 
@@ -73,14 +80,28 @@ fun LoginScreen(navController: NavController) {
                 return@launch
             }
 
-            // Save extracted values from the WebView before validating
-            val savedVisitorData = visitorDataFromWeb
-            val savedDataSyncId = dataSyncIdFromWeb
-
-            // Initialize YouTube object with selected authentication data
-            YouTube.cookie = currentCookie
-            YouTube.dataSyncId = savedDataSyncId
-            YouTube.visitorData = savedVisitorData
+            val pageConfig = webView?.let { view ->
+                withTimeoutOrNull(1_000) {
+                    suspendCancellableCoroutine<JSONObject?> { continuation ->
+                        view.evaluateJavascript(
+                            "JSON.stringify(window.yt&&window.yt.config_?{" +
+                                "visitor:window.yt.config_.VISITOR_DATA," +
+                                "sync:window.yt.config_.DATASYNC_ID," +
+                                "auth:String(window.yt.config_.SESSION_INDEX||0)}:{})",
+                        ) { result ->
+                            if (continuation.isActive) {
+                                continuation.resume(runCatching {
+                                    JSONObject(JSONTokener(result).nextValue() as String)
+                                }.getOrNull())
+                            }
+                        }
+                    }
+                }
+            }
+            val savedVisitorData = pageConfig?.optString("visitor")?.takeIf { it.isNotBlank() } ?: visitorDataFromWeb
+            val savedDataSyncId = (pageConfig?.optString("sync")?.takeIf { it.isNotBlank() } ?: dataSyncIdFromWeb).substringBefore("||")
+            val savedAuthUser = normalizeYouTubeAuthUser(pageConfig?.optString("auth"))
+            YouTube.replacePlaybackSession(currentCookie, savedVisitorData, savedDataSyncId, savedAuthUser)
 
             Timber.d("Login: Manual close detected, validating selected account...")
 
@@ -106,6 +127,7 @@ fun LoginScreen(navController: NavController) {
                             settings[InnerTubeCookieKey] = currentCookie
                             settings[VisitorDataKey] = savedVisitorData
                             settings[DataSyncIdKey] = savedDataSyncId
+                            settings[InnerTubeAuthUserKey] = savedAuthUser
                             settings[AccountNameKey] = info.name
                             settings[AccountEmailKey] = info.email.orEmpty()
                             settings[AccountChannelHandleKey] = info.channelHandle.orEmpty()

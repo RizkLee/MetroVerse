@@ -136,42 +136,94 @@ internal fun parsePlaylistContinuation(
 object YouTube {
     private val innerTube = InnerTube()
     private const val ENABLE_NEWPIPE_STREAM_INFO_EXTRACTOR = false
+    private var playbackTransport: InnerTubeXTransport? = null
 
+    @Synchronized
+    fun extractionTransport(): InnerTubeXTransport.Snapshot {
+        val transport = playbackTransport ?: InnerTubeXTransport().also { playbackTransport = it }
+        return transport.configure(
+            locale = locale,
+            cookie = cookie,
+            visitorData = visitorData,
+            dataSyncId = dataSyncId,
+            authUser = authUser,
+            useLoginForBrowse = useLoginForBrowse,
+            proxy = proxy,
+            proxyAuth = proxyAuth,
+        )
+    }
+
+    @Synchronized
+    private fun updatePlaybackSession() {
+        if (playbackTransport != null) extractionTransport()
+    }
+
+    @set:Synchronized
+    var authUser: String
+        get() = innerTube.authUser
+        set(value) {
+            innerTube.authUser = normalizeYouTubeAuthUser(value)
+            updatePlaybackSession()
+        }
+
+    @Synchronized
+    fun replacePlaybackSession(cookie: String?, visitorData: String?, dataSyncId: String?, authUser: String = "0") {
+        innerTube.cookie = cookie
+        innerTube.visitorData = visitorData
+        innerTube.dataSyncId = dataSyncId
+        innerTube.authUser = normalizeYouTubeAuthUser(authUser)
+        updatePlaybackSession()
+    }
+
+    @set:Synchronized
     var locale: YouTubeLocale
         get() = innerTube.locale
         set(value) {
             innerTube.locale = value
+            updatePlaybackSession()
         }
+    @set:Synchronized
     var visitorData: String?
         get() = innerTube.visitorData
         set(value) {
             innerTube.visitorData = value
+            updatePlaybackSession()
         }
+    @set:Synchronized
     var dataSyncId: String?
         get() = innerTube.dataSyncId
         set(value) {
             innerTube.dataSyncId = value
+            updatePlaybackSession()
         }
+    @set:Synchronized
     var cookie: String?
         get() = innerTube.cookie
         set(value) {
             innerTube.cookie = value
+            updatePlaybackSession()
         }
+    @set:Synchronized
     var proxy: Proxy?
         get() = innerTube.proxy
         set(value) {
             innerTube.proxy = value
+            updatePlaybackSession()
         }
 
+    @set:Synchronized
     var proxyAuth: String?
         get() = innerTube.proxyAuth
         set(value) {
             innerTube.proxyAuth = value
+            updatePlaybackSession()
         }
+    @set:Synchronized
     var useLoginForBrowse: Boolean
         get() = innerTube.useLoginForBrowse
         set(value) {
             innerTube.useLoginForBrowse = value
+            updatePlaybackSession()
         }
 
     suspend fun searchSuggestions(query: String): Result<SearchSuggestions> =

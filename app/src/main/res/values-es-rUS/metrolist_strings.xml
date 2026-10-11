@@ -878,9 +878,7 @@
     <string name="widget_playlists_description">Atajos de lista de reproducción con controles de minirreproductor</string>
     <string name="choose_something_below">Elige algo de lo siguiente</string>
     <string name="stream_client">Cliente de streaming</string>
-    <string name="format_player_hash">Hash del reproductor</string>
-    <string name="format_cipher_support_added">Soporte de cifrado añadido</string>
-    <string name="not_applicable">No disponible</string>
+
     <string name="enable_dynamic_icon">Colores dinámicos del icono</string>
     <string name="enable_dynamic_icon_desc">Usar colores dinámicos del tema para el icono de la aplicación. Al desactivarlo, el icono utilizará colores sólidos.</string>
     <string name="stream_sources">Fuentes de streaming</string>
@@ -902,4 +900,5 @@
     <string name="stream_source_web_creator_desc">Cliente web de Creator.</string>
     <string name="stream_source_android_creator">CREADOR_ANDROID</string>
     <string name="stream_source_android_creator_desc">Cliente de creador para Android. Desactivado por defecto; requiere DroidGuard.</string>
+
 </resources>

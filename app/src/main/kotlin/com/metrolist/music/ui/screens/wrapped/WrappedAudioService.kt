@@ -14,9 +14,10 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.metrolist.music.R
 import com.metrolist.music.constants.AudioQuality
-import com.metrolist.music.utils.YTPlayerUtils
+import com.metrolist.music.utils.InnerTubeXPlayer
 import com.metrolist.music.utils.dataStore
 import com.metrolist.music.utils.get
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -29,6 +30,15 @@ import timber.log.Timber
 
 class WrappedAudioService(
     private val context: Context,
+    private val resolveSongUrl: suspend (String, AudioQuality, ConnectivityManager) -> String? = { songId, quality, connectivity ->
+        InnerTubeXPlayer.playerResponseForPlayback(
+            videoId = songId,
+            audioQuality = quality,
+            connectivityManager = connectivity,
+            allowBoundedRange = false,
+            allowCustomHeaders = false,
+        ).getOrNull()?.streamUrl
+    },
 ) {
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -89,13 +99,15 @@ class WrappedAudioService(
                     player?.play()
                     player?.volume = if (_isMuted.value) 0f else 1f
                 }
+            } catch (error: CancellationException) {
+                throw error
             } catch (e: Exception) {
                 Timber.tag("WrappedAudioService").e(e, "Error during playback preparation")
             }
         }
     }
 
-    private suspend fun getSongUri(songId: String?): Uri {
+    internal suspend fun getSongUri(songId: String?): Uri {
         val fallbackUri = "android.resource://${context.packageName}/${R.raw.wrapped_theme}".toUri()
         if (songId == null) {
             Timber.tag("WrappedAudio").i("No song ID provided, using fallback audio.")
@@ -107,14 +119,9 @@ class WrappedAudioService(
                 if (value == "VERY_HIGH") AudioQuality.HIGH
                 else AudioQuality.entries.find { it.name == value } ?: AudioQuality.AUTO
             }
-            val playbackData = withContext(Dispatchers.IO) {
-                YTPlayerUtils.playerResponseForPlayback(
-                    videoId = songId,
-                    audioQuality = audioQuality,
-                    connectivityManager = connectivityManager,
-                ).getOrNull()
+            val streamUrl = withContext(Dispatchers.IO) {
+                resolveSongUrl(songId, audioQuality, connectivityManager)
             }
-            val streamUrl = playbackData?.streamUrl
             if (streamUrl.isNullOrBlank()) {
                 Timber.tag("WrappedAudio")
                     .w("Resolved URL for $songId is null or blank. Using fallback.")
@@ -122,6 +129,8 @@ class WrappedAudioService(
             } else {
                 streamUrl.toUri()
             }
+        } catch (error: CancellationException) {
+            throw error
         } catch (e: Exception) {
             Timber.tag("WrappedAudio").e(e, "Failed to resolve URL for $songId. Using fallback.")
             fallbackUri

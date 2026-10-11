@@ -881,9 +881,6 @@
     <string name="discord_placeholder_album">Název alba</string>
     <string name="restore_database_incompatible">Nepodařilo se obnovit zálohu: verze databáze není kompatibilní. Vaše aktuální data zůstala zachována.</string>
     <string name="stream_client">Streamovací klient</string>
-    <string name="format_player_hash">Hash přehrávače</string>
-    <string name="format_cipher_support_added">Přidána podpora šifrování</string>
-    <string name="not_applicable">N/A</string>
     <string name="stream_sources">Zdroje streamování</string>
     <string name="stream_source_order">Pořadí streamování</string>
     <string name="stream_source_web_clients">Weboví klienti</string>
@@ -903,6 +900,7 @@
     <string name="stream_source_web_creator_desc">Webový klient tvůrce.</string>
     <string name="stream_source_android_creator">ANDROID_CREATOR</string>
     <string name="stream_source_android_creator_desc">Klient tvůrce pro Android. Ve výchozím nastavení vypnuté; vyžaduje DroidGuard.</string>
+
     <string name="error_job_cancelled">Video není k dispozici k přehrání. Zkuste to znovu nebo přeskočte na další skladbu.</string>
     <string name="enable_landscape_scaling">Škálování na šířku</string>
     <string name="enable_landscape_scaling_desc">Nastavit rozhraní do režimu na šířku pro větší obrazovky</string>

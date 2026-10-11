@@ -23,6 +23,7 @@ kotlin {
 }
 
 dependencies {
+    api(libs.innertubex)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.okhttp)
     implementation(libs.ktor.client.content.negotiation)
@@ -34,6 +35,7 @@ dependencies {
     }
     implementation(libs.timber)
     testImplementation(libs.junit)
+    testImplementation(libs.ktor.client.mock)
 
     coreLibraryDesugaring(libs.desugaring)
 }

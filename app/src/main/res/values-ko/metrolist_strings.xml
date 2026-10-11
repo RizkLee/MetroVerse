@@ -881,6 +881,7 @@
     <string name="podcast_asr_performance_notice">많은 메모리와 높은 처리 성능이 필요합니다.</string>
     <string name="metroverse_moonshine_attribution">영어 Small Streaming 모델 및 Moonshine Voice 0.1.5 런타임 · MIT 라이선스.</string>
     <string name="metroverse_onnx_attribution">기기 내 모델 추론 런타임, 버전 1.23.2 · MIT 라이선스.</string>
+    <string name="metroverse_innertubex_attribution">YouTube Music 스트림 추출 및 복호화 엔진, 버전 0.5.2 · GPL-3.0.</string>
     <string name="podcast_subtitle_asr_preparing">인식 준비 중…</string>
     <string name="podcast_subtitle_offset">자막 타이밍</string>
     <string name="podcast_subtitle_offset_description">현재 에피소드에만 적용됩니다. 양수는 자막을 앞당기고 음수는 늦춥니다.</string>

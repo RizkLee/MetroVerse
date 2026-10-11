@@ -31,8 +31,7 @@ import com.metrolist.music.di.ApplicationScope
 import com.metrolist.music.extensions.toEnum
 import com.metrolist.music.extensions.toInetSocketAddress
 import com.metrolist.music.utils.CrashHandler
-import com.metrolist.music.utils.YTPlayerUtils
-import com.metrolist.music.utils.cipher.CipherDeobfuscator
+import com.metrolist.music.utils.InnerTubeXPlayer
 import com.metrolist.music.utils.dataStore
 import com.metrolist.music.utils.safeDataStoreEdit
 import com.metrolist.music.utils.reportException
@@ -84,8 +83,7 @@ class App :
         // (bundled asset + cached overlay) is captured, not just the async remote refresh.
         Timber.plant(Timber.DebugTree())
 
-        // Initialize cipher deobfuscator for WEB_REMIX streaming
-        CipherDeobfuscator.initialize(this)
+        InnerTubeXPlayer.initialize(this)
 
         // Pre-read Coil cache size on background to avoid runBlocking in newImageLoader
         applicationScope.launch(Dispatchers.IO) {
@@ -94,21 +92,9 @@ class App :
 
         // تهيئة إعدادات التطبيق عند الإقلاع
         applicationScope.launch {
-            // Apply settings (incl. YouTube.proxy) FIRST: the cipher/PoToken OkHttpClients are built
-            // once and cached, so warming them before the proxy is set would snapshot a null proxy and
-            // bypass a configured proxy for the whole session. Warm-up is launched only after this.
+            // The extractor must observe the configured proxy and persisted session before warm-up.
             initializeSettings()
-
-            // Warm the cipher WebView off the first-play critical path. It needs no session, so kick it
-            // as soon as settings settle (don't gate it behind visitorData — that's the bigger cold
-            // cost). Best-effort; on failure the WebView is created lazily on first play.
-            launch(Dispatchers.IO) {
-                delay(1500)
-                runCatching { CipherDeobfuscator.prewarm() }
-            }
-
-            // Warm the PoToken/BotGuard generator (the ~2-5s cold cost) once a session (visitorData) is
-            // available; gate only this half on it. Best-effort and delayed so it never competes with startup.
+            observeSettingsChanges()
             launch(Dispatchers.IO) {
                 delay(2500)
                 var waitedMs = 0
@@ -116,10 +102,8 @@ class App :
                     delay(500)
                     waitedMs += 500
                 }
-                runCatching { YTPlayerUtils.prewarmPoToken() }
+                runCatching { InnerTubeXPlayer.prewarm() }
             }
-
-            observeSettingsChanges()
         }
     }
 
@@ -203,47 +187,44 @@ class App :
     private fun observeSettingsChanges() {
         applicationScope.launch(Dispatchers.IO) {
             dataStore.data
-                .map { it[VisitorDataKey] }
-                .distinctUntilChanged()
-                .collect { visitorData ->
-                    YouTube.visitorData = visitorData?.takeIf { it != "null" }
-                        ?: YouTube.visitorData().getOrNull()?.also { newVisitorData ->
-                            try {
-                                safeDataStoreEdit { settings ->
-                                    settings[VisitorDataKey] = newVisitorData
-                                }
-                            } catch (e: IOException) {
-                                Timber.e(e, "DataStore write failed for visitor data")
-                                reportException(e)
-                            }
-                        }
-                }
-        }
-
-        applicationScope.launch(Dispatchers.IO) {
-            dataStore.data
-                .map { it[DataSyncIdKey] }
-                .distinctUntilChanged()
-                .collect { dataSyncId ->
-                    YouTube.dataSyncId =
-                        dataSyncId?.let {
+                .map { settings ->
+                    listOf(
+                        settings[InnerTubeCookieKey],
+                        settings[VisitorDataKey]?.takeIf { it.isNotBlank() && it != "null" },
+                        settings[DataSyncIdKey]?.let {
                             it.takeIf { !it.contains("||") }
                                 ?: it.takeIf { it.endsWith("||") }?.substringBefore("||")
                                 ?: it.substringAfter("||")
-                        }
+                        },
+                        settings[InnerTubeAuthUserKey] ?: "0",
+                    )
                 }
-        }
-
-        applicationScope.launch(Dispatchers.IO) {
-            dataStore.data
-                .map { it[InnerTubeCookieKey] }
                 .distinctUntilChanged()
-                .collect { cookie ->
+                .collect { (cookie, visitorData, dataSyncId, authUser) ->
                     try {
-                        YouTube.cookie = cookie
-                    } catch (e: Exception) {
-                        Timber.e(e, "Could not parse cookie. Clearing existing cookie.")
-                        forgetAccount(this@App)
+                        YouTube.replacePlaybackSession(cookie, visitorData, dataSyncId, authUser ?: "0")
+                    } catch (error: kotlinx.coroutines.CancellationException) {
+                        throw error
+                    } catch (error: Exception) {
+                        Timber.e("Could not load playback session: %s", error.javaClass.simpleName)
+                        // A transient session/configuration failure must not erase saved credentials.
+                        return@collect
+                    }
+                    if (visitorData == null) {
+                        try {
+                            YouTube.visitorData().getOrNull()?.let { freshVisitorData ->
+                                safeDataStoreEdit { settings ->
+                                    val visitorMissing = settings[VisitorDataKey].isNullOrBlank() || settings[VisitorDataKey] == "null"
+                                    if (settings[InnerTubeCookieKey] == cookie && visitorMissing) {
+                                        settings[VisitorDataKey] = freshVisitorData
+                                    }
+                                }
+                            }
+                        } catch (error: kotlinx.coroutines.CancellationException) {
+                            throw error
+                        } catch (error: Exception) {
+                            Timber.w("Visitor data refresh deferred: %s", error.javaClass.simpleName)
+                        }
                     }
                 }
         }
@@ -335,6 +316,7 @@ class App :
                 settings.remove(InnerTubeCookieKey)
                 settings.remove(VisitorDataKey)
                 settings.remove(DataSyncIdKey)
+                settings.remove(InnerTubeAuthUserKey)
                 settings.remove(AccountNameKey)
                 settings.remove(AccountEmailKey)
                 settings.remove(AccountChannelHandleKey)
@@ -347,17 +329,8 @@ class App :
 
             // Immediately clear YouTube object's auth state
             Timber.d("forgetAccount: Clearing YouTube object auth state")
-            Timber.d(
-                "forgetAccount: Before - cookie=${YouTube.cookie?.take(
-                    50,
-                )}, visitorData=${YouTube.visitorData?.take(20)}, dataSyncId=${YouTube.dataSyncId?.take(20)}",
-            )
-            YouTube.cookie = null
-            YouTube.visitorData = null
-            YouTube.dataSyncId = null
-            Timber.d(
-                "forgetAccount: After - cookie=${YouTube.cookie}, visitorData=${YouTube.visitorData}, dataSyncId=${YouTube.dataSyncId}",
-            )
+            YouTube.replacePlaybackSession(null, null, null)
+            Timber.d("forgetAccount: In-memory playback session cleared")
 
             // Clear WebView cookies to prevent auto-relogin
             Timber.d("forgetAccount: Clearing WebView CookieManager")

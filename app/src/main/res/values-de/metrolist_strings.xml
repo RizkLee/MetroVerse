@@ -871,9 +871,6 @@
     <string name="discord_placeholder_album">Albumtitel</string>
     <string name="restore_database_incompatible">Die Sicherung kann nicht wiederhergestellt werden: Die Datenbankversion ist nicht kompatibel. Ihre aktuellen Daten wurden beibehalten.</string>
     <string name="stream_client">Streaming-Client</string>
-    <string name="format_player_hash">Player hash</string>
-    <string name="format_cipher_support_added">Unterstützung für Verschlüsselungsalgorithmen hinzugefügt</string>
-    <string name="not_applicable">N/A</string>
     <string name="stream_sources">Streaming Quellen</string>
     <string name="stream_source_order">Reihenfolge der Streams</string>
     <string name="stream_source_web_clients">Web-Clients</string>
@@ -893,6 +890,7 @@
     <string name="stream_source_web_creator_desc">Creator-Webclient.</string>
     <string name="stream_source_android_creator">ANDROID_CREATOR</string>
     <string name="stream_source_android_creator_desc">Android-Ersteller-Client. Standardmäßig deaktiviert; erfordert DroidGuard.</string>
+
     <string name="error_job_cancelled">Das Video kann nicht abgespielt werden. Versuchen Sie es erneut oder springen Sie zum nächsten Titel.</string>
     <string name="dynamic_theme">Dynamisches Design</string>
     <string name="enable_landscape_scaling_desc">Benutzeroberfläche im Querformat für größere Bildschirme skalieren</string>
@@ -984,6 +982,7 @@
     <string name="podcast_asr_performance_notice">Benötigt viel Arbeitsspeicher und Rechenleistung.</string>
     <string name="metroverse_moonshine_attribution">Englisches Small-Streaming-Modell und Moonshine-Voice-Laufzeit 0.1.5 · MIT-Lizenz.</string>
     <string name="metroverse_onnx_attribution">Laufzeit für lokale Modellinferenz, Version 1.23.2 · MIT-Lizenz.</string>
+    <string name="metroverse_innertubex_attribution">Engine zum Abrufen und Entschlüsseln von YouTube-Music-Streams, Version 0.5.2 · GPL-3.0.</string>
     <string name="podcast_subtitle_asr_preparing">Erkennung wird vorbereitet…</string>
     <string name="podcast_subtitle_offset">Untertitelzeitpunkt</string>
     <string name="podcast_subtitle_offset_description">Gilt nur für diese Folge. Positive Werte zeigen Untertitel früher, negative Werte später an.</string>

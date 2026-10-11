@@ -885,9 +885,6 @@
     <string name="discord_placeholder_album">Название альбома</string>
     <string name="restore_database_incompatible">Не удалось восстановить резервную копию: несовместимая версия базы данных. Ваши текущие данные сохранены.</string>
     <string name="stream_client">Клиент потока</string>
-    <string name="format_player_hash">Хеш плеера</string>
-    <string name="format_cipher_support_added">Добавлена поддержка шифра</string>
-    <string name="not_applicable">Н/Д</string>
     <string name="stream_sources">Источники потока</string>
     <string name="stream_source_order">Порядок источников</string>
     <string name="stream_source_web_clients">Веб-клиенты</string>
@@ -907,6 +904,7 @@
     <string name="stream_source_web_creator_desc">Веб-клиент для авторов.</string>
     <string name="stream_source_android_creator">ANDROID_CREATOR</string>
     <string name="stream_source_android_creator_desc">Android-клиент для авторов. По умолчанию отключен; требуется DroidGuard.</string>
+
     <string name="error_job_cancelled">Видео недоступно для воспроизведения. Попробуйте еще раз или перейдите к следующему треку.</string>
     <string name="enable_landscape_scaling">Масштабирование в альбомной ориентации</string>
     <string name="enable_landscape_scaling_desc">Масштабировать интерфейс в альбомной ориентации на больших экранах</string>
@@ -998,6 +996,7 @@
     <string name="podcast_asr_performance_notice">Требует много памяти и вычислительных ресурсов.</string>
     <string name="metroverse_moonshine_attribution">Английская модель Small Streaming и среда Moonshine Voice 0.1.5 · Лицензия MIT.</string>
     <string name="metroverse_onnx_attribution">Среда локального выполнения моделей, версия 1.23.2 · Лицензия MIT.</string>
+    <string name="metroverse_innertubex_attribution">Механизм извлечения и расшифровки потоков YouTube Music, версия 0.5.2 · GPL-3.0.</string>
     <string name="podcast_subtitle_asr_preparing">Подготовка распознавания…</string>
     <string name="podcast_subtitle_offset">Время показа субтитров</string>
     <string name="podcast_subtitle_offset_description">Только для этого эпизода. Положительные значения показывают субтитры раньше, отрицательные — позже.</string>

@@ -860,9 +860,6 @@
     <string name="audio_track_playback_params_description">ใช้ AudioTrack ของ Android สำหรับการปรับความเร็ว/ระดับเสียง (Pitch) แทนการประมวลผลด้วยซอฟต์แวร์ ให้ความเสถียรมากกว่าสำหรับการปรับ Pitch ในระดับที่สูงหรือต่ำมาก</string>
     <string name="restore_database_incompatible">ไม่สามารถกู้คืนข้อมูลสำรองได้: เวอร์ชันฐานข้อมูลไม่เข้ากัน ข้อมูลปัจจุบันของคุณยังคงถูกเก็บรักษาไว้</string>
     <string name="stream_client">สตรีมไคลเอ็นต์</string>
-    <string name="format_player_hash">แฮชของเพลเยอร์</string>
-    <string name="format_cipher_support_added">เพิ่มการรองรับ Cipher แล้ว</string>
-    <string name="not_applicable">ไม่มี</string>
     <string name="stream_sources">แหล่งที่มาของสตรีม</string>
     <string name="stream_source_order">ลำดับการเลือกแหล่งสตรีม</string>
     <string name="stream_source_web_clients">ไคลเอนต์เว็บ</string>
@@ -882,6 +879,7 @@
     <string name="stream_source_web_creator_desc">ไคลเอนต์เว็บสำหรับครีเอเตอร์</string>
     <string name="stream_source_android_creator">ANDROID_CREATOR</string>
     <string name="stream_source_android_creator_desc">ไคลเอนต์ Android สำหรับครีเอเตอร์ ปิดใช้งานไว้ตามค่าเริ่มต้น และต้องใช้ DroidGuard</string>
+
     <string name="error_job_cancelled">ไม่สามารถเล่นวิดีโอได้ โปรดลองใหม่อีกครั้งหรือข้ามไปยังเพลงถัดไป</string>
     <string name="enable_landscape_scaling">การปรับขนาดภูมิทัศน์</string>
     <string name="enable_landscape_scaling_desc">ปรับขนาด UI ในโหมดแนวนอนสำหรับหน้าจอขนาดใหญ่</string>

@@ -878,9 +878,6 @@
     <string name="discord_placeholder_album">Nombre del álbum</string>
     <string name="restore_database_incompatible">No se puede restaurar la copia de seguridad: la versión de la base de datos es incompatible. Tus datos actuales se han conservado.</string>
     <string name="stream_client">Cliente de streaming</string>
-    <string name="format_player_hash">Hash del reproductor</string>
-    <string name="format_cipher_support_added">Compatibilidad con cifrado añadida</string>
-    <string name="not_applicable">N/A</string>
     <string name="stream_sources">Fuentes de streaming</string>
     <string name="stream_source_order">Orden de las fuentes de streaming</string>
     <string name="stream_source_web_clients">Clientes web</string>
@@ -900,6 +897,7 @@
     <string name="stream_source_web_creator_desc">Cliente web de creador.</string>
     <string name="stream_source_android_creator">ANDROID_CREATOR</string>
     <string name="stream_source_android_creator_desc">Cliente de creador para Android. Desactivado por defecto; requiere DroidGuard.</string>
+
     <string name="error_job_cancelled">El vídeo no está disponible para su reproducción. Inténtalo de nuevo o salta a la siguiente canción.</string>
     <string name="enable_landscape_scaling">Escalado en modo horizontal</string>
     <string name="enable_landscape_scaling_desc">Escala la interfaz en modo horizontal para pantallas grandes</string>
@@ -987,6 +985,7 @@
     <string name="podcast_asr_performance_notice">Requiere bastante memoria y capacidad de procesamiento.</string>
     <string name="metroverse_moonshine_attribution">Modelo Small Streaming en inglés y motor Moonshine Voice 0.1.5 · Licencia MIT.</string>
     <string name="metroverse_onnx_attribution">Motor de inferencia local, versión 1.23.2 · Licencia MIT.</string>
+    <string name="metroverse_innertubex_attribution">Motor de extracción y descifrado de audio de YouTube Music, versión 0.5.2 · GPL-3.0.</string>
     <string name="podcast_subtitle_asr_preparing">Preparando reconocimiento…</string>
     <string name="podcast_subtitle_offset">Sincronización de subtítulos</string>
     <string name="podcast_subtitle_offset_description">Solo afecta a este episodio. Los valores positivos adelantan los subtítulos; los negativos los retrasan.</string>

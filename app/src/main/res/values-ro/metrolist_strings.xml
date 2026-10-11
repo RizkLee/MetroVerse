@@ -874,8 +874,6 @@
     <string name="discord_placeholder_album">Numele albumului</string>
     <string name="restore_database_incompatible">Nu se poate restaura backupul: versiunea bazei de date este incompatibilă. Datele tale curente au fost păstrate.</string>
     <string name="stream_client">Client pentru flux</string>
-    <string name="format_player_hash">Hash-ul player-ului</string>
-    <string name="not_applicable">Nu se aplică</string>
     <string name="stream_sources">Surse pentru flux</string>
     <string name="stream_source_order">Ordinea fluxului</string>
     <string name="stream_source_web_clients">Clienți web</string>
@@ -895,7 +893,7 @@
     <string name="stream_source_web_creator_desc">Clientul web creator.</string>
     <string name="stream_source_android_creator">ANDROID_CREATOR</string>
     <string name="stream_source_android_creator_desc">Clientul creator Android. Dezactivat în mod prestabilit; necesită DroidGuard.</string>
-    <string name="format_cipher_support_added">Suport pentru cifru adăugat</string>
+
     <string name="error_job_cancelled">Videoclipul nu este disponibil pentru redare. Încearcă din nou sau treci la următoarea melodie.</string>
     <string name="enable_landscape_scaling">Scalare mod peisaj</string>
     <string name="enable_landscape_scaling_desc">Scalează interfața grafică în modul peisaj pentru ecrane mari</string>

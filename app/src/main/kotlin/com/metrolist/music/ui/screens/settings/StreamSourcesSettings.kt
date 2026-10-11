@@ -37,8 +37,14 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.datastore.preferences.core.preferencesOf
+import com.metrolist.innertubex.extraction.ContentHints
+import com.metrolist.innertubex.extraction.strategy.ClientSelectionRequest
+import com.metrolist.innertubex.extraction.strategy.ContentAwareFallbackStrategy
+import com.metrolist.innertubex.extraction.strategy.PoTokenProviderKind
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
+import com.metrolist.music.constants.InnerTubeCookieKey
 import com.metrolist.music.constants.StreamSourceAndroidVRKey
 import com.metrolist.music.constants.StreamSourceTVHTML5Key
 import com.metrolist.music.constants.StreamSourceVisionOSKey
@@ -48,6 +54,7 @@ import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.component.Material3SettingsGroup
 import com.metrolist.music.ui.component.Material3SettingsItem
 import com.metrolist.music.ui.utils.backToMain
+import com.metrolist.music.utils.disabledStreamClients
 import com.metrolist.music.utils.rememberPreference
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,13 +68,38 @@ fun StreamSourcesSettings(
     val (androidVR, onAndroidVRChange) = rememberPreference(StreamSourceAndroidVRKey, defaultValue = true)
     val (webCreator, onWebCreatorChange) = rememberPreference(StreamSourceWebCreatorKey, defaultValue = true)
 
-    // Default resolution order. Content-specific playback can prioritize authenticated clients.
-    val streamOrder = listOf(
-        stringResource(R.string.stream_source_visionos) to visionOS,
-        stringResource(R.string.stream_source_android_vr) to androidVR,
-        stringResource(R.string.stream_source_web_remix) to webRemix,
-        stringResource(R.string.stream_source_tvhtml5) to tvhtml5,
-    ).filter { it.second }.map { it.first }
+    val (cookie) = rememberPreference(InnerTubeCookieKey, defaultValue = "")
+    val excludedClients = preferencesOf(
+        StreamSourceWebRemixKey to webRemix,
+        StreamSourceTVHTML5Key to tvhtml5,
+        StreamSourceVisionOSKey to visionOS,
+        StreamSourceAndroidVRKey to androidVR,
+        StreamSourceWebCreatorKey to webCreator,
+    ).disabledStreamClients()
+    val sourceNames = mapOf(
+        "VISIONOS" to stringResource(R.string.stream_source_visionos),
+        "ANDROID_VR" to stringResource(R.string.stream_source_android_vr),
+        "WEB_REMIX" to stringResource(R.string.stream_source_web_remix),
+        "TVHTML5" to stringResource(R.string.stream_source_tvhtml5),
+        "WEB_CREATOR" to stringResource(R.string.stream_source_web_creator),
+    )
+    // Use the engine's normal-content ranking; restricted content can select a different order.
+    val streamOrder = ContentAwareFallbackStrategy().selectClients(
+        ClientSelectionRequest(
+            hints = ContentHints().withStreamCapabilities(allowHls = false, allowSabr = false, allowBoundedRange = true),
+            authenticated = cookie.isNotBlank(),
+            excludedClients = excludedClients,
+            javaScriptRuntimeAvailable = true,
+            webViewAvailable = true,
+            availablePoTokenProviders = setOf(PoTokenProviderKind.WEB_BOTGUARD),
+        ),
+    ).candidates
+        .filterNot { it.client.useSabr }
+        .distinctBy { if (it.client.clientName.startsWith("TVHTML5")) "TVHTML5" else it.client.clientName }
+        .map { selected ->
+            val family = if (selected.client.clientName.startsWith("TVHTML5")) "TVHTML5" else selected.client.clientName
+            sourceNames[family] ?: selected.client.friendlyName ?: selected.client.clientName
+        }
 
     Column(
         Modifier

@@ -947,9 +947,6 @@
     <string name="discord_placeholder_album">专辑名称</string>
     <string name="restore_database_incompatible">无法恢复备份：数据库版本不兼容。您的当前数据已保留。</string>
     <string name="stream_client">流媒体客户端</string>
-    <string name="format_player_hash">播放器哈希</string>
-    <string name="format_cipher_support_added">加密支持已添加</string>
-    <string name="not_applicable">不适用</string>
     <string name="stream_sources">流媒体源</string>
     <string name="stream_source_order">流媒体顺序</string>
     <string name="stream_source_web_clients">网络客户端</string>
@@ -969,6 +966,7 @@
     <string name="stream_source_web_creator_desc">创作者网络客户端。</string>
     <string name="stream_source_android_creator">ANDROID_CREATOR</string>
     <string name="stream_source_android_creator_desc">Android 创作者客户端。默认关闭；需要 DroidGuard。</string>
+
     <string name="discord_error_loopback_timeout">Discord 未及时响应。请重试。</string>
     <string name="discord_error_loopback_unbound">无法打开本地回调端口。请释放一个端口并重试。</string>
     <string name="discord_error_no_browser">未找到用于完成 Discord 授权的浏览器。</string>
@@ -1066,6 +1064,7 @@
     <string name="podcast_asr_performance_notice">对手机内存和处理性能要求较高。</string>
     <string name="metroverse_moonshine_attribution">英语 Small Streaming 模型及 Moonshine Voice 0.1.5 运行库 · MIT 许可证。</string>
     <string name="metroverse_onnx_attribution">本机模型推理运行库 1.23.2 · MIT 许可证。</string>
+    <string name="metroverse_innertubex_attribution">YouTube Music 音频流提取及解密引擎 0.5.2 · GPL-3.0 许可证。</string>
     <string name="podcast_subtitle_asr_preparing">正在准备识别…</string>
     <string name="podcast_subtitle_offset">字幕时间校准</string>
     <string name="podcast_subtitle_offset_description">仅调整当前单集。正值让字幕提前，负值让字幕延后。</string>

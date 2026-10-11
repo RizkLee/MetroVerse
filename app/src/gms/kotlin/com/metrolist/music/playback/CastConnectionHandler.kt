@@ -482,7 +482,7 @@ class CastConnectionHandler(
      * Build MediaInfo for a single track
      */
     private suspend fun buildMediaInfo(metadata: AppMediaMetadata): MediaInfo? {
-        val streamUrl = musicService.getStreamUrl(metadata.id) ?: return null
+        val stream = musicService.getCastStream(metadata.id) ?: return null
         
         val castMetadata = MediaMetadata(MediaMetadata.MEDIA_TYPE_MUSIC_TRACK).apply {
             putString(MediaMetadata.KEY_TITLE, metadata.title)
@@ -495,9 +495,9 @@ class CastConnectionHandler(
             }
         }
         
-        return MediaInfo.Builder(streamUrl)
+        return MediaInfo.Builder(stream.url)
             .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
-            .setContentType("audio/mp4")
+            .setContentType(stream.mimeType)
             .setMetadata(castMetadata)
             .setCustomData(org.json.JSONObject().put("mediaId", metadata.id))
             .build()

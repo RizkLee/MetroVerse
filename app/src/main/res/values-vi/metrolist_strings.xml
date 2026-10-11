@@ -860,9 +860,6 @@
     <string name="discord_placeholder_album">Tên Album</string>
     <string name="restore_database_incompatible">Không thể khôi phục bản sao lưu: phiên bản cơ sở dữ liệu không tương thích. Dữ liệu hiện tại của bạn đã được giữ nguyên.</string>
     <string name="stream_client">Ứng dụng phát trực tuyến</string>
-    <string name="format_player_hash">Mã người dùng</string>
-    <string name="format_cipher_support_added">Đã thêm thuật toán mã hóa lúc</string>
-    <string name="not_applicable">N/A</string>
     <string name="stream_sources">Nguồn phát</string>
     <string name="stream_source_order">Thứ tự luồng dữ liệu</string>
     <string name="stream_source_web_clients">Ứng dụng khách web</string>
@@ -882,6 +879,7 @@
     <string name="stream_source_web_creator_desc">Ứng dụng web cho nhà sáng tạo</string>
     <string name="stream_source_android_creator">ANDROID_CREATOR</string>
     <string name="stream_source_android_creator_desc">Ứng dụng Android cho Nhà sáng tạo. Mặc định tắt; cần có DroidGuard.</string>
+
     <string name="error_job_cancelled">Video không thể phát lúc này. Vui lòng thử lại hoặc chuyển sang bài tiếp theo.</string>
     <string name="enable_landscape_scaling">Tỷ lệ màn hình ngang</string>
     <string name="enable_landscape_scaling_desc">Phóng to giao diện khi xoay ngang trên màn hình lớn</string>
