@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag, for example v0.5.8"
+        description: "Release tag, for example v1.0.0"
         required: true
         type: string
       publish:
@@ -107,6 +107,10 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ inputs.tag }}
+
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
         with:
           path: release-files
@@ -123,42 +127,7 @@ jobs:
         with:
           tag_name: ${{ inputs.tag }}
           name: MetroVerse ${{ inputs.tag }}
-          body: |
-            ## What's changed
-
-            - Fixed RSS podcast progress and seeking in the player.
-            - RSS episode details now keep the publication date and duration visible.
-            - Podcast playback controls now stay at the requested position while seeking.
-
-            ## Downloads
-
-            | Variant | Description | Download link |
-            | --- | --- | --- |
-            | FOSS APK | MetroVerse app without Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/${{ inputs.tag }}/MetroVerse-${{ inputs.tag }}-foss.apk) |
-            | GMS APK | The same app, but with Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/${{ inputs.tag }}/MetroVerse-${{ inputs.tag }}-gms.apk) |
-
-            ## Verification
-
-            A SHA-256 checksum file is included for users who want to verify their downloads.
-
-            ---
-
-            ## 主要变化
-
-            - 修复 RSS 播客播放器进度条和前进/后退、拖动 seek 的位置闪回问题。
-            - RSS 播客节目详情页不再重复显示节目名，播出时间和单集时长更容易查看。
-            - 播客播放控制现在会保持用户请求的目标位置，直到 seek 完成。
-
-            ## 下载
-
-            | App 版本 | 适用场景 | 下载链接 |
-            | --- | --- | --- |
-            | FOSS APK | 音乐与播客，不包含 Google Cast 功能 | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/${{ inputs.tag }}/MetroVerse-${{ inputs.tag }}-foss.apk) |
-            | GMS APK | 音乐与播客，包含 Google Cast 功能 | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/${{ inputs.tag }}/MetroVerse-${{ inputs.tag }}-gms.apk) |
-
-            ## 文件校验
-
-            附件中提供 SHA-256 校验和文件，供需要核验下载完整性的用户使用。
+          body_path: .github/release-notes/${{ inputs.tag }}.md
           prerelease: ${{ inputs.prerelease }}
           make_latest: ${{ !inputs.prerelease }}
           files: release-files/*

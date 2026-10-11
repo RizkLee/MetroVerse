@@ -1,0 +1,9 @@
+MetroVerse 1.0.0
+
+• RSS podcast transcripts with timed highlighting, fullscreen viewing and sharing.
+• Experimental on-device English subtitles for RSS podcasts, with safe resume.
+• Bilingual AI podcast subtitles and storage controls.
+• Smoother lyric highlighting, scrolling and tap-to-seek.
+• InnerTubeX playback, stream fallback and download improvements.
+• Refined controls, High default audio quality and guided API key setup.
+• Safer account switching and RSS library synchronization.

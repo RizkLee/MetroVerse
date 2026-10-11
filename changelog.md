@@ -2,7 +2,7 @@
 
 All notable MetroVerse-specific changes are recorded here. Upstream Metrolist history remains available in Git history.
 
-## 1.0.0 - Unreleased
+## 1.0.0 - 2026-10-11
 
 ### Added
 
