@@ -848,6 +848,7 @@
     <string name="podcast_subtitles">字幕</string>
     <string name="podcast_subtitle_loading">正在載入字幕…</string>
     <string name="podcast_subtitle_unavailable">此單集沒有可用的字幕</string>
+    <string name="podcast_subtitle_asr_source_unsupported">在本機產生字幕僅支援 RSS Podcast。</string>
     <string name="podcast_subtitle_translation_missing_key">請先在「設定 → AI」中設定 AI 翻譯服務，才能翻譯字幕</string>
     <string name="podcast_subtitle_asr_start">在本機產生字幕</string>
     <string name="podcast_subtitle_asr_retry">重新辨識</string>

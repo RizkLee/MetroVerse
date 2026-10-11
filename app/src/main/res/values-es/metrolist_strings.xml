@@ -912,6 +912,7 @@
     <string name="podcast_subtitles">Subtítulos</string>
     <string name="podcast_subtitle_loading">Cargando subtítulos…</string>
     <string name="podcast_subtitle_unavailable">No hay transcripción disponible para este episodio</string>
+    <string name="podcast_subtitle_asr_source_unsupported">La generación de subtítulos en el dispositivo solo está disponible para podcasts RSS.</string>
     <string name="podcast_subtitle_translation_missing_key">Configura un servicio de traducción de IA en Ajustes → IA para traducir subtítulos</string>
     <string name="podcast_subtitle_asr_start">Generar subtítulos en el dispositivo</string>
     <string name="podcast_subtitle_asr_retry">Reintentar reconocimiento</string>

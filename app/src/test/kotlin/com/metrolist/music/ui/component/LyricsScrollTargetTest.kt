@@ -127,6 +127,36 @@ class LyricsScrollTargetTest {
         assertEquals(-1, resolveLyricsListAnchorIndex(emptyList(), 0))
     }
 
+    @Test
+    fun `word-timed short gap holds the current line until the next one starts`() {
+        var state = LyricsScrollTargetState(1, 1, setOf(1))
+        state = resolveLyricsScrollTarget(state, emptySet(), mainLines, 5_000, 5_001, false,
+            advanceDuringGap = false)
+        assertEquals(1, state.index)
+        state = resolveLyricsScrollTarget(state, emptySet(), mainLines, 5_001, 6_999, false,
+            advanceDuringGap = false)
+        assertEquals(1, state.index)
+        state = resolveLyricsScrollTarget(state, setOf(2), mainLines, 6_999, 7_000, false,
+            advanceDuringGap = false)
+        assertEquals(2, state.index)
+    }
+
+    @Test
+    fun `long interval indicator retains the existing advance behavior`() {
+        val state = resolveLyricsScrollTarget(LyricsScrollTargetState(1, 1, setOf(1)),
+            emptySet(), mainLines, 5_000, 5_001, false, advanceDuringGap = true)
+        assertEquals(2, state.index)
+    }
+
+    @Test
+    fun `explicit seek into a quiet interval still rebases its anchor`() {
+        val state = resolveLyricsScrollTarget(LyricsScrollTargetState(6, 6, setOf(6)),
+            emptySet(), mainLines, 60_000, 6_000, false, fallbackAnchorIndex = 1,
+            advanceDuringGap = false)
+        assertEquals(1, state.index)
+        assertEquals(1, state.lastMainIndex)
+    }
+
     private fun line(start: Long, endSeconds: Int, background: Boolean = false) =
         LyricsEntry(start, "line", listOf(WordTimestamp("line", start / 1000.0, endSeconds.toDouble())),
             isBackground = background)

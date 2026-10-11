@@ -336,8 +336,16 @@ class PodcastSubtitleManager @Inject constructor(
             retryTranscriptSave(pendingSave)
             return
         }
+        if (!PodcastAsrSupport.supportsOnDeviceTranscription(metadata.isEpisode, metadata.mediaUrl)) {
+            if (metadata.id == currentEpisodeId && _state.value == PodcastSubtitleState.Unavailable) {
+                _state.value = PodcastSubtitleState.TranscriptionFailed(
+                    context.getString(R.string.podcast_subtitle_asr_source_unsupported),
+                )
+            }
+            return
+        }
         if (_modelOperationBusy.value) return
-        val mediaUrl = metadata.mediaUrl ?: return
+        val mediaUrl = requireNotNull(metadata.mediaUrl)
         val episodeId = metadata.id
         if (!_asrModelReady.value) {
             val requestedGeneration = episodeGeneration

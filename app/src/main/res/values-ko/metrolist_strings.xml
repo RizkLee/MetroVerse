@@ -808,6 +808,7 @@
     <string name="podcast_subtitles">자막</string>
     <string name="podcast_subtitle_loading">자막 로드 중…</string>
     <string name="podcast_subtitle_unavailable">이 에피소드에는 사용 가능한 자막이 없습니다</string>
+    <string name="podcast_subtitle_asr_source_unsupported">기기 내 자막 생성은 RSS 팟캐스트에서만 사용할 수 있습니다.</string>
     <string name="podcast_subtitle_translation_missing_key">자막을 번역하려면 설정 → AI에서 AI 번역 서비스를 구성하세요</string>
     <string name="podcast_subtitle_asr_start">기기에서 자막 생성</string>
     <string name="podcast_subtitle_asr_retry">인식 재시도</string>

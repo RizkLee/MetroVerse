@@ -7,7 +7,7 @@ All notable MetroVerse-specific changes are recorded here. Upstream Metrolist hi
 ### Added
 
 - Podcast subtitles from RSS transcript files, with timed highlighting, tap-to-seek, timing adjustment, fullscreen viewing, and selected-line sharing.
-- Experimental on-device English subtitle generation with Moonshine Small Streaming, including model download, local import, and deletion.
+- Experimental on-device English subtitle generation for RSS podcasts with Moonshine Small Streaming, including model download, local import, and deletion.
 - On-device subtitles prioritize the listening position, restart slightly ahead after settled seeks, and fill missing sections afterward.
 - Bilingual AI podcast subtitles, with current-position translation and batched prefetching through the configured translation service.
 - A separate storage limit and cleanup controls for podcast subtitles, lyrics, and translations, with protection for manually edited lyrics and active content.
@@ -28,6 +28,8 @@ All notable MetroVerse-specific changes are recorded here. Upstream Metrolist hi
 
 ### Fixed
 
+- Word-timed lyrics stay on the current line during short gaps until the next line starts.
+- YouTube Music podcast episodes no longer offer an on-device recognition action that cannot start; RSS subtitle generation remains available.
 - Backward seeks and short gaps in line-timed lyrics no longer reset or stall lyric scrolling; realignment follows the current playback time.
 - Account changes and cancelled Wrapped playback requests no longer prepare audio from an outdated request.
 - YouTube download retries respect disabled stream sources and handle streams with incomplete size information.

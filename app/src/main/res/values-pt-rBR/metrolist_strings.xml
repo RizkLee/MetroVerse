@@ -908,6 +908,7 @@
     <string name="podcast_subtitles">Legendas</string>
     <string name="podcast_subtitle_loading">Carregando legendas…</string>
     <string name="podcast_subtitle_unavailable">Não há transcrição disponível para este episódio</string>
+    <string name="podcast_subtitle_asr_source_unsupported">A geração de legendas no dispositivo está disponível apenas para podcasts RSS.</string>
     <string name="podcast_subtitle_translation_missing_key">Configure um serviço de tradução de IA em Configurações → IA para traduzir legendas</string>
     <string name="podcast_subtitle_asr_start">Gerar legendas no dispositivo</string>
     <string name="podcast_subtitle_asr_retry">Tentar reconhecimento novamente</string>

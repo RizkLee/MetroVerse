@@ -909,6 +909,7 @@
     <string name="podcast_subtitles">Untertitel</string>
     <string name="podcast_subtitle_loading">Untertitel werden geladen…</string>
     <string name="podcast_subtitle_unavailable">Für diese Folge ist kein Transkript verfügbar</string>
+    <string name="podcast_subtitle_asr_source_unsupported">Untertitel können nur für RSS-Podcasts auf dem Gerät erstellt werden.</string>
     <string name="podcast_subtitle_translation_missing_key">Richte in „Einstellungen → KI“ einen KI-Übersetzungsdienst ein, um Untertitel zu übersetzen</string>
     <string name="podcast_subtitle_asr_start">Untertitel auf dem Gerät erzeugen</string>
     <string name="podcast_subtitle_asr_retry">Erkennung wiederholen</string>

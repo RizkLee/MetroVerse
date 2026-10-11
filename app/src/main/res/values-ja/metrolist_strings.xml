@@ -876,6 +876,7 @@
     <string name="podcast_subtitles">字幕</string>
     <string name="podcast_subtitle_loading">字幕を読み込み中…</string>
     <string name="podcast_subtitle_unavailable">このエピソードには字幕がありません</string>
+    <string name="podcast_subtitle_asr_source_unsupported">端末上での字幕生成は RSS ポッドキャストでのみ利用できます。</string>
     <string name="podcast_subtitle_translation_missing_key">字幕を翻訳するには「設定 → AI」で AI 翻訳サービスを設定してください</string>
     <string name="podcast_subtitle_asr_start">端末内で字幕を生成</string>
     <string name="podcast_subtitle_asr_retry">認識を再試行</string>

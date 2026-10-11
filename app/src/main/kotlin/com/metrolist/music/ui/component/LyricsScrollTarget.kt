@@ -23,6 +23,7 @@ internal fun resolveLyricsScrollTarget(
     isSeeking: Boolean,
     pendingSeekIndex: Int? = null,
     fallbackAnchorIndex: Int = -1,
+    advanceDuringGap: Boolean = true,
 ): LyricsScrollTargetState {
     val activeMainMax = activeIndices.filter { it in mainLineIndices }.maxOrNull()
         ?: activeIndices.maxOrNull() ?: -1
@@ -37,7 +38,7 @@ internal fun resolveLyricsScrollTarget(
     val anyActive = activeIndices.isNotEmpty()
     val shouldAdvance = when {
         !targetStillActive && anyActive && activeMainMax > state.index -> true
-        !targetStillActive && !anyActive && state.previousActiveIndices.isNotEmpty() -> true
+        !targetStillActive && !anyActive && state.previousActiveIndices.isNotEmpty() && advanceDuringGap -> true
         state.index == -1 && anyActive -> true
         state.previousActiveIndices.isEmpty() && anyActive && activeMainMax > state.index -> true
         else -> false

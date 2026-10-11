@@ -916,6 +916,7 @@
     <string name="podcast_subtitles">Sous-titres</string>
     <string name="podcast_subtitle_loading">Chargement des sous-titres…</string>
     <string name="podcast_subtitle_unavailable">Aucune transcription disponible pour cet épisode</string>
+    <string name="podcast_subtitle_asr_source_unsupported">La génération de sous-titres sur cet appareil est réservée aux podcasts RSS.</string>
     <string name="podcast_subtitle_translation_missing_key">Configurez un service de traduction IA dans Réglages → IA pour traduire les sous-titres</string>
     <string name="podcast_subtitle_asr_start">Générer les sous-titres sur l\'appareil</string>
     <string name="podcast_subtitle_asr_retry">Réessayer la reconnaissance</string>

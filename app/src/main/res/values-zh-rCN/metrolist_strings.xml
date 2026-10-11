@@ -991,6 +991,7 @@
     <string name="podcast_subtitles">字幕</string>
     <string name="podcast_subtitle_loading">正在加载字幕…</string>
     <string name="podcast_subtitle_unavailable">此单集没有可用的字幕</string>
+    <string name="podcast_subtitle_asr_source_unsupported">在本机生成字幕仅支持 RSS 播客。</string>
     <string name="podcast_subtitle_translation_missing_key">请先在“设置 → AI”中配置 AI 翻译服务，才能翻译字幕</string>
     <string name="podcast_subtitle_asr_start">在本机生成字幕</string>
     <string name="podcast_subtitle_asr_retry">重新识别</string>

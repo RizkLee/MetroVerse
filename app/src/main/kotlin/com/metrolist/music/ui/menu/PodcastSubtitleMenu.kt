@@ -42,6 +42,7 @@ import com.metrolist.music.utils.rememberPreference
 
 @Composable
 fun PodcastSubtitleMenu(
+    onDeviceAsrSupported: Boolean,
     onDismiss: () -> Unit,
     onResync: () -> Unit,
     onConfigureAi: () -> Unit,
@@ -125,7 +126,7 @@ fun PodcastSubtitleMenu(
     }
 
     Material3MenuGroup(
-        items = listOf(
+        items = listOfNotNull(
             Material3MenuItemData(
                 icon = { Icon(painterResource(R.drawable.translate), null) },
                 title = { Text(stringResource(R.string.podcast_subtitles_translation)) },
@@ -168,7 +169,7 @@ fun PodcastSubtitleMenu(
                     onShowOffsetDialog()
                 },
             ),
-            Material3MenuItemData(
+            if (onDeviceAsrSupported) Material3MenuItemData(
                 icon = { Icon(painterResource(if (modelReady) R.drawable.delete else R.drawable.download), null) },
                 title = {
                     Text(stringResource(when {
@@ -200,7 +201,7 @@ fun PodcastSubtitleMenu(
                 onClick = if (manager != null && !modelBusy) ({
                     if (modelReady) showDeleteDialog = true else showDownloadDialog = true
                 }) else null,
-            ),
+            ) else null,
         ),
     )
 }

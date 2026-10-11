@@ -94,6 +94,7 @@ private val SubtitleCueSelectionSaver = listSaver<Set<String>, String>(
  */
 @Composable
 fun PodcastSubtitleView(
+    onDeviceAsrSupported: Boolean,
     state: PodcastSubtitleState,
     translations: Map<Int, String>,
     positionProvider: () -> Long,
@@ -144,13 +145,18 @@ fun PodcastSubtitleView(
                         .padding(horizontal = 32.dp),
                 ) {
                     Text(
-                        text = asrModelError ?: stringResource(R.string.podcast_subtitle_unavailable),
+                        text = if (onDeviceAsrSupported) {
+                            asrModelError ?: stringResource(R.string.podcast_subtitle_unavailable)
+                        } else {
+                            stringResource(R.string.podcast_subtitle_unavailable)
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                         color = textColor.copy(alpha = 0.7f),
                         textAlign = TextAlign.Center,
                     )
                     Spacer(Modifier.height(4.dp))
                     AsrEntry(
+                        onDeviceAsrSupported = onDeviceAsrSupported,
                         asrModelReady = asrModelReady,
                         asrModelBusy = asrModelBusy,
                         asrDownloadProgress = asrDownloadProgress,
@@ -170,13 +176,14 @@ fun PodcastSubtitleView(
                         .padding(horizontal = 32.dp),
                 ) {
                     Text(
-                        text = asrModelError ?: state.message,
+                        text = if (onDeviceAsrSupported) asrModelError ?: state.message else state.message,
                         style = MaterialTheme.typography.bodyMedium,
                         color = textColor.copy(alpha = 0.8f),
                         textAlign = TextAlign.Center,
                     )
                     Spacer(Modifier.height(4.dp))
                     AsrEntry(
+                        onDeviceAsrSupported = onDeviceAsrSupported,
                         asrModelReady = asrModelReady,
                         asrModelBusy = asrModelBusy,
                         asrDownloadProgress = asrDownloadProgress,
@@ -226,17 +233,21 @@ fun PodcastSubtitleView(
                                 color = textColor.copy(alpha = 0.8f),
                                 textAlign = TextAlign.Center,
                             )
-                            TextButton(
-                                onClick = onStartTranscription,
-                                enabled = state.hasPendingSave || state.transcript.isComplete || !asrModelBusy,
-                            ) {
-                                Icon(painterResource(R.drawable.refresh), contentDescription = null)
-                                Spacer(Modifier.width(8.dp))
-                                Text(stringResource(
-                                    if (state.hasPendingSave || state.transcript.isComplete) R.string.podcast_subtitle_retry_save
-                                    else if (!state.canResume) R.string.podcast_subtitle_asr_retry
-                                    else R.string.podcast_subtitle_resume,
-                                ))
+                            if (onDeviceAsrSupported || state.hasPendingSave || state.transcript.isComplete) {
+                                TextButton(
+                                    onClick = onStartTranscription,
+                                    enabled = state.hasPendingSave || state.transcript.isComplete || !asrModelBusy,
+                                ) {
+                                    Icon(painterResource(R.drawable.refresh), contentDescription = null)
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(stringResource(
+                                        if (state.hasPendingSave || state.transcript.isComplete) R.string.podcast_subtitle_retry_save
+                                        else if (!state.canResume) R.string.podcast_subtitle_asr_retry
+                                        else R.string.podcast_subtitle_resume,
+                                    ))
+                                }
+                            } else {
+                                UnsupportedAsrSource(textColor)
                             }
                         }
                     }
@@ -670,7 +681,18 @@ private fun TranscriptionProgressBar(
 }
 
 @Composable
+private fun UnsupportedAsrSource(textColor: Color) {
+    Text(
+        text = stringResource(R.string.podcast_subtitle_asr_source_unsupported),
+        style = MaterialTheme.typography.bodyMedium,
+        color = textColor.copy(alpha = 0.7f),
+        textAlign = TextAlign.Center,
+    )
+}
+
+@Composable
 private fun AsrEntry(
+    onDeviceAsrSupported: Boolean,
     asrModelReady: Boolean,
     asrModelBusy: Boolean,
     asrDownloadProgress: Pair<Long, Long>?,
@@ -680,6 +702,8 @@ private fun AsrEntry(
     onDownloadModel: () -> Unit,
 ) {
     when {
+        !onDeviceAsrSupported -> UnsupportedAsrSource(textColor)
+
         asrDownloadProgress != null -> {
             val (bytes, total) = asrDownloadProgress
             val percent = if (total > 0) (bytes * 100 / total).toInt() else 0

@@ -923,6 +923,7 @@
     <string name="podcast_subtitles">Субтитры</string>
     <string name="podcast_subtitle_loading">Загрузка субтитров…</string>
     <string name="podcast_subtitle_unavailable">Для этого эпизода нет транскрипта</string>
+    <string name="podcast_subtitle_asr_source_unsupported">Создание субтитров на устройстве доступно только для RSS-подкастов.</string>
     <string name="podcast_subtitle_translation_missing_key">Настройте сервис ИИ-перевода в «Настройки → ИИ», чтобы переводить субтитры</string>
     <string name="podcast_subtitle_asr_start">Создать субтитры на устройстве</string>
     <string name="podcast_subtitle_asr_retry">Повторить распознавание</string>

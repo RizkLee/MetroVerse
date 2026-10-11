@@ -170,6 +170,7 @@ import com.metrolist.music.extensions.togglePlayPause
 import com.metrolist.music.extensions.toggleRepeatMode
 import com.metrolist.music.listentogether.RoomRole
 import com.metrolist.music.models.MediaMetadata
+import com.metrolist.music.podcast.transcript.PodcastAsrSupport
 import com.metrolist.music.podcast.transcript.PodcastSubtitleOffsetStore
 import com.metrolist.music.podcast.transcript.PodcastSubtitleState
 import com.metrolist.music.podcast.transcript.PodcastTranslationStatus
@@ -448,6 +449,9 @@ fun BottomSheetPlayer(
             else -> PlayerContentMode.THUMBNAIL
         }
 
+    val subtitleAsrSupported = mediaMetadata?.let {
+        PodcastAsrSupport.supportsOnDeviceTranscription(it.isEpisode, it.mediaUrl)
+    } == true
     val subtitleModelReady = podcastSubtitleManager?.asrModelReady?.collectAsStateWithLifecycle()?.value == true
     val subtitleModelBusy = podcastSubtitleManager?.modelOperationBusy?.collectAsStateWithLifecycle()?.value == true
     val subtitleModelError = podcastSubtitleManager?.modelDownloadError?.collectAsStateWithLifecycle()?.value
@@ -612,7 +616,7 @@ fun BottomSheetPlayer(
             launchOnDeviceTranscription()
             return
         }
-        if (subtitleModelBusy) return
+        if (!subtitleAsrSupported || subtitleModelBusy) return
         if (subtitleModelReady) {
             launchOnDeviceTranscription()
         } else {
@@ -1367,6 +1371,7 @@ fun BottomSheetPlayer(
                                         onClick = {
                                             menuState.show {
                                                 PodcastSubtitleMenu(
+                                                    onDeviceAsrSupported = subtitleAsrSupported,
                                                     onDismiss = menuState::dismiss,
                                                     onResync = { subtitleResyncToken++ },
                                                     onConfigureAi = ::configureTranslationApiKey,
@@ -1526,6 +1531,7 @@ fun BottomSheetPlayer(
                                             menuState.show {
                                                 if (subtitleViewVisible) {
                                                     PodcastSubtitleMenu(
+                                                        onDeviceAsrSupported = subtitleAsrSupported,
                                                         onDismiss = menuState::dismiss,
                                                         onResync = { subtitleResyncToken++ },
                                                         onConfigureAi = ::configureTranslationApiKey,
@@ -2118,6 +2124,7 @@ fun BottomSheetPlayer(
                                             if (subtitleTranslationActive) currentSubtitleIndex = index
                                         },
                                         onShareCues = { cues -> sharePodcastCues(cues) },
+                                        onDeviceAsrSupported = subtitleAsrSupported,
                                         resyncToken = subtitleResyncToken,
                                     )
                                 }
@@ -2214,6 +2221,7 @@ fun BottomSheetPlayer(
                                             if (subtitleTranslationActive) currentSubtitleIndex = index
                                         },
                                         onShareCues = { cues -> sharePodcastCues(cues) },
+                                        onDeviceAsrSupported = subtitleAsrSupported,
                                         resyncToken = subtitleResyncToken,
                                     )
                                 }

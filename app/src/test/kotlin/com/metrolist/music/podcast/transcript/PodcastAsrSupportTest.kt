@@ -6,10 +6,27 @@
 package com.metrolist.music.podcast.transcript
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PodcastAsrSupportTest {
+    @Test
+    fun `RSS episodes with direct audio retain on-device recognition`() {
+        assertTrue(PodcastAsrSupport.supportsOnDeviceTranscription(true, "https://example.com/episode.mp3"))
+    }
+
+    @Test
+    fun `YouTube episodes and missing audio sources cannot start recognition`() {
+        listOf(null, "", "  ").forEach { source ->
+            assertFalse(PodcastAsrSupport.supportsOnDeviceTranscription(true, source))
+        }
+    }
+
+    @Test
+    fun `a music item cannot become an ASR episode merely by having an audio URL`() {
+        assertFalse(PodcastAsrSupport.supportsOnDeviceTranscription(false, "https://example.com/song.mp3"))
+    }
 
     @Test
     fun `splitLongCue keeps short cue untouched`() {

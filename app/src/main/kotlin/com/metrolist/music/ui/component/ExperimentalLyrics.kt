@@ -580,6 +580,10 @@ fun ExperimentalLyrics(
                 playbackPositionMs = playerPos,
                 isSeeking = isSeeking,
                 pendingSeekIndex = waitingForSeek?.index,
+                advanceDuringGap = !hasWordTimings || scrollActiveIndices.isNotEmpty() || mergedLyricsList.any { item ->
+                    item is LyricsListItem.Indicator &&
+                        position >= item.gapStartMs && position <= item.gapEndMs - 650L
+                },
                 fallbackAnchorIndex = if (resetAnchor && scrollActiveIndices.isEmpty()) {
                     findLyricsScrollAnchor(lines, effectivePosition)
                 } else {

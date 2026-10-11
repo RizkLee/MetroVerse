@@ -1124,6 +1124,7 @@
     <string name="podcast_subtitles">Subtitles</string>
     <string name="podcast_subtitle_loading">Loading subtitles…</string>
     <string name="podcast_subtitle_unavailable">No transcript is available for this episode</string>
+    <string name="podcast_subtitle_asr_source_unsupported">On-device subtitle generation is only available for RSS podcasts.</string>
     <string name="podcast_subtitle_translation_missing_key">Configure an AI translation service in Settings → AI to translate subtitles</string>
     <string name="podcast_subtitle_asr_start">Generate subtitles on-device</string>
     <string name="podcast_subtitle_asr_retry">Retry recognition</string>

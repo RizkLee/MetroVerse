@@ -8,6 +8,10 @@ package com.metrolist.music.podcast.transcript
 /** Pure helpers shared by the on-device podcast transcription pipeline. JVM-testable. */
 object PodcastAsrSupport {
 
+    /** Extracted YouTube URLs are not stable sources for RSS recognition checkpoints. */
+    fun supportsOnDeviceTranscription(isEpisode: Boolean, mediaUrl: String?): Boolean =
+        isEpisode && !mediaUrl.isNullOrBlank()
+
     /** Maximum duration of a single subtitle cue produced from speech recognition. */
     const val MAX_ASR_CUE_DURATION_MS = 12_000L
 
