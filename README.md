@@ -28,12 +28,7 @@
 > [!TIP]
 > I’m excited to introduce MetroVerse v1.1.0! It builds on the podcast transcripts, on-device subtitle generation, bilingual podcast subtitles, smoother lyrics, and InnerTubeX playback introduced in v1.0.0. This update adds English, German, Spanish, and Japanese recognition, more translation providers, and improved subtitle recovery. I’d love for you to try it and enjoy what’s new!
 >
-> 很高兴带来全新的 MetroVerse v1.1.0！本次更新延续了 v1.0.0 的播客原生字幕、端侧模型识别字幕、播客字幕翻译、优化的歌词显示，以及 InnerTubeX 播放体验，并加入英语、德语、西班牙语和日语识别、更多翻译服务与字幕恢复改进。欢迎升级，体验新功能！
-
-> [!IMPORTANT]
-> v1.1.0 includes important podcast subtitle, translation, and playback fixes. We strongly recommend updating.
->
-> v1.1.0 包含重要的播客字幕、翻译和播放修复，强烈建议升级。
+> 很高兴带来全新的 MetroVerse v1.1.0！本次更新延续了 v1.0.0 的播客原生字幕、端侧模型识别字幕、播客字幕翻译、优化的歌词显示，以及 InnerTubeX 播放体验，并加入英语、德语、西班牙语和日语识别、更多翻译服务与字幕恢复改进。欢迎体验新功能！
 
 ## Screenshots
 
@@ -72,7 +67,7 @@ It keeps the familiar Material 3 Expressive interaction model inherited from Met
 - 🌍 **Bilingual Listening:** Use your configured AI service to translate podcast subtitles and display the original text alongside the translation. AI-powered lyric translation is also supported for music.
 - 🪶 **Modern & Lightweight:** Built on the robust Media3 player. Fast, responsive, battery-friendly, and fully supports Android Auto.
 
-On-device recognition is experimental and available for RSS podcasts in English, German, Spanish, and Japanese. Download the selected language’s model before use; YouTube Music podcasts do not offer on-device recognition. RSS language metadata supplies the initial choice, which you can override for an episode or save as the channel default.
+On-device recognition is experimental and available for RSS podcasts in English, German, Spanish, and Japanese. Download the selected language’s model before use.
 
 ### Project lineage
 
@@ -166,7 +161,7 @@ MetroVerse 是一个独立维护的修改版 [Metrolist](https://github.com/Metr
 - 🌍 **双语聆听：** 使用你配置的 AI 服务翻译播客字幕，将原文与译文一起显示。音乐同样支持 AI 歌词翻译。
 - 🪶 **极致轻量：** 基于先进的 Media3 播放器打造，响应迅速、流畅省电，且原生支持 Android Auto。
 
-端侧字幕识别是面向 RSS 播客的实验性功能，支持英语、德语、西班牙语和日语。使用前需下载所选语言的模型；YouTube Music 播客不提供端侧识别。应用根据 RSS 语言信息选择初始语言，也可手动为单集选择或保存频道默认语言。
+端侧字幕识别是面向 RSS 播客的实验性功能，支持英语、德语、西班牙语和日语。使用前需下载所选语言的模型。
 
 ### 项目来源
 
