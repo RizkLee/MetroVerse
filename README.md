@@ -26,9 +26,14 @@
 </p>
 
 > [!TIP]
-> I’m excited to introduce MetroVerse v1.0.0! Built-in podcast transcripts, on-device subtitle generation, podcast subtitle translation, smoother lyrics, and the move to InnerTubeX all come together in this release. It’s our most complete music and podcast experience yet, with plenty of improvements to make everyday listening feel better. I’d love for you to try it now and enjoy what’s new!
+> I’m excited to introduce MetroVerse v1.1.0! It builds on the podcast transcripts, on-device subtitle generation, bilingual podcast subtitles, smoother lyrics, and InnerTubeX playback introduced in v1.0.0. This update adds English, German, Spanish, and Japanese recognition, more translation providers, and improved subtitle recovery. I’d love for you to try it and enjoy what’s new!
 >
-> 很高兴带来全新的 MetroVerse v1.0.0 版本！本次更新带来了播客原生字幕、端侧模型识别字幕、播客字幕翻译、优化的歌词显示，以及 InnerTubeX 迁移等大量更新。这些造就了我们迄今最完整、最舒适的「音乐 + 播客」一体化体验。欢迎体验新功能！
+> 很高兴带来全新的 MetroVerse v1.1.0！本次更新延续了 v1.0.0 的播客原生字幕、端侧模型识别字幕、播客字幕翻译、优化的歌词显示，以及 InnerTubeX 播放体验，并加入英语、德语、西班牙语和日语识别、更多翻译服务与字幕恢复改进。欢迎升级，体验新功能！
+
+> [!IMPORTANT]
+> v1.1.0 includes important podcast subtitle, translation, and playback fixes. We strongly recommend updating.
+>
+> v1.1.0 包含重要的播客字幕、翻译和播放修复，强烈建议升级。
 
 ## Screenshots
 
@@ -63,11 +68,11 @@ It keeps the familiar Material 3 Expressive interaction model inherited from Met
 - 🔓 **Unrestricted & Ad-Free:** Say goodbye to annoying ads and playback restrictions. Enjoy seamless background playback and download your favorite songs for offline listening.
 - 🎵 **All-in-one Audio:** Seamlessly integrates YouTube Music with open-source RSS podcasts and features dedicated interfaces—such as a specialized player—designed specifically for podcasts.
 - 🎙️ **Powerful Podcast Engine:** Discover shows via Apple Podcasts charts or direct RSS/Atom import. Features episode resume, playback speed controls, and a gradual sleep-timer fade.
-- 📖 **Podcast Subtitle Support:** RSS podcasts now support both native subtitles and on-device AI-generated subtitles. Features include sentence-by-sentence highlighting, tap-to-jump navigation, timestamp synchronization, full-screen reading, and subtitle sharing. The Moonshine model powers on-device English subtitle recognition.
+- 📖 **Podcast Subtitle Support:** RSS podcasts now support both native subtitles and on-device AI-generated subtitles. Features include sentence-by-sentence highlighting, tap-to-jump navigation, timestamp synchronization, full-screen reading, and subtitle sharing. The Moonshine model powers on-device subtitle recognition in English, German, Spanish, and Japanese.
 - 🌍 **Bilingual Listening:** Use your configured AI service to translate podcast subtitles and display the original text alongside the translation. AI-powered lyric translation is also supported for music.
 - 🪶 **Modern & Lightweight:** Built on the robust Media3 player. Fast, responsive, battery-friendly, and fully supports Android Auto.
 
-On-device recognition currently supports English podcast audio.
+On-device recognition is experimental and available for RSS podcasts in English, German, Spanish, and Japanese. Download the selected language’s model before use; YouTube Music podcasts do not offer on-device recognition. RSS language metadata supplies the initial choice, which you can override for an episode or save as the channel default.
 
 ### Project lineage
 
@@ -86,7 +91,7 @@ MetroVerse is not an official release of Metrolist or Podium and is not affiliat
 App name:        MetroVerse
 Application ID:  com.rizklee.metroverse
 Debug ID:        com.rizklee.metroverse.debug
-Version:         1.0.0
+Version:         1.1.0
 Minimum Android: Android 8.0 / API 26
 Target Android:  API 36
 Device ABI:      ARM64 (arm64-v8a)
@@ -120,10 +125,10 @@ Downloads are published on the [Releases page](https://github.com/RizkLee/MetroV
 
 | Variant  | Description                                | Download link                                                                                        |
 | -------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| FOSS APK | MetroVerse app without Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/v1.0.0/MetroVerse-v1.0.0-foss.apk) |
-| GMS APK  | The same app, but with Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/v1.0.0/MetroVerse-v1.0.0-gms.apk)  |
+| FOSS APK | MetroVerse app without Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/v1.1.0/MetroVerse-v1.1.0-foss.apk) |
+| GMS APK  | The same app, but with Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/v1.1.0/MetroVerse-v1.1.0-gms.apk)  |
 
-[Download the SHA-256 checksum file](https://github.com/RizkLee/MetroVerse/releases/download/v1.0.0/MetroVerse-v1.0.0-SHA256SUMS.txt).
+[Download the SHA-256 checksum file](https://github.com/RizkLee/MetroVerse/releases/download/v1.1.0/MetroVerse-v1.1.0-SHA256SUMS.txt).
 
 ### Contributing
 
@@ -157,11 +162,11 @@ MetroVerse 是一个独立维护的修改版 [Metrolist](https://github.com/Metr
 - 🔓 **纯净体验：** 彻底告别烦人的广告！解除各种播放限制，支持后台播放，并提供音乐与播客下载功能。
 - 🎵 **聚合播放：** 无缝融合 YouTube Music 与开源 RSS 播客。并为播客专门设计了播放器等诸多页面。
 - 🎙️ **强大的播客引擎：** 内置 Apple Podcasts 榜单发现与 RSS/Atom 直连订阅，支持断点续播、倍速控制与睡眠渐弱暂停。
-- 📖 **支持播客字幕：** RSS 播客现已支持显示原生字幕与端侧模型识别字幕，支持逐句高亮、点击跳转、时间校准、全屏阅读和字幕分享。Moonshine 模型为端侧识别英文字幕提供支持。
+- 📖 **支持播客字幕：** RSS 播客现已支持显示原生字幕与端侧模型识别字幕，支持逐句高亮、点击跳转、时间校准、全屏阅读和字幕分享。Moonshine 模型支持端侧识别英语、德语、西班牙语和日语字幕。
 - 🌍 **双语聆听：** 使用你配置的 AI 服务翻译播客字幕，将原文与译文一起显示。音乐同样支持 AI 歌词翻译。
 - 🪶 **极致轻量：** 基于先进的 Media3 播放器打造，响应迅速、流畅省电，且原生支持 Android Auto。
 
-端侧字幕识别目前面向英文 RSS 播客。
+端侧字幕识别是面向 RSS 播客的实验性功能，支持英语、德语、西班牙语和日语。使用前需下载所选语言的模型；YouTube Music 播客不提供端侧识别。应用根据 RSS 语言信息选择初始语言，也可手动为单集选择或保存频道默认语言。
 
 ### 项目来源
 
@@ -180,7 +185,7 @@ MetroVerse 不是 Metrolist 或 Podium 的官方版本，与 Apple、Google 或 
 应用名称：      MetroVerse
 正式包名：      com.rizklee.metroverse
 调试包名：      com.rizklee.metroverse.debug
-当前版本：      1.0.0
+当前版本：      1.1.0
 最低系统：      Android 8.0 / API 26
 目标 API：      36
 设备架构：      ARM64（arm64-v8a）
@@ -211,10 +216,10 @@ APK 发布在 [Releases 页面](https://github.com/RizkLee/MetroVerse/releases)�
 
 | App 版本 | 适用场景                            | 下载链接                                                                                                    |
 | -------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| FOSS APK | 音乐与播客，不包含 Google Cast 功能 | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v1.0.0/MetroVerse-v1.0.0-foss.apk) |
-| GMS APK  | 音乐与播客，包含 Google Cast 功能   | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v1.0.0/MetroVerse-v1.0.0-gms.apk)  |
+| FOSS APK | 音乐与播客，不包含 Google Cast 功能 | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v1.1.0/MetroVerse-v1.1.0-foss.apk) |
+| GMS APK  | 音乐与播客，包含 Google Cast 功能   | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v1.1.0/MetroVerse-v1.1.0-gms.apk)  |
 
-[下载 SHA-256 校验文件](https://github.com/RizkLee/MetroVerse/releases/download/v1.0.0/MetroVerse-v1.0.0-SHA256SUMS.txt)。
+[下载 SHA-256 校验文件](https://github.com/RizkLee/MetroVerse/releases/download/v1.1.0/MetroVerse-v1.1.0-SHA256SUMS.txt)。
 
 ### 参与开发
 

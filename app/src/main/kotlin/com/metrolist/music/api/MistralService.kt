@@ -37,6 +37,7 @@ object MistralService {
         sourceLanguage: String? = null,
         customSystemPrompt: String = "",
         strictLineCount: Boolean = false,
+        isPodcast: Boolean = false,
     ): Result<List<String>> =
         withContext(Dispatchers.IO) {
             var currentAttempt = 0
@@ -69,7 +70,14 @@ CRITICAL RULES:
                         }
 
                     val userPrompt =
-                        when (mode) {
+                        if (isPodcast && mode != "Romanized" && mode != "Transcribed") {
+                            """Translate the following continuous podcast conversation to $targetLanguage.
+Use neighboring lines to resolve context and incomplete spoken sentences. Use natural conversational phrasing.
+Return ONLY a JSON array of exactly $lineCount strings, one translation per input line, without merging or summarizing.
+
+Input ($lineCount lines):
+$text"""
+                        } else when (mode) {
                             "Romanized" -> {
                                 """Romanize/transliterate the following $lineCount lines into simple Latin script using ONLY basic English letters (a-z, A-Z).
 
@@ -162,7 +170,7 @@ Output MUST be a JSON array with EXACTLY $lineCount strings."""
                             }
                             put("messages", messages)
                             put("temperature", 0.3) // Lower temperature for more consistent output
-                            put("max_tokens", lineCount * 100) // Adequate tokens for translation
+                            put("max_tokens", maxOf(lineCount * 100, text.length * 2).coerceAtMost(16_000))
                         }
 
                     val request =

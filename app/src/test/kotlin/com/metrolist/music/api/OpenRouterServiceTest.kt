@@ -101,6 +101,40 @@ class OpenRouterServiceTest {
         }
     }
 
+    @Test
+    fun `podcasts use spoken context and enough output space at normalized server roots`() = runBlocking {
+        val lines = List(30) { "x".repeat(250) }
+        server.enqueue(response(List(30) { "translated" }))
+        assertTrue(OpenRouterService.translate(
+            text = lines.joinToString("\n"), targetLanguage = "Japanese", apiKey = "",
+            baseUrl = server.url("/").toString(), model = "test-model", mode = "Translated",
+            maxRetries = 1, strictLineCount = true, isPodcast = true,
+            customSystemPrompt = com.metrolist.music.constants.DEFAULT_PODCAST_AI_SYSTEM_PROMPT,
+        ).isSuccess)
+        val request = server.takeRequest(5, TimeUnit.SECONDS)!!
+        assertEquals("/v1/chat/completions", request.url.encodedPath)
+        val body = JSONObject(request.body!!.utf8())
+        assertTrue(body.getInt("max_tokens") >= 15_000)
+        val messages = body.getJSONArray("messages")
+        assertTrue(messages.getJSONObject(0).getString("content").contains("spoken"))
+        val user = messages.getJSONObject(1).getString("content")
+        assertTrue(user.contains("30"))
+        assertTrue(user.contains("continuous podcast conversation"))
+        assertTrue(!user.contains("singability"))
+    }
+
+    @Test
+    fun `podcast romanization continues to transliterate instead of translating meaning`() = runBlocking {
+        server.enqueue(response(listOf("first", "second")))
+        OpenRouterService.translate(
+            text = "first\nsecond", targetLanguage = "English", apiKey = "",
+            baseUrl = server.url("/translate").toString(), model = "test-model",
+            mode = "Romanized", maxRetries = 1, isPodcast = true,
+        ).getOrThrow()
+        val body = JSONObject(server.takeRequest(5, TimeUnit.SECONDS)!!.body!!.utf8())
+        assertTrue(body.getJSONArray("messages").getJSONObject(1).getString("content").contains("DO NOT translate meaning"))
+    }
+
     private suspend fun translate(
         strictLineCount: Boolean = false,
         maxRetries: Int = 1,

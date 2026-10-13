@@ -12,6 +12,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -34,15 +38,17 @@ import com.metrolist.music.R
 @Composable
 internal fun AsrModelDownloadDialog(
     modelBytes: Long,
+    language: com.metrolist.music.podcast.transcript.AsrLanguage = com.metrolist.music.podcast.transcript.AsrLanguage.ENGLISH,
     onDismiss: () -> Unit,
     onDownload: () -> Unit,
-    onImport: () -> Unit,
     startRecognitionAfterDownload: Boolean = false,
 ) {
     // Both palettes keep at least 3:1 contrast at this background-luminance crossover.
     val darkSurface = AlertDialogDefaults.containerColor.luminance() < 0.21f
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = Modifier.padding(horizontal = 24.dp).widthIn(max = 320.dp).fillMaxWidth(),
+        properties = DialogProperties(usePlatformDefaultWidth = false),
         title = { Text(stringResource(R.string.podcast_subtitle_asr_download_model)) },
         icon = { Icon(painterResource(R.drawable.download), contentDescription = null) },
         text = {
@@ -51,17 +57,14 @@ internal fun AsrModelDownloadDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 ModelNoticeRow(
-                    icon = R.drawable.mic,
-                    tint = if (darkSurface) Color(0xFFC7E3FF) else Color(0xFF003366),
-                    text = stringResource(
-                        R.string.podcast_asr_experimental_desc,
-                        Formatter.formatShortFileSize(LocalContext.current, modelBytes),
-                    ),
+                    icon = R.drawable.language,
+                    tint = MaterialTheme.colorScheme.primary,
+                    text = stringResource(R.string.podcast_asr_model_information, language.nativeName),
                 )
                 ModelNoticeRow(
-                    icon = R.drawable.language,
-                    tint = if (darkSurface) Color(0xFFB2F5E5) else Color(0xFF003C32),
-                    text = stringResource(R.string.podcast_asr_english_only),
+                    icon = R.drawable.file_save,
+                    tint = MaterialTheme.colorScheme.primary,
+                    text = stringResource(R.string.podcast_asr_model_size, Formatter.formatShortFileSize(LocalContext.current, modelBytes)),
                 )
                 ModelNoticeRow(
                     icon = R.drawable.speed,
@@ -73,9 +76,6 @@ internal fun AsrModelDownloadDialog(
                     tint = if (darkSurface) Color(0xFFFFE3AF) else Color(0xFF4C2C00),
                     text = stringResource(R.string.podcast_asr_device_warning),
                 )
-                TextButton(onClick = onImport, modifier = Modifier.heightIn(min = 48.dp)) {
-                    Text(stringResource(R.string.podcast_subtitle_asr_import_model))
-                }
             }
         },
         confirmButton = {

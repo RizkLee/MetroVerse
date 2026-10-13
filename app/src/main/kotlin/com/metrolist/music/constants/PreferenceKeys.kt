@@ -481,6 +481,14 @@ val AlwaysUseAiPodcastSubtitleTranslationKey = booleanPreferencesKey("alwaysUseA
 val DeeplApiKey = stringPreferencesKey("deeplApiKey")
 val DeeplFormalityKey = stringPreferencesKey("deeplFormality")
 val AiSystemPromptKey = stringPreferencesKey("aiSystemPrompt")
+val PodcastAiSystemPromptKey = stringPreferencesKey("podcastAiSystemPrompt")
+val PodcastTranslateLanguageKey = stringPreferencesKey("podcastTranslateLanguage")
+
+const val DEFAULT_PODCAST_AI_SYSTEM_PROMPT = """You translate podcast subtitles as natural conversation, not song lyrics.
+Return ONLY a valid JSON array of exactly {lineCount} strings, in the original order, one item per input line.
+Use all neighboring lines as context: speech may include incomplete sentences, loose word order, false starts, fillers, jokes and interruptions.
+Translate the intended meaning into natural spoken language while preserving the speaker's tone, uncertainty and emphasis. Render fillers naturally where they convey meaning; do not mechanically translate every hesitation.
+Do not add facts, make the speech poetic, summarize, explain, merge, split or omit lines. Keep names, numbers and technical terms accurate. Preserve empty lines as empty strings."""
 
 const val DEFAULT_AI_SYSTEM_PROMPT = """You are a precise lyrics translation assistant. Your output must ALWAYS be a valid JSON array of strings.
 

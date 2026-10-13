@@ -55,8 +55,12 @@ fun PodcastRegionSelector(
             onDismissRequest = { expanded = false },
         ) {
             supportedPodcastRegions.forEach { region ->
-                val countryName = remember(region.code, displayLocale) {
-                    Locale.Builder().setRegion(region.code).build().getDisplayCountry(displayLocale).ifBlank { region.code }
+                val countryName = if (region.code == "CN") {
+                    stringResource(R.string.podcast_region_mainland_china)
+                } else {
+                    remember(region.code, displayLocale) {
+                        Locale.Builder().setRegion(region.code).build().getDisplayCountry(displayLocale).ifBlank { region.code }
+                    }
                 }
                 DropdownMenuItem(
                     text = { Text("$countryName (${region.code})") },

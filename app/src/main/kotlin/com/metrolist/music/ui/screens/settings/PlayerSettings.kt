@@ -294,7 +294,7 @@ fun PlayerSettings(
                                 AudioQuality.AUTO -> stringResource(R.string.audio_quality_auto)
                                 AudioQuality.HIGH -> stringResource(R.string.audio_quality_high)
                                 AudioQuality.LOW -> stringResource(R.string.audio_quality_low)
-                            }
+                            } + "\n" + stringResource(R.string.player_setting_rss_not_applicable)
                         )
                     },
                     onClick = { showAudioQualityDialog = true }
@@ -302,7 +302,7 @@ fun PlayerSettings(
                 add(Material3SettingsItem(
                     icon = painterResource(R.drawable.linear_scale),
                     title = { Text(stringResource(R.string.crossfade)) },
-                    description = { Text(stringResource(R.string.crossfade_desc)) },
+                    description = { Text(stringResource(R.string.crossfade_desc) + "\n" + stringResource(R.string.player_setting_podcast_not_applicable)) },
                     trailingContent = {
                         Switch(
                             checked = crossfadeEnabled,
@@ -327,6 +327,7 @@ fun PlayerSettings(
                         description = {
                             Column {
                                 Text(pluralStringResource(R.plurals.seconds, crossfadeDuration.toInt(), crossfadeDuration.toInt()))
+                                Text(stringResource(R.string.player_setting_podcast_not_applicable))
                                 Slider(
                                     value = crossfadeDuration,
                                     onValueChange = onCrossfadeDurationChange,
@@ -339,7 +340,7 @@ fun PlayerSettings(
                     add(Material3SettingsItem(
                         icon = painterResource(R.drawable.album),
                         title = { Text(stringResource(R.string.crossfade_gapless)) },
-                        description = { Text(stringResource(R.string.crossfade_gapless_desc)) },
+                        description = { Text(stringResource(R.string.crossfade_gapless_desc) + "\n" + stringResource(R.string.player_setting_podcast_not_applicable)) },
                         trailingContent = {
                             Switch(
                                 checked = crossfadeGapless,
@@ -418,6 +419,7 @@ fun PlayerSettings(
                 add(Material3SettingsItem(
                     icon = painterResource(R.drawable.volume_up),
                     title = { Text(stringResource(R.string.audio_normalization)) },
+                    description = { Text(stringResource(R.string.player_setting_rss_not_applicable)) },
                     trailingContent = {
                         Switch(
                             checked = audioNormalization,
@@ -440,7 +442,7 @@ fun PlayerSettings(
                         icon = painterResource(R.drawable.volume_up),
                         title = { Text(stringResource(R.string.loudness_level)) },
                         description = {
-                            Text(getLoudnessLevelLabel(loudnessLevel))
+                            Text(getLoudnessLevelLabel(loudnessLevel) + "\n" + stringResource(R.string.player_setting_rss_not_applicable))
                         },
                         onClick = { showLoudnessLevelDialog = true }
                     ))
@@ -740,7 +742,7 @@ fun PlayerSettings(
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.playlist_add),
                     title = { Text(stringResource(R.string.auto_load_more)) },
-                    description = { Text(stringResource(R.string.auto_load_more_desc)) },
+                    description = { Text(stringResource(R.string.auto_load_more_desc) + "\n" + stringResource(R.string.player_setting_podcast_not_applicable)) },
                     trailingContent = {
                         Switch(
                             checked = autoLoadMore,
@@ -761,7 +763,7 @@ fun PlayerSettings(
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.radio),
                     title = { Text(stringResource(R.string.auto_radio_queue)) },
-                    description = { Text(stringResource(R.string.auto_radio_queue_desc)) },
+                    description = { Text(stringResource(R.string.auto_radio_queue_desc) + "\n" + stringResource(R.string.player_setting_podcast_not_applicable)) },
                     trailingContent = {
                         Switch(
                             checked = autoRadioQueue,
@@ -803,7 +805,7 @@ fun PlayerSettings(
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.repeat),
                     title = { Text(stringResource(R.string.disable_load_more_when_repeat_all)) },
-                    description = { Text(stringResource(R.string.disable_load_more_when_repeat_all_desc)) },
+                    description = { Text(stringResource(R.string.disable_load_more_when_repeat_all_desc) + "\n" + stringResource(R.string.player_setting_podcast_not_applicable)) },
                     trailingContent = {
                         Switch(
                             checked = disableLoadMoreWhenRepeatAll,
@@ -824,7 +826,7 @@ fun PlayerSettings(
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.download),
                     title = { Text(stringResource(R.string.auto_download_on_like)) },
-                    description = { Text(stringResource(R.string.auto_download_on_like_desc)) },
+                    description = { Text(stringResource(R.string.auto_download_on_like_desc) + "\n" + stringResource(R.string.player_setting_podcast_not_applicable)) },
                     trailingContent = {
                         Switch(
                             checked = autoDownloadOnLike,
@@ -845,7 +847,7 @@ fun PlayerSettings(
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.similar),
                     title = { Text(stringResource(R.string.enable_similar_content)) },
-                    description = { Text(stringResource(R.string.similar_content_desc)) },
+                    description = { Text(stringResource(R.string.similar_content_desc) + "\n" + stringResource(R.string.player_setting_podcast_not_applicable)) },
                     trailingContent = {
                         Switch(
                             checked = similarContentEnabled,

@@ -95,7 +95,7 @@ Only perform this section after a human authorizes a release. Keep all version r
 
 1. Update `versionCode` and `versionName` in `app/build.gradle.kts`.
 2. Update version-bearing runtime identifiers such as `PODCAST_USER_AGENT`.
-3. Update the default English App changelog in `app/src/main/res/values/metrolist_strings.xml`. Do not edit translated string files unless explicitly requested.
+3. Update the installed-version App changelog used by Settings → Updater → Changelog (`metroverse_changelog_body` in `app/src/main/res/values*/metrolist_strings.xml`), including every existing localized override (especially `values-zh-rCN`). During an explicitly requested test-version bump, update this installed-version text even before publication. Verify the resolved English and Chinese resources show the build version and current user-visible changes; updating only the English resource does not replace an older localized override. Keep GitHub latest-release notes separate from the installed-version changelog.
 4. Add the new release at the top of `changelog.md`.
 5. Add `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt`.
 6. Update every version number and FOSS/GMS download URL in `README.md`.

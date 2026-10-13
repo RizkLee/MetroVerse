@@ -119,6 +119,15 @@ class SubtitleCheckpointTest {
     }
 
     @Test
+    fun `a different recognition language cannot merge prior language cues or progress`() {
+        val previous = checkpoint(listOf(SubtitleCue(2_000, 3_000, "old English")))
+        val incoming = checkpoint(listOf(SubtitleCue(0, 1_000, "new Japanese")))
+            .copy(language = "ja", recognizerFingerprint = AsrLanguage.JAPANESE.checkpointIdentity)
+        assertEquals(incoming, mergeSubtitleCheckpoint(previous, incoming))
+        assertEquals(emptyList<SubtitleCue>(), recoverAsrProgress(previous, "source", AsrLanguage.JAPANESE.checkpointIdentity, 0).cues)
+    }
+
+    @Test
     fun `full completion replaces all retained partial cues`() {
         val previous = checkpoint(listOf(SubtitleCue(2_000, 3_000, "old tail")))
         val complete = checkpoint(listOf(SubtitleCue(0, 1_000, "final"))).copy(isComplete = true, progressPercent = 100)

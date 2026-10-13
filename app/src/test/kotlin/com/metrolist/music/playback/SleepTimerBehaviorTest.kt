@@ -88,6 +88,50 @@ class SleepTimerBehaviorTest {
         assertFalse(timer.isActive)
     }
 
+    @Test
+    fun `cancelling or completing a sleep timer cannot turn disabled autoplay back on`() {
+        val state = FakePlayerState(currentIndex = 0)
+        var autoplay = false
+        var timerRequestsPause = false
+        val timer = SleepTimer(
+            CoroutineScope(Dispatchers.Unconfined), state.player,
+            onPauseAtEndOfMediaItemsChanged = { _, requested ->
+                timerRequestsPause = requested
+                state.pauseAtEndOfMediaItems = shouldPauseAtMediaBoundary(autoplay, requested)
+            },
+        )
+        timer.startAtEndOfCurrentMedia()
+        timer.clear()
+        assertTrue(state.pauseAtEndOfMediaItems)
+        timer.startAtEndOfCurrentMedia()
+        timer.onPlayWhenReadyChanged(false, Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM)
+        assertTrue(state.pauseAtEndOfMediaItems)
+        assertFalse(timer.isActive)
+        autoplay = true
+        state.pauseAtEndOfMediaItems = shouldPauseAtMediaBoundary(autoplay, timerRequestsPause)
+        assertFalse(state.pauseAtEndOfMediaItems)
+    }
+
+    @Test
+    fun `enabling autoplay while an end of episode timer is active still pauses at the boundary`() {
+        val state = FakePlayerState(currentIndex = 0)
+        var autoplay = false
+        var timerRequestsPause = false
+        val timer = SleepTimer(
+            CoroutineScope(Dispatchers.Unconfined), state.player,
+            onPauseAtEndOfMediaItemsChanged = { _, requested ->
+                timerRequestsPause = requested
+                state.pauseAtEndOfMediaItems = shouldPauseAtMediaBoundary(autoplay, requested)
+            },
+        )
+        timer.startAtEndOfCurrentMedia()
+        autoplay = true
+        state.pauseAtEndOfMediaItems = shouldPauseAtMediaBoundary(autoplay, timerRequestsPause)
+        assertTrue(state.pauseAtEndOfMediaItems)
+        timer.clear()
+        assertFalse(state.pauseAtEndOfMediaItems)
+    }
+
     private class FakePlayerState(
         var currentIndex: Int,
         var repeatMode: Int = Player.REPEAT_MODE_OFF,

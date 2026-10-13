@@ -130,13 +130,14 @@ Output MUST be a JSON array with EXACTLY $lineCount strings."""
                         put("messages", messages)
                         put("stream", true)
                         put("temperature", 0.3)
-                        put("max_tokens", lineCount * 100)
+                        put("max_tokens", maxOf(lineCount * 100, text.length * 2).coerceAtMost(16_000))
+                        configureTranslationModel(completeTranslationUrl(baseUrl.ifBlank { "https://openrouter.ai/api/v1/chat/completions" }), model)
                     }
 
                 val request =
                     Request
                         .Builder()
-                        .url(baseUrl.ifBlank { "https://openrouter.ai/api/v1/chat/completions" })
+                        .url(completeTranslationUrl(baseUrl.ifBlank { "https://openrouter.ai/api/v1/chat/completions" }))
                         .apply {
                             if (apiKey.isNotBlank()) {
                                 addHeader("Authorization", "Bearer ${apiKey.trim()}")

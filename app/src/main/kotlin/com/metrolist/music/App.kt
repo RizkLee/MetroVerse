@@ -111,6 +111,13 @@ class App :
         val settings = dataStore.data.first()
         val locale = Locale.getDefault()
         val languageTag = locale.language
+        safeDataStoreEdit { preferences ->
+            com.metrolist.music.podcast.transcript.initializePodcastTranslationTarget(
+                preferences, com.metrolist.music.podcast.transcript.podcastTranslationDefaultLanguage(
+                    preferences[com.metrolist.music.constants.AppLanguageKey], resources.configuration.locales[0],
+                ),
+            )
+        }
 
         ArtistConjunctions.conjunctions = listOf(
             R.string.and,

@@ -52,7 +52,9 @@ internal fun mergeSubtitleCheckpoint(
     previous: EpisodeTranscript?,
     incoming: EpisodeTranscript,
 ): EpisodeTranscript {
-    if (previous == null || previous.mediaSourceFingerprint != incoming.mediaSourceFingerprint || incoming.isComplete) return incoming
+    if (previous == null || previous.mediaSourceFingerprint != incoming.mediaSourceFingerprint ||
+        previous.recognizerFingerprint != incoming.recognizerFingerprint || incoming.isComplete
+    ) return incoming
     if (incoming.processedRanges != null) {
         // Range-aware recognition already merges stable cues by media time, including backfills.
         return incoming.copy(progressPercent = maxOf(previous.progressPercent, incoming.progressPercent).coerceAtMost(99))

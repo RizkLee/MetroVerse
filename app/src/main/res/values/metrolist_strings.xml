@@ -705,7 +705,7 @@
     <string name="user_blocked_by_host">Blocked by host</string>
 
     <!-- AI Lyrics Translation -->
-    <string name="ai_lyrics_translation">AI lyrics and podcast subtitle translation</string>
+    <string name="ai_lyrics_translation">AI lyrics &amp; podcast subtitles</string>
     <string name="ai_always_translate">Always use AI translation</string>
     <string name="ai_always_translate_desc">Automatically translate when lyrics are displayed. Background lyric loading never uses AI.</string>
     <string name="ai_always_translate_lyrics">Always use AI translation for lyrics</string>
@@ -927,7 +927,8 @@
     <string name="metroverse_metrolist_relationship">MetroVerse is based on Metrolist and retains its music architecture, interface foundations, contributors, and GPL history.</string>
     <string name="metroverse_podium_relationship">The RSS and Apple Podcasts integration was developed by studying and adapting concepts from Podium under GPL-3.0.</string>
     <string name="metroverse_apple_podcasts_attribution">Apple Podcasts provides public discovery, charts, search metadata, and artwork. MetroVerse plays public RSS feeds independently and is not affiliated with Apple.</string>
-    <string name="metroverse_changelog_body">MetroVerse 1.0.0\n\n• RSS podcast transcripts with timed highlighting, tap-to-seek, fullscreen viewing and sharing\n• Experimental on-device English subtitles for RSS podcasts, with safe resume and listening-position priority\n• Bilingual AI podcast subtitles and separate subtitle, lyric and translation storage controls\n• Smoother lyric highlighting, short-gap scrolling and selected-line seeking\n• InnerTubeX playback and download resolution, improved stream fallback and account switching\n• Refined player controls, High default audio quality and guided API key setup\n• RSS saved episodes remain intact during YouTube library synchronization</string>    <string name="wanna_play_favorite_song">Want to play their favorite song?</string>
+    <string name="metroverse_changelog_body">MetroVerse 1.1.0\n\n• English, German, Spanish and Japanese on-device podcast recognition, with RSS language selection and channel defaults\n• Automatic recovery for interrupted recognition while preserving completed subtitles\n• DeepSeek, Z.ai, MiniMax, Kimi, SiliconFlow and ModelScope translation providers\n• Automatic custom API URL completion and direct custom model entry\n• Separate podcast prompts, larger non-urgent translation batches and temporary error messages\n• Refined subtitle language/model dialogs and calibration, with per-episode translation and an independent target language\n• Disabling autoplay now pauses at the end of each item\n• Reopen saved subtitle progress, re-recognize the current episode or copy original subtitles\n• Fixed podcast playback from Speed dial and RSS volume carry-over</string>
+    <string name="wanna_play_favorite_song">Want to play their favorite song?</string>
     <string name="yeah">Yeah!</string>
     <string name="stands_with_palestine">This project stands with Palestine 🇵🇸</string>
 
@@ -1139,16 +1140,13 @@
     <string name="podcast_subtitles_show">Show subtitles</string>
     <string name="podcast_subtitles_show_desc">Display synchronized podcast:transcript subtitles in the player when available</string>
     <string name="podcast_subtitles_translation">AI subtitle translation</string>
-    <string name="podcast_subtitles_translation_desc">Translate subtitle lines with the AI translation service configured for lyrics. Off by default</string>
     <string name="podcast_subtitles_bilingual">Bilingual subtitles</string>
     <string name="podcast_subtitles_bilingual_desc">Show the original line together with its translation</string>
-    <string name="podcast_asr_experimental_desc">Moonshine Small Streaming · Download size: %1$s</string>
     <string name="podcast_subtitle_share_failed">Could not create the subtitle image</string>
     <string name="podcast_asr_language">Recognition language</string>
     <string name="podcast_asr_language_auto">Auto detect</string>
     <string name="podcast_asr_language_zh">Chinese</string>
     <string name="podcast_asr_language_en">English</string>
-    <string name="podcast_subtitle_model_ready">Model ready</string>
     <string name="podcast_subtitle_delete_model">Delete recognition model</string>
     <string name="podcast_subtitle_delete_model_confirm">Delete the model? Generated subtitles will stay.</string>
     <string name="podcast_subtitle_asr_model_corrupt">The recognition model is missing or corrupted. Please download it again</string>
@@ -1170,11 +1168,7 @@
     <string name="text_cache_loading">Calculating cache size…</string>
     <string name="text_cache_include_unverified">Also clear unmarked lyrics (may include older manual edits)</string>
     <string name="text_cache_clear_podcasts_confirm">Clear unused subtitles and translations? Playing items stay.</string>
-    <string name="podcast_subtitle_asr_import_model">Import from folder</string>
     <string name="podcast_subtitle_asr_download_and_start">Download and recognize</string>
-    <string name="podcast_subtitle_asr_download_retry">Retry model download</string>
-    <string name="podcast_subtitle_asr_model">Recognition model</string>
-    <string name="podcast_subtitle_asr_model_details">English · About %1$s</string>
     <string name="podcast_subtitle_asr_model_busy">Preparing model…</string>
     <string name="podcast_subtitle_asr_model_failed">Could not prepare the model. Try again.</string>
     <string name="text_cache_clear_lyrics_confirm">Clear unused lyrics and translations? Playing items and marked manual edits stay.</string>
@@ -1189,15 +1183,12 @@
     <string name="podcast_asr_device_warning">Experimental; recognition may increase heat and battery use.</string>
     <string name="podcast_subtitle_save_failed">Could not save subtitles. The current subtitles are still available.</string>
     <string name="podcast_subtitle_retry_save">Retry saving subtitles</string>
-    <string name="podcast_asr_english_only">Recognizes English speech only.</string>
     <string name="podcast_asr_performance_notice">Requires substantial memory and processing power.</string>
-    <string name="metroverse_moonshine_attribution">English Small Streaming model and Moonshine Voice 0.1.5 runtime · MIT license.</string>
+    <string name="metroverse_moonshine_attribution">Small Streaming · English / Deutsch / Español / 日本語 · Moonshine Voice 0.1.5 · MIT</string>
     <string name="metroverse_onnx_attribution">On-device inference runtime, version 1.23.2 · MIT license.</string>
     <string name="metroverse_innertubex_attribution">YouTube Music stream extraction and cipher engine, version 0.5.2 · GPL-3.0.</string>
     <string name="podcast_subtitle_asr_preparing">Preparing recognition…</string>
     <string name="podcast_subtitle_offset">Subtitle timing</string>
-    <string name="podcast_subtitle_offset_description">Adjust this episode only. Positive values show subtitles earlier; negative values show them later.</string>
-    <string name="podcast_subtitle_offset_label">Offset (ms)</string>
     <string name="podcast_subtitle_offset_value">%1$+d ms</string>
     <string name="podcast_subtitle_offset_earlier">Show subtitles 50 ms earlier</string>
     <string name="podcast_subtitle_offset_later">Show subtitles 50 ms later</string>
@@ -1205,4 +1196,18 @@
     <string name="podcast_subtitle_exit_fullscreen">Exit full screen</string>
     <string name="podcast_subtitle_audio_changed">The audio differs from your saved progress. Generate subtitles again.</string>
     <string name="podcast_subtitle_asr_resuming">Resuming recognition…</string>
+    <string name="ai_base_url_autocomplete_hint">Enter a server URL or a complete endpoint. Server roots automatically use /v1/chat/completions; explicit custom paths are preserved.</string>
+    <string name="podcast_asr_language_unsupported">This language (%1$s) is not supported by on-device subtitle recognition yet. If the detected language is incorrect, choose a supported language:</string>
+    <string name="podcast_asr_channel_default">All episodes in the %1$s channel use this language</string>
+    <string name="podcast_asr_language_model">%1$s recognition model</string>
+    <string name="ai_provider_custom">Custom</string>
+    <string name="ai_lyrics_translation_group">Lyrics translation</string>
+    <string name="podcast_asr_model_information">Model information: Moonshine Streaming Small — %1$s</string>
+    <string name="podcast_asr_model_size">Model size: %1$s</string>
+    <string name="podcast_asr_model_not_downloaded">Not downloaded, about %1$s</string>
+    <string name="podcast_asr_model_ready_size">Model ready, %1$s</string>
+    <string name="player_setting_podcast_not_applicable">Does not apply in the podcast player.</string>
+    <string name="player_setting_rss_not_applicable">Does not apply to RSS podcasts.</string>
+    <string name="podcast_region_mainland_china">Mainland China</string>
+    <string name="podcast_subtitle_rerecognize">Re-recognize</string>
 </resources>

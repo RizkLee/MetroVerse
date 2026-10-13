@@ -90,8 +90,9 @@ internal fun LyricsTranslationHeader(
     status: LyricsTranslationHelper.TranslationStatus,
     modifier: Modifier = Modifier
 ) {
+    val errorVisible = rememberTranslationErrorVisible(status, status is LyricsTranslationHelper.TranslationStatus.Error)
     AnimatedVisibility(
-        visible = status !is LyricsTranslationHelper.TranslationStatus.Idle,
+        visible = status !is LyricsTranslationHelper.TranslationStatus.Idle && errorVisible,
         enter = fadeIn(),
         exit = fadeOut(),
         modifier = modifier

@@ -731,6 +731,19 @@ fun HomeScreen(
         }
 
     val scope = rememberCoroutineScope()
+
+    suspend fun playSpeedDialSong(item: SongItem) {
+        val metadata = viewModel.speedDialMetadata(item)
+        if (isListenTogetherGuest) return
+        playerConnection.playQueue(
+            if (autoRadioQueue && !metadata.isEpisode && metadata.mediaUrl == null) {
+                YouTubeQueue(item.endpoint ?: WatchEndpoint(videoId = item.id), metadata)
+            } else {
+                ListQueue(title = metadata.title, items = listOf(metadata.toMediaItem()))
+            },
+        )
+    }
+
     // Track randomization job
     var randomizeJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
 
@@ -1498,24 +1511,7 @@ fun HomeScreen(
                                                                                         val randomItem = viewModel.getRandomItem()
                                                                                         if (randomItem != null) {
                                                                                             when (randomItem) {
-                                                                                                is SongItem -> {
-                                                                                                    playerConnection.playQueue(
-                                                                                                        if (autoRadioQueue) {
-                                                                                                            YouTubeQueue(
-                                                                                                                randomItem.endpoint
-                                                                                                                    ?: WatchEndpoint(
-                                                                                                                        videoId = randomItem.id,
-                                                                                                                    ),
-                                                                                                                randomItem.toMediaMetadata(),
-                                                                                                            )
-                                                                                                        } else {
-                                                                                                            ListQueue(
-                                                                                                                title = randomItem.title,
-                                                                                                                items = listOf(randomItem.toMediaItem())
-                                                                                                            )
-                                                                                                        }
-                                                                                                    )
-                                                                                                }
+                                                                                                is SongItem -> playSpeedDialSong(randomItem)
 
                                                                                                 is AlbumItem -> {
                                                                                                     navController.navigate(
@@ -1589,22 +1585,7 @@ fun HomeScreen(
                                                                                         when (item) {
                                                                                             is SongItem -> {
                                                                                                 if (!isListenTogetherGuest) {
-                                                                                                    playerConnection.playQueue(
-                                                                                                        if (autoRadioQueue) {
-                                                                                                            YouTubeQueue(
-                                                                                                                item.endpoint
-                                                                                                                    ?: WatchEndpoint(
-                                                                                                                        videoId = item.id,
-                                                                                                                    ),
-                                                                                                                item.toMediaMetadata(),
-                                                                                                            )
-                                                                                                        } else {
-                                                                                                            ListQueue(
-                                                                                                                title = item.title,
-                                                                                                                items = listOf(item.toMediaItem())
-                                                                                                            )
-                                                                                                        }
-                                                                                                    )
+                                                                                                    scope.launch { playSpeedDialSong(item) }
                                                                                                 }
                                                                                             }
 

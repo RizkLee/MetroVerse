@@ -106,8 +106,7 @@ fun AiSettings(navController: NavController, highlightApiKey: Boolean = false, a
             "XAi" to "https://api.x.ai/v1/chat/completions",
             "Mistral" to "https://api.mistral.ai/v1/chat/completions",
             "DeepL" to "https://api.deepl.com/v2/translate",
-            "Custom" to "",
-        )
+        ) + com.metrolist.music.api.additionalTranslationProviders.mapValues { it.value.endpoint } + ("Custom" to "")
 
     val providerHelpText =
         mapOf(
@@ -120,10 +119,9 @@ fun AiSettings(navController: NavController, highlightApiKey: Boolean = false, a
             "Mistral" to stringResource(R.string.ai_provider_mistral_help),
             "DeepL" to stringResource(R.string.ai_provider_deepl_help),
             "Custom" to "",
-        )
+        ) + com.metrolist.music.api.additionalTranslationProviders.mapValues { it.value.documentation }
 
-    val modelsByProvider =
-        mapOf(
+    val modelsByProvider = mapOf(
             // Fast, high-traffic models from OpenRouter usage rankings (data through 2026-09-28).
             "OpenRouter" to
                 listOf(
@@ -176,7 +174,7 @@ fun AiSettings(navController: NavController, highlightApiKey: Boolean = false, a
                 ),
             "DeepL" to listOf(),
             "Custom" to listOf(),
-        )
+        ) + com.metrolist.music.api.additionalTranslationProviders.mapValues { it.value.models }
 
     val commonModels = modelsByProvider[aiProvider] ?: listOf()
 
@@ -356,7 +354,7 @@ fun AiSettings(navController: NavController, highlightApiKey: Boolean = false, a
             title = stringResource(R.string.ai_provider),
             current = aiProvider,
             values = aiProviders.keys.toList(),
-            valueText = { it },
+            valueText = { if (it == "Custom") stringResource(R.string.ai_provider_custom) else it },
         )
     }
 
@@ -446,9 +444,14 @@ fun AiSettings(navController: NavController, highlightApiKey: Boolean = false, a
             title = { Text(stringResource(R.string.ai_base_url)) },
             icon = { Icon(painterResource(R.drawable.link), null) },
             initialTextFieldValue = TextFieldValue(text = openRouterBaseUrl),
+            autoDismiss = false,
+            isInputValid = { runCatching { com.metrolist.music.api.completeTranslationUrl(it) }.isSuccess },
+            extraContent = { Text(stringResource(R.string.ai_base_url_autocomplete_hint), style = MaterialTheme.typography.bodySmall) },
             onDone = {
-                openRouterBaseUrl = it
-                showBaseUrlDialog = false
+                runCatching { com.metrolist.music.api.completeTranslationUrl(it) }.getOrNull()?.let { completed ->
+                    openRouterBaseUrl = completed
+                    showBaseUrlDialog = false
+                }
             },
             onDismiss = { showBaseUrlDialog = false },
         )
@@ -470,7 +473,7 @@ fun AiSettings(navController: NavController, highlightApiKey: Boolean = false, a
             current = if (openRouterModel in commonModels) openRouterModel else "custom_input",
             values = commonModels + "custom_input",
             valueText = {
-                if (it == "custom_input") "Custom" else it
+                if (it == "custom_input") stringResource(R.string.ai_provider_custom) else it
             },
         )
     }
@@ -549,7 +552,7 @@ fun AiSettings(navController: NavController, highlightApiKey: Boolean = false, a
                     Material3SettingsItem(
                         icon = painterResource(R.drawable.explore_outlined),
                         title = { Text(stringResource(R.string.ai_provider)) },
-                        description = { Text(aiProvider) },
+                        description = { Text(if (aiProvider == "Custom") stringResource(R.string.ai_provider_custom) else aiProvider) },
                         onClick = { showProviderDialog = true },
                         trailingContent = {
                             IconButton(onClick = { showProviderHelpDialog = true }) {
@@ -638,7 +641,7 @@ fun AiSettings(navController: NavController, highlightApiKey: Boolean = false, a
                                 icon = painterResource(R.drawable.discover_tune),
                                 title = { Text(stringResource(R.string.ai_model)) },
                                 description = { Text(openRouterModel.ifBlank { stringResource(R.string.not_set) }) },
-                                onClick = { showModelDialog = true },
+                                onClick = { if (aiProvider == "Custom") showCustomModelInput = true else showModelDialog = true },
                             ),
                         )
                     }
@@ -648,7 +651,7 @@ fun AiSettings(navController: NavController, highlightApiKey: Boolean = false, a
         Spacer(modifier = Modifier.height(27.dp))
 
         Material3SettingsGroup(
-            title = stringResource(R.string.ai_translation_mode),
+            title = stringResource(R.string.ai_lyrics_translation_group),
             items =
                 buildList {
                     add(

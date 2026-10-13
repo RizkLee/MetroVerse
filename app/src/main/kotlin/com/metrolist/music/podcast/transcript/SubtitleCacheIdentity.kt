@@ -39,9 +39,9 @@ internal fun SubtitleTranslationConfig.cacheFingerprint(): String = subtitleCach
     if (provider == "DeepL") deeplFormality else "",
     if (provider == "DeepL") "" else model,
     if (provider == "DeepL") "" else mode,
-    if (provider == "DeepL") "" else systemPrompt,
+    if (provider == "DeepL") "" else systemPrompt.ifBlank { com.metrolist.music.constants.DEFAULT_PODCAST_AI_SYSTEM_PROMPT },
     if (provider == "DeepL" || provider == "Mistral") "" else
-        baseUrl.ifBlank { "https://openrouter.ai/api/v1/chat/completions" },
+        runCatching { com.metrolist.music.api.completeTranslationUrl(baseUrl.ifBlank { "https://openrouter.ai/api/v1/chat/completions" }) }.getOrDefault(baseUrl),
 )
 
 internal fun SubtitleTranslationConfig.requestFingerprint(): String = subtitleCacheFingerprint(

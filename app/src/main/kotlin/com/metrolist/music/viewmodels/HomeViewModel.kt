@@ -40,6 +40,8 @@ import com.metrolist.music.db.entities.SpeedDialItem
 import com.metrolist.music.extensions.filterVideoSongs
 import com.metrolist.music.extensions.toEnum
 import com.metrolist.music.models.SimilarRecommendation
+import com.metrolist.music.models.resolveSpeedDialMetadata
+import com.metrolist.music.models.toSpeedDialSongItem
 import com.metrolist.music.ui.screens.wrapped.WrappedAudioService
 import com.metrolist.music.ui.screens.wrapped.WrappedManager
 import com.metrolist.music.utils.SyncUtils
@@ -133,13 +135,7 @@ class HomeViewModel @Inject constructor(
                         filled.none { p -> p.id == item.id }
                     }.mapNotNull { item ->
                         when (item) {
-                            is Song -> SongItem(
-                                id = item.id,
-                                title = item.title,
-                                artists = item.artists.map { Artist(name = it.name, id = it.id) },
-                                thumbnail = item.thumbnailUrl ?: "",
-                                explicit = false
-                            )
+                            is Song -> item.toSpeedDialSongItem()
                             is Album -> AlbumItem(
                                 browseId = item.id,
                                 playlistId = item.album.playlistId ?: "",
@@ -169,13 +165,7 @@ class HomeViewModel @Inject constructor(
                     val available = q.filter { song ->
                         filled.none { p -> p.id == song.id }
                     }.map { song ->
-                        SongItem(
-                            id = song.id,
-                            title = song.title,
-                            artists = song.artists.map { Artist(name = it.name, id = it.id) },
-                            thumbnail = song.thumbnailUrl ?: "",
-                            explicit = false
-                        )
+                        song.toSpeedDialSongItem()
                     }
                     filled.addAll(available.take(needed))
                 }
@@ -183,6 +173,8 @@ class HomeViewModel @Inject constructor(
             
             filled.take(targetSize)
         }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    suspend fun speedDialMetadata(item: SongItem) = resolveSpeedDialMetadata(item) { id -> database.song(id).first() }
 
     suspend fun getRandomItem(): YTItem? {
         try {
@@ -195,26 +187,14 @@ class HomeViewModel @Inject constructor(
 
             quickPicks.value?.let { songs ->
                 userSongs.addAll(songs.map { song ->
-                    SongItem(
-                        id = song.id,
-                        title = song.title,
-                        artists = song.artists.map { Artist(name = it.name, id = it.id) },
-                        thumbnail = song.thumbnailUrl ?: "",
-                        explicit = false
-                    )
+                    song.toSpeedDialSongItem()
                 })
             }
 
             keepListening.value?.let { items ->
                 items.forEach { item ->
                     when (item) {
-                        is Song -> userSongs.add(SongItem(
-                            id = item.id,
-                            title = item.title,
-                            artists = item.artists.map { Artist(name = it.name, id = it.id) },
-                            thumbnail = item.thumbnailUrl ?: "",
-                            explicit = false
-                        ))
+                        is Song -> userSongs.add(item.toSpeedDialSongItem())
                         is Album -> otherSources.add(AlbumItem(
                             browseId = item.id,
                             playlistId = item.album.playlistId ?: "",

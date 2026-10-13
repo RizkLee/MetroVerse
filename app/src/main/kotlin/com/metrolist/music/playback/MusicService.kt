@@ -543,6 +543,7 @@ class MusicService :
     private var cachedPersistentQueue = true
     @Volatile
     private var cachedAutoplay = true
+    private var sleepTimerRequestsPauseAtEnd = false
     @Volatile
     private var cachedDisableLoadMoreWhenRepeatAll = false
     @Volatile
@@ -731,7 +732,9 @@ class MusicService :
                     defaultMediaNotificationProvider.notificationChannelInfo
             },
         )
+        cachedAutoplay = startupPrefs!![AutoplayKey] ?: true
         player = createExoPlayer(prefs = startupPrefs!!)
+        player.setPauseAtEndOfMediaItems(shouldPauseAtMediaBoundary(cachedAutoplay, false))
         player.addListener(this@MusicService)
         sleepTimer =
             SleepTimer(
@@ -741,7 +744,8 @@ class MusicService :
                     sleepTimerVolumeMultiplier.value = multiplier
                 },
                 onPauseAtEndOfMediaItemsChanged = { targetPlayer, enabled ->
-                    (targetPlayer as? ExoPlayer)?.setPauseAtEndOfMediaItems(enabled)
+                    sleepTimerRequestsPauseAtEnd = enabled
+                    (targetPlayer as? ExoPlayer)?.setPauseAtEndOfMediaItems(shouldPauseAtMediaBoundary(cachedAutoplay, enabled))
                 },
             )
         player.addListener(sleepTimer!!)
@@ -1213,7 +1217,11 @@ class MusicService :
             dataStore.data.map { it[PersistentQueueKey] ?: true }.distinctUntilChanged().collect { cachedPersistentQueue = it }
         }
         scope.launch {
-            dataStore.data.map { it[AutoplayKey] ?: true }.distinctUntilChanged().collect { cachedAutoplay = it }
+            dataStore.data.map { it[AutoplayKey] ?: true }.distinctUntilChanged().collect { autoplay ->
+                cachedAutoplay = autoplay
+                player.setPauseAtEndOfMediaItems(shouldPauseAtMediaBoundary(autoplay, sleepTimerRequestsPauseAtEnd))
+                scheduleCrossfade()
+            }
         }
         scope.launch {
             dataStore.data.map { it[DisableLoadMoreWhenRepeatAllKey] ?: false }.distinctUntilChanged().collect { cachedDisableLoadMoreWhenRepeatAll = it }
@@ -2593,7 +2601,7 @@ class MusicService :
                                     }
                                 }
                             }
-                            format == null -> {
+                            format == null && player.currentMediaItem?.metadata?.mediaUrl == null -> {
                                 Timber.tag(TAG).d("Loudness row not ready yet; keeping cached normalization state")
                                 if (isCrossfading) return@withContext
                             }
@@ -5062,7 +5070,7 @@ class MusicService :
     private fun scheduleCrossfade() {
         crossfadeMessage?.cancel()
         crossfadeMessage = null
-        if (player.currentMediaItem?.metadata?.isEpisode == true) return
+        if (!cachedAutoplay || player.currentMediaItem?.metadata?.isEpisode == true) return
         val crossfadeTargetIndex = if (player.repeatMode == REPEAT_MODE_ONE) {
             player.currentMediaItemIndex
         } else {
@@ -5084,7 +5092,7 @@ class MusicService :
 
         crossfadeMessage = player.createMessage { _, _ ->
             val timer = sleepTimer
-            if (player.isPlaying && player.currentMediaItem?.mediaId == targetMediaId && timer?.pausesAtCurrentMediaEnd != true) {
+            if (cachedAutoplay && player.isPlaying && player.currentMediaItem?.mediaId == targetMediaId && timer?.pausesAtCurrentMediaEnd != true) {
                 startCrossfade()
             }
         }.apply {

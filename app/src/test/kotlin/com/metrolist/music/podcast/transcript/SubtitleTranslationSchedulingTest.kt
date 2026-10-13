@@ -60,6 +60,23 @@ class SubtitleTranslationSchedulingTest {
     }
 
     @Test
+    fun `non urgent prefetch uses thirty lines while urgent batches stay bounded`() {
+        val translated = cues.take(4).mapTo(mutableSetOf()) { it.key }
+        val plan = planSubtitleTranslation(cues, translated, 0, 1_000, 0, null) as SubtitleTranslationPlan.Batch
+        assertEquals(30, plan.indices.size)
+        val urgent = planSubtitleTranslation(cues, emptySet(), 0, 1_000, 0, null) as SubtitleTranslationPlan.Batch
+        assertEquals(24, urgent.indices.size)
+    }
+
+    @Test
+    fun `non urgent batches do not exceed 7500 characters`() {
+        val longCues = cues.map { TranslationCue(it.cue.copy(text = "x".repeat(300)), it.key) }
+        val translated = cues.take(4).mapTo(mutableSetOf()) { it.key }
+        val plan = planSubtitleTranslation(longCues, translated, 0, 1_000, 0, null) as SubtitleTranslationPlan.Batch
+        assertEquals(25, plan.indices.size)
+    }
+
+    @Test
     fun `rate limits respect retry-after and ordinary errors back off`() {
         val cooldown = SubtitleTranslationCooldown()
         cooldown.failed(1_000, 429, 120_000)

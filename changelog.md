@@ -2,6 +2,33 @@
 
 All notable MetroVerse-specific changes are recorded here. Upstream Metrolist history remains available in Git history.
 
+## 1.1.0 - 2026-10-14
+
+### Added
+
+- English, German, Spanish, and Japanese on-device recognition for RSS podcasts, with episode language selection, channel defaults, and separate model management.
+- DeepSeek, Z.ai, MiniMax, Kimi, SiliconFlow, and ModelScope translation presets, custom API URL completion, and direct custom model entry.
+- Independent podcast translation target language and system prompt, plus a temporary translation switch for the current episode.
+- Subtitle-menu actions to re-recognize the current episode or copy its original subtitles. Re-recognition replaces that episode’s saved subtitles, progress, and translations.
+
+### Changed
+
+- Increased nonurgent subtitle translation batches and dismiss translation feedback after six seconds.
+- Refined recognition controls, language/model dialogs, model readiness and size labels, and subtitle timing adjustment.
+- Moved model management into AI settings and removed folder import from the model-download dialog.
+- Renamed the AI settings entry to cover lyrics and podcast subtitles, and clarified podcast applicability of playback settings.
+- Display Mainland China in the podcast region picker.
+
+### Fixed
+
+- Restore compatible saved subtitles before feed discovery and model checks when reopening unfinished recognition.
+- Retry recoverable recognition failures once while preserving completed subtitles; stop obsolete work when recognition is cancelled or the episode changes.
+- Keep subtitle checkpoints tied to their recognition language, model, and audio source.
+- Preserve episode identity and direct RSS playback for podcast tiles in Speed dial.
+- Pause the local player at the end of each item when autoplay is disabled, including when sleep-timer state changes.
+- Clear a previous track’s normalization gain for RSS playback without format metadata.
+- Preserve the selected App language, including regional Chinese, when initializing the separate podcast translation target.
+
 ## 1.0.0 - 2026-10-11
 
 ### Added

@@ -61,7 +61,7 @@ internal fun planSubtitleTranslation(
     for (index in priority) {
         val nextCharacters = cues[index].cue.text.length
         if (selected.isNotEmpty() &&
-            (selected.size >= TRANSLATION_MAX_BATCH_LINES || characters + nextCharacters > TRANSLATION_MAX_BATCH_CHARS)
+            (selected.size >= (if (urgent) 24 else 30) || characters + nextCharacters > (if (urgent) 6_000 else 7_500))
         ) break
         selected += index
         characters += nextCharacters
@@ -99,8 +99,6 @@ private const val TRANSLATION_LOOKAHEAD = 48
 private const val TRANSLATION_URGENT_AHEAD = 3
 private const val TRANSLATION_PREFETCH_LINES = 12
 private const val TRANSLATION_PREFETCH_CHARS = 1_800
-private const val TRANSLATION_MAX_BATCH_LINES = 24
-private const val TRANSLATION_MAX_BATCH_CHARS = 6_000
 private const val TRANSLATION_URGENT_WAIT_MS = 750L
 private const val TRANSLATION_PREFETCH_WAIT_MS = 30_000L
 private const val TRANSLATION_MIN_REQUEST_INTERVAL_MS = 2_000L

@@ -37,7 +37,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
@@ -117,6 +119,9 @@ fun PodcastSubtitleView(
     onShareCues: (List<SubtitleCue>) -> Unit = {},
     resyncToken: Int = 0,
 ) {
+    val manager = com.metrolist.music.LocalPodcastSubtitleManager.current
+    val selection = manager?.asrLanguage?.collectAsStateWithLifecycle()?.value
+    val languageSupported = selection?.isSupported == true
     Box(modifier = modifier.fillMaxSize()) {
         when (state) {
             PodcastSubtitleState.Idle -> Unit
@@ -154,7 +159,7 @@ fun PodcastSubtitleView(
                         color = textColor.copy(alpha = 0.7f),
                         textAlign = TextAlign.Center,
                     )
-                    Spacer(Modifier.height(4.dp))
+                    Spacer(Modifier.height(16.dp))
                     AsrEntry(
                         onDeviceAsrSupported = onDeviceAsrSupported,
                         asrModelReady = asrModelReady,
@@ -181,7 +186,7 @@ fun PodcastSubtitleView(
                         color = textColor.copy(alpha = 0.8f),
                         textAlign = TextAlign.Center,
                     )
-                    Spacer(Modifier.height(4.dp))
+                    Spacer(Modifier.height(16.dp))
                     AsrEntry(
                         onDeviceAsrSupported = onDeviceAsrSupported,
                         asrModelReady = asrModelReady,
@@ -234,21 +239,39 @@ fun PodcastSubtitleView(
                                 textAlign = TextAlign.Center,
                             )
                             if (onDeviceAsrSupported || state.hasPendingSave || state.transcript.isComplete) {
-                                TextButton(
+                                Spacer(Modifier.height(8.dp))
+                                FilledTonalButton(
                                     onClick = onStartTranscription,
-                                    enabled = state.hasPendingSave || state.transcript.isComplete || !asrModelBusy,
+                                    enabled = state.hasPendingSave || state.transcript.isComplete || (!asrModelBusy && languageSupported),
+                                    shape = CircleShape,
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                    colors = ButtonDefaults.filledTonalButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    ),
                                 ) {
-                                    Icon(painterResource(R.drawable.refresh), contentDescription = null)
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(stringResource(
-                                        if (state.hasPendingSave || state.transcript.isComplete) R.string.podcast_subtitle_retry_save
-                                        else if (!state.canResume) R.string.podcast_subtitle_asr_retry
-                                        else R.string.podcast_subtitle_resume,
-                                    ))
+                                    Icon(painterResource(R.drawable.refresh), contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text(
+                                        text = stringResource(
+                                            if (state.hasPendingSave || state.transcript.isComplete) R.string.podcast_subtitle_retry_save
+                                            else if (!state.canResume) R.string.podcast_subtitle_asr_retry
+                                            else R.string.podcast_subtitle_resume,
+                                        ),
+                                        style = MaterialTheme.typography.labelMedium,
+                                    )
                                 }
                             } else {
                                 UnsupportedAsrSource(textColor)
                             }
+                        }
+                    }
+                    if (state is PodcastSubtitleState.Ready && onDeviceAsrSupported &&
+                        state.transcript.source == com.metrolist.music.podcast.transcript.TranscriptSource.ON_DEVICE &&
+                        state.transcript.language != selection?.code
+                    ) {
+                        TextButton(onClick = onStartTranscription, enabled = languageSupported && !asrModelBusy) {
+                            Text(stringResource(R.string.podcast_subtitle_asr_retry))
                         }
                     }
                     if (cues.isNotEmpty()) {
@@ -311,6 +334,10 @@ private fun SubtitleCueList(
     }
     val selectedCues = remember(keyedCues, selectedCueKeys) { selectedSubtitleCues(keyedCues, selectedCueKeys) }
     var translationHeaderHeightPx by remember { mutableIntStateOf(0) }
+    val errorVisible = com.metrolist.music.ui.component.rememberTranslationErrorVisible(
+        translationStatus, translationStatus is PodcastTranslationStatus.Error,
+    )
+    val visibleTranslationStatus = if (errorVisible) translationStatus else PodcastTranslationStatus.Idle
 
     LaunchedEffect(keyedCues) {
         selectedCueKeys = retainSubtitleCueSelection(keyedCues, selectedCueKeys)
@@ -362,7 +389,7 @@ private fun SubtitleCueList(
                 viewportHeightPx = maxHeight.toPx(),
                 activeLineHeightPx = 27.sp.toPx(),
                 safeTopPx = safeTop.toPx(),
-                headerHeightPx = if (translationStatus is PodcastTranslationStatus.Idle) 0f else translationHeaderHeightPx.toFloat(),
+                headerHeightPx = if (visibleTranslationStatus is PodcastTranslationStatus.Idle) 0f else translationHeaderHeightPx.toFloat(),
                 headerGapPx = 12.dp.toPx(),
             ).toDp()
         }
@@ -429,7 +456,7 @@ private fun SubtitleCueList(
             }
         }
         PodcastTranslationHeader(
-            status = translationStatus,
+            status = visibleTranslationStatus,
             textColor = textColor,
             onRetry = onRetryTranslation,
             modifier = Modifier
@@ -735,25 +762,20 @@ private fun AsrEntry(
         }
 
         else -> {
-            FilledTonalButton(
-                onClick = if (asrModelReady) onStartTranscription else onDownloadModel,
-            ) {
-                Icon(
-                    painterResource(if (asrModelReady) R.drawable.mic else R.drawable.download),
-                    contentDescription = null,
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = label.takeIf { asrModelReady }
-                        ?: stringResource(
-                            if (asrModelReady) {
-                                R.string.podcast_subtitle_asr_start
-                            } else {
-                                R.string.podcast_subtitle_asr_download_model
-                            },
-                        ),
-                    style = MaterialTheme.typography.labelLarge,
-                )
+            val manager = com.metrolist.music.LocalPodcastSubtitleManager.current
+            val selection = manager?.asrLanguage?.collectAsStateWithLifecycle()?.value
+            var showLanguageDialog by remember { mutableStateOf(false) }
+            com.metrolist.music.ui.component.PodcastAsrActionButton(
+                selection = selection,
+                modelReady = asrModelReady,
+                actionLabel = label.takeIf { asrModelReady } ?: stringResource(
+                    if (asrModelReady) R.string.podcast_subtitle_asr_start else R.string.podcast_subtitle_asr_download_model,
+                ),
+                onAction = if (asrModelReady) onStartTranscription else onDownloadModel,
+                onSelectLanguage = { showLanguageDialog = true },
+            )
+            if (showLanguageDialog && selection != null) {
+                com.metrolist.music.ui.component.AsrLanguageDialog(selection, { showLanguageDialog = false }, manager::selectAsrLanguage)
             }
         }
     }

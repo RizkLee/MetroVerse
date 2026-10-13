@@ -80,7 +80,8 @@ object SubtitleTranslationHelper {
                 apiKey = config.apiKey,
                 model = config.model,
                 mode = config.mode,
-                customSystemPrompt = config.systemPrompt,
+                customSystemPrompt = config.systemPrompt.ifBlank { com.metrolist.music.constants.DEFAULT_PODCAST_AI_SYSTEM_PROMPT },
+                isPodcast = true,
                 maxRetries = 1,
                 strictLineCount = true,
             )
@@ -92,7 +93,8 @@ object SubtitleTranslationHelper {
                 baseUrl = config.baseUrl,
                 model = config.model,
                 mode = config.mode,
-                customSystemPrompt = config.systemPrompt,
+                customSystemPrompt = config.systemPrompt.ifBlank { com.metrolist.music.constants.DEFAULT_PODCAST_AI_SYSTEM_PROMPT },
+                isPodcast = true,
                 maxRetries = 1,
                 strictLineCount = true,
             )

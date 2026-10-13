@@ -232,6 +232,52 @@ class PodcastTextCacheRepositoryTest {
     }
 
     @Test
+    fun `recognition restart clears only the selected episode and keeps feed discovery`() = runBlocking {
+        val other = "rss_episode_${"b".repeat(40)}"
+        repository.storeOnDeviceTranscript(episodeId, listOf(SubtitleCue(0, 1000, "old")))
+        repository.storeOnDeviceTranscript(other, listOf(SubtitleCue(0, 1000, "other")))
+        repository.storeTranslation(episodeId, germanConfiguration, mapOf(lineKey(0) to "alt"))
+        repository.storeTranslation(other, germanConfiguration, mapOf(lineKey(0) to "andere"))
+        repository.updateFeedTranscripts(
+            "https://example.org/feed.xml", "en",
+            listOf(EpisodeTranscriptRefs(null, null, "https://example.org/audio.mp3", listOf(TranscriptRef("https://example.org/subtitles.vtt", "text/vtt", "en")))),
+        ) { episodeId }
+        val refs = repository.transcriptRefs(episodeId)
+        TextCacheSignals.protect("podcast_cache_test", episodeId)
+        assertTrue(repository.clearEpisodeSubtitles(episodeId).isSuccess)
+        assertNull(repository.cachedTranscript(episodeId))
+        assertTrue(repository.loadTranslation(episodeId, germanConfiguration).isEmpty())
+        assertNotNull(repository.cachedTranscript(other))
+        assertEquals(mapOf(lineKey(0) to "andere"), repository.loadTranslation(other, germanConfiguration))
+        assertEquals(refs, repository.transcriptRefs(episodeId))
+        assertEquals("en", repository.feedLanguage("https://example.org/feed.xml"))
+    }
+
+    @Test
+    fun `recognition restart clears failed in-memory saves too`() = runBlocking {
+        val blocked = filesDir.resolve("podcast/transcripts/.$key.json.pending")
+        assertTrue(blocked.mkdirs())
+        blocked.resolve("occupied").writeText("test")
+        val partial = EpisodeTranscript(
+            episodeId, TranscriptSource.ON_DEVICE, listOf(SubtitleCue(0, 1000, "unsaved")),
+            isComplete = false, mediaSourceFingerprint = "audio",
+        )
+        assertTrue(repository.storeOnDeviceTranscript(partial).isFailure)
+        assertNotNull(repository.pendingTranscript(episodeId))
+        assertTrue(repository.clearEpisodeSubtitles(episodeId).isSuccess)
+        assertNull(repository.pendingTranscript(episodeId))
+    }
+
+    @Test
+    fun `failed restart reports an undeletable cache rather than continuing with old cues`() = runBlocking {
+        val blocked = filesDir.resolve("podcast/transcripts/$key.json")
+        assertTrue(blocked.mkdirs())
+        blocked.resolve("occupied").writeText("test")
+        assertTrue(repository.clearEpisodeSubtitles(episodeId).isFailure)
+        assertTrue(blocked.exists())
+    }
+
+    @Test
     fun `a later successful translation save retains the earlier failed paid batch`() = runBlocking {
         val pending = filesDir.resolve("podcast/translations/.${key}_v2_$germanConfiguration.json.pending")
         assertTrue(pending.mkdirs())

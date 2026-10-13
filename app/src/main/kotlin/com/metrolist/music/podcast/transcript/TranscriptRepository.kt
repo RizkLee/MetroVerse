@@ -234,6 +234,25 @@ class TranscriptRepository @Inject constructor(
         pendingTranscriptSaves[episodeId]?.value
     }
 
+    /** Explicit recognition restart; callers must stop and join this episode's writers first. */
+    internal suspend fun clearEpisodeSubtitles(episodeId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        fileMutex.withLock {
+            try {
+                val key = episodeId.takeLast(48)
+                require(isSafeCacheKey(key))
+                val files = (listOf(transcriptFile(episodeId)) + cachedFilesForKey(key)).distinct()
+                files.forEach { file -> check(!file.exists() || file.delete()) { "Could not clear episode subtitles" } }
+                removePendingText(key)
+                TextCacheSignals.notifyChanged()
+                Result.success(Unit)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                Result.failure(error)
+            }
+        }
+    }
+
     /** Removes every transcript artifact of one episode (index entry, decoded cues, translations). */
     suspend fun clearEpisode(episodeId: String) = fileMutex.withLock {
         val index = loadIndex()

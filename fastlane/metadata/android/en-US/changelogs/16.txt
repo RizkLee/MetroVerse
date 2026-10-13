@@ -1,0 +1,5 @@
+RSS podcast recognition now supports English, German, Spanish and Japanese, with language and model selection.
+Added six translation providers, custom URL completion, and separate podcast translation language and prompt.
+Improved saved-subtitle recovery; added re-recognition and copy actions.
+Refined subtitle controls and timing adjustment.
+Fixed podcast playback from Speed dial and end-of-item pause when autoplay is off.

@@ -13,8 +13,6 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.view.WindowManager
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -155,13 +153,11 @@ import com.metrolist.music.constants.PlayerBackgroundStyleKey
 import com.metrolist.music.constants.PlayerButtonsStyle
 import com.metrolist.music.constants.PlayerButtonsStyleKey
 import com.metrolist.music.constants.PlayerHorizontalPadding
-import com.metrolist.music.constants.PodcastSubtitleTranslationEnabledKey
 import com.metrolist.music.constants.QueuePeekHeight
 import com.metrolist.music.constants.SliderStyle
 import com.metrolist.music.constants.SliderStyleKey
 import com.metrolist.music.constants.SquigglySliderKey
 import com.metrolist.music.constants.ThumbnailCornerRadius
-import com.metrolist.music.constants.TranslateLanguageKey
 import com.metrolist.music.constants.TranslateModeKey
 import com.metrolist.music.constants.UseNewPlayerDesignKey
 import com.metrolist.music.db.entities.LyricsEntity
@@ -339,7 +335,9 @@ fun BottomSheetPlayer(
     // Podcast subtitles: transcript display, optional AI translation, optional on-device ASR.
     val podcastSubtitleManager = LocalPodcastSubtitleManager.current
     val (showPodcastSubtitles, onShowPodcastSubtitlesChange) = remember { mutableStateOf(false) }
-    val podcastSubtitleTranslation by rememberPreference(PodcastSubtitleTranslationEnabledKey, false)
+    val alwaysTranslatePodcast by rememberPreference(com.metrolist.music.constants.AlwaysUseAiPodcastSubtitleTranslationKey, false)
+    val subtitleTranslationOverride = podcastSubtitleManager?.translationOverride?.collectAsStateWithLifecycle()?.value
+    val podcastSubtitleTranslation = subtitleTranslationOverride ?: alwaysTranslatePodcast
     val subtitleEpisodeId = mediaMetadata?.takeIf { it.isEpisode }?.id
     val subtitleOffsetStore = remember(context) { PodcastSubtitleOffsetStore(context) }
     val subtitleOffsetScope = rememberCoroutineScope()
@@ -382,12 +380,12 @@ fun BottomSheetPlayer(
     val openRouterApiKey by rememberPreference(OpenRouterApiKey, "")
     val deeplApiKey by rememberPreference(DeeplApiKey, "")
     val aiProvider by rememberPreference(AiProviderKey, "OpenRouter")
-    val translateLanguage by rememberPreference(TranslateLanguageKey, appLanguageCode)
+    val translateLanguage by rememberPreference(com.metrolist.music.constants.PodcastTranslateLanguageKey, appLanguageCode)
     val translateMode by rememberPreference(TranslateModeKey, "Literal")
     val openRouterBaseUrl by rememberPreference(OpenRouterBaseUrlKey, OpenRouterDefaultBaseUrl)
     val openRouterModel by rememberPreference(OpenRouterModelKey, OpenRouterDefaultModel)
     val deeplFormality by rememberPreference(DeeplFormalityKey, "default")
-    val aiSystemPrompt by rememberPreference(AiSystemPromptKey, "")
+    val aiSystemPrompt by rememberPreference(com.metrolist.music.constants.PodcastAiSystemPromptKey, "")
 
     val subtitleState =
         podcastSubtitleManager?.state?.collectAsStateWithLifecycle()?.value ?: PodcastSubtitleState.Idle
@@ -452,13 +450,12 @@ fun BottomSheetPlayer(
     val subtitleAsrSupported = mediaMetadata?.let {
         PodcastAsrSupport.supportsOnDeviceTranscription(it.isEpisode, it.mediaUrl)
     } == true
+    val subtitleAsrLanguage = podcastSubtitleManager?.asrLanguage?.collectAsStateWithLifecycle()?.value
     val subtitleModelReady = podcastSubtitleManager?.asrModelReady?.collectAsStateWithLifecycle()?.value == true
     val subtitleModelBusy = podcastSubtitleManager?.modelOperationBusy?.collectAsStateWithLifecycle()?.value == true
     val subtitleModelError = podcastSubtitleManager?.modelDownloadError?.collectAsStateWithLifecycle()?.value
     var showAsrModelDialog by rememberSaveable(mediaMetadata?.id) { mutableStateOf(false) }
-    val importAsrModel = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
-        if (uri != null) podcastSubtitleManager?.importAsrModel(uri)
-    }
+    var restartAfterModelDownload by rememberSaveable(mediaMetadata?.id) { mutableStateOf(false) }
     var subtitleResyncToken by rememberSaveable { mutableStateOf(0) }
     var currentSubtitleIndex by rememberSaveable { mutableStateOf(-1) }
 
@@ -590,13 +587,14 @@ fun BottomSheetPlayer(
     var position by positionState
     var duration by durationState
 
-    fun launchOnDeviceTranscription() {
+    fun launchOnDeviceTranscription(restart: Boolean = false) {
         val manager = podcastSubtitleManager ?: return
         val metadata = mediaMetadata?.takeIf { it.isEpisode } ?: return
         if (playerConnection.player.currentMediaItem?.mediaId != metadata.id) return
         manager.startTranscription(
             metadata = metadata,
             durationMs = duration,
+            restart = restart,
             positionProvider = {
                 val currentPosition = if (castHandler?.isCasting?.value == true) {
                     castHandler.castPosition.value
@@ -608,18 +606,19 @@ fun BottomSheetPlayer(
         )
     }
 
-    fun requestOnDeviceTranscription() {
+    fun requestOnDeviceTranscription(restart: Boolean = false) {
         val partial = subtitleState as? PodcastSubtitleState.Partial
-        if (partial?.transcript?.episodeId == mediaMetadata?.id &&
+        if (!restart && partial?.transcript?.episodeId == mediaMetadata?.id &&
             partial != null && (partial.hasPendingSave || partial.transcript.isComplete)
         ) {
             launchOnDeviceTranscription()
             return
         }
-        if (!subtitleAsrSupported || subtitleModelBusy) return
+        if (!subtitleAsrSupported || subtitleModelBusy || subtitleAsrLanguage?.isSupported != true) return
         if (subtitleModelReady) {
-            launchOnDeviceTranscription()
+            launchOnDeviceTranscription(restart)
         } else {
+            restartAfterModelDownload = restart
             showAsrModelDialog = true
         }
     }
@@ -1373,10 +1372,10 @@ fun BottomSheetPlayer(
                                                 PodcastSubtitleMenu(
                                                     onDeviceAsrSupported = subtitleAsrSupported,
                                                     onDismiss = menuState::dismiss,
-                                                    onResync = { subtitleResyncToken++ },
                                                     onConfigureAi = ::configureTranslationApiKey,
                                                     offsetProvider = { subtitleOffsetMs },
                                                     onShowOffsetDialog = ::showPodcastSubtitleOffset,
+                                                    onRestartRecognition = { requestOnDeviceTranscription(restart = true) },
                                                 )
                                             }
                                         },
@@ -1533,10 +1532,10 @@ fun BottomSheetPlayer(
                                                     PodcastSubtitleMenu(
                                                         onDeviceAsrSupported = subtitleAsrSupported,
                                                         onDismiss = menuState::dismiss,
-                                                        onResync = { subtitleResyncToken++ },
                                                         onConfigureAi = ::configureTranslationApiKey,
                                                         offsetProvider = { subtitleOffsetMs },
                                                         onShowOffsetDialog = ::showPodcastSubtitleOffset,
+                                                        onRestartRecognition = { requestOnDeviceTranscription(restart = true) },
                                                     )
                                                 } else {
                                                     val currentLyrics by playerConnection.currentLyrics.collectAsStateWithLifecycle(initialValue = null)
@@ -2282,17 +2281,14 @@ fun BottomSheetPlayer(
             val requestedEpisodeId = mediaMetadata?.id
             AsrModelDownloadDialog(
                 modelBytes = podcastSubtitleManager?.asrModelDownloadBytes() ?: 0L,
+                language = subtitleAsrLanguage?.language ?: com.metrolist.music.podcast.transcript.AsrLanguage.ENGLISH,
                 startRecognitionAfterDownload = true,
                 onDismiss = { showAsrModelDialog = false },
                 onDownload = {
                     showAsrModelDialog = false
                     if (requestedEpisodeId != null && playerConnection.player.currentMediaItem?.mediaId == requestedEpisodeId) {
-                        launchOnDeviceTranscription()
+                        launchOnDeviceTranscription(restartAfterModelDownload)
                     }
-                },
-                onImport = {
-                    showAsrModelDialog = false
-                    importAsrModel.launch(null)
                 },
             )
         }

@@ -782,7 +782,8 @@ fun OriginalLyrics(
                     .padding(top = 56.dp),
             contentAlignment = Alignment.Center,
         ) {
-            when (val status = translationStatus) {
+            val errorVisible = rememberTranslationErrorVisible(translationStatus, translationStatus is LyricsTranslationHelper.TranslationStatus.Error)
+            when (val status = if (errorVisible) translationStatus else LyricsTranslationHelper.TranslationStatus.Idle) {
                 is LyricsTranslationHelper.TranslationStatus.Translating -> {
                     Card(
                         colors =

@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag, for example v1.0.0"
+        description: "Release tag, for example v1.1.0"
         required: true
         type: string
       publish:
@@ -123,6 +123,7 @@ jobs:
           sha256sum *.apk > "MetroVerse-${{ inputs.tag }}-SHA256SUMS.txt"
 
       - name: Publish release
+        # Tagged bilingual notes include update reminders, changes, and FOSS/GMS download links.
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           tag_name: ${{ inputs.tag }}

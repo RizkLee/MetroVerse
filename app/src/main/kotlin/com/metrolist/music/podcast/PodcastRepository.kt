@@ -29,7 +29,7 @@ import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
-const val PODCAST_USER_AGENT = "MetroVerse/1.0.0 (Android; Podcast)"
+const val PODCAST_USER_AGENT = "MetroVerse/1.1.0 (Android; Podcast)"
 
 @Singleton
 class PodcastRepository @Inject constructor(
@@ -149,7 +149,7 @@ class PodcastRepository @Inject constructor(
             feedUrl = feedUrl,
             description = cleanText(rss.description).ifBlank { existing?.description },
             websiteUrl = rss.link?.trim()?.takeIf { it.isNotEmpty() } ?: existing?.websiteUrl,
-            language = existing?.language ?: feedTranscripts.channelLanguage,
+            language = feedTranscripts.channelLanguage ?: existing?.language,
             bookmarkedAt = when (subscribe) {
                 true -> existing?.bookmarkedAt ?: now
                 false, null -> existing?.bookmarkedAt
