@@ -47,9 +47,7 @@ internal class PodcastPriorityCacheEvictor(
 
     override fun onStartFile(cache: Cache, key: String, position: Long, length: Long) {
         if (length != C.LENGTH_UNSET.toLong()) {
-            // Do not discard music merely to reserve space for an incoming podcast.
-            // The committed span can itself be evicted if podcasts fill the remaining budget.
-            evict(cache, length, podcastsOnly = isPodcast(key))
+            evict(cache, length)
         }
     }
 
@@ -68,12 +66,11 @@ internal class PodcastPriorityCacheEvictor(
         onSpanAdded(cache, newSpan)
     }
 
-    private fun evict(cache: Cache, requiredBytes: Long, podcastsOnly: Boolean = false) {
+    private fun evict(cache: Cache, requiredBytes: Long) {
         while (currentBytes + requiredBytes > maxBytes && spans.isNotEmpty()) {
             val candidate = spans.firstOrNull { isPodcast(it.key) && !isCurrent(it.key) }
-                ?: spans.firstOrNull { isPodcast(it.key) }
-                ?: if (podcastsOnly) null else spans.firstOrNull { !isCurrent(it.key) } ?: spans.first()
-            if (candidate == null) return
+                ?: spans.firstOrNull { !isPodcast(it.key) && !isCurrent(it.key) }
+                ?: return
             cache.removeSpan(candidate)
         }
     }

@@ -20,8 +20,17 @@ class PodcastPriorityCacheEvictorTest {
         assertEquals(setOf("music", "new-music"), harness.keys())
     }
 
-    @Test fun `an incoming podcast cannot evict a full music cache merely to reserve space`() {
+    @Test fun `an incoming podcast can evict idle music when reserving space`() {
         val harness = Harness()
+        harness.add("music", 100, 1)
+        harness.evictor.onStartFile(harness.cache, "rss_episode_new", 0, 30)
+        assertEquals(listOf("music"), harness.removed)
+        harness.add("rss_episode_new", 30, 2)
+        assertEquals(setOf("rss_episode_new"), harness.keys())
+    }
+
+    @Test fun `an incoming podcast does not evict the current song merely to reserve space`() {
+        val harness = Harness(current = "music")
         harness.add("music", 100, 1)
         harness.evictor.onStartFile(harness.cache, "rss_episode_new", 0, 30)
         assertTrue(harness.removed.isEmpty())
@@ -41,15 +50,32 @@ class PodcastPriorityCacheEvictorTest {
         assertEquals(setOf("music-old", "music-new"), harness.keys())
     }
 
-    @Test fun `within podcasts idle content goes first and the cap is still enforced`() {
+    @Test fun `idle podcasts are evicted before idle songs while the current podcast is retained`() {
         val harness = Harness(current = "rss_episode_active")
         harness.add("rss_episode_active", 50, 1)
         harness.add("rss_episode_idle", 50, 2)
         harness.add("music", 50, 3)
         assertEquals(listOf("rss_episode_idle"), harness.removed)
         harness.add("more-music", 50, 4)
-        assertEquals(listOf("rss_episode_idle", "rss_episode_active"), harness.removed)
+        assertEquals(listOf("rss_episode_idle", "music"), harness.removed)
+        assertEquals(setOf("rss_episode_active", "more-music"), harness.keys())
         assertEquals(100L, harness.spans.sumOf { it.length })
+    }
+
+    @Test fun `current podcast spans are retained when the soft limit cannot be met`() {
+        val harness = Harness(limit = 100, current = "rss_episode_active")
+        harness.add("rss_episode_active", 100, 1)
+        harness.add("rss_episode_active", 20, 2, position = 100)
+        assertTrue(harness.removed.isEmpty())
+        assertEquals(120L, harness.spans.sumOf { it.length })
+    }
+
+    @Test fun `current song spans are retained when the soft limit cannot be met`() {
+        val harness = Harness(limit = 100, current = "music-active")
+        harness.add("music-active", 100, 1)
+        harness.add("music-active", 20, 2, position = 100)
+        assertTrue(harness.removed.isEmpty())
+        assertEquals(120L, harness.spans.sumOf { it.length })
     }
 
     @Test fun `touch callbacks preserve LRU order and byte accounting`() {
@@ -122,7 +148,7 @@ class PodcastPriorityCacheEvictorTest {
         } as Cache
         init { if (initialize) evictor.onCacheInitialized() }
         private fun cacheReference(): Cache = cache
-        fun add(key: String, bytes: Long, touched: Long): CacheSpan = CacheSpan(key, 0, bytes, touched, File("unused-$key")).also {
+        fun add(key: String, bytes: Long, touched: Long, position: Long = 0): CacheSpan = CacheSpan(key, position, bytes, touched, File("unused-$key")).also {
             spans.add(it)
             evictor.onSpanAdded(cache, it)
         }
