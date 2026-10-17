@@ -49,6 +49,7 @@ import com.metrolist.music.constants.AutoLoadMoreKey
 import com.metrolist.music.constants.AutoRadioQueueKey
 import com.metrolist.music.constants.AutoSkipNextOnErrorKey
 import com.metrolist.music.constants.AutoplayKey
+import com.metrolist.music.constants.ShowQueueStopAfterEachKey
 import com.metrolist.music.constants.DisableLoadMoreWhenRepeatAllKey
 import com.metrolist.music.constants.EnableGoogleCastKey
 import com.metrolist.music.constants.HistoryDuration
@@ -184,6 +185,10 @@ fun PlayerSettings(
     val (autoplay, onAutoplayChange) = rememberPreference(
         AutoplayKey,
         defaultValue = true
+    )
+    val (showQueueStopAfterEach, onShowQueueStopAfterEachChange) = rememberPreference(
+        ShowQueueStopAfterEachKey,
+        defaultValue = false
     )
     val (persistentShuffleAcrossQueues, onPersistentShuffleAcrossQueuesChange) = rememberPreference(
         PersistentShuffleAcrossQueuesKey,
@@ -801,6 +806,27 @@ fun PlayerSettings(
                         )
                     },
                     onClick = { onAutoplayChange(!autoplay) }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.moon_stars),
+                    title = { Text(stringResource(R.string.show_queue_stop_after_each)) },
+                    description = { Text(stringResource(R.string.show_queue_stop_after_each_desc)) },
+                    trailingContent = {
+                        Switch(
+                            checked = showQueueStopAfterEach,
+                            onCheckedChange = onShowQueueStopAfterEachChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (showQueueStopAfterEach) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onShowQueueStopAfterEachChange(!showQueueStopAfterEach) }
                 ),
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.repeat),

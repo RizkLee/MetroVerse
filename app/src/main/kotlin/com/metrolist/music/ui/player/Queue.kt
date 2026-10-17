@@ -108,6 +108,7 @@ import com.metrolist.music.extensions.metadata
 import com.metrolist.music.extensions.move
 import com.metrolist.music.extensions.toggleRepeatMode
 import com.metrolist.music.listentogether.RoomRole
+import com.metrolist.music.playback.QueuePlaybackMode
 import com.metrolist.music.models.MediaMetadata
 import com.metrolist.music.ui.component.BottomSheet
 import com.metrolist.music.ui.component.BottomSheetState
@@ -183,6 +184,23 @@ fun Queue(
         }
     val isCasting by castHandler?.isCasting?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(false) }
     val castIsPlaying by castHandler?.castIsPlaying?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(false) }
+    val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsStateWithLifecycle()
+    val queueStopAfterEach by playerConnection.service.queueStopAfterEach.collectAsStateWithLifecycle()
+    val showQueueStopAfterEach by playerConnection.service.showQueueStopAfterEach.collectAsStateWithLifecycle()
+    // Cast owns its remote queue; retain the existing shuffle behavior there.
+    val allowStopAfterEach = showQueueStopAfterEach && !isCasting
+    val queuePlaybackMode = QueuePlaybackMode.resolve(shuffleModeEnabled, queueStopAfterEach, allowStopAfterEach)
+    val queueModeIcon = if (queuePlaybackMode == QueuePlaybackMode.STOP_AFTER_EACH) R.drawable.moon_stars else R.drawable.shuffle
+    val queueModeLabel = stringResource(
+        when (queuePlaybackMode) {
+            QueuePlaybackMode.SEQUENTIAL -> R.string.action_shuffle_off
+            QueuePlaybackMode.SHUFFLE -> R.string.action_shuffle_on
+            QueuePlaybackMode.STOP_AFTER_EACH -> R.string.queue_stop_after_each
+        },
+    )
+    fun cycleQueuePlaybackMode() {
+        playerConnection.service.setQueuePlaybackMode(queuePlaybackMode.next(allowStopAfterEach))
+    }
 
     var inSelectMode by rememberSaveable { mutableStateOf(false) }
     val selection =
@@ -281,13 +299,11 @@ fun Queue(
                         playerBackground = playerBackground,
                     )
 
-                    val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsStateWithLifecycle()
                     PlayerQueueButton(
-                        icon = R.drawable.shuffle,
-                        onClick = {
-                            playerConnection.player.shuffleModeEnabled = !shuffleModeEnabled
-                        },
-                        isActive = shuffleModeEnabled,
+                        icon = queueModeIcon,
+                        onClick = ::cycleQueuePlaybackMode,
+                        contentDescription = queueModeLabel,
+                        isActive = queuePlaybackMode != QueuePlaybackMode.SEQUENTIAL,
                         enabled = !isListenTogetherGuest,
                         shape = middleShape,
                         modifier = Modifier.size(buttonSize),
@@ -1066,8 +1082,6 @@ fun Queue(
             }
         }
 
-        val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsStateWithLifecycle()
-
         Box(
             modifier =
                 Modifier
@@ -1097,22 +1111,18 @@ fun Queue(
                 enabled = !isListenTogetherGuest,
                 modifier = Modifier.align(Alignment.CenterStart),
                 onClick = {
-                    coroutineScope
-                        .launch {
-                            lazyListState.animateScrollToItem(
-                                if (playerConnection.player.shuffleModeEnabled) playerConnection.player.currentMediaItemIndex else 0,
-                            )
-                        }.invokeOnCompletion {
-                            playerConnection.player.shuffleModeEnabled =
-                                !playerConnection.player.shuffleModeEnabled
-                        }
+                    cycleQueuePlaybackMode()
+                    coroutineScope.launch {
+                        val targetIndex = if (playerConnection.player.shuffleModeEnabled) 0 else playerConnection.currentWindowIndex.value
+                        if (targetIndex >= 0 && targetIndex < queueWindows.size) lazyListState.animateScrollToItem(targetIndex)
+                    }
                 },
             ) {
-                val baseAlpha = if (shuffleModeEnabled) 1f else 0.5f
+                val baseAlpha = if (queuePlaybackMode != QueuePlaybackMode.SEQUENTIAL) 1f else 0.5f
                 val finalAlpha = if (!isListenTogetherGuest) baseAlpha else 0.3f
                 Icon(
-                    painter = painterResource(R.drawable.shuffle),
-                    contentDescription = null,
+                    painter = painterResource(queueModeIcon),
+                    contentDescription = queueModeLabel,
                     modifier = Modifier.alpha(finalAlpha),
                 )
             }
@@ -1166,6 +1176,7 @@ private fun PlayerQueueButton(
     onClick: () -> Unit,
     isActive: Boolean,
     enabled: Boolean = true,
+    contentDescription: String? = null,
     shape: RoundedCornerShape,
     modifier: Modifier = Modifier,
     text: String? = null,
@@ -1232,7 +1243,7 @@ private fun PlayerQueueButton(
             val finalTint = if (enabled) baseTint else baseTint.copy(alpha = 0.5f)
             Icon(
                 painter = painterResource(id = icon),
-                contentDescription = null,
+                contentDescription = contentDescription,
                 modifier = Modifier.size(iconSize).offset(x = iconOffsetX),
                 tint = finalTint,
             )

@@ -1364,6 +1364,9 @@ interface DatabaseDao {
         SongSortType.PLAY_TIME -> uploadedSongsByPlayTimeAsc()
     }.map { it.reversed(descending) }
 
+    @Query("SELECT id FROM song WHERE isEpisode = 1")
+    fun podcastEpisodeIds(): List<String>
+
     @Transaction
     @Query("SELECT * FROM song WHERE isEpisode = 1 ORDER BY inLibrary")
     fun podcastEpisodesByCreateDateAsc(): Flow<List<Song>>

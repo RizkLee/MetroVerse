@@ -105,6 +105,7 @@ import com.metrolist.music.constants.AutoDownloadOnLikeKey
 import com.metrolist.music.constants.AutoLoadMoreKey
 import com.metrolist.music.constants.AutoSkipNextOnErrorKey
 import com.metrolist.music.constants.AutoplayKey
+import com.metrolist.music.constants.ShowQueueStopAfterEachKey
 import com.metrolist.music.constants.CrossfadeDurationKey
 import com.metrolist.music.constants.CrossfadeEnabledKey
 import com.metrolist.music.constants.CrossfadeGaplessKey
@@ -327,6 +328,9 @@ class MusicService :
     lateinit var textCacheManager: com.metrolist.music.cache.TextCacheManager
 
     @Inject
+    lateinit var audioCachePolicy: com.metrolist.music.cache.AudioCachePolicy
+
+    @Inject
     lateinit var syncUtils: SyncUtils
 
     @Inject
@@ -544,6 +548,10 @@ class MusicService :
     @Volatile
     private var cachedAutoplay = true
     private var sleepTimerRequestsPauseAtEnd = false
+    private val _queueStopAfterEach = MutableStateFlow(false)
+    val queueStopAfterEach = _queueStopAfterEach.asStateFlow()
+    private val _showQueueStopAfterEach = MutableStateFlow(false)
+    val showQueueStopAfterEach = _showQueueStopAfterEach.asStateFlow()
     @Volatile
     private var cachedDisableLoadMoreWhenRepeatAll = false
     @Volatile
@@ -733,6 +741,7 @@ class MusicService :
             },
         )
         cachedAutoplay = startupPrefs!![AutoplayKey] ?: true
+        _showQueueStopAfterEach.value = startupPrefs!![ShowQueueStopAfterEachKey] ?: false
         player = createExoPlayer(prefs = startupPrefs!!)
         player.setPauseAtEndOfMediaItems(shouldPauseAtMediaBoundary(cachedAutoplay, false))
         player.addListener(this@MusicService)
@@ -745,7 +754,9 @@ class MusicService :
                 },
                 onPauseAtEndOfMediaItemsChanged = { targetPlayer, enabled ->
                     sleepTimerRequestsPauseAtEnd = enabled
-                    (targetPlayer as? ExoPlayer)?.setPauseAtEndOfMediaItems(shouldPauseAtMediaBoundary(cachedAutoplay, enabled))
+                    (targetPlayer as? ExoPlayer)?.setPauseAtEndOfMediaItems(
+                        shouldPauseAtMediaBoundary(cachedAutoplay, enabled, _queueStopAfterEach.value),
+                    )
                 },
             )
         player.addListener(sleepTimer!!)
@@ -1219,8 +1230,15 @@ class MusicService :
         scope.launch {
             dataStore.data.map { it[AutoplayKey] ?: true }.distinctUntilChanged().collect { autoplay ->
                 cachedAutoplay = autoplay
-                player.setPauseAtEndOfMediaItems(shouldPauseAtMediaBoundary(autoplay, sleepTimerRequestsPauseAtEnd))
+                updatePauseAtMediaBoundary()
                 scheduleCrossfade()
+            }
+        }
+        scope.launch {
+            dataStore.data.map { it[ShowQueueStopAfterEachKey] ?: false }.distinctUntilChanged().collect { enabled ->
+                // Hiding the control also releases its pause request; autoplay and timers retain theirs.
+                if (!enabled && _queueStopAfterEach.value) setQueueStopAfterEach(false)
+                _showQueueStopAfterEach.value = enabled
             }
         }
         scope.launch {
@@ -1397,6 +1415,9 @@ class MusicService :
                 .setDeviceVolumeControlEnabled(true)
                 .build()
 
+        player.setPauseAtEndOfMediaItems(
+            shouldPauseAtMediaBoundary(cachedAutoplay, sleepTimerRequestsPauseAtEnd, _queueStopAfterEach.value),
+        )
         playerNormalizationProcessors[player] = normalizationProcessor
         playerSilenceProcessors[player] = silenceProcessor
 
@@ -1886,6 +1907,7 @@ class MusicService :
             return
         }
 
+        setQueueStopAfterEach(false)
         currentQueue = queue
         queueTitle = null
         val persistShuffleAcrossQueues = dataStore.get(PersistentShuffleAcrossQueuesKey, false)
@@ -2053,7 +2075,28 @@ class MusicService :
         sleepTimer?.startAtEndOfQueue(boundaryIndex)
     }
 
+    fun setQueuePlaybackMode(mode: QueuePlaybackMode) {
+        if (mode == QueuePlaybackMode.STOP_AFTER_EACH &&
+            (!_showQueueStopAfterEach.value || castConnectionHandler?.isCasting?.value == true)
+        ) return
+        setQueueStopAfterEach(mode == QueuePlaybackMode.STOP_AFTER_EACH)
+        player.shuffleModeEnabled = mode == QueuePlaybackMode.SHUFFLE
+    }
+
+    private fun setQueueStopAfterEach(enabled: Boolean) {
+        _queueStopAfterEach.value = enabled
+        updatePauseAtMediaBoundary()
+        scheduleCrossfade()
+    }
+
+    private fun updatePauseAtMediaBoundary() {
+        player.setPauseAtEndOfMediaItems(
+            shouldPauseAtMediaBoundary(cachedAutoplay, sleepTimerRequestsPauseAtEnd, _queueStopAfterEach.value),
+        )
+    }
+
     fun adoptQueue(queue: Queue, title: String? = null, initialQueueSize: Int = 0) {
+        setQueueStopAfterEach(false)
         currentQueue = queue
         queueTitle = title
         originalQueueSize = initialQueueSize
@@ -2112,6 +2155,7 @@ class MusicService :
                     }
                 }
 
+                setQueueStopAfterEach(false)
                 currentQueue = radioQueue
             } catch (e: Exception) {
                 try {
@@ -2712,28 +2756,20 @@ class MusicService :
         }
     }
 
-    /**
-     * Restore podcast episode playback position from database.
-     * Seeks to saved position if available.
-     */
-    private fun restoreEpisodePosition(episodeId: String) {
-        scope.launch(Dispatchers.IO + SilentHandler) {
-            val savedPosition = database.getPlaybackPosition(episodeId)
-            if (savedPosition != null && savedPosition > 0) {
-                withContext(Dispatchers.Main) {
-                    if (player.currentMediaItem?.mediaId == episodeId) {
-                        player.seekTo(savedPosition)
-                        Timber.tag(TAG).d("Restored episode position: $episodeId to ${savedPosition}ms")
-                    }
-                }
-            }
-        }
+    private val episodePositionRestorer by lazy {
+        EpisodePositionRestorer(
+            scope = scope,
+            loadPosition = { database.getPlaybackPosition(it) },
+            currentEpisodeId = { player.currentMediaItem?.mediaId },
+            seekTo = { player.seekTo(it) },
+        )
     }
 
     override fun onMediaItemTransition(
         mediaItem: MediaItem?,
         reason: Int,
     ) {
+        audioCachePolicy.onPlaybackChanged(mediaItem?.mediaId, mediaItem?.metadata?.isEpisode == true)
         com.metrolist.music.cache.TextCacheSignals.protect("playback", mediaItem?.mediaId)
         textCacheManager.recordUse(mediaItem?.mediaId)
         val previousItemWasEpisode = previousEpisodeId != null
@@ -2778,11 +2814,9 @@ class MusicService :
         }
         if (newMetadata?.isEpisode == true) {
             previousEpisodeId = newMetadata.id
-            scope.launch {
-                delay(100)
-                restoreEpisodePosition(newMetadata.id)
-            }
         }
+        episodePositionRestorer.onTransition(newMetadata?.takeIf { it.isEpisode }?.id, reason)
+        if (mediaItem == null) setQueueStopAfterEach(false)
 
         // Force Repeat One if the player ignored it and auto-advanced
         if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
@@ -2873,6 +2907,7 @@ class MusicService :
 
         if (playbackState == Player.STATE_ENDED) {
             // Do not restart repeat/autoplay when an end-of-media or end-of-queue timer is completing.
+            if (_queueStopAfterEach.value) return
             val timer = sleepTimer ?: return
             if (timer.isActive && timer.stopsAtPlaybackEnd) {
                 return
@@ -3068,6 +3103,11 @@ class MusicService :
     }
 
     override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
+        // A sleep timer can restore its earlier shuffle snapshot; queue stop remains in force.
+        if (_queueStopAfterEach.value && shuffleModeEnabled) {
+            player.shuffleModeEnabled = false
+            return
+        }
         updateNotification()
         if (shuffleModeEnabled) {
             if (player.mediaItemCount == 0) return
@@ -4536,6 +4576,7 @@ class MusicService :
         }
 
     override fun onDestroy() {
+        audioCachePolicy.onPlaybackChanged(null, false)
         com.metrolist.music.cache.TextCacheSignals.protect("playback", null)
         isRunning = false
 
@@ -5070,7 +5111,7 @@ class MusicService :
     private fun scheduleCrossfade() {
         crossfadeMessage?.cancel()
         crossfadeMessage = null
-        if (!cachedAutoplay || player.currentMediaItem?.metadata?.isEpisode == true) return
+        if (!cachedAutoplay || _queueStopAfterEach.value || player.currentMediaItem?.metadata?.isEpisode == true) return
         val crossfadeTargetIndex = if (player.repeatMode == REPEAT_MODE_ONE) {
             player.currentMediaItemIndex
         } else {
@@ -5092,7 +5133,7 @@ class MusicService :
 
         crossfadeMessage = player.createMessage { _, _ ->
             val timer = sleepTimer
-            if (cachedAutoplay && player.isPlaying && player.currentMediaItem?.mediaId == targetMediaId && timer?.pausesAtCurrentMediaEnd != true) {
+            if (cachedAutoplay && !_queueStopAfterEach.value && player.isPlaying && player.currentMediaItem?.mediaId == targetMediaId && timer?.pausesAtCurrentMediaEnd != true) {
                 startCrossfade()
             }
         }.apply {

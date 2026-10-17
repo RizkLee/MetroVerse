@@ -26,9 +26,9 @@
 </p>
 
 > [!TIP]
-> I’m excited to introduce MetroVerse v1.1.0! It builds on the podcast transcripts, on-device subtitle generation, bilingual podcast subtitles, smoother lyrics, and InnerTubeX playback introduced in v1.0.0. This update adds English, German, Spanish, and Japanese recognition, more translation providers, and improved subtitle recovery. I’d love for you to try it and enjoy what’s new!
+> I’m excited to introduce MetroVerse v1.1.1! It builds on the podcast transcripts, on-device subtitle generation, bilingual podcast subtitles, smoother lyrics, and InnerTubeX playback introduced in v1.0.0. This update adds English, German, Spanish, and Japanese recognition, more translation providers, and improved subtitle recovery. I’d love for you to try it and enjoy what’s new!
 >
-> 很高兴带来全新的 MetroVerse v1.1.0！本次更新延续了 v1.0.0 的播客原生字幕、端侧模型识别字幕、播客字幕翻译、优化的歌词显示，以及 InnerTubeX 播放体验，并加入英语、德语、西班牙语和日语识别、更多翻译服务与字幕恢复改进。欢迎体验新功能！
+> 很高兴带来全新的 MetroVerse v1.1.1！本次更新延续了 v1.0.0 的播客原生字幕、端侧模型识别字幕、播客字幕翻译、优化的歌词显示，以及 InnerTubeX 播放体验，并加入英语、德语、西班牙语和日语识别、更多翻译服务与字幕恢复改进。欢迎体验新功能！
 
 ## Screenshots
 
@@ -86,7 +86,7 @@ MetroVerse is not an official release of Metrolist or Podium and is not affiliat
 App name:        MetroVerse
 Application ID:  com.rizklee.metroverse
 Debug ID:        com.rizklee.metroverse.debug
-Version:         1.1.0
+Version:         1.1.1
 Minimum Android: Android 8.0 / API 26
 Target Android:  API 36
 Device ABI:      ARM64 (arm64-v8a)
@@ -120,10 +120,10 @@ Downloads are published on the [Releases page](https://github.com/RizkLee/MetroV
 
 | Variant  | Description                                | Download link                                                                                        |
 | -------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| FOSS APK | MetroVerse app without Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/v1.1.0/MetroVerse-v1.1.0-foss.apk) |
-| GMS APK  | The same app, but with Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/v1.1.0/MetroVerse-v1.1.0-gms.apk)  |
+| FOSS APK | MetroVerse app without Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/v1.1.1/MetroVerse-v1.1.1-foss.apk) |
+| GMS APK  | The same app, but with Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/v1.1.1/MetroVerse-v1.1.1-gms.apk)  |
 
-[Download the SHA-256 checksum file](https://github.com/RizkLee/MetroVerse/releases/download/v1.1.0/MetroVerse-v1.1.0-SHA256SUMS.txt).
+[Download the SHA-256 checksum file](https://github.com/RizkLee/MetroVerse/releases/download/v1.1.1/MetroVerse-v1.1.1-SHA256SUMS.txt).
 
 ### Contributing
 
@@ -180,7 +180,7 @@ MetroVerse 不是 Metrolist 或 Podium 的官方版本，与 Apple、Google 或 
 应用名称：      MetroVerse
 正式包名：      com.rizklee.metroverse
 调试包名：      com.rizklee.metroverse.debug
-当前版本：      1.1.0
+当前版本：      1.1.1
 最低系统：      Android 8.0 / API 26
 目标 API：      36
 设备架构：      ARM64（arm64-v8a）
@@ -211,10 +211,10 @@ APK 发布在 [Releases 页面](https://github.com/RizkLee/MetroVerse/releases)�
 
 | App 版本 | 适用场景                            | 下载链接                                                                                                    |
 | -------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| FOSS APK | 音乐与播客，不包含 Google Cast 功能 | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v1.1.0/MetroVerse-v1.1.0-foss.apk) |
-| GMS APK  | 音乐与播客，包含 Google Cast 功能   | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v1.1.0/MetroVerse-v1.1.0-gms.apk)  |
+| FOSS APK | 音乐与播客，不包含 Google Cast 功能 | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v1.1.1/MetroVerse-v1.1.1-foss.apk) |
+| GMS APK  | 音乐与播客，包含 Google Cast 功能   | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v1.1.1/MetroVerse-v1.1.1-gms.apk)  |
 
-[下载 SHA-256 校验文件](https://github.com/RizkLee/MetroVerse/releases/download/v1.1.0/MetroVerse-v1.1.0-SHA256SUMS.txt)。
+[下载 SHA-256 校验文件](https://github.com/RizkLee/MetroVerse/releases/download/v1.1.1/MetroVerse-v1.1.1-SHA256SUMS.txt)。
 
 ### 参与开发
 

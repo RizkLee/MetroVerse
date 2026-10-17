@@ -966,4 +966,7 @@
     <string name="player_setting_rss_not_applicable">RSS ポッドキャストには適用されません。</string>
     <string name="podcast_region_mainland_china">中国本土</string>
     <string name="podcast_subtitle_rerecognize">再認識</string>
+    <string name="queue_stop_after_each">1曲・1話ごとに停止</string>
+    <string name="show_queue_stop_after_each">1曲・1話ごとに停止を表示</string>
+    <string name="show_queue_stop_after_each_desc">端末のプレーヤーと再生キューのシャッフルボタンにこのモードを追加します。オフにすると使用中のモードも解除されます。</string>
 </resources>

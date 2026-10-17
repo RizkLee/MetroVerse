@@ -4,6 +4,9 @@
  */
 package com.metrolist.music.playback
 
-/** Sleep timers and autoplay own independent reasons to pause at a media boundary. */
-internal fun shouldPauseAtMediaBoundary(autoplay: Boolean, sleepTimerRequestsPause: Boolean): Boolean =
-    !autoplay || sleepTimerRequestsPause
+/** Queue mode, sleep timers and autoplay own independent reasons to pause at a media boundary. */
+internal fun shouldPauseAtMediaBoundary(
+    autoplay: Boolean,
+    sleepTimerRequestsPause: Boolean,
+    queueRequestsPause: Boolean = false,
+): Boolean = !autoplay || sleepTimerRequestsPause || queueRequestsPause

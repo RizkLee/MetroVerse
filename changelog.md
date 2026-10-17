@@ -2,6 +2,12 @@
 
 All notable MetroVerse-specific changes are recorded here. Upstream Metrolist history remains available in Git history.
 
+## 1.1.1 - 2026-10-17
+
+- Fix podcast repeat-one playback restarting near the end instead of from the beginning.
+- Add an optional local queue mode that stops after each song or episode. Enable it in Player & audio settings before cycling to it with the Shuffle button; it is off by default.
+- Prefer removing podcast audio when the streaming cache reaches its limit. Downloaded files are unaffected.
+
 ## 1.1.0 - 2026-10-14
 
 ### Added

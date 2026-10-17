@@ -998,4 +998,7 @@
     <string name="player_setting_rss_not_applicable">Não se aplica a podcasts RSS.</string>
     <string name="podcast_region_mainland_china">China continental</string>
     <string name="podcast_subtitle_rerecognize">Reconhecer novamente</string>
+    <string name="queue_stop_after_each">Parar após cada item</string>
+    <string name="show_queue_stop_after_each">Mostrar parar após cada item</string>
+    <string name="show_queue_stop_after_each_desc">Adiciona este modo ao botão aleatório do player local e da fila. Ocultar também desativa o modo.</string>
 </resources>

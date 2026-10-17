@@ -999,4 +999,7 @@
     <string name="player_setting_rss_not_applicable">Gilt nicht für RSS-Podcasts.</string>
     <string name="podcast_region_mainland_china">Festlandchina</string>
     <string name="podcast_subtitle_rerecognize">Neu erkennen</string>
+    <string name="queue_stop_after_each">Nach jedem Titel anhalten</string>
+    <string name="show_queue_stop_after_each">Nach jedem Titel anhalten anzeigen</string>
+    <string name="show_queue_stop_after_each_desc">Fügt diesen Modus zur Zufallstaste im lokalen Player und in der Warteschlange hinzu. Beim Ausblenden wird der Modus auch deaktiviert.</string>
 </resources>

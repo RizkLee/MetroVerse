@@ -635,7 +635,7 @@
     <string name="metroverse_metrolist_relationship">MetroVerse 基于 Metrolist，保留其音乐架构、界面基础、贡献者历史和 GPL 授权关系。</string>
     <string name="metroverse_podium_relationship">RSS 与 Apple Podcasts 整合功能是在 GPL-3.0 下研究并适配 Podium 实现思路后开发的。</string>
     <string name="metroverse_apple_podcasts_attribution">Apple Podcasts 提供公开的发现、榜单、搜索元数据和封面。MetroVerse 独立播放公开 RSS 订阅源，与 Apple 无隶属或合作关系。</string>
-    <string name="metroverse_changelog_body">MetroVerse 1.1.0\n\n• 播客端侧识别支持英语、德语、西班牙语和日语，可读取 RSS 语言并设置频道默认语言\n• 连续识别中断时自动尝试恢复，保留已完成字幕\n• 新增 DeepSeek、Z.ai、MiniMax、Kimi、硅基流动和魔搭翻译提供商\n• 自定义接口地址自动补全，可直接输入自定义模型名称\n• 独立播客提示词、扩大非紧急翻译批次，报错提示定时隐藏\n• 调整字幕语言与模型弹窗、时间校准样式；翻译开关仅针对当前单集，并提供独立目标语言\n• 关闭自动播放后，每个播放项目结束时暂停\n• 优先恢复已保存字幕，支持重新识别当前单集或复制原文字幕\n• 修复快捷播放中的播客播放和 RSS 音量沿用问题</string>
+    <string name="metroverse_changelog_body">MetroVerse 1.1.1\n\n• 修复播客单集循环只重复最后几秒的问题\n• 播放器和播放列表可选播完即停模式，需在播放设置中开启，默认关闭\n• 播完即停仅针对当前队列，不更改全局自动播放或睡眠定时\n• 音频缓存达到上限时优先清除播客缓存，不影响已下载文件</string>
     <string name="wanna_play_favorite_song">想播放他们最喜欢的歌曲吗？</string>
     <string name="yeah">是的！</string>
     <string name="stands_with_palestine">本项目声援巴勒斯坦 🇵🇸</string>
@@ -1081,4 +1081,7 @@
     <string name="player_setting_rss_not_applicable">对 RSS 播客不生效。</string>
     <string name="podcast_region_mainland_china">中国大陆</string>
     <string name="podcast_subtitle_rerecognize">重新识别</string>
+    <string name="queue_stop_after_each">播完即停</string>
+    <string name="show_queue_stop_after_each">显示“播完即停”模式</string>
+    <string name="show_queue_stop_after_each_desc">在本机播放器和播放列表的随机按钮中加入此模式。关闭后也会解除当前队列的播完即停。</string>
 </resources>

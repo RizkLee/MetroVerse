@@ -12,7 +12,8 @@ import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.CacheSpan
 import androidx.media3.datasource.cache.ContentMetadata
 import androidx.media3.datasource.cache.ContentMetadataMutations
-import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
+import com.metrolist.music.cache.AudioCachePolicy
+import com.metrolist.music.cache.PodcastPriorityCacheEvictor
 import androidx.media3.datasource.cache.NoOpCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import com.metrolist.music.constants.MaxSongCacheSizeKey
@@ -30,6 +31,7 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.util.NavigableSet
 import java.util.TreeSet
@@ -166,13 +168,23 @@ object AppModule {
     fun providePlayerCache(
         @ApplicationContext context: Context,
         databaseProvider: DatabaseProvider,
+        database: MusicDatabase,
+        audioCachePolicy: AudioCachePolicy,
     ): Cache =
         LazyCache {
             val cacheSize = context.dataStore[MaxSongCacheSizeKey] ?: 1024
             val evictor =
                 when (cacheSize) {
                     -1 -> NoOpCacheEvictor()
-                    else -> LeastRecentlyUsedCacheEvictor(cacheSize * 1024 * 1024L)
+                    else -> {
+                        // Classify existing YouTube podcast keys before SimpleCache scans old spans.
+                        audioCachePolicy.registerPodcasts(runBlocking(Dispatchers.IO) { database.podcastEpisodeIds() })
+                        PodcastPriorityCacheEvictor(
+                            cacheSize * 1024 * 1024L,
+                            audioCachePolicy::isPodcast,
+                            audioCachePolicy::isCurrent,
+                        )
+                    }
                 }
             SimpleCache(
                 context.filesDir.resolve("exoplayer"),

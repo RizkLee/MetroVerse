@@ -1013,4 +1013,7 @@
     <string name="player_setting_rss_not_applicable">Не применяется к RSS-подкастам.</string>
     <string name="podcast_region_mainland_china">Материковый Китай</string>
     <string name="podcast_subtitle_rerecognize">Распознать заново</string>
+    <string name="queue_stop_after_each">Останавливать после каждого трека</string>
+    <string name="show_queue_stop_after_each">Показывать остановку после каждого трека</string>
+    <string name="show_queue_stop_after_each_desc">Добавляет этот режим к кнопке перемешивания в локальном плеере и очереди. Выключение настройки также отключает режим.</string>
 </resources>

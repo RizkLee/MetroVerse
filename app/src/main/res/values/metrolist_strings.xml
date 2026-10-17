@@ -927,7 +927,7 @@
     <string name="metroverse_metrolist_relationship">MetroVerse is based on Metrolist and retains its music architecture, interface foundations, contributors, and GPL history.</string>
     <string name="metroverse_podium_relationship">The RSS and Apple Podcasts integration was developed by studying and adapting concepts from Podium under GPL-3.0.</string>
     <string name="metroverse_apple_podcasts_attribution">Apple Podcasts provides public discovery, charts, search metadata, and artwork. MetroVerse plays public RSS feeds independently and is not affiliated with Apple.</string>
-    <string name="metroverse_changelog_body">MetroVerse 1.1.0\n\n• English, German, Spanish and Japanese on-device podcast recognition, with RSS language selection and channel defaults\n• Automatic recovery for interrupted recognition while preserving completed subtitles\n• DeepSeek, Z.ai, MiniMax, Kimi, SiliconFlow and ModelScope translation providers\n• Automatic custom API URL completion and direct custom model entry\n• Separate podcast prompts, larger non-urgent translation batches and temporary error messages\n• Refined subtitle language/model dialogs and calibration, with per-episode translation and an independent target language\n• Disabling autoplay now pauses at the end of each item\n• Reopen saved subtitle progress, re-recognize the current episode or copy original subtitles\n• Fixed podcast playback from Speed dial and RSS volume carry-over</string>
+    <string name="metroverse_changelog_body">MetroVerse 1.1.1\n\n• Fixed podcast repeat-one restarting near the end instead of the beginning\n• Optional stop after each item mode in the local player and queue; enable it in playback settings (off by default)\n• Stop after each item applies only to the current queue and does not change global autoplay or sleep timers\n• When the audio cache fills, podcast audio is removed before music; downloaded files are unaffected</string>
     <string name="wanna_play_favorite_song">Want to play their favorite song?</string>
     <string name="yeah">Yeah!</string>
     <string name="stands_with_palestine">This project stands with Palestine 🇵🇸</string>
@@ -1210,4 +1210,7 @@
     <string name="player_setting_rss_not_applicable">Does not apply to RSS podcasts.</string>
     <string name="podcast_region_mainland_china">Mainland China</string>
     <string name="podcast_subtitle_rerecognize">Re-recognize</string>
+    <string name="queue_stop_after_each">Stop after each item</string>
+    <string name="show_queue_stop_after_each">Show stop after each item</string>
+    <string name="show_queue_stop_after_each_desc">Add this mode to the shuffle button in the local player and queue. Turning this off also deactivates the mode.</string>
 </resources>

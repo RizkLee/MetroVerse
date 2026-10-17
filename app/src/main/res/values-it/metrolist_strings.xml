@@ -999,4 +999,7 @@
     <string name="player_setting_rss_not_applicable">Non si applica ai podcast RSS.</string>
     <string name="podcast_region_mainland_china">Cina continentale</string>
     <string name="podcast_subtitle_rerecognize">Riconosci di nuovo</string>
+    <string name="queue_stop_after_each">Ferma dopo ogni elemento</string>
+    <string name="show_queue_stop_after_each">Mostra arresto dopo ogni elemento</string>
+    <string name="show_queue_stop_after_each_desc">Aggiunge questa modalità al pulsante casuale del lettore locale e della coda. Nasconderla disattiva anche la modalità.</string>
 </resources>

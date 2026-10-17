@@ -1002,4 +1002,7 @@
     <string name="player_setting_rss_not_applicable">No se aplica a pódcasts RSS.</string>
     <string name="podcast_region_mainland_china">China continental</string>
     <string name="podcast_subtitle_rerecognize">Reconocer de nuevo</string>
+    <string name="queue_stop_after_each">Detener después de cada elemento</string>
+    <string name="show_queue_stop_after_each">Mostrar detener después de cada elemento</string>
+    <string name="show_queue_stop_after_each_desc">Añade este modo al botón aleatorio del reproductor local y la cola. Al ocultarlo también se desactiva el modo.</string>
 </resources>

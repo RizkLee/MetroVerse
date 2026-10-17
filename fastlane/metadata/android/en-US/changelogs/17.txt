@@ -1,0 +1,3 @@
+- Fix podcast repeat-one restarting near the end instead of from the beginning.
+- Add optional stop after each song or episode for the current local queue. Enable it in playback settings, then select it with the Shuffle button; off by default.
+- Prefer removing podcast audio when the streaming cache fills. Downloaded files are unaffected.

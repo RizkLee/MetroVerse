@@ -898,4 +898,7 @@
     <string name="player_setting_rss_not_applicable">RSS 팟캐스트에는 적용되지 않습니다.</string>
     <string name="podcast_region_mainland_china">중국 본토</string>
     <string name="podcast_subtitle_rerecognize">다시 인식</string>
+    <string name="queue_stop_after_each">각 항목 재생 후 정지</string>
+    <string name="show_queue_stop_after_each">각 항목 재생 후 정지 표시</string>
+    <string name="show_queue_stop_after_each_desc">기기 플레이어와 재생 대기열의 셔플 버튼에 이 모드를 추가합니다. 이 설정을 끄면 사용 중인 모드도 해제됩니다.</string>
 </resources>

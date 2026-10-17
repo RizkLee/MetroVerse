@@ -938,4 +938,7 @@
     <string name="player_setting_rss_not_applicable">對 RSS 播客不生效。</string>
     <string name="podcast_region_mainland_china">中國大陸</string>
     <string name="podcast_subtitle_rerecognize">重新辨識</string>
+    <string name="queue_stop_after_each">播完即停</string>
+    <string name="show_queue_stop_after_each">顯示「播完即停」模式</string>
+    <string name="show_queue_stop_after_each_desc">在本機播放器和播放清單的隨機按鈕中加入此模式。關閉後也會解除目前佇列的播完即停。</string>
 </resources>
