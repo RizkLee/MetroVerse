@@ -281,6 +281,10 @@ android {
         resValues = true
     }
 
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+
     dependenciesInfo {
         includeInApk = false
         includeInBundle = false
@@ -478,6 +482,7 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
+    testImplementation(libs.compose.ui.test.junit4)
     testImplementation(libs.ktor.client.mock)
     testImplementation(libs.mockwebserver)
     // XmlPullParser implementation for JVM tests of the podcast transcript feed parser.

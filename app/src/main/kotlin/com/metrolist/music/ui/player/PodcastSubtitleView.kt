@@ -35,6 +35,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -299,7 +300,7 @@ fun PodcastSubtitleView(
 }
 
 @Composable
-private fun SubtitleCueList(
+internal fun SubtitleCueList(
     cues: List<SubtitleCue>,
     translations: Map<Int, String>,
     positionProvider: () -> Long,
@@ -314,8 +315,8 @@ private fun SubtitleCueList(
     onRetryTranslation: () -> Unit,
     resyncToken: Int,
     modifier: Modifier = Modifier,
+    listState: LazyListState = rememberLazyListState(),
 ) {
-    val listState = rememberLazyListState()
     val cueIdentityCache = remember { SubtitleCueIdentityCache() }
     val keyedCues = remember(cues) { cueIdentityCache.keyedCues(cues) }
     val scope = rememberCoroutineScope()
@@ -325,9 +326,24 @@ private fun SubtitleCueList(
     val currentPositionProvider by rememberUpdatedState(positionProvider)
     val currentOffsetMs by rememberUpdatedState(offsetMs)
     val currentCueChanged by rememberUpdatedState(onCurrentCueChanged)
-    var currentIndex by remember {
-        mutableIntStateOf(PodcastAsrSupport.cueIndexAt(cues, SubtitleTimingOffset.subtitlePosition(positionProvider(), offsetMs)))
+
+    fun playbackCueIndex(): Int = seekPreview.index(
+        PodcastAsrSupport.cueIndexAt(
+            cues,
+            SubtitleTimingOffset.subtitlePosition(currentPositionProvider(), currentOffsetMs),
+        ),
+        cues.size,
+        SystemClock.elapsedRealtime(),
+        cueIndexForKey = { key -> keyedCues.indexOfFirst { it.key == key } },
+    )
+
+    // A prepend must never render the new list with the previous list's numeric index.
+    var currentIndex by remember(cues, offsetMs) {
+        mutableIntStateOf(playbackCueIndex())
     }
+    val currentCueKey = keyedCues.getOrNull(currentIndex)?.key
+    var previousScrollCueKey by remember { mutableStateOf<String?>(null) }
+    var previousScrollResyncToken by remember { mutableIntStateOf(resyncToken) }
     var selectionMode by rememberSaveable { mutableStateOf(false) }
     var selectedCueKeys by rememberSaveable(stateSaver = SubtitleCueSelectionSaver) {
         mutableStateOf<Set<String>>(emptySet())
@@ -360,17 +376,9 @@ private fun SubtitleCueList(
         }
     }
 
-    LaunchedEffect(cues) {
+    LaunchedEffect(cues, offsetMs) {
         while (true) {
-            currentIndex = seekPreview.index(
-                PodcastAsrSupport.cueIndexAt(
-                    cues,
-                    SubtitleTimingOffset.subtitlePosition(currentPositionProvider(), currentOffsetMs),
-                ),
-                cues.size,
-                SystemClock.elapsedRealtime(),
-                cueIndexForKey = { key -> keyedCues.indexOfFirst { it.key == key } },
-            )
+            currentIndex = playbackCueIndex()
             currentCueChanged(currentIndex)
             delay(positionUpdateIntervalMs)
         }
@@ -393,9 +401,21 @@ private fun SubtitleCueList(
                 headerGapPx = 12.dp.toPx(),
             ).toDp()
         }
-        LaunchedEffect(currentIndex, autoScroll, selectionMode, cues.size, resyncToken, hintCount, anchorTop) {
-            if (autoScroll && !selectionMode && currentIndex >= 0 && cues.isNotEmpty()) {
-                listState.animateScrollToItem(currentIndex.coerceIn(0, cues.lastIndex) + hintCount)
+        LaunchedEffect(keyedCues, currentCueKey, autoScroll, selectionMode, resyncToken, hintCount, anchorTop) {
+            if (!autoScroll || selectionMode || currentCueKey == null) {
+                previousScrollCueKey = null
+                return@LaunchedEffect
+            }
+            val animate = previousScrollCueKey != null && previousScrollCueKey != currentCueKey &&
+                previousScrollResyncToken == resyncToken
+            previousScrollCueKey = currentCueKey
+            previousScrollResyncToken = resyncToken
+            val targetIndex = currentIndex + hintCount
+            if (animate) {
+                listState.animateScrollToItem(targetIndex)
+            } else {
+                // Cancel any animation still targeting an old index and anchor in the new layout.
+                listState.requestScrollToItem(targetIndex)
             }
         }
         LazyColumn(
