@@ -2,6 +2,12 @@
 
 All notable MetroVerse-specific changes are recorded here. Upstream Metrolist history remains available in Git history.
 
+## 1.1.2 - 2026-10-24
+
+- Add Mandarin Chinese, Arabic, Tagalog, and Vietnamese on-device subtitles for RSS podcasts, with separate Tiny Streaming model downloads and language settings.
+- Fix subtitle position flicker while recognition fills earlier sections of an episode.
+- Let the playing RSS episode buffer further ahead within the audio memory budget.
+
 ## 1.1.1 - 2026-10-17
 
 - Fix podcast repeat-one playback restarting near the end instead of from the beginning.
