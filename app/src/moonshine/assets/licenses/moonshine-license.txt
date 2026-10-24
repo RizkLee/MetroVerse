@@ -1,4 +1,4 @@
-Moonshine Voice v0.1.5 and the English Small Streaming model use SECTION 1 (MIT) below. SECTION 2 applies only to the legacy models listed by upstream.
+Moonshine Voice v0.1.5 and all Small/Tiny Streaming models used by MetroVerse use SECTION 1 (MIT) below. SECTION 2 applies only to the legacy models listed by upstream.
 Source: https://raw.githubusercontent.com/moonshine-ai/moonshine/v0.1.5/LICENSE
 
 The code in this repo (https://github.com/moonshine-ai/moonshine), apart from

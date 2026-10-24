@@ -180,8 +180,12 @@ jobjectArray copyTranscript(JNIEnv *env, const transcript_t *transcript) {
 }  // namespace
 
 extern "C" JNIEXPORT jint JNICALL
-Java_com_metrolist_music_podcast_transcript_MoonshineNative_create(JNIEnv *env, jobject, jstring directory) {
+Java_com_metrolist_music_podcast_transcript_MoonshineNative_create(JNIEnv *env, jobject, jstring directory, jint modelArchitecture) {
     try {
+        if (modelArchitecture != MOONSHINE_MODEL_ARCH_SMALL_STREAMING &&
+            modelArchitecture != MOONSHINE_MODEL_ARCH_TINY_STREAMING) {
+            throw std::invalid_argument("Unsupported streaming model architecture");
+        }
         const auto path = modelPath(env, directory);
         const moonshine_option_t options[] = {
             {"return_audio_data", "false"},
@@ -197,7 +201,7 @@ Java_com_metrolist_music_podcast_transcript_MoonshineNative_create(JNIEnv *env, 
         if (setenv("MOONSHINE_ORT_SINGLE_THREAD", "1", 1) != 0) {
             throw std::runtime_error("Could not configure recognition threads");
         }
-        const int handle = moonshine_load_transcriber_from_files(path.c_str(), MOONSHINE_MODEL_ARCH_SMALL_STREAMING,
+        const int handle = moonshine_load_transcriber_from_files(path.c_str(), modelArchitecture,
             options, sizeof(options) / sizeof(options[0]), MOONSHINE_HEADER_VERSION);
         if (handle < 0) checkStatus(handle, "Load model");
         try {

@@ -868,7 +868,7 @@
     <string name="podcast_subtitles_bilingual_desc">在譯文旁同時顯示原文</string>
     <string name="podcast_asr_language">辨識語言</string>
     <string name="podcast_asr_language_auto">自動偵測</string>
-    <string name="podcast_asr_language_zh">中文</string>
+    <string name="podcast_asr_language_zh">國語（普通話）</string>
     <string name="podcast_asr_language_en">英語</string>
     <string name="podcast_subtitle_delete_model">刪除辨識模型</string>
     <string name="podcast_subtitle_delete_model_confirm">刪除模型？已產生的字幕會保留。</string>
@@ -912,7 +912,7 @@
     <string name="podcast_subtitle_save_failed">無法儲存字幕，目前仍可查看已產生的字幕。</string>
     <string name="podcast_subtitle_retry_save">重試儲存字幕</string>
     <string name="podcast_asr_performance_notice">對手機記憶體和處理效能要求較高。</string>
-    <string name="metroverse_moonshine_attribution">Small Streaming · English / Deutsch / Español / 日本語 · Moonshine Voice 0.1.5 · MIT</string>
+    <string name="metroverse_moonshine_attribution">Small / Tiny Streaming · English / Deutsch / Español / 日本語 / 普通话 / العربية / Tagalog / Tiếng Việt · Moonshine Voice 0.1.5 · MIT</string>
     <string name="metroverse_onnx_attribution">本機模型推論執行階段 1.23.2 · MIT 授權。</string>
     <string name="metroverse_innertubex_attribution">YouTube Music 音訊串流擷取及解密引擎 0.5.2 · GPL-3.0 授權。</string>
     <string name="podcast_subtitle_asr_preparing">正在準備辨識…</string>
@@ -930,7 +930,7 @@
     <string name="podcast_asr_language_model">%1$s 辨識模型</string>
     <string name="ai_provider_custom">自訂</string>
     <string name="ai_lyrics_translation_group">歌詞翻譯</string>
-    <string name="podcast_asr_model_information">模型資訊: Moonshine Streaming Small — %1$s</string>
+    <string name="podcast_asr_model_information">模型資訊: %2$s — %1$s</string>
     <string name="podcast_asr_model_size">模型大小: %1$s</string>
     <string name="podcast_asr_model_not_downloaded">未下載, 約 %1$s</string>
     <string name="podcast_asr_model_ready_size">模型已就緒，%1$s</string>
@@ -941,4 +941,7 @@
     <string name="queue_stop_after_each">播完即停</string>
     <string name="show_queue_stop_after_each">顯示「播完即停」模式</string>
     <string name="show_queue_stop_after_each_desc">在本機播放器和播放清單的隨機按鈕中加入此模式。關閉後也會解除目前佇列的播完即停。</string>
+    <string name="podcast_asr_language_ar">阿拉伯語</string>
+    <string name="podcast_asr_language_tl">他加祿語</string>
+    <string name="podcast_asr_language_vi">越南語</string>
 </resources>

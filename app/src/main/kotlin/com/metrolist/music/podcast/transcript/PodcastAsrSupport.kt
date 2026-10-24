@@ -5,6 +5,9 @@
 
 package com.metrolist.music.podcast.transcript
 
+import java.text.BreakIterator
+import java.util.Locale
+
 /** Pure helpers shared by the on-device podcast transcription pipeline. JVM-testable. */
 object PodcastAsrSupport {
 
@@ -25,17 +28,38 @@ object PodcastAsrSupport {
 
         val pieces = ((duration + MAX_ASR_CUE_DURATION_MS - 1) / MAX_ASR_CUE_DURATION_MS).toInt()
         val words = cue.text.split(' ').filter { it.isNotBlank() }
-        if (pieces <= 1 || words.size < pieces) return listOf(cue)
+        if (pieces <= 1) return listOf(cue)
+        // Mandarin/Japanese output has no word spaces; keep grapheme clusters intact when splitting it.
+        val splitByCharacter = words.size == 1 && cue.text.codePoints().anyMatch {
+            Character.UnicodeScript.of(it) in setOf(
+                Character.UnicodeScript.HAN, Character.UnicodeScript.HIRAGANA, Character.UnicodeScript.KATAKANA,
+            )
+        }
+        val units = if (splitByCharacter) {
+            val iterator = BreakIterator.getCharacterInstance(Locale.ROOT)
+            iterator.setText(cue.text)
+            buildList {
+                var start = iterator.first()
+                var end = iterator.next()
+                while (end != BreakIterator.DONE) {
+                    add(cue.text.substring(start, end))
+                    start = end
+                    end = iterator.next()
+                }
+            }
+        } else words
+        if (units.size < pieces) return listOf(cue)
 
-        val perPiece = words.size / pieces.toDouble()
-        val boundaries = (1 until pieces).map { index -> (index * perPiece).toInt().coerceIn(1, words.size - 1) }
+        val perPiece = units.size / pieces.toDouble()
+        val boundaries = (1 until pieces).map { index -> (index * perPiece).toInt().coerceIn(1, units.size - 1) }
+        val separator = if (splitByCharacter) "" else " "
         val chunks = buildList {
             var start = 0
             boundaries.forEach { boundary ->
-                add(words.subList(start, boundary).joinToString(" "))
+                add(units.subList(start, boundary).joinToString(separator))
                 start = boundary
             }
-            add(words.subList(start, words.size).joinToString(" "))
+            add(units.subList(start, units.size).joinToString(separator))
         }
 
         val totalChars = chunks.sumOf { it.length }.coerceAtLeast(1)

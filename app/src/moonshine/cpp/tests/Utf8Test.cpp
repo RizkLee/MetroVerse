@@ -9,6 +9,8 @@ int main() {
     using metroverse::utf8ToUtf16;
     assert(utf8ToUtf16(u8"字幕 café العربية 😀") == u"字幕 café العربية 😀");
     assert(utf16ToUtf8(u"字幕 café العربية 😀") == u8"字幕 café العربية 😀");
+    assert(utf8ToUtf16(u8"普通话 العربية Tagalog Tiếng Việt 𠀀") == u"普通话 العربية Tagalog Tiếng Việt 𠀀");
+    assert(utf16ToUtf8(u"普通话 العربية Tagalog Tiếng Việt 𠀀") == u8"普通话 العربية Tagalog Tiếng Việt 𠀀");
     assert(utf8ToUtf16(std::string("a\0b", 3)) == std::u16string(u"a\0b", 3));
     assert(utf8ToUtf16("\xc0\xaf") == u"\ufffd\ufffd");
     assert(utf8ToUtf16("\xf4\x90\x80\x80") == u"\ufffd\ufffd\ufffd\ufffd");

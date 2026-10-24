@@ -59,7 +59,7 @@ internal fun AsrModelDownloadDialog(
                 ModelNoticeRow(
                     icon = R.drawable.language,
                     tint = MaterialTheme.colorScheme.primary,
-                    text = stringResource(R.string.podcast_asr_model_information, language.nativeName),
+                    text = stringResource(R.string.podcast_asr_model_information, asrLanguageName(language.code), language.modelVariant.displayName),
                 )
                 ModelNoticeRow(
                     icon = R.drawable.file_save,

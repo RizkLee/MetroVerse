@@ -29,12 +29,20 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.metrolist.music.R
+import com.metrolist.music.podcast.transcript.AsrLanguage
 import com.metrolist.music.podcast.transcript.AsrLanguageSelection
 import java.util.Locale
 
 @Composable
 internal fun asrLanguageName(code: String?): String {
     val locale = LocalConfiguration.current.locales[0]
+    when (AsrLanguage.fromCode(code)) {
+        AsrLanguage.MANDARIN -> return stringResource(R.string.podcast_asr_language_zh)
+        AsrLanguage.ARABIC -> return stringResource(R.string.podcast_asr_language_ar)
+        AsrLanguage.TAGALOG -> return stringResource(R.string.podcast_asr_language_tl)
+        AsrLanguage.VIETNAMESE -> return stringResource(R.string.podcast_asr_language_vi)
+        else -> Unit
+    }
     return code?.let { Locale.forLanguageTag(it).getDisplayLanguage(locale).ifBlank { it } }
         ?: stringResource(R.string.podcast_subtitle_loading)
 }

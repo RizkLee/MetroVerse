@@ -828,7 +828,7 @@
     <string name="podcast_subtitles_bilingual_desc">번역과 함께 원문을 표시합니다</string>
     <string name="podcast_asr_language">인식 언어</string>
     <string name="podcast_asr_language_auto">자동 감지</string>
-    <string name="podcast_asr_language_zh">중국어</string>
+    <string name="podcast_asr_language_zh">중국어(표준어)</string>
     <string name="podcast_asr_language_en">영어</string>
     <string name="podcast_subtitle_delete_model">인식 모델 삭제</string>
     <string name="podcast_subtitle_delete_model_confirm">모델을 삭제할까요? 생성된 자막은 유지됩니다.</string>
@@ -872,7 +872,7 @@
     <string name="podcast_subtitle_save_failed">자막을 저장하지 못했습니다. 현재 자막은 계속 볼 수 있습니다.</string>
     <string name="podcast_subtitle_retry_save">자막 저장 다시 시도</string>
     <string name="podcast_asr_performance_notice">많은 메모리와 높은 처리 성능이 필요합니다.</string>
-    <string name="metroverse_moonshine_attribution">Small Streaming · English / Deutsch / Español / 日本語 · Moonshine Voice 0.1.5 · MIT</string>
+    <string name="metroverse_moonshine_attribution">Small / Tiny Streaming · English / Deutsch / Español / 日本語 / 普通话 / العربية / Tagalog / Tiếng Việt · Moonshine Voice 0.1.5 · MIT</string>
     <string name="metroverse_onnx_attribution">기기 내 모델 추론 런타임, 버전 1.23.2 · MIT 라이선스.</string>
     <string name="metroverse_innertubex_attribution">YouTube Music 스트림 추출 및 복호화 엔진, 버전 0.5.2 · GPL-3.0.</string>
     <string name="podcast_subtitle_asr_preparing">인식 준비 중…</string>
@@ -890,7 +890,7 @@
     <string name="podcast_asr_language_model">%1$s 음성 인식 모델</string>
     <string name="ai_provider_custom">사용자 지정</string>
     <string name="ai_lyrics_translation_group">가사 번역</string>
-    <string name="podcast_asr_model_information">모델 정보: Moonshine Streaming Small — %1$s</string>
+    <string name="podcast_asr_model_information">모델 정보: %2$s — %1$s</string>
     <string name="podcast_asr_model_size">모델 크기: %1$s</string>
     <string name="podcast_asr_model_not_downloaded">다운로드 안 됨, 약 %1$s</string>
     <string name="podcast_asr_model_ready_size">모델 준비됨, %1$s</string>
@@ -901,4 +901,7 @@
     <string name="queue_stop_after_each">각 항목 재생 후 정지</string>
     <string name="show_queue_stop_after_each">각 항목 재생 후 정지 표시</string>
     <string name="show_queue_stop_after_each_desc">기기 플레이어와 재생 대기열의 셔플 버튼에 이 모드를 추가합니다. 이 설정을 끄면 사용 중인 모드도 해제됩니다.</string>
+    <string name="podcast_asr_language_ar">아랍어</string>
+    <string name="podcast_asr_language_tl">타갈로그어</string>
+    <string name="podcast_asr_language_vi">베트남어</string>
 </resources>

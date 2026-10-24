@@ -896,7 +896,7 @@
     <string name="podcast_subtitles_bilingual_desc">翻訳とともに原文を表示します</string>
     <string name="podcast_asr_language">認識言語</string>
     <string name="podcast_asr_language_auto">自動検出</string>
-    <string name="podcast_asr_language_zh">中国語</string>
+    <string name="podcast_asr_language_zh">中国語（標準語）</string>
     <string name="podcast_asr_language_en">英語</string>
     <string name="podcast_subtitle_delete_model">認識モデルを削除</string>
     <string name="podcast_subtitle_delete_model_confirm">モデルを削除しますか？生成済みの字幕は保持されます。</string>
@@ -940,7 +940,7 @@
     <string name="podcast_subtitle_save_failed">字幕を保存できませんでした。現在の字幕は引き続き表示できます。</string>
     <string name="podcast_subtitle_retry_save">字幕の保存を再試行</string>
     <string name="podcast_asr_performance_notice">多くのメモリと高い処理性能が必要です。</string>
-    <string name="metroverse_moonshine_attribution">Small Streaming · English / Deutsch / Español / 日本語 · Moonshine Voice 0.1.5 · MIT</string>
+    <string name="metroverse_moonshine_attribution">Small / Tiny Streaming · English / Deutsch / Español / 日本語 / 普通话 / العربية / Tagalog / Tiếng Việt · Moonshine Voice 0.1.5 · MIT</string>
     <string name="metroverse_onnx_attribution">端末内でモデルを実行するランタイム、バージョン 1.23.2 · MIT ライセンス。</string>
     <string name="metroverse_innertubex_attribution">YouTube Music のストリーム取得・復号エンジン、バージョン 0.5.2 · GPL-3.0。</string>
     <string name="podcast_subtitle_asr_preparing">認識を準備中…</string>
@@ -958,7 +958,7 @@
     <string name="podcast_asr_language_model">%1$s の音声認識モデル</string>
     <string name="ai_provider_custom">カスタム</string>
     <string name="ai_lyrics_translation_group">歌詞翻訳</string>
-    <string name="podcast_asr_model_information">モデル情報: Moonshine Streaming Small — %1$s</string>
+    <string name="podcast_asr_model_information">モデル情報: %2$s — %1$s</string>
     <string name="podcast_asr_model_size">モデルサイズ: %1$s</string>
     <string name="podcast_asr_model_not_downloaded">未ダウンロード、約 %1$s</string>
     <string name="podcast_asr_model_ready_size">モデル準備完了、%1$s</string>
@@ -969,4 +969,7 @@
     <string name="queue_stop_after_each">1曲・1話ごとに停止</string>
     <string name="show_queue_stop_after_each">1曲・1話ごとに停止を表示</string>
     <string name="show_queue_stop_after_each_desc">端末のプレーヤーと再生キューのシャッフルボタンにこのモードを追加します。オフにすると使用中のモードも解除されます。</string>
+    <string name="podcast_asr_language_ar">アラビア語</string>
+    <string name="podcast_asr_language_tl">タガログ語</string>
+    <string name="podcast_asr_language_vi">ベトナム語</string>
 </resources>

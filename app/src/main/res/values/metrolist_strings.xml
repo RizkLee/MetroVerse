@@ -1145,7 +1145,7 @@
     <string name="podcast_subtitle_share_failed">Could not create the subtitle image</string>
     <string name="podcast_asr_language">Recognition language</string>
     <string name="podcast_asr_language_auto">Auto detect</string>
-    <string name="podcast_asr_language_zh">Chinese</string>
+    <string name="podcast_asr_language_zh">Mandarin Chinese</string>
     <string name="podcast_asr_language_en">English</string>
     <string name="podcast_subtitle_delete_model">Delete recognition model</string>
     <string name="podcast_subtitle_delete_model_confirm">Delete the model? Generated subtitles will stay.</string>
@@ -1184,7 +1184,7 @@
     <string name="podcast_subtitle_save_failed">Could not save subtitles. The current subtitles are still available.</string>
     <string name="podcast_subtitle_retry_save">Retry saving subtitles</string>
     <string name="podcast_asr_performance_notice">Requires substantial memory and processing power.</string>
-    <string name="metroverse_moonshine_attribution">Small Streaming · English / Deutsch / Español / 日本語 · Moonshine Voice 0.1.5 · MIT</string>
+    <string name="metroverse_moonshine_attribution">Small / Tiny Streaming · English / Deutsch / Español / 日本語 / 普通话 / العربية / Tagalog / Tiếng Việt · Moonshine Voice 0.1.5 · MIT</string>
     <string name="metroverse_onnx_attribution">On-device inference runtime, version 1.23.2 · MIT license.</string>
     <string name="metroverse_innertubex_attribution">YouTube Music stream extraction and cipher engine, version 0.5.2 · GPL-3.0.</string>
     <string name="podcast_subtitle_asr_preparing">Preparing recognition…</string>
@@ -1202,7 +1202,7 @@
     <string name="podcast_asr_language_model">%1$s recognition model</string>
     <string name="ai_provider_custom">Custom</string>
     <string name="ai_lyrics_translation_group">Lyrics translation</string>
-    <string name="podcast_asr_model_information">Model information: Moonshine Streaming Small — %1$s</string>
+    <string name="podcast_asr_model_information">Model information: %2$s — %1$s</string>
     <string name="podcast_asr_model_size">Model size: %1$s</string>
     <string name="podcast_asr_model_not_downloaded">Not downloaded, about %1$s</string>
     <string name="podcast_asr_model_ready_size">Model ready, %1$s</string>
@@ -1213,4 +1213,7 @@
     <string name="queue_stop_after_each">Stop after each item</string>
     <string name="show_queue_stop_after_each">Show stop after each item</string>
     <string name="show_queue_stop_after_each_desc">Add this mode to the shuffle button in the local player and queue. Turning this off also deactivates the mode.</string>
+    <string name="podcast_asr_language_ar">Arabic</string>
+    <string name="podcast_asr_language_tl">Tagalog</string>
+    <string name="podcast_asr_language_vi">Vietnamese</string>
 </resources>

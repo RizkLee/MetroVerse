@@ -22,7 +22,7 @@ internal object MoonshineNative {
         System.loadLibrary("metroverse_moonshine")
     }
 
-    external fun create(modelDirectory: String): Int
+    external fun create(modelDirectory: String, modelArchitecture: Int): Int
     external fun createStream(handle: Int): Int
     external fun acceptAudio(handle: Int, stream: Int, samples: FloatArray): Array<MoonshineLine>
     external fun finishStream(handle: Int, stream: Int): Array<MoonshineLine>

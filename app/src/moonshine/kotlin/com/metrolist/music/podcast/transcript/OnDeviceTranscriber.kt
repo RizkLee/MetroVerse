@@ -68,7 +68,7 @@ class OnDeviceTranscriber @Inject constructor(
                 var lastStableCues: List<SubtitleCue>? = null
                 var visibleCues = savedCues
                 diagnostics.resume(resumePositionMs, processedRanges.sumOf { it.endMs - it.startMs }, retainedCues.size, recoveryReason)
-                val handle = MoonshineNative.create(directory.absolutePath)
+                val handle = MoonshineNative.create(directory.absolutePath, language.modelVariant.nativeArchitecture)
                 var publishCheckpoint: (() -> Unit)? = null
 
                 try {

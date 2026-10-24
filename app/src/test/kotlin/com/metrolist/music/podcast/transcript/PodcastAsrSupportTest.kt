@@ -55,6 +55,36 @@ class PodcastAsrSupportTest {
     }
 
     @Test
+    fun `Mandarin cues without spaces are split without dropping text or breaking Unicode`() {
+        val text = "这是一段普通话播客字幕测试，包含汉字𠀀和表情😀以及带音调的字母a\u0301。"
+        val cue = SubtitleCue(5_000, 35_000, text)
+        val split = PodcastAsrSupport.splitLongCue(cue)
+        assertEquals(3, split.size)
+        assertEquals(text, split.joinToString("") { it.text })
+        assertEquals(cue.startMs, split.first().startMs)
+        assertEquals(cue.endMs, split.last().endMs)
+        split.zipWithNext().forEach { (first, second) -> assertEquals(first.endMs, second.startMs) }
+        split.forEach {
+            assertFalse(Character.isLowSurrogate(it.text.first()))
+            assertFalse(Character.isHighSurrogate(it.text.last()))
+            assertFalse(it.text.startsWith("\u0301"))
+        }
+    }
+
+    @Test
+    fun `Arabic Tagalog and Vietnamese words keep their original Unicode text`() {
+        listOf(
+            "هذه ترجمة عربية لاختبار التعرف على الكلام دون فقدان الحروف والحركات",
+            "Ito ay pagsubok ng pagkilala sa pagsasalita para sa mga podcast",
+            "Đây là bài kiểm tra nhận dạng giọng nói tiếng Việt có dấu",
+        ).forEach { text ->
+            val split = PodcastAsrSupport.splitLongCue(SubtitleCue(0, 25_000, text))
+            assertEquals(3, split.size)
+            assertEquals(text, split.joinToString(" ") { it.text })
+        }
+    }
+
+    @Test
     fun `cueIndexAt finds covering cue and falls back to last started cue`() {
         val cues = listOf(
             SubtitleCue(0, 1_000, "a"),

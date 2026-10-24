@@ -928,7 +928,7 @@
     <string name="podcast_subtitles_bilingual_desc">Mostra a linha original junto com a tradução</string>
     <string name="podcast_asr_language">Idioma do reconhecimento</string>
     <string name="podcast_asr_language_auto">Detecção automática</string>
-    <string name="podcast_asr_language_zh">Chinês</string>
+    <string name="podcast_asr_language_zh">Chinês mandarim</string>
     <string name="podcast_asr_language_en">Inglês</string>
     <string name="podcast_subtitle_delete_model">Excluir modelo de reconhecimento</string>
     <string name="podcast_subtitle_delete_model_confirm">Excluir o modelo? As legendas geradas serão mantidas.</string>
@@ -972,7 +972,7 @@
     <string name="podcast_subtitle_save_failed">Não foi possível salvar as legendas. As legendas atuais continuam disponíveis.</string>
     <string name="podcast_subtitle_retry_save">Tentar salvar as legendas novamente</string>
     <string name="podcast_asr_performance_notice">Exige bastante memória e capacidade de processamento.</string>
-    <string name="metroverse_moonshine_attribution">Small Streaming · English / Deutsch / Español / 日本語 · Moonshine Voice 0.1.5 · MIT</string>
+    <string name="metroverse_moonshine_attribution">Small / Tiny Streaming · English / Deutsch / Español / 日本語 / 普通话 / العربية / Tagalog / Tiếng Việt · Moonshine Voice 0.1.5 · MIT</string>
     <string name="metroverse_onnx_attribution">Runtime de inferência no dispositivo, versão 1.23.2 · Licença MIT.</string>
     <string name="metroverse_innertubex_attribution">Mecanismo de extração e decodificação de fluxos do YouTube Music, versão 0.5.2 · GPL-3.0.</string>
     <string name="podcast_subtitle_asr_preparing">Preparando reconhecimento…</string>
@@ -990,7 +990,7 @@
     <string name="podcast_asr_language_model">Modelo de reconhecimento: %1$s</string>
     <string name="ai_provider_custom">Personalizado</string>
     <string name="ai_lyrics_translation_group">Tradução de letras</string>
-    <string name="podcast_asr_model_information">Informações do modelo: Moonshine Streaming Small — %1$s</string>
+    <string name="podcast_asr_model_information">Informações do modelo: %2$s — %1$s</string>
     <string name="podcast_asr_model_size">Tamanho do modelo: %1$s</string>
     <string name="podcast_asr_model_not_downloaded">Não baixado, cerca de %1$s</string>
     <string name="podcast_asr_model_ready_size">Modelo pronto, %1$s</string>
@@ -1001,4 +1001,7 @@
     <string name="queue_stop_after_each">Parar após cada item</string>
     <string name="show_queue_stop_after_each">Mostrar parar após cada item</string>
     <string name="show_queue_stop_after_each_desc">Adiciona este modo ao botão aleatório do player local e da fila. Ocultar também desativa o modo.</string>
+    <string name="podcast_asr_language_ar">Árabe</string>
+    <string name="podcast_asr_language_tl">Tagalo</string>
+    <string name="podcast_asr_language_vi">Vietnamita</string>
 </resources>

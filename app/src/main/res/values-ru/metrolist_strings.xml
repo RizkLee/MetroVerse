@@ -943,7 +943,7 @@
     <string name="podcast_subtitles_bilingual_desc">Показывать оригинальную строку вместе с переводом</string>
     <string name="podcast_asr_language">Язык распознавания</string>
     <string name="podcast_asr_language_auto">Автоопределение</string>
-    <string name="podcast_asr_language_zh">Китайский</string>
+    <string name="podcast_asr_language_zh">Китайский (путунхуа)</string>
     <string name="podcast_asr_language_en">Английский</string>
     <string name="podcast_subtitle_delete_model">Удалить модель распознавания</string>
     <string name="podcast_subtitle_delete_model_confirm">Удалить модель? Созданные субтитры сохранятся.</string>
@@ -987,7 +987,7 @@
     <string name="podcast_subtitle_save_failed">Не удалось сохранить субтитры. Текущие субтитры по-прежнему доступны.</string>
     <string name="podcast_subtitle_retry_save">Повторить сохранение субтитров</string>
     <string name="podcast_asr_performance_notice">Требует много памяти и вычислительных ресурсов.</string>
-    <string name="metroverse_moonshine_attribution">Small Streaming · English / Deutsch / Español / 日本語 · Moonshine Voice 0.1.5 · MIT</string>
+    <string name="metroverse_moonshine_attribution">Small / Tiny Streaming · English / Deutsch / Español / 日本語 / 普通话 / العربية / Tagalog / Tiếng Việt · Moonshine Voice 0.1.5 · MIT</string>
     <string name="metroverse_onnx_attribution">Среда локального выполнения моделей, версия 1.23.2 · Лицензия MIT.</string>
     <string name="metroverse_innertubex_attribution">Механизм извлечения и расшифровки потоков YouTube Music, версия 0.5.2 · GPL-3.0.</string>
     <string name="podcast_subtitle_asr_preparing">Подготовка распознавания…</string>
@@ -1005,7 +1005,7 @@
     <string name="podcast_asr_language_model">Модель распознавания: %1$s</string>
     <string name="ai_provider_custom">Пользовательский</string>
     <string name="ai_lyrics_translation_group">Перевод текстов песен</string>
-    <string name="podcast_asr_model_information">Модель: Moonshine Streaming Small — %1$s</string>
+    <string name="podcast_asr_model_information">Модель: %2$s — %1$s</string>
     <string name="podcast_asr_model_size">Размер модели: %1$s</string>
     <string name="podcast_asr_model_not_downloaded">Не загружена, около %1$s</string>
     <string name="podcast_asr_model_ready_size">Модель готова, %1$s</string>
@@ -1016,4 +1016,7 @@
     <string name="queue_stop_after_each">Останавливать после каждого трека</string>
     <string name="show_queue_stop_after_each">Показывать остановку после каждого трека</string>
     <string name="show_queue_stop_after_each_desc">Добавляет этот режим к кнопке перемешивания в локальном плеере и очереди. Выключение настройки также отключает режим.</string>
+    <string name="podcast_asr_language_ar">Арабский</string>
+    <string name="podcast_asr_language_tl">Тагальский</string>
+    <string name="podcast_asr_language_vi">Вьетнамский</string>
 </resources>
