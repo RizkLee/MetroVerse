@@ -1,6 +1,7 @@
 package com.metrolist.music.podcast
 
 import android.content.Context
+import com.metrolist.music.R
 import com.metrolist.music.db.MusicDatabase
 import com.metrolist.music.db.entities.PodcastEntity
 import com.metrolist.music.models.MediaMetadata
@@ -116,7 +117,7 @@ class PodcastRepository @Inject constructor(
         item: PodcastDiscoverItem,
         subscribe: Boolean = false,
     ): PodcastEntity {
-        val feedUrl = item.feedUrl ?: resolveAppleFeedUrl(item.appleId)
+        val feedUrl = item.feedUrl?.trim()?.takeIf(String::isNotEmpty) ?: resolveAppleFeedUrl(item.appleId)
         return fetchFeed(feedUrl, subscribe)
     }
 
@@ -232,10 +233,9 @@ class PodcastRepository @Inject constructor(
             header(HttpHeaders.UserAgent, PODCAST_USER_AGENT)
         }
         check(response.status.isSuccess()) { "Apple Podcasts lookup failed (${response.status.value})" }
-        return json.decodeFromString<ApplePodcastLookupResponse>(response.bodyAsText())
-            .results
-            .firstNotNullOfOrNull { it.feedUrl }
-            ?: error("This podcast does not expose an RSS feed")
+        val result = json.decodeFromString<ApplePodcastLookupResponse>(response.bodyAsText())
+        return resolveApplePodcastFeedUrl(appleId, result.results.map { it.feedUrl })
+            ?: error(context.getString(R.string.podcast_feed_unavailable))
     }
 
     private fun defaultCountry(): String =

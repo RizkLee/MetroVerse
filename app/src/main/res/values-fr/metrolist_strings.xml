@@ -1012,4 +1012,5 @@
     <string name="podcast_asr_language_ar">Arabe</string>
     <string name="podcast_asr_language_tl">Tagalog</string>
     <string name="podcast_asr_language_vi">Vietnamien</string>
+    <string name="podcast_feed_unavailable">Apple Podcasts ne fournit pas d’adresse RSS pour cette émission.</string>
 </resources>

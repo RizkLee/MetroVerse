@@ -904,4 +904,5 @@
     <string name="podcast_asr_language_ar">아랍어</string>
     <string name="podcast_asr_language_tl">타갈로그어</string>
     <string name="podcast_asr_language_vi">베트남어</string>
+    <string name="podcast_feed_unavailable">Apple Podcasts에서 이 프로그램의 RSS 주소를 제공하지 않습니다.</string>
 </resources>

@@ -1216,4 +1216,5 @@
     <string name="podcast_asr_language_ar">Arabic</string>
     <string name="podcast_asr_language_tl">Tagalog</string>
     <string name="podcast_asr_language_vi">Vietnamese</string>
+    <string name="podcast_feed_unavailable">Apple Podcasts did not provide an RSS address for this show.</string>
 </resources>

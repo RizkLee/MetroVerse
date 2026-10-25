@@ -1005,4 +1005,5 @@
     <string name="podcast_asr_language_ar">Arabisch</string>
     <string name="podcast_asr_language_tl">Tagalog</string>
     <string name="podcast_asr_language_vi">Vietnamesisch</string>
+    <string name="podcast_feed_unavailable">Apple Podcasts stellt für diese Sendung keine RSS-Adresse bereit.</string>
 </resources>

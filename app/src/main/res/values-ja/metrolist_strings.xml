@@ -972,4 +972,5 @@
     <string name="podcast_asr_language_ar">アラビア語</string>
     <string name="podcast_asr_language_tl">タガログ語</string>
     <string name="podcast_asr_language_vi">ベトナム語</string>
+    <string name="podcast_feed_unavailable">Apple Podcasts からこの番組の RSS アドレスを取得できません。</string>
 </resources>

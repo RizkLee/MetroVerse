@@ -1005,4 +1005,5 @@
     <string name="podcast_asr_language_ar">Arabo</string>
     <string name="podcast_asr_language_tl">Tagalog</string>
     <string name="podcast_asr_language_vi">Vietnamita</string>
+    <string name="podcast_feed_unavailable">Apple Podcasts non fornisce un indirizzo RSS per questo programma.</string>
 </resources>

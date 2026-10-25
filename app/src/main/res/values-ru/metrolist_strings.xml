@@ -1019,4 +1019,5 @@
     <string name="podcast_asr_language_ar">Арабский</string>
     <string name="podcast_asr_language_tl">Тагальский</string>
     <string name="podcast_asr_language_vi">Вьетнамский</string>
+    <string name="podcast_feed_unavailable">Apple Podcasts не предоставляет RSS-адрес этого подкаста.</string>
 </resources>

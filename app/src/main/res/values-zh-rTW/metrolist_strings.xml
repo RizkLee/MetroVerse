@@ -944,4 +944,5 @@
     <string name="podcast_asr_language_ar">阿拉伯語</string>
     <string name="podcast_asr_language_tl">他加祿語</string>
     <string name="podcast_asr_language_vi">越南語</string>
+    <string name="podcast_feed_unavailable">Apple Podcasts 未提供此節目的 RSS 位址，暫時無法開啟。</string>
 </resources>
