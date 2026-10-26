@@ -176,6 +176,7 @@ import com.metrolist.music.ui.component.AccountSettingsDialog
 import com.metrolist.music.ui.component.AppNavigationBar
 import com.metrolist.music.ui.component.AppNavigationRail
 import com.metrolist.music.ui.component.AutomaticUpdateChecker
+import com.metrolist.music.ui.component.AsrExitNoticeHost
 import com.metrolist.music.ui.component.BottomSheetMenu
 import com.metrolist.music.ui.component.BottomSheetPage
 import com.metrolist.music.ui.component.LocalBottomSheetPageState
@@ -246,6 +247,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var podcastSubtitleManager: com.metrolist.music.podcast.transcript.PodcastSubtitleManager
+
+    @Inject
+    lateinit var asrExitDiagnostics: com.metrolist.music.podcast.transcript.AsrExitDiagnostics
 
     private lateinit var navController: NavHostController
     private var pendingIntent: Intent? = null
@@ -1322,6 +1326,8 @@ class MainActivity : ComponentActivity() {
                         state = LocalBottomSheetPageState.current,
                         modifier = Modifier.align(Alignment.BottomCenter),
                     )
+
+                    AsrExitNoticeHost(asrExitDiagnostics, podcastSubtitleManager)
 
                     if (showAccountDialog) {
                         AccountSettingsDialog(

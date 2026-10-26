@@ -978,4 +978,12 @@
     <string name="podcast_asr_model_next_task">選択は次回の認識から適用されます。既存のモデルと字幕は保持されます。</string>
     <string name="podcast_asr_use_model">このモデルを使用</string>
     <string name="podcast_asr_model_in_use">このモデルは使用中です。削除する前に認識を停止してください。</string>
+    <string name="podcast_asr_exit_title">%1$sの字幕認識が中断されました</string>
+    <string name="podcast_asr_exit_memory">前回の字幕認識中に、メモリの負荷により Android がアプリを終了しました。負荷の低い Tiny モデルをお試しください。</string>
+    <string name="podcast_asr_exit_memory_tiny">前回の字幕認識中に、メモリの負荷により Android がアプリを終了しました。当時すでに Tiny を使用していました。時間をおいて再試行するか、端末内認識を一時停止してください。</string>
+    <string name="podcast_asr_exit_native">字幕認識中にアプリのコンポーネントがクラッシュしました。システムの記録からは詳しい原因を特定できません。</string>
+    <string name="podcast_asr_exit_crash">字幕認識中にアプリがクラッシュしました。時間をおいて再試行してください。</string>
+    <string name="podcast_asr_exit_not_responding">字幕認識中にアプリが応答しなくなり、終了しました。時間をおいて再試行してください。</string>
+    <string name="podcast_asr_exit_unknown">前回の字幕認識が正常に終了しませんでした。Android から明確な終了理由は報告されていません。</string>
+    <string name="podcast_asr_choose_tiny">Tiny を選択</string>
 </resources>

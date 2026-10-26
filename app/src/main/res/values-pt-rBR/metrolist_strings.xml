@@ -1010,4 +1010,12 @@
     <string name="podcast_asr_model_next_task">A escolha será aplicada no próximo reconhecimento. Os modelos e as legendas existentes serão mantidos.</string>
     <string name="podcast_asr_use_model">Usar este modelo</string>
     <string name="podcast_asr_model_in_use">Este modelo está em uso. Pare o reconhecimento antes de excluí-lo.</string>
+    <string name="podcast_asr_exit_title">O reconhecimento de legendas em %1$s foi interrompido</string>
+    <string name="podcast_asr_exit_memory">O Android encerrou o app durante o último reconhecimento de legendas por pressão de memória. Experimente o modelo Tiny, que exige menos recursos.</string>
+    <string name="podcast_asr_exit_memory_tiny">O Android encerrou o app durante o último reconhecimento de legendas por pressão de memória. O Tiny já estava em uso. Tente mais tarde ou pause o reconhecimento no dispositivo.</string>
+    <string name="podcast_asr_exit_native">Um componente do app falhou durante o reconhecimento de legendas. O registro do sistema não identifica a causa exata.</string>
+    <string name="podcast_asr_exit_crash">O app falhou durante o reconhecimento de legendas. Tente novamente mais tarde.</string>
+    <string name="podcast_asr_exit_not_responding">O app parou de responder e foi fechado durante o reconhecimento de legendas. Tente novamente mais tarde.</string>
+    <string name="podcast_asr_exit_unknown">O último reconhecimento de legendas não terminou normalmente. O Android não informou um motivo claro.</string>
+    <string name="podcast_asr_choose_tiny">Escolher Tiny</string>
 </resources>

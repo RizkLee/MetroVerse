@@ -1011,4 +1011,12 @@
     <string name="podcast_asr_model_next_task">Die Auswahl gilt für die nächste Erkennung. Vorhandene Modelle und Untertitel bleiben erhalten.</string>
     <string name="podcast_asr_use_model">Dieses Modell verwenden</string>
     <string name="podcast_asr_model_in_use">Dieses Modell wird verwendet. Beende die Erkennung vor dem Löschen.</string>
+    <string name="podcast_asr_exit_title">Untertitelerkennung auf %1$s unterbrochen</string>
+    <string name="podcast_asr_exit_memory">Android hat die App bei der letzten Untertitelerkennung wegen Speicherdruck beendet. Versuche das ressourcenschonendere Tiny-Modell.</string>
+    <string name="podcast_asr_exit_memory_tiny">Android hat die App bei der letzten Untertitelerkennung wegen Speicherdruck beendet. Tiny wurde bereits verwendet. Versuche es später erneut oder pausiere die Erkennung auf dem Gerät.</string>
+    <string name="podcast_asr_exit_native">Während der Untertitelerkennung ist eine App-Komponente abgestürzt. Der Systemeintrag nennt keine genaue Ursache.</string>
+    <string name="podcast_asr_exit_crash">Die App ist während der Untertitelerkennung abgestürzt. Versuche es später erneut.</string>
+    <string name="podcast_asr_exit_not_responding">Die App hat während der Untertitelerkennung nicht mehr reagiert und wurde geschlossen. Versuche es später erneut.</string>
+    <string name="podcast_asr_exit_unknown">Die letzte Untertitelerkennung wurde nicht normal beendet. Android hat keinen eindeutigen Grund gemeldet.</string>
+    <string name="podcast_asr_choose_tiny">Tiny auswählen</string>
 </resources>

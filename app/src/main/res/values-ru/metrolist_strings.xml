@@ -1025,4 +1025,12 @@
     <string name="podcast_asr_model_next_task">Выбор применяется при следующем распознавании. Существующие модели и субтитры сохраняются.</string>
     <string name="podcast_asr_use_model">Использовать эту модель</string>
     <string name="podcast_asr_model_in_use">Модель используется. Остановите распознавание перед удалением.</string>
+    <string name="podcast_asr_exit_title">Распознавание субтитров на языке «%1$s» прервано</string>
+    <string name="podcast_asr_exit_memory">Во время последнего распознавания субтитров Android завершил приложение из-за нехватки памяти. Попробуйте модель Tiny с меньшими требованиями к ресурсам.</string>
+    <string name="podcast_asr_exit_memory_tiny">Во время последнего распознавания субтитров Android завершил приложение из-за нехватки памяти. Уже использовалась Tiny. Повторите попытку позже или приостановите локальное распознавание.</string>
+    <string name="podcast_asr_exit_native">Во время распознавания субтитров произошёл сбой компонента приложения. Системная запись не указывает точную причину.</string>
+    <string name="podcast_asr_exit_crash">Во время распознавания субтитров произошёл сбой приложения. Повторите попытку позже.</string>
+    <string name="podcast_asr_exit_not_responding">Во время распознавания субтитров приложение перестало отвечать и было закрыто. Повторите попытку позже.</string>
+    <string name="podcast_asr_exit_unknown">Последнее распознавание субтитров завершилось некорректно. Android не сообщил точную причину завершения.</string>
+    <string name="podcast_asr_choose_tiny">Выбрать Tiny</string>
 </resources>

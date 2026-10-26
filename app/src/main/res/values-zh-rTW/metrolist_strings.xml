@@ -950,4 +950,12 @@
     <string name="podcast_asr_model_next_task">所選模型將於下次辨識時使用，保留現有模型和字幕。</string>
     <string name="podcast_asr_use_model">使用此模型</string>
     <string name="podcast_asr_model_in_use">此模型正在使用中，請先停止辨識再刪除。</string>
+    <string name="podcast_asr_exit_title">上次%1$s字幕辨識中斷</string>
+    <string name="podcast_asr_exit_memory">上次辨識字幕時，系統因記憶體壓力結束了應用程式。建議嘗試資源需求較低的 Tiny 模型。</string>
+    <string name="podcast_asr_exit_memory_tiny">上次辨識字幕時，系統因記憶體壓力結束了應用程式。當時已使用 Tiny 模型，可稍後重試或暫時停止裝置端辨識。</string>
+    <string name="podcast_asr_exit_native">上次辨識字幕時，應用程式元件發生崩潰。系統記錄無法確定具體原因。</string>
+    <string name="podcast_asr_exit_crash">上次辨識字幕時，應用程式發生崩潰。可稍後重試。</string>
+    <string name="podcast_asr_exit_not_responding">上次辨識字幕時，應用程式因長時間沒有回應而退出。可稍後重試。</string>
+    <string name="podcast_asr_exit_unknown">上次字幕辨識未正常結束，系統未提供明確的退出原因。</string>
+    <string name="podcast_asr_choose_tiny">選擇 Tiny</string>
 </resources>

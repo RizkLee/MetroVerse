@@ -23,6 +23,7 @@ import kotlinx.coroutines.withContext
 @Singleton
 class OnDeviceTranscriber @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val exitDiagnostics: AsrExitDiagnostics,
 ) {
     private val modelStores = AsrModel.all.associateWith { model ->
         AsrModelStore(context, model.directory, MoonshineModelFiles.artifacts(model))
@@ -43,6 +44,9 @@ class OnDeviceTranscriber @Inject constructor(
         removeRetiredAsrModelFiles(context.filesDir)
     }
 
+    private suspend fun <T> withRecognitionDiagnostics(model: AsrModel, block: suspend () -> T): T =
+        withContext(Dispatchers.Default) { exitDiagnostics.track(model, block) }
+
     internal suspend fun transcribe(
         source: String,
         totalDurationMs: Long,
@@ -54,7 +58,7 @@ class OnDeviceTranscriber @Inject constructor(
         recoveryReason: String = "fresh",
         pollSeek: () -> AsrSeekTarget? = { null },
         onPartial: (AsrRecognitionSnapshot) -> Unit,
-    ): Result<AsrRecognitionSnapshot> = withContext(Dispatchers.Default) {
+    ): Result<AsrRecognitionSnapshot> = withRecognitionDiagnostics(language.model(variant)) {
         try {
             val result = store(language, variant).withModel { directory ->
                 val diagnostics = AsrDiagnostics()

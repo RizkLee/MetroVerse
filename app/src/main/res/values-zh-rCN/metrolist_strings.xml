@@ -1093,4 +1093,12 @@
     <string name="podcast_asr_model_next_task">所选模型将在下次识别时使用，保留已有模型和字幕。</string>
     <string name="podcast_asr_use_model">使用此模型</string>
     <string name="podcast_asr_model_in_use">此模型正在使用中，请先停止识别再删除。</string>
+    <string name="podcast_asr_exit_title">上次%1$s字幕识别中断</string>
+    <string name="podcast_asr_exit_memory">上次识别字幕时，系统因内存压力结束了应用。建议尝试资源占用较低的 Tiny 模型。</string>
+    <string name="podcast_asr_exit_memory_tiny">上次识别字幕时，系统因内存压力结束了应用。当时已使用 Tiny 模型，可稍后重试或暂时停止端侧识别。</string>
+    <string name="podcast_asr_exit_native">上次识别字幕时，应用组件发生崩溃。系统记录无法确定具体原因。</string>
+    <string name="podcast_asr_exit_crash">上次识别字幕时，应用发生崩溃。可稍后重试。</string>
+    <string name="podcast_asr_exit_not_responding">上次识别字幕时，应用因长时间无响应而退出。可稍后重试。</string>
+    <string name="podcast_asr_exit_unknown">上次字幕识别未正常结束，系统未提供明确的退出原因。</string>
+    <string name="podcast_asr_choose_tiny">选择 Tiny</string>
 </resources>

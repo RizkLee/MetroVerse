@@ -1018,4 +1018,12 @@
     <string name="podcast_asr_model_next_task">Le choix sera appliqué à la prochaine reconnaissance. Les modèles et sous-titres existants sont conservés.</string>
     <string name="podcast_asr_use_model">Utiliser ce modèle</string>
     <string name="podcast_asr_model_in_use">Ce modèle est utilisé. Arrêtez la reconnaissance avant de le supprimer.</string>
+    <string name="podcast_asr_exit_title">Reconnaissance des sous-titres en %1$s interrompue</string>
+    <string name="podcast_asr_exit_memory">Android a arrêté l’application pendant la dernière reconnaissance des sous-titres en raison de la pression mémoire. Essayez le modèle Tiny, moins gourmand en ressources.</string>
+    <string name="podcast_asr_exit_memory_tiny">Android a arrêté l’application pendant la dernière reconnaissance des sous-titres en raison de la pression mémoire. Tiny était déjà utilisé. Réessayez plus tard ou suspendez la reconnaissance locale.</string>
+    <string name="podcast_asr_exit_native">Un composant de l’application a planté pendant la reconnaissance des sous-titres. Le journal système ne précise pas la cause exacte.</string>
+    <string name="podcast_asr_exit_crash">L’application a planté pendant la reconnaissance des sous-titres. Réessayez plus tard.</string>
+    <string name="podcast_asr_exit_not_responding">L’application ne répondait plus et a été fermée pendant la reconnaissance des sous-titres. Réessayez plus tard.</string>
+    <string name="podcast_asr_exit_unknown">La dernière reconnaissance des sous-titres ne s’est pas terminée normalement. Android ne fournit pas de raison précise.</string>
+    <string name="podcast_asr_choose_tiny">Choisir Tiny</string>
 </resources>

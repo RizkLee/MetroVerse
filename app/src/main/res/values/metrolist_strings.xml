@@ -1222,4 +1222,12 @@
     <string name="podcast_asr_model_next_task">Your choice applies to the next recognition task. Existing models and subtitles are kept.</string>
     <string name="podcast_asr_use_model">Use this model</string>
     <string name="podcast_asr_model_in_use">This model is in use. Stop recognition before deleting it.</string>
+    <string name="podcast_asr_exit_title">%1$s subtitle recognition was interrupted</string>
+    <string name="podcast_asr_exit_memory">During the last subtitle recognition, Android ended the app due to memory pressure. Try the lighter Tiny model.</string>
+    <string name="podcast_asr_exit_memory_tiny">During the last subtitle recognition, Android ended the app due to memory pressure. Tiny was already in use. Try again later or pause on-device recognition.</string>
+    <string name="podcast_asr_exit_native">An app component crashed during subtitle recognition. The system record does not identify the exact cause.</string>
+    <string name="podcast_asr_exit_crash">The app crashed during subtitle recognition. Try again later.</string>
+    <string name="podcast_asr_exit_not_responding">The app stopped responding and was closed during subtitle recognition. Try again later.</string>
+    <string name="podcast_asr_exit_unknown">The last subtitle recognition did not finish normally. Android did not report a clear exit reason.</string>
+    <string name="podcast_asr_choose_tiny">Choose Tiny</string>
 </resources>

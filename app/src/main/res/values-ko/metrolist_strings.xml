@@ -910,4 +910,12 @@
     <string name="podcast_asr_model_next_task">선택한 모델은 다음 인식부터 사용됩니다. 기존 모델과 자막은 유지됩니다.</string>
     <string name="podcast_asr_use_model">이 모델 사용</string>
     <string name="podcast_asr_model_in_use">사용 중인 모델입니다. 삭제하기 전에 인식을 중지하세요.</string>
+    <string name="podcast_asr_exit_title">%1$s 자막 인식이 중단됨</string>
+    <string name="podcast_asr_exit_memory">지난 자막 인식 중 메모리 부족으로 Android가 앱을 종료했습니다. 리소스 사용량이 낮은 Tiny 모델을 사용해 보세요.</string>
+    <string name="podcast_asr_exit_memory_tiny">지난 자막 인식 중 메모리 부족으로 Android가 앱을 종료했습니다. 당시 이미 Tiny를 사용 중이었습니다. 나중에 다시 시도하거나 기기 내 인식을 잠시 중지하세요.</string>
+    <string name="podcast_asr_exit_native">자막 인식 중 앱 구성요소가 비정상 종료되었습니다. 시스템 기록으로는 정확한 원인을 알 수 없습니다.</string>
+    <string name="podcast_asr_exit_crash">자막 인식 중 앱이 비정상 종료되었습니다. 나중에 다시 시도하세요.</string>
+    <string name="podcast_asr_exit_not_responding">자막 인식 중 앱이 응답하지 않아 종료되었습니다. 나중에 다시 시도하세요.</string>
+    <string name="podcast_asr_exit_unknown">지난 자막 인식이 정상적으로 끝나지 않았습니다. Android에서 명확한 종료 원인을 제공하지 않았습니다.</string>
+    <string name="podcast_asr_choose_tiny">Tiny 선택</string>
 </resources>
