@@ -97,6 +97,58 @@ internal object MoonshineModelFiles {
     }
 
 
+    fun artifacts(model: AsrModel): List<AsrModelArtifact> {
+        if (model.variant == model.language.modelVariant) return artifacts(model.language)
+        return when (model.language) {
+            AsrLanguage.ENGLISH -> listOf(
+                artifact(model, "adapter.ort", 1319664, "22ecc949e146c49667fda28d102d4e30749a107dc88a396292aa8f277ef1347c"),
+                artifact(model, "cross_kv.ort", 1287544, "143a36667b8d05fd9d04e8c337b7ee121f37ef299aea6b3d82bdb3d3401950b4"),
+                artifact(model, "decoder_kv.ort", 32583720, "8852553f312adb6c9aa4d17418015049b30f412209ee569d336548c0044627de"),
+                artifact(model, "encoder.ort", 7675440, "a8414e1a5dedf9f2093d7680601dd8a9b0433e7020260eafe0e370ead91134ca"),
+                artifact(model, "frontend.model.ort", 23344, "5121b561417b638afce0c6c31b760e37c93cf97f80d9b0031aad1fe7b6f25d61"),
+                artifact(model, "frontend.weights.ort", 2093464, "217da24ac6f522ebf02da8ef288e77d1ac68d50d4a6821433182e4fbf4204bbd"),
+                artifact(model, "streaming_config.json", 509, "74fe5ddebd63b17caf59e8a3b18c17547ff7bce1642050edbb1c3962674f8950"),
+                artifact(model, "tokenizer.bin", 249974, "6884b35fd6377d4c4d32336a0bc152f36b64d1e45b6503683cdc238250a8472d"),
+            )
+            AsrLanguage.GERMAN -> listOf(
+                artifact(model, "adapter.ort", 1318472, "23b91142a35cfbc533a7f03ad8387d0b6d32856b465c6fe7a14ede44a254a345"),
+                artifact(model, "cross_kv.ort", 1288120, "25e6d9d4f16569c2ede7e23a381fe7c60cc4b0f141adc88580557d4530634f17"),
+                artifact(model, "decoder_kv.ort", 19717336, "768b1464074fc4fb7327e8b863fc13dcd12cb7bbe8d8e9428fa7292f7fd9ca6e"),
+                artifact(model, "encoder.ort", 7772792, "74610b818058e396f4b9d9ffd730cf8e36772122464d989dd3011dfa76bd6baf"),
+                artifact(model, "frontend.model.ort", 23176, "4445bb4c2f41b0dd993999e06dc9367a0dde0d42a2e777116e7d93be102dc43d"),
+                artifact(model, "frontend.weights.ort", 2093280, "233fda61d583403bbf13ea71b6ba2335fdf57eac71be85a97dcbb90a6c2f4186"),
+                artifact(model, "streaming_config.json", 509, "d31afd7c2dd5ee9ae3fa232312c5b42cb3e4fe1c6e9c53d885f2bea63023790a"),
+                artifact(model, "tokenizer.bin", 103319, "5725ad3771a1339802f8cebeda0fa8f7723f5282b1ee726c2544774d7399b9a7"),
+            )
+            AsrLanguage.SPANISH -> listOf(
+                artifact(model, "adapter.ort", 1318472, "2efd97cd2ee7d89578dd1d429a849be9fe37ac81dd9c4e1d31c8a2e7f85d43e6"),
+                artifact(model, "cross_kv.ort", 1288120, "9e268b1b3bb0f9ff79bca6e76055d41298de0a5ba52505ee04907a2642efa3ae"),
+                artifact(model, "decoder_kv.ort", 19717336, "7adf56b982df98e385d71823b9a40cf9296ae3a746efcf03f3d7bb4604032db0"),
+                artifact(model, "encoder.ort", 7772792, "ec9eb43a01fbfe242a2c6a86050cffe4a31050e1c9f084e98560d6c100004505"),
+                artifact(model, "frontend.model.ort", 23176, "9d19434b861de0c1d2aff52556911ae565cf3212ebe6d7f797c76c5c5066c2fc"),
+                artifact(model, "frontend.weights.ort", 2093280, "5e4d5471cd5d984d4b94a603d861539ebf1dc72de11b0cf13f38316725d5ce48"),
+                artifact(model, "streaming_config.json", 509, "d31afd7c2dd5ee9ae3fa232312c5b42cb3e4fe1c6e9c53d885f2bea63023790a"),
+                artifact(model, "tokenizer.bin", 102888, "5fbb7d4314dcb18e03c5f975609e4a4cd572b22b01d2b2accb1b3e6830696f36"),
+            )
+            AsrLanguage.JAPANESE -> listOf(
+                artifact(model, "adapter.ort", 1318472, "25f302e6203028e487d1b1f93db6fe5baf587373498062190160de70e0c4ae58"),
+                artifact(model, "cross_kv.ort", 1288120, "170ee70aeb3c82fd067193add0d1a8619cd16d4de80a5e0239dac12d956e8575"),
+                artifact(model, "decoder_kv.ort", 19717336, "ccc047610727f9fe039212a0b2370a7f970e80776376a229181a76998ff5af20"),
+                artifact(model, "encoder.ort", 7772792, "6420c180be55732d10db7a85f8966237bbbeee3b47addab4790ed81c22dde2cf"),
+                artifact(model, "frontend.model.ort", 27608, "c6fdee4c81d421617b9571e43cf952dc1e7e4f45d0cb1dbf13104ee8af4ffd45"),
+                artifact(model, "frontend.weights.ort", 2093288, "673a7177f030da9ce948daa1af44ec5425b6f0825348aacb80f6a01c18e42a07"),
+                artifact(model, "streaming_config.json", 509, "d31afd7c2dd5ee9ae3fa232312c5b42cb3e4fe1c6e9c53d885f2bea63023790a"),
+                artifact(model, "tokenizer.bin", 101836, "9f2599f20c3a9b03d79dbe122e443647c6589ce8e5c73e65e5c5d6f73485d5de"),
+            )
+            else -> error("Unsupported model variant")
+        }
+    }
+
+    private fun artifact(model: AsrModel, name: String, bytes: Long, sha256: String): AsrModelArtifact {
+        val baseUrl = "https://download.moonshine.ai/model/${model.variant.pathName}-${model.language.code}/quantized_${model.language.modelDate}"
+        return AsrModelArtifact(name, bytes, sha256, listOf("$baseUrl/$name"))
+    }
+
     private fun artifact(language: AsrLanguage, name: String, bytes: Long, sha256: String): AsrModelArtifact {
         val baseUrl = "https://download.moonshine.ai/model/${language.modelVariant.pathName}-${language.code}/quantized_${language.modelDate}"
         return AsrModelArtifact(name, bytes, sha256, listOf("$baseUrl/$name"))

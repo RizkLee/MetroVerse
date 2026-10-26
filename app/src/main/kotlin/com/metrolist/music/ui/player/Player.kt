@@ -452,6 +452,7 @@ fun BottomSheetPlayer(
     } == true
     val subtitleAsrLanguage = podcastSubtitleManager?.asrLanguage?.collectAsStateWithLifecycle()?.value
     val subtitleModelReady = podcastSubtitleManager?.asrModelReady?.collectAsStateWithLifecycle()?.value == true
+    val subtitleModelVariants = podcastSubtitleManager?.modelVariants?.collectAsStateWithLifecycle()?.value.orEmpty()
     val subtitleModelBusy = podcastSubtitleManager?.modelOperationBusy?.collectAsStateWithLifecycle()?.value == true
     val subtitleModelError = podcastSubtitleManager?.modelDownloadError?.collectAsStateWithLifecycle()?.value
     var showAsrModelDialog by rememberSaveable(mediaMetadata?.id) { mutableStateOf(false) }
@@ -2279,15 +2280,19 @@ fun BottomSheetPlayer(
 
         if (showAsrModelDialog) {
             val requestedEpisodeId = mediaMetadata?.id
+            val language = subtitleAsrLanguage?.language ?: com.metrolist.music.podcast.transcript.AsrLanguage.ENGLISH
             AsrModelDownloadDialog(
                 modelBytes = podcastSubtitleManager?.asrModelDownloadBytes() ?: 0L,
-                language = subtitleAsrLanguage?.language ?: com.metrolist.music.podcast.transcript.AsrLanguage.ENGLISH,
+                language = language,
+                initialVariant = subtitleModelVariants[language] ?: com.metrolist.music.podcast.transcript.AsrModelVariant.TINY_STREAMING,
                 startRecognitionAfterDownload = true,
                 onDismiss = { showAsrModelDialog = false },
-                onDownload = {
+                onDownload = { variant ->
                     showAsrModelDialog = false
-                    if (requestedEpisodeId != null && playerConnection.player.currentMediaItem?.mediaId == requestedEpisodeId) {
-                        launchOnDeviceTranscription(restartAfterModelDownload)
+                    podcastSubtitleManager?.selectAsrModel(language.model(variant)) {
+                        if (requestedEpisodeId != null && playerConnection.player.currentMediaItem?.mediaId == requestedEpisodeId) {
+                            launchOnDeviceTranscription(restartAfterModelDownload)
+                        }
                     }
                 },
             )

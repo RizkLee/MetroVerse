@@ -1054,7 +1054,7 @@
     <string name="podcast_asr_device_warning">实验性功能，识别时可能发热并增加耗电。</string>
     <string name="podcast_subtitle_save_failed">无法保存字幕，当前字幕仍可查看。</string>
     <string name="podcast_subtitle_retry_save">重试保存字幕</string>
-    <string name="podcast_asr_performance_notice">对手机内存和处理性能要求较高。</string>
+    <string name="podcast_asr_performance_notice">下载大小不代表运行时的内存需求，实际占用因模型和设备而异。</string>
     <string name="metroverse_moonshine_attribution">Small / Tiny Streaming · English / Deutsch / Español / 日本語 / 普通话 / العربية / Tagalog / Tiếng Việt · Moonshine Voice 0.1.5 · MIT</string>
     <string name="metroverse_onnx_attribution">本机模型推理运行库 1.23.2 · MIT 许可证。</string>
     <string name="metroverse_innertubex_attribution">YouTube Music 音频流提取及解密引擎 0.5.2 · GPL-3.0 许可证。</string>
@@ -1088,4 +1088,9 @@
     <string name="podcast_asr_language_tl">他加禄语</string>
     <string name="podcast_asr_language_vi">越南语</string>
     <string name="podcast_feed_unavailable">Apple Podcasts 未提供此节目的 RSS 地址，暂时无法打开。</string>
+    <string name="podcast_asr_tiny_description">内存和计算需求较低，识别准确率可能下降。</string>
+    <string name="podcast_asr_small_description">准确度优先，内存和计算需求较高。</string>
+    <string name="podcast_asr_model_next_task">所选模型将在下次识别时使用，保留已有模型和字幕。</string>
+    <string name="podcast_asr_use_model">使用此模型</string>
+    <string name="podcast_asr_model_in_use">此模型正在使用中，请先停止识别再删除。</string>
 </resources>

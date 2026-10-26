@@ -37,7 +37,9 @@ import com.metrolist.music.ui.utils.rememberEffectiveAppLanguageCode
 import com.metrolist.music.constants.PodcastAiSystemPromptKey
 import com.metrolist.music.constants.DEFAULT_PODCAST_AI_SYSTEM_PROMPT
 import com.metrolist.music.podcast.transcript.AsrLanguage
-import com.metrolist.music.ui.component.AsrModelDownloadDialog
+import com.metrolist.music.podcast.transcript.AsrModel
+import com.metrolist.music.podcast.transcript.AsrModelVariant
+import com.metrolist.music.ui.component.AsrModelManagementDialog
 import com.metrolist.music.ui.component.Material3SettingsGroup
 import com.metrolist.music.ui.component.Material3SettingsItem
 import com.metrolist.music.ui.component.TextFieldDialog
@@ -59,8 +61,12 @@ internal fun PodcastSubtitleSettings() {
     val operationLanguage = manager?.modelOperationLanguage?.collectAsStateWithLifecycle()?.value
     val progress = manager?.modelDownloadProgress?.collectAsStateWithLifecycle()?.value
     val error = manager?.modelDownloadError?.collectAsStateWithLifecycle()?.value
-    var downloadLanguage by remember { mutableStateOf<AsrLanguage?>(null) }
-    var deleteLanguage by remember { mutableStateOf<AsrLanguage?>(null) }
+    val variants = manager?.modelVariants?.collectAsStateWithLifecycle()?.value.orEmpty()
+    val readyModels = manager?.readyModels?.collectAsStateWithLifecycle()?.value.orEmpty()
+    val allSizes = manager?.allModelSizes?.collectAsStateWithLifecycle()?.value.orEmpty()
+    val modelsInUse = manager?.modelsInUse?.collectAsStateWithLifecycle()?.value.orEmpty()
+    var modelLanguage by remember { mutableStateOf<AsrLanguage?>(null) }
+    var deleteModel by remember { mutableStateOf<AsrModel?>(null) }
     if (showTargetLanguage) EnumDialog(
         title = stringResource(R.string.ai_target_language), current = targetLanguage,
         values = LanguageCodeToName.keys.sortedBy { LanguageCodeToName[it] },
@@ -80,23 +86,38 @@ internal fun PodcastSubtitleSettings() {
         },
     )
 
-    downloadLanguage?.let { language ->
-        AsrModelDownloadDialog(
-            modelBytes = manager?.asrModelDownloadBytes(language) ?: 0L,
+    modelLanguage?.let { language ->
+        AsrModelManagementDialog(
             language = language,
-            onDismiss = { downloadLanguage = null },
-            onDownload = { downloadLanguage = null; manager?.downloadAsrModel(language) },
+            initialVariant = variants[language] ?: AsrModelVariant.TINY_STREAMING,
+            readyModels = readyModels,
+            storageSizes = allSizes,
+            modelsInUse = modelsInUse,
+            busy = busy,
+            downloadProgress = progress,
+            error = error,
+            onDismiss = { modelLanguage = null },
+            onUse = { variant ->
+                modelLanguage = null
+                manager?.selectAsrModel(language.model(variant))
+            },
+            onDownload = { variant ->
+                manager?.let { controller ->
+                    controller.selectAsrModel(language.model(variant)) { controller.downloadAsrModel(language, variant) }
+                }
+            },
+            onDelete = { variant -> modelLanguage = null; deleteModel = language.model(variant) },
         )
     }
-    deleteLanguage?.let { language ->
+    deleteModel?.let { model ->
         AlertDialog(
-            onDismissRequest = { deleteLanguage = null },
+            onDismissRequest = { deleteModel = null },
             modifier = Modifier.padding(horizontal = 24.dp).widthIn(max = 320.dp).fillMaxWidth(),
             properties = DialogProperties(usePlatformDefaultWidth = false),
-            title = { Text(stringResource(R.string.podcast_subtitle_delete_model) + " · " + asrLanguageName(language.code)) },
+            title = { Text(stringResource(R.string.podcast_subtitle_delete_model) + " · " + asrLanguageName(model.language.code) + " · " + model.variant.displayName) },
             text = { Text(stringResource(R.string.podcast_subtitle_delete_model_confirm)) },
-            confirmButton = { TextButton(onClick = { manager?.deleteAsrModel(language); deleteLanguage = null }) { Text(stringResource(R.string.clear)) } },
-            dismissButton = { TextButton(onClick = { deleteLanguage = null }) { Text(stringResource(R.string.cancel)) } },
+            confirmButton = { TextButton(onClick = { manager?.deleteAsrModel(model.language, model.variant); deleteModel = null }) { Text(stringResource(R.string.clear)) } },
+            dismissButton = { TextButton(onClick = { deleteModel = null }) { Text(stringResource(R.string.cancel)) } },
         )
     }
 
@@ -127,10 +148,11 @@ internal fun PodcastSubtitleSettings() {
         ) + AsrLanguage.entries.map { language ->
             val modelReady = language in ready
             Material3SettingsItem(
-                icon = painterResource(if (modelReady) R.drawable.delete else R.drawable.download),
+                icon = painterResource(R.drawable.language),
                 title = { Text(stringResource(R.string.podcast_asr_language_model, asrLanguageName(language.code))) },
                 description = {
-                    Text(when {
+                    val variantName = if ((variants[language] ?: AsrModelVariant.TINY_STREAMING) == AsrModelVariant.TINY_STREAMING) "Tiny" else "Small"
+                    Text(variantName + " · " + when {
                         busy && operationLanguage == language && progress != null -> stringResource(
                             R.string.podcast_subtitle_asr_model_downloading,
                             if (progress.second > 0) (progress.first * 100 / progress.second).toInt().coerceIn(0, 100) else 0,
@@ -141,7 +163,7 @@ internal fun PodcastSubtitleSettings() {
                     })
                 },
                 enabled = manager != null && !busy,
-                onClick = { if (modelReady) deleteLanguage = language else downloadLanguage = language },
+                onClick = { modelLanguage = language },
             )
         },
     )

@@ -972,7 +972,7 @@
     <string name="podcast_asr_device_warning">Experimentell; die Erkennung kann Wärmeentwicklung und Akkuverbrauch erhöhen.</string>
     <string name="podcast_subtitle_save_failed">Untertitel konnten nicht gespeichert werden. Die aktuellen Untertitel bleiben sichtbar.</string>
     <string name="podcast_subtitle_retry_save">Untertitel erneut speichern</string>
-    <string name="podcast_asr_performance_notice">Benötigt viel Arbeitsspeicher und Rechenleistung.</string>
+    <string name="podcast_asr_performance_notice">Die Downloadgröße entspricht nicht dem Arbeitsspeicherbedarf. Dieser hängt vom Modell und Gerät ab.</string>
     <string name="metroverse_moonshine_attribution">Small / Tiny Streaming · English / Deutsch / Español / 日本語 / 普通话 / العربية / Tagalog / Tiếng Việt · Moonshine Voice 0.1.5 · MIT</string>
     <string name="metroverse_onnx_attribution">Laufzeit für lokale Modellinferenz, Version 1.23.2 · MIT-Lizenz.</string>
     <string name="metroverse_innertubex_attribution">Engine zum Abrufen und Entschlüsseln von YouTube-Music-Streams, Version 0.5.2 · GPL-3.0.</string>
@@ -1006,4 +1006,9 @@
     <string name="podcast_asr_language_tl">Tagalog</string>
     <string name="podcast_asr_language_vi">Vietnamesisch</string>
     <string name="podcast_feed_unavailable">Apple Podcasts stellt für diese Sendung keine RSS-Adresse bereit.</string>
+    <string name="podcast_asr_tiny_description">Benötigt weniger Arbeitsspeicher und Rechenleistung; die Genauigkeit kann geringer sein.</string>
+    <string name="podcast_asr_small_description">Genauigkeit hat Vorrang; benötigt mehr Arbeitsspeicher und Rechenleistung.</string>
+    <string name="podcast_asr_model_next_task">Die Auswahl gilt für die nächste Erkennung. Vorhandene Modelle und Untertitel bleiben erhalten.</string>
+    <string name="podcast_asr_use_model">Dieses Modell verwenden</string>
+    <string name="podcast_asr_model_in_use">Dieses Modell wird verwendet. Beende die Erkennung vor dem Löschen.</string>
 </resources>

@@ -911,7 +911,7 @@
     <string name="podcast_asr_device_warning">實驗性功能，辨識時可能發熱並增加耗電。</string>
     <string name="podcast_subtitle_save_failed">無法儲存字幕，目前仍可查看已產生的字幕。</string>
     <string name="podcast_subtitle_retry_save">重試儲存字幕</string>
-    <string name="podcast_asr_performance_notice">對手機記憶體和處理效能要求較高。</string>
+    <string name="podcast_asr_performance_notice">下載大小不代表執行時的記憶體需求，實際用量因模型和裝置而異。</string>
     <string name="metroverse_moonshine_attribution">Small / Tiny Streaming · English / Deutsch / Español / 日本語 / 普通话 / العربية / Tagalog / Tiếng Việt · Moonshine Voice 0.1.5 · MIT</string>
     <string name="metroverse_onnx_attribution">本機模型推論執行階段 1.23.2 · MIT 授權。</string>
     <string name="metroverse_innertubex_attribution">YouTube Music 音訊串流擷取及解密引擎 0.5.2 · GPL-3.0 授權。</string>
@@ -945,4 +945,9 @@
     <string name="podcast_asr_language_tl">他加祿語</string>
     <string name="podcast_asr_language_vi">越南語</string>
     <string name="podcast_feed_unavailable">Apple Podcasts 未提供此節目的 RSS 位址，暫時無法開啟。</string>
+    <string name="podcast_asr_tiny_description">記憶體和運算需求較低，辨識準確率可能降低。</string>
+    <string name="podcast_asr_small_description">準確度優先，記憶體和運算需求較高。</string>
+    <string name="podcast_asr_model_next_task">所選模型將於下次辨識時使用，保留現有模型和字幕。</string>
+    <string name="podcast_asr_use_model">使用此模型</string>
+    <string name="podcast_asr_model_in_use">此模型正在使用中，請先停止辨識再刪除。</string>
 </resources>

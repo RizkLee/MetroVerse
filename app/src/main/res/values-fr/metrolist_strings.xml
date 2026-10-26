@@ -979,7 +979,7 @@
     <string name="podcast_asr_device_warning">Fonction expérimentale ; la reconnaissance peut augmenter la chauffe et la consommation de batterie.</string>
     <string name="podcast_subtitle_save_failed">Impossible d’enregistrer les sous-titres. Les sous-titres actuels restent disponibles.</string>
     <string name="podcast_subtitle_retry_save">Réessayer d’enregistrer les sous-titres</string>
-    <string name="podcast_asr_performance_notice">Nécessite beaucoup de mémoire et de puissance de calcul.</string>
+    <string name="podcast_asr_performance_notice">La taille du téléchargement ne représente pas la mémoire utilisée, qui varie selon le modèle et l’appareil.</string>
     <string name="metroverse_moonshine_attribution">Small / Tiny Streaming · English / Deutsch / Español / 日本語 / 普通话 / العربية / Tagalog / Tiếng Việt · Moonshine Voice 0.1.5 · MIT</string>
     <string name="metroverse_onnx_attribution">Moteur d’inférence sur cet appareil, version 1.23.2 · Licence MIT.</string>
     <string name="metroverse_innertubex_attribution">Moteur d’extraction et de déchiffrement des flux YouTube Music, version 0.5.2 · GPL-3.0.</string>
@@ -1013,4 +1013,9 @@
     <string name="podcast_asr_language_tl">Tagalog</string>
     <string name="podcast_asr_language_vi">Vietnamien</string>
     <string name="podcast_feed_unavailable">Apple Podcasts ne fournit pas d’adresse RSS pour cette émission.</string>
+    <string name="podcast_asr_tiny_description">Moins de mémoire et de calcul nécessaires ; la précision peut être moindre.</string>
+    <string name="podcast_asr_small_description">Priorité à la précision ; nécessite plus de mémoire et de calcul.</string>
+    <string name="podcast_asr_model_next_task">Le choix sera appliqué à la prochaine reconnaissance. Les modèles et sous-titres existants sont conservés.</string>
+    <string name="podcast_asr_use_model">Utiliser ce modèle</string>
+    <string name="podcast_asr_model_in_use">Ce modèle est utilisé. Arrêtez la reconnaissance avant de le supprimer.</string>
 </resources>

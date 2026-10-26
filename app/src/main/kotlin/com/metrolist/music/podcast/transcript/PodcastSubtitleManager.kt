@@ -110,6 +110,15 @@ class PodcastSubtitleManager @Inject constructor(
     private val _modelDownloadError = MutableStateFlow<String?>(null)
     val modelDownloadError: StateFlow<String?> = _modelDownloadError.asStateFlow()
     private val languagePreferences = AsrLanguagePreferences(context)
+    private val modelPreferences = AsrModelPreferences(context)
+    private val _modelVariants = MutableStateFlow<Map<AsrLanguage, AsrModelVariant>>(emptyMap())
+    val modelVariants = _modelVariants.asStateFlow()
+    private val _readyModels = MutableStateFlow<Set<AsrModel>>(emptySet())
+    val readyModels = _readyModels.asStateFlow()
+    private val _allModelSizes = MutableStateFlow<Map<AsrModel, Long>>(emptyMap())
+    val allModelSizes = _allModelSizes.asStateFlow()
+    private val modelUses = AsrModelUseTracker()
+    val modelsInUse = modelUses.models
     private val _asrLanguage = MutableStateFlow(AsrLanguageSelection())
     val asrLanguage: StateFlow<AsrLanguageSelection> = _asrLanguage.asStateFlow()
     private val _readyLanguages = MutableStateFlow<Set<AsrLanguage>>(emptySet())
@@ -166,8 +175,29 @@ class PodcastSubtitleManager @Inject constructor(
 
     fun isAsrModelReady(): Boolean = _asrModelReady.value
     fun asrModelStorageBytes(): Long = modelStorageBytes
-    fun asrModelDownloadBytes(language: AsrLanguage? = _asrLanguage.value.language): Long =
-        language?.let { OnDeviceTranscriber.approximateModelDownloadBytes(it) } ?: 0L
+    fun asrModelFor(language: AsrLanguage): AsrModel =
+        language.model(_modelVariants.value[language] ?: AsrModelVariant.TINY_STREAMING)
+
+    fun asrModelDownloadBytes(language: AsrLanguage? = _asrLanguage.value.language, variant: AsrModelVariant? = null): Long =
+        language?.let { OnDeviceTranscriber.approximateModelDownloadBytes(it, variant ?: asrModelFor(it).variant) } ?: 0L
+
+    fun selectAsrModel(model: AsrModel, onSelected: () -> Unit = {}) {
+        if (!_modelOperationBusy.compareAndSet(false, true)) return
+        _modelDownloadError.value = null
+        modelOperationJob = scope.launch(Dispatchers.Main.immediate) {
+            var saved = false
+            try {
+                saved = modelPreferences.save(model)
+                if (!saved) _modelDownloadError.value = context.getString(R.string.podcast_subtitle_asr_model_failed)
+            } finally {
+                withContext(NonCancellable) {
+                    refreshModelState()
+                    _modelOperationBusy.value = false
+                }
+            }
+            if (saved) onSelected()
+        }
+    }
 
     fun selectAsrLanguage(language: AsrLanguage, useForChannel: Boolean) {
         if (_modelOperationBusy.value || transcriptionJob?.isActive == true) return
@@ -180,24 +210,26 @@ class PodcastSubtitleManager @Inject constructor(
                     _asrLanguage.value = selection.copy(code = language.code, channelDefault = language.code.takeIf { useForChannel })
                     _modelDownloadError.value = null
                     val partial = _state.value as? PodcastSubtitleState.Partial
-                    if (partial != null) _state.value = partial.copy(canResume = partial.transcript.recognizerFingerprint == language.checkpointIdentity)
+                    if (partial != null) _state.value = partial.copy(canResume = compatibleAsrCheckpoints(partial.transcript.recognizerFingerprint, asrModelFor(language).checkpointIdentity))
                     refreshModelState()
                 }
             } finally { _modelOperationBusy.value = false }
         }
     }
 
-    fun deleteAsrModel(language: AsrLanguage? = _asrLanguage.value.language) {
+    fun deleteAsrModel(language: AsrLanguage? = _asrLanguage.value.language, variant: AsrModelVariant? = null) {
         language ?: return
+        val model = language.model(variant ?: asrModelFor(language).variant)
+        if (model in modelsInUse.value) {
+            _modelDownloadError.value = context.getString(R.string.podcast_asr_model_in_use)
+            return
+        }
         if (!_modelOperationBusy.compareAndSet(false, true)) return
-        val activeTranscription = transcriptionJob
         _modelOperationLanguage.value = language
         _modelDownloadError.value = null
         modelOperationJob = scope.launch(Dispatchers.Main.immediate) {
             try {
-                activeTranscription?.cancelAndJoin()
-                if (transcriptionJob == activeTranscription) transcriptionJob = null
-                if (!withContext(Dispatchers.IO) { transcriber.deleteModels(language) }) {
+                if (!withContext(Dispatchers.IO) { transcriber.deleteModels(language, model.variant) }) {
                     _modelDownloadError.value = context.getString(R.string.podcast_subtitle_asr_model_failed)
                 }
             } finally {
@@ -210,45 +242,55 @@ class PodcastSubtitleManager @Inject constructor(
         }
     }
 
-    fun downloadAsrModel(language: AsrLanguage? = _asrLanguage.value.language) {
-        language?.let { prepareModel(language = it) }
+    fun downloadAsrModel(language: AsrLanguage? = _asrLanguage.value.language, variant: AsrModelVariant? = null) {
+        language?.let { prepareModel(language = it, variant = variant ?: asrModelFor(it).variant) }
     }
-    fun importAsrModel(treeUri: Uri, language: AsrLanguage? = _asrLanguage.value.language) {
-        language?.let { prepareModel(treeUri = treeUri, language = it) }
+    fun importAsrModel(treeUri: Uri, language: AsrLanguage? = _asrLanguage.value.language, variant: AsrModelVariant? = null) {
+        language?.let { prepareModel(treeUri = treeUri, language = it, variant = variant ?: asrModelFor(it).variant) }
     }
     fun clearModelDownloadError() { _modelDownloadError.value = null }
 
     private suspend fun refreshModelState() {
         val statuses = withContext(Dispatchers.IO) {
-            AsrLanguage.entries.associateWith { language ->
-                transcriber.isModelReady(language) to transcriber.modelStorageBytes(language)
+            AsrModel.all.associateWith { model ->
+                transcriber.isModelReady(model.language, model.variant) to transcriber.modelStorageBytes(model.language, model.variant)
             }
         }
-        _modelSizes.value = statuses.mapValues { it.value.second }
-        _readyLanguages.value = statuses.filterValues { it.first }.keys
-        val selected = _asrLanguage.value.language?.let { statuses[it] }
+        val ready = statuses.filterValues { it.first }.keys
+        val variants = withContext(Dispatchers.IO) { modelPreferences.load(ready) }
+        _modelVariants.value = variants
+        _readyModels.value = ready
+        _allModelSizes.value = statuses.mapValues { it.value.second }
+        _modelSizes.value = AsrLanguage.entries.associateWith { statuses.getValue(it.model(variants.getValue(it))).second }
+        _readyLanguages.value = AsrLanguage.entries.filter { it.model(variants.getValue(it)) in ready }.toSet()
+        val selected = _asrLanguage.value.language?.let { statuses[asrModelFor(it)] }
         _asrModelReady.value = selected?.first == true
         modelStorageBytes = selected?.second ?: 0L
+        (_state.value as? PodcastSubtitleState.Partial)?.let {
+            _state.value = it.copy(canResume = canResumeTranscript(it.transcript))
+        }
     }
 
     private fun prepareModel(
         treeUri: Uri? = null,
         language: AsrLanguage = AsrLanguage.ENGLISH,
+        variant: AsrModelVariant = asrModelFor(language).variant,
         onPrepared: (() -> Unit)? = null,
         onFailure: ((String) -> Unit)? = null,
     ) {
-        if (language in _readyLanguages.value) { onPrepared?.invoke(); return }
+        val model = language.model(variant)
+        if (model in _readyModels.value) { onPrepared?.invoke(); return }
         if (!_modelOperationBusy.compareAndSet(false, true)) return
         _modelOperationLanguage.value = language
         _modelDownloadError.value = null
-        _modelDownloadProgress.value = 0L to asrModelDownloadBytes(language)
+        _modelDownloadProgress.value = 0L to asrModelDownloadBytes(language, variant)
         modelOperationJob = scope.launch(Dispatchers.Main.immediate) {
             var prepared = false
             try {
                 val progress: (Long, Long) -> Unit = { bytes, total -> _modelDownloadProgress.value = bytes to total }
                 val result = withContext(Dispatchers.IO) {
-                    if (treeUri == null) transcriber.downloadModels(language, progress)
-                    else transcriber.importModels(treeUri, language, progress)
+                    if (treeUri == null) transcriber.downloadModels(language, progress, variant)
+                    else transcriber.importModels(treeUri, language, progress, variant)
                 }
                 prepared = result.isSuccess
                 if (result.isFailure) {
@@ -273,7 +315,7 @@ class PodcastSubtitleManager @Inject constructor(
                 }
             }
             currentCoroutineContext().ensureActive()
-            if (prepared && language in _readyLanguages.value) onPrepared?.invoke()
+            if (prepared && model in _readyModels.value) onPrepared?.invoke()
         }
     }
 
@@ -357,7 +399,7 @@ class PodcastSubtitleManager @Inject constructor(
     }
 
     private fun canResumeTranscript(transcript: EpisodeTranscript): Boolean =
-        _asrLanguage.value.language?.let { transcript.recognizerFingerprint == OnDeviceTranscriber.checkpointIdentity(it) } == true
+        _asrLanguage.value.language?.let { compatibleAsrCheckpoints(transcript.recognizerFingerprint, asrModelFor(it).checkpointIdentity) } == true
 
     private fun showTranscript(transcript: EpisodeTranscript, message: String? = null) {
         currentCheckpoint = transcript.takeIf { it.source == TranscriptSource.ON_DEVICE }
@@ -401,12 +443,14 @@ class PodcastSubtitleManager @Inject constructor(
         }
         if (_modelOperationBusy.value) return
         val language = _asrLanguage.value.language ?: return
+        val model = asrModelFor(language)
         val mediaUrl = requireNotNull(metadata.mediaUrl)
         val episodeId = metadata.id
         if (!_asrModelReady.value) {
             val requestedGeneration = episodeGeneration
             prepareModel(
                 language = language,
+                variant = model.variant,
                 onPrepared = {
                     if (isCurrentSubtitleRequest(requestedGeneration, episodeGeneration, episodeId, currentEpisodeId)) {
                         if (_asrLanguage.value.language == language) startTranscription(metadata, durationMs, positionProvider, restart)
@@ -430,7 +474,7 @@ class PodcastSubtitleManager @Inject constructor(
         episodeGeneration++
         val requestedGeneration = episodeGeneration
         val sourceFingerprint = subtitleCacheFingerprint("asr-source-v1", mediaUrl)
-        val recognizerFingerprint = OnDeviceTranscriber.checkpointIdentity(language)
+        val recognizerFingerprint = model.checkpointIdentity
         seekRequests.clear()
         currentEpisodeId = episodeId
         currentMediaSourceFingerprint = sourceFingerprint
@@ -520,6 +564,7 @@ class PodcastSubtitleManager @Inject constructor(
                         val result = transcriber.transcribe(
                             source = mediaUrl,
                             language = language,
+                            variant = model.variant,
                             totalDurationMs = durationMs,
                             resumePositionMs = latest.get().resumePositionMs,
                             retainedCues = latest.get().cues,
@@ -632,6 +677,7 @@ class PodcastSubtitleManager @Inject constructor(
             }
         }
         transcriptionJob = job
+        modelUses.track(job, model)
         job.start()
     }
 

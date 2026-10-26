@@ -972,7 +972,7 @@
     <string name="podcast_asr_device_warning">Sperimentale; il riconoscimento può aumentare il calore e il consumo della batteria.</string>
     <string name="podcast_subtitle_save_failed">Impossibile salvare i sottotitoli. Quelli attuali sono ancora disponibili.</string>
     <string name="podcast_subtitle_retry_save">Riprova a salvare i sottotitoli</string>
-    <string name="podcast_asr_performance_notice">Richiede molta memoria e capacità di elaborazione.</string>
+    <string name="podcast_asr_performance_notice">La dimensione del download non indica la memoria utilizzata, che varia in base al modello e al dispositivo.</string>
     <string name="metroverse_moonshine_attribution">Small / Tiny Streaming · English / Deutsch / Español / 日本語 / 普通话 / العربية / Tagalog / Tiếng Việt · Moonshine Voice 0.1.5 · MIT</string>
     <string name="metroverse_onnx_attribution">Runtime di inferenza sul dispositivo, versione 1.23.2 · Licenza MIT.</string>
     <string name="metroverse_innertubex_attribution">Motore di estrazione e decifrazione dei flussi YouTube Music, versione 0.5.2 · GPL-3.0.</string>
@@ -1006,4 +1006,9 @@
     <string name="podcast_asr_language_tl">Tagalog</string>
     <string name="podcast_asr_language_vi">Vietnamita</string>
     <string name="podcast_feed_unavailable">Apple Podcasts non fornisce un indirizzo RSS per questo programma.</string>
+    <string name="podcast_asr_tiny_description">Richiede meno memoria e calcolo; la precisione potrebbe essere inferiore.</string>
+    <string name="podcast_asr_small_description">Priorità alla precisione; richiede più memoria e calcolo.</string>
+    <string name="podcast_asr_model_next_task">La scelta si applica al prossimo riconoscimento. I modelli e i sottotitoli esistenti vengono conservati.</string>
+    <string name="podcast_asr_use_model">Usa questo modello</string>
+    <string name="podcast_asr_model_in_use">Questo modello è in uso. Interrompi il riconoscimento prima di eliminarlo.</string>
 </resources>

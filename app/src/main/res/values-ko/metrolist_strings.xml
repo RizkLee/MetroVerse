@@ -871,7 +871,7 @@
     <string name="podcast_asr_device_warning">실험적 기능으로, 인식 중 발열과 배터리 소모가 증가할 수 있습니다.</string>
     <string name="podcast_subtitle_save_failed">자막을 저장하지 못했습니다. 현재 자막은 계속 볼 수 있습니다.</string>
     <string name="podcast_subtitle_retry_save">자막 저장 다시 시도</string>
-    <string name="podcast_asr_performance_notice">많은 메모리와 높은 처리 성능이 필요합니다.</string>
+    <string name="podcast_asr_performance_notice">다운로드 크기는 실행 시 메모리 사용량과 다릅니다. 실제 사용량은 모델과 기기에 따라 달라집니다.</string>
     <string name="metroverse_moonshine_attribution">Small / Tiny Streaming · English / Deutsch / Español / 日本語 / 普通话 / العربية / Tagalog / Tiếng Việt · Moonshine Voice 0.1.5 · MIT</string>
     <string name="metroverse_onnx_attribution">기기 내 모델 추론 런타임, 버전 1.23.2 · MIT 라이선스.</string>
     <string name="metroverse_innertubex_attribution">YouTube Music 스트림 추출 및 복호화 엔진, 버전 0.5.2 · GPL-3.0.</string>
@@ -905,4 +905,9 @@
     <string name="podcast_asr_language_tl">타갈로그어</string>
     <string name="podcast_asr_language_vi">베트남어</string>
     <string name="podcast_feed_unavailable">Apple Podcasts에서 이 프로그램의 RSS 주소를 제공하지 않습니다.</string>
+    <string name="podcast_asr_tiny_description">메모리 및 연산 요구량이 낮지만 인식 정확도가 떨어질 수 있습니다.</string>
+    <string name="podcast_asr_small_description">정확도를 우선하며 더 많은 메모리와 연산이 필요합니다.</string>
+    <string name="podcast_asr_model_next_task">선택한 모델은 다음 인식부터 사용됩니다. 기존 모델과 자막은 유지됩니다.</string>
+    <string name="podcast_asr_use_model">이 모델 사용</string>
+    <string name="podcast_asr_model_in_use">사용 중인 모델입니다. 삭제하기 전에 인식을 중지하세요.</string>
 </resources>

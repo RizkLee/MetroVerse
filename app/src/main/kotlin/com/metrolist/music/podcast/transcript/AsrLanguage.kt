@@ -28,6 +28,12 @@ enum class AsrLanguage(
 
     val directory: String get() = "moonshine-${modelVariant.pathName}-$code-${modelDate.replace('_', '-')}"
     val checkpointIdentity: String get() = "moonshine-${modelVariant.pathName}-$code-quantized_$modelDate-v1"
+    val supportedModelVariants: List<AsrModelVariant>
+        get() = if (modelVariant == AsrModelVariant.SMALL_STREAMING) {
+            listOf(AsrModelVariant.TINY_STREAMING, AsrModelVariant.SMALL_STREAMING)
+        } else listOf(AsrModelVariant.TINY_STREAMING)
+
+    fun model(variant: AsrModelVariant = modelVariant): AsrModel = AsrModel(this, variant)
 
     companion object {
         fun fromCode(code: String?): AsrLanguage? {
@@ -36,6 +42,37 @@ enum class AsrLanguage(
         }
     }
 }
+
+data class AsrModel(val language: AsrLanguage, val variant: AsrModelVariant) {
+    init { require(variant in language.supportedModelVariants) }
+
+    val directory: String get() = "moonshine-${variant.pathName}-${language.code}-${language.modelDate.replace('_', '-')}"
+    val checkpointIdentity: String get() = "moonshine-${variant.pathName}-${language.code}-quantized_${language.modelDate}-v1"
+
+    companion object {
+        val all: List<AsrModel> = AsrLanguage.entries.flatMap { language ->
+            language.supportedModelVariants.map(language::model)
+        }
+    }
+}
+
+internal fun compatibleAsrCheckpoints(saved: String?, selected: String): Boolean {
+    if (saved == selected) return true
+    // Checkpoints contain finalized text and media ranges, never native decoder state.
+    // Only the explicitly supported models of the same language/revision may share them.
+    val target = AsrModel.all.firstOrNull { it.checkpointIdentity == selected } ?: return false
+    return target.language.supportedModelVariants.any { target.language.model(it).checkpointIdentity == saved }
+}
+
+internal fun preferredAsrVariant(
+    language: AsrLanguage,
+    savedVariant: String?,
+    readyModels: Set<AsrModel>,
+): AsrModelVariant = language.supportedModelVariants.firstOrNull { it.pathName == savedVariant }
+    ?: AsrModelVariant.SMALL_STREAMING.takeIf {
+        it in language.supportedModelVariants && language.model(it) in readyModels
+    }
+    ?: AsrModelVariant.TINY_STREAMING
 
 internal fun normalizeAsrLanguage(value: String?): String? {
     val parts = value?.trim()?.replace('_', '-')?.lowercase(Locale.ROOT)?.split('-') ?: return null

@@ -24,18 +24,20 @@ import kotlinx.coroutines.withContext
 class OnDeviceTranscriber @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
-    private val modelStores = AsrLanguage.entries.associateWith { language ->
-        AsrModelStore(context, language.directory, MoonshineModelFiles.artifacts(language))
+    private val modelStores = AsrModel.all.associateWith { model ->
+        AsrModelStore(context, model.directory, MoonshineModelFiles.artifacts(model))
     }
 
-    fun isModelReady(language: AsrLanguage = AsrLanguage.ENGLISH): Boolean = modelStores.getValue(language).isReady()
-    fun modelStorageBytes(language: AsrLanguage = AsrLanguage.ENGLISH): Long = modelStores.getValue(language).storageBytes()
-    suspend fun deleteModels(language: AsrLanguage = AsrLanguage.ENGLISH): Boolean = modelStores.getValue(language).delete()
-    suspend fun invalidateInvalidModelFiles(language: AsrLanguage = AsrLanguage.ENGLISH): Boolean = modelStores.getValue(language).invalidateInvalidFiles()
-    suspend fun downloadModels(language: AsrLanguage = AsrLanguage.ENGLISH, onProgress: (Long, Long) -> Unit): Result<Unit> =
-        modelStores.getValue(language).download(onProgress)
-    suspend fun importModels(treeUri: Uri, language: AsrLanguage = AsrLanguage.ENGLISH, onProgress: (Long, Long) -> Unit): Result<Unit> =
-        modelStores.getValue(language).importFromTree(treeUri, onProgress)
+    private fun store(language: AsrLanguage, variant: AsrModelVariant) = modelStores.getValue(language.model(variant))
+
+    fun isModelReady(language: AsrLanguage = AsrLanguage.ENGLISH, variant: AsrModelVariant = language.modelVariant): Boolean = store(language, variant).isReady()
+    fun modelStorageBytes(language: AsrLanguage = AsrLanguage.ENGLISH, variant: AsrModelVariant = language.modelVariant): Long = store(language, variant).storageBytes()
+    suspend fun deleteModels(language: AsrLanguage = AsrLanguage.ENGLISH, variant: AsrModelVariant = language.modelVariant): Boolean = store(language, variant).delete()
+    suspend fun invalidateInvalidModelFiles(language: AsrLanguage = AsrLanguage.ENGLISH, variant: AsrModelVariant = language.modelVariant): Boolean = store(language, variant).invalidateInvalidFiles()
+    suspend fun downloadModels(language: AsrLanguage = AsrLanguage.ENGLISH, onProgress: (Long, Long) -> Unit, variant: AsrModelVariant = language.modelVariant): Result<Unit> =
+        store(language, variant).download(onProgress)
+    suspend fun importModels(treeUri: Uri, language: AsrLanguage = AsrLanguage.ENGLISH, onProgress: (Long, Long) -> Unit, variant: AsrModelVariant = language.modelVariant): Result<Unit> =
+        store(language, variant).importFromTree(treeUri, onProgress)
 
     suspend fun removeRetiredModelFiles() = withContext(Dispatchers.IO) {
         removeRetiredAsrModelFiles(context.filesDir)
@@ -45,6 +47,7 @@ class OnDeviceTranscriber @Inject constructor(
         source: String,
         totalDurationMs: Long,
         language: AsrLanguage = AsrLanguage.ENGLISH,
+        variant: AsrModelVariant = language.modelVariant,
         resumePositionMs: Long = 0L,
         retainedCues: List<SubtitleCue> = emptyList(),
         processedRanges: List<AsrAudioRange> = emptyList(),
@@ -53,7 +56,7 @@ class OnDeviceTranscriber @Inject constructor(
         onPartial: (AsrRecognitionSnapshot) -> Unit,
     ): Result<AsrRecognitionSnapshot> = withContext(Dispatchers.Default) {
         try {
-            val result = modelStores.getValue(language).withModel { directory ->
+            val result = store(language, variant).withModel { directory ->
                 val diagnostics = AsrDiagnostics()
                 val coroutineContext = currentCoroutineContext()
                 coroutineContext.ensureActive()
@@ -68,7 +71,7 @@ class OnDeviceTranscriber @Inject constructor(
                 var lastStableCues: List<SubtitleCue>? = null
                 var visibleCues = savedCues
                 diagnostics.resume(resumePositionMs, processedRanges.sumOf { it.endMs - it.startMs }, retainedCues.size, recoveryReason)
-                val handle = MoonshineNative.create(directory.absolutePath, language.modelVariant.nativeArchitecture)
+                val handle = MoonshineNative.create(directory.absolutePath, variant.nativeArchitecture)
                 var publishCheckpoint: (() -> Unit)? = null
 
                 try {
@@ -271,8 +274,8 @@ class OnDeviceTranscriber @Inject constructor(
         const val SAMPLE_RATE = 16_000
         private const val CONTEXT_AUDIO_MS = 8_000L
         private const val MIN_INTERRUPTED_AUDIO_MS = 15_000L
-        fun checkpointIdentity(language: AsrLanguage = AsrLanguage.ENGLISH): String = language.checkpointIdentity
-        fun approximateModelDownloadBytes(language: AsrLanguage = AsrLanguage.ENGLISH): Long = MoonshineModelFiles.artifacts(language).sumOf { it.bytes }
+        fun checkpointIdentity(language: AsrLanguage = AsrLanguage.ENGLISH, variant: AsrModelVariant = language.modelVariant): String = language.model(variant).checkpointIdentity
+        fun approximateModelDownloadBytes(language: AsrLanguage = AsrLanguage.ENGLISH, variant: AsrModelVariant = language.modelVariant): Long = MoonshineModelFiles.artifacts(language.model(variant)).sumOf { it.bytes }
     }
 
     private class RecognitionReposition : RuntimeException(null, null, false, false)

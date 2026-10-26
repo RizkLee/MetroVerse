@@ -939,7 +939,7 @@
     <string name="podcast_asr_device_warning">試験的な機能のため、認識中は発熱やバッテリー消費が増える場合があります。</string>
     <string name="podcast_subtitle_save_failed">字幕を保存できませんでした。現在の字幕は引き続き表示できます。</string>
     <string name="podcast_subtitle_retry_save">字幕の保存を再試行</string>
-    <string name="podcast_asr_performance_notice">多くのメモリと高い処理性能が必要です。</string>
+    <string name="podcast_asr_performance_notice">ダウンロードサイズは実行時のメモリ使用量とは異なります。必要なメモリはモデルと端末によって変わります。</string>
     <string name="metroverse_moonshine_attribution">Small / Tiny Streaming · English / Deutsch / Español / 日本語 / 普通话 / العربية / Tagalog / Tiếng Việt · Moonshine Voice 0.1.5 · MIT</string>
     <string name="metroverse_onnx_attribution">端末内でモデルを実行するランタイム、バージョン 1.23.2 · MIT ライセンス。</string>
     <string name="metroverse_innertubex_attribution">YouTube Music のストリーム取得・復号エンジン、バージョン 0.5.2 · GPL-3.0。</string>
@@ -973,4 +973,9 @@
     <string name="podcast_asr_language_tl">タガログ語</string>
     <string name="podcast_asr_language_vi">ベトナム語</string>
     <string name="podcast_feed_unavailable">Apple Podcasts からこの番組の RSS アドレスを取得できません。</string>
+    <string name="podcast_asr_tiny_description">メモリと処理の負荷を抑えますが、認識精度が下がる場合があります。</string>
+    <string name="podcast_asr_small_description">認識精度を優先し、より多くのメモリと処理能力が必要です。</string>
+    <string name="podcast_asr_model_next_task">選択は次回の認識から適用されます。既存のモデルと字幕は保持されます。</string>
+    <string name="podcast_asr_use_model">このモデルを使用</string>
+    <string name="podcast_asr_model_in_use">このモデルは使用中です。削除する前に認識を停止してください。</string>
 </resources>

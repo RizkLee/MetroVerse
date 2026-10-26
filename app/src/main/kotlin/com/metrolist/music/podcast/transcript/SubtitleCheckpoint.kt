@@ -23,7 +23,7 @@ internal fun recoverAsrProgress(
     if (checkpoint.mediaSourceFingerprint != mediaSourceFingerprint) {
         return AsrRecovery(initialStart, emptyList(), emptyList(), "source_changed")
     }
-    if (checkpoint.recognizerFingerprint != recognizerFingerprint || checkpoint.isComplete) {
+    if (!compatibleAsrCheckpoints(checkpoint.recognizerFingerprint, recognizerFingerprint) || checkpoint.isComplete) {
         return AsrRecovery(initialStart, emptyList(), emptyList(), "incompatible_checkpoint")
     }
     val position = checkpoint.resumePositionMs.coerceAtLeast(0)
@@ -44,7 +44,7 @@ internal fun subtitleResumePosition(
     recognizerFingerprint: String,
 ): Long = checkpoint?.takeIf {
     !it.isComplete && it.mediaSourceFingerprint == mediaSourceFingerprint &&
-        it.recognizerFingerprint == recognizerFingerprint
+        compatibleAsrCheckpoints(it.recognizerFingerprint, recognizerFingerprint)
 }?.resumePositionMs?.coerceAtLeast(0) ?: 0
 
 /** Re-recognition replaces its stable prefix while a saved later tail remains readable. */
