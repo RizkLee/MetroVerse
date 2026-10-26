@@ -5,6 +5,7 @@
 
 package com.metrolist.music.podcast.transcript
 
+import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.app.Application
 import android.app.ApplicationExitInfo
@@ -68,6 +69,7 @@ internal fun asrExitNotice(session: AsrExitSession, records: List<AsrExitRecord>
 }
 
 /** One overwritten record, containing no media URLs, text, audio or growing log history. */
+@SuppressLint("ApplySharedPref", "UseKtx") // Off-main commit results confirm durable recording and consumption.
 internal class AsrExitStore(private val preferences: SharedPreferences) {
     val hasPendingSession: Boolean get() = preferences.contains("token")
     fun write(session: AsrExitSession): Boolean = preferences.edit().clear()

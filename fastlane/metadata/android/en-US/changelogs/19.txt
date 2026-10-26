@@ -1,0 +1,5 @@
+Added Mandarin Chinese, Arabic, Tagalog, and Vietnamese podcast subtitles.
+Added Tiny/Small model selection for English, German, Spanish, and Japanese.
+On Android 11+, show available recognition exit reasons and suggest Tiny for confirmed memory pressure.
+Fixed subtitle flicker during backfill and Apple News Today playback.
+RSS podcast playback buffers further ahead within its audio memory budget.

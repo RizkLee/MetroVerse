@@ -24,8 +24,8 @@ class InstalledChangelogTest {
     fun englishAndChineseInstalledNotesDescribeTheCurrentBuildAndLanguages() {
         val context = ApplicationProvider.getApplicationContext<Application>()
         val terms = mapOf(
-            Locale.ENGLISH to listOf("Mandarin Chinese", "Arabic", "Tagalog", "Vietnamese"),
-            Locale.SIMPLIFIED_CHINESE to listOf("普通话", "阿拉伯语", "他加禄语", "越南语"),
+            Locale.ENGLISH to listOf("Mandarin Chinese", "Arabic", "Tagalog", "Vietnamese", "Tiny", "Small", "Android 11", "Apple News Today"),
+            Locale.SIMPLIFIED_CHINESE to listOf("普通话", "阿拉伯语", "他加禄语", "越南语", "Tiny", "Small", "Android 11", "Apple News Today"),
         )
         terms.forEach { (locale, languages) ->
             val configuration = Configuration(context.resources.configuration).apply { setLocale(locale) }

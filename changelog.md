@@ -2,11 +2,14 @@
 
 All notable MetroVerse-specific changes are recorded here. Upstream Metrolist history remains available in Git history.
 
-## 1.1.2 - 2026-10-24
+## 1.2.0 - 2026-10-26
 
-- Add Mandarin Chinese, Arabic, Tagalog, and Vietnamese on-device subtitles for RSS podcasts, with separate Tiny Streaming model downloads and language settings.
+- Add Mandarin Chinese, Arabic, Tagalog, and Vietnamese on-device subtitles for RSS podcasts.
+- Offer Tiny or Small recognition models for English, German, Spanish, and Japanese through one settings entry per language. Keep existing models and completed same-language subtitles when switching.
+- On Android 11 or newer, show available system exit diagnostics after interrupted recognition. Suggest Tiny when Android confirms memory pressure while Small was in use.
 - Fix subtitle position flicker while recognition fills earlier sections of an episode.
 - Let the playing RSS episode buffer further ahead within the audio memory budget.
+- Fix opening Apple News Today and playing episodes from its official public RSS feed.
 
 ## 1.1.1 - 2026-10-17
 
