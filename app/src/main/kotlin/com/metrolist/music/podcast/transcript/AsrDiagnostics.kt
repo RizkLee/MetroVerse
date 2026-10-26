@@ -11,12 +11,12 @@ import com.metrolist.music.BuildConfig
 import timber.log.Timber
 
 /** Debug-only aggregate measurements; never records audio, subtitle text, URLs or credentials. */
-internal class AsrDiagnostics {
+internal class AsrDiagnostics(private val model: AsrModel) {
     private val startedAt = SystemClock.elapsedRealtime()
     private var lastReportAt = startedAt
     private var inferenceMs = 0L
     private var inferredSamples = 0L
-    private var resumeMs = 0L
+    private var initialResumeMs = 0L
 
     fun addInference(elapsedMs: Long, audioSamples: Int = 0) {
         if (BuildConfig.DEBUG) {
@@ -26,10 +26,10 @@ internal class AsrDiagnostics {
     }
 
     fun resume(positionMs: Long, coveredMs: Long, retainedCues: Int, reason: String) {
-        resumeMs = positionMs
+        initialResumeMs = positionMs
         if (BuildConfig.DEBUG) Timber.tag("PodcastAsr").d(
-            "stage=resume resumeMs=%d coveredMs=%d retainedCues=%d reason=%s",
-            positionMs, coveredMs, retainedCues, reason,
+            "stage=resume model=%s language=%s initialResumeMs=%d coveredMs=%d retainedCues=%d reason=%s",
+            model.variant.pathName, model.language.code, positionMs, coveredMs, retainedCues, reason,
         )
     }
 
@@ -49,19 +49,21 @@ internal class AsrDiagnostics {
         }
     }
 
-    fun record(stage: String, audioMs: Long = 0L, cueCount: Int = 0) {
+    fun record(stage: String, audioMs: Long = 0L, cueCount: Int? = null) {
         if (!BuildConfig.DEBUG) return
         val runtime = Runtime.getRuntime()
         val now = SystemClock.elapsedRealtime()
         Timber.tag("PodcastAsr").d(
-            "stage=%s elapsedMs=%d audioMs=%d resumeMs=%d inferredAudioMs=%d inferenceMs=%d cues=%d javaKiB=%d nativeKiB=%d pssKiB=%d",
+            "stage=%s model=%s language=%s elapsedMs=%d audioMs=%d initialResumeMs=%d inferredAudioMs=%d inferenceMs=%d%s javaKiB=%d nativeKiB=%d pssKiB=%d",
             stage,
+            model.variant.pathName,
+            model.language.code,
             now - startedAt,
             audioMs,
-            resumeMs,
+            initialResumeMs,
             inferredSamples / 16,
             inferenceMs,
-            cueCount,
+            cueCount?.let { " cues=$it" }.orEmpty(),
             (runtime.totalMemory() - runtime.freeMemory()) / 1_024,
             Debug.getNativeHeapAllocatedSize() / 1_024,
             runCatching { Debug.getPss() }.getOrDefault(-1L),

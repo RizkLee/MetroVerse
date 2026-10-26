@@ -61,7 +61,7 @@ class OnDeviceTranscriber @Inject constructor(
     ): Result<AsrRecognitionSnapshot> = withRecognitionDiagnostics(language.model(variant)) {
         try {
             val result = store(language, variant).withModel { directory ->
-                val diagnostics = AsrDiagnostics()
+                val diagnostics = AsrDiagnostics(language.model(variant))
                 val coroutineContext = currentCoroutineContext()
                 coroutineContext.ensureActive()
                 val plan = AsrRecognitionPlan(processedRanges)
@@ -203,7 +203,7 @@ class OnDeviceTranscriber @Inject constructor(
                                     ) {
                                         finishCurrentStream(chunk.endMs)
                                         streamOwnedStartMs = chunk.endMs
-                                        diagnostics.record("stream_finished", chunk.endMs)
+                                        diagnostics.record("stream_rotated", chunk.endMs, savedCues.size)
                                     }
                                     val partial = snapshot()
                                     onPartial(partial)
