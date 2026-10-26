@@ -21,14 +21,10 @@
 
 <p align="center">
   <b>
-    <a href="#releases-and-verification">Download</a> · <a href="#下载与校验">下载</a>&emsp;&emsp;<a href="#support">Support</a> · <a href="#support">支持</a>
+    <a href="#releases-and-verification">Download</a> · <a href="#下载与校验">下载</a>  <a href="#support">Support</a> · <a href="#support">支持</a>
   </b>
 </p>
 
-> [!TIP]
-> I’m excited to introduce MetroVerse v1.2.0! It builds on the podcast transcripts, on-device subtitle generation, bilingual podcast subtitles, smoother lyrics, and InnerTubeX playback introduced in v1.0.0. This update adds English, German, Spanish, and Japanese recognition, more translation providers, and improved subtitle recovery. I’d love for you to try it and enjoy what’s new!
->
-> 很高兴带来全新的 MetroVerse v1.2.0！本次更新延续了 v1.0.0 的播客原生字幕、端侧模型识别字幕、播客字幕翻译、优化的歌词显示，以及 InnerTubeX 播放体验，并加入英语、德语、西班牙语和日语识别、更多翻译服务与字幕恢复改进。欢迎体验新功能！
 
 ## Screenshots
 
@@ -44,7 +40,7 @@
     <td align="center">Podcast</td>
     <td align="center">Show details</td>
     <td align="center">Artist details</td>
-    <td align="center">Now Playing</td>
+    <td align="center">Now playing</td>
     <td align="center">Podcast captions</td>
   </tr>
 </table>
@@ -63,11 +59,11 @@ It keeps the familiar Material 3 Expressive interaction model inherited from Met
 - 🔓 **Unrestricted & Ad-Free:** Say goodbye to annoying ads and playback restrictions. Enjoy seamless background playback and download your favorite songs for offline listening.
 - 🎵 **All-in-one Audio:** Seamlessly integrates YouTube Music with open-source RSS podcasts and features dedicated interfaces—such as a specialized player—designed specifically for podcasts.
 - 🎙️ **Powerful Podcast Engine:** Discover shows via Apple Podcasts charts or direct RSS/Atom import. Features episode resume, playback speed controls, and a gradual sleep-timer fade.
-- 📖 **Podcast Subtitle Support:** RSS podcasts now support both native subtitles and on-device AI-generated subtitles. Features include sentence-by-sentence highlighting, tap-to-jump navigation, timestamp synchronization, full-screen reading, and subtitle sharing. The Moonshine model powers on-device subtitle recognition in English, German, Spanish, and Japanese.
+- 📖 **Podcast Subtitle Support:** RSS podcasts now support both native subtitles and on-device AI-generated subtitles. Features include sentence-by-sentence highlighting, tap-to-jump navigation, timestamp synchronization, full-screen reading, and subtitle sharing. The Moonshine model powers on-device subtitle recognition in English, German, Spanish, Japanese, Mandarin Chinese, Arabic, Tagalog, and Vietnamese.
 - 🌍 **Bilingual Listening:** Use your configured AI service to translate podcast subtitles and display the original text alongside the translation. AI-powered lyric translation is also supported for music.
 - 🪶 **Modern & Lightweight:** Built on the robust Media3 player. Fast, responsive, battery-friendly, and fully supports Android Auto.
 
-On-device recognition is experimental and available for RSS podcasts in English, German, Spanish, and Japanese. Download the selected language’s model before use.
+On-device recognition is experimental and available for RSS podcasts in English, German, Spanish, Japanese, Mandarin Chinese, Arabic, Tagalog, and Vietnamese. Download the selected language’s model before use.
 
 ### Project lineage
 
@@ -116,7 +112,7 @@ Release signing uses a private keystore that must never be committed. GitHub Act
 
 ### Releases and verification
 
-Downloads are published on the [Releases page](https://github.com/RizkLee/MetroVerse/releases). You may verify the attached SHA-256 file and APK signing certificate before installation.
+Downloads are published on the [Releases page](https://github.com/RizkLee/MetroVerse/releases). You may verify the attached SHA-256 file and APK signing certificate before installation (Optional).
 
 | Variant  | Description                                | Download link                                                                                        |
 | -------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
@@ -157,11 +153,11 @@ MetroVerse 是一个独立维护的修改版 [Metrolist](https://github.com/Metr
 - 🔓 **纯净体验：** 彻底告别烦人的广告！解除各种播放限制，支持后台播放，并提供音乐与播客下载功能。
 - 🎵 **聚合播放：** 无缝融合 YouTube Music 与开源 RSS 播客。并为播客专门设计了播放器等诸多页面。
 - 🎙️ **强大的播客引擎：** 内置 Apple Podcasts 榜单发现与 RSS/Atom 直连订阅，支持断点续播、倍速控制与睡眠渐弱暂停。
-- 📖 **支持播客字幕：** RSS 播客现已支持显示原生字幕与端侧模型识别字幕，支持逐句高亮、点击跳转、时间校准、全屏阅读和字幕分享。Moonshine 模型支持端侧识别英语、德语、西班牙语和日语字幕。
+- 📖 **支持播客字幕：** RSS 播客现已支持显示原生字幕与端侧模型识别字幕，支持逐句高亮、点击跳转、时间校准、全屏阅读和字幕分享。Moonshine 模型支持端侧识别英语、德语、西班牙语、日语、汉语 (普通话) 、阿拉伯语、他加禄语和越南语字幕。
 - 🌍 **双语聆听：** 使用你配置的 AI 服务翻译播客字幕，将原文与译文一起显示。音乐同样支持 AI 歌词翻译。
 - 🪶 **极致轻量：** 基于先进的 Media3 播放器打造，响应迅速、流畅省电，且原生支持 Android Auto。
 
-端侧字幕识别是面向 RSS 播客的实验性功能，支持英语、德语、西班牙语和日语。使用前需下载所选语言的模型。
+端侧字幕识别是面向 RSS 播客的实验性功能，支持英语、德语、西班牙语、日语、汉语 (普通话) 、阿拉伯语、他加禄语和越南语。使用前需下载所选语言的模型。
 
 ### 项目来源
 
@@ -207,12 +203,12 @@ MetroVerse 不是 Metrolist 或 Podium 的官方版本，与 Apple、Google 或 
 
 ### 下载与校验
 
-APK 发布在 [Releases 页面](https://github.com/RizkLee/MetroVerse/releases)。安装前可核对随附 SHA-256 文件和 APK 签名证书。
+APK 发布在 [Releases 页面](https://github.com/RizkLee/MetroVerse/releases)。安装前您可选择核对随附 SHA-256 文件和 APK 签名证书。
 
 | App 版本 | 适用场景                            | 下载链接                                                                                                    |
 | -------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| FOSS APK | 音乐与播客，不包含 Google Cast 功能 | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v1.2.0/MetroVerse-v1.2.0-foss.apk) |
-| GMS APK  | 音乐与播客，包含 Google Cast 功能   | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v1.2.0/MetroVerse-v1.2.0-gms.apk)  |
+| FOSS APK | 不包含 Google Cast 功能的 App | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v1.2.0/MetroVerse-v1.2.0-foss.apk) |
+| GMS APK  | 包含 Google Cast 功能的 App   | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v1.2.0/MetroVerse-v1.2.0-gms.apk)  |
 
 [下载 SHA-256 校验文件](https://github.com/RizkLee/MetroVerse/releases/download/v1.2.0/MetroVerse-v1.2.0-SHA256SUMS.txt)。
 
