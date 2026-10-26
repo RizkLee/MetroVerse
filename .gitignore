@@ -117,3 +117,6 @@ app/src/main/cpp/coverart/
 .codeium
 .cortexkit
 lastfm-api-key.txt
+
+# Local recognition model copies; the app downloads its models separately.
+/assets/asr-model/
