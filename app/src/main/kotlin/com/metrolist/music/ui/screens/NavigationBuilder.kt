@@ -56,6 +56,7 @@ import com.metrolist.music.ui.screens.settings.BackupAndRestore
 import com.metrolist.music.ui.screens.settings.ContentSettings
 import com.metrolist.music.ui.screens.settings.DarkMode
 import com.metrolist.music.ui.screens.settings.PlayerSettings
+import com.metrolist.music.ui.screens.settings.PodcastAsrModelsSettings
 import com.metrolist.music.ui.screens.settings.PrivacySettings
 import com.metrolist.music.ui.screens.settings.RomanizationSettings
 import com.metrolist.music.ui.screens.settings.SettingsScreen
@@ -463,6 +464,10 @@ fun NavGraphBuilder.navigationBuilder(
             highlightApiKey = entry.arguments?.getBoolean("highlightApiKey") == true,
             apiKeyRequestId = entry.arguments?.getLong("requestId") ?: 0L,
         )
+    }
+
+    composable("settings/ai/asr_models") {
+        PodcastAsrModelsSettings(navController)
     }
 
     composable("settings/player") {

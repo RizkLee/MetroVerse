@@ -23,9 +23,11 @@ import com.metrolist.music.LocalPodcastSubtitleManager
 import com.metrolist.music.R
 import com.metrolist.music.podcast.transcript.AsrLanguage
 import com.metrolist.music.podcast.transcript.AsrModelVariant
+import com.metrolist.music.ui.screens.settings.PodcastAsrModelManagementSection
 import com.metrolist.music.ui.screens.settings.PodcastSubtitleSettings
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -103,9 +105,22 @@ class AsrModelUiTest {
     }
 
     @Test
-    fun settingsContainsExactlyOneModelEntryForEachLanguage() {
+    fun settingsRoutesToModelManagementInsteadOfListingModelsInline() {
+        var navigated = false
         show {
-            CompositionLocalProvider(LocalPodcastSubtitleManager provides null) { PodcastSubtitleSettings() }
+            CompositionLocalProvider(LocalPodcastSubtitleManager provides null) {
+                PodcastSubtitleSettings(onManageModelsClick = { navigated = true })
+            }
+        }
+        compose.onNodeWithText(activity.get().getString(R.string.podcast_asr_manage_models)).performClick()
+        compose.runOnIdle { assertTrue(navigated) }
+        compose.onAllNodesWithText(activity.get().getString(R.string.podcast_asr_language_model, "English")).assertCountEquals(0)
+    }
+
+    @Test
+    fun modelManagementContainsExactlyOneModelEntryForEachLanguage() {
+        show {
+            CompositionLocalProvider(LocalPodcastSubtitleManager provides null) { PodcastAsrModelManagementSection() }
         }
         listOf("English", "German", "Spanish", "Japanese", "Mandarin Chinese", "Arabic", "Tagalog", "Vietnamese").forEach { name ->
             compose.onAllNodesWithText(activity.get().getString(R.string.podcast_asr_language_model, name)).assertCountEquals(1)

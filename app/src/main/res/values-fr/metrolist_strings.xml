@@ -1026,4 +1026,8 @@
     <string name="podcast_asr_exit_not_responding">L’application ne répondait plus et a été fermée pendant la reconnaissance des sous-titres. Réessayez plus tard.</string>
     <string name="podcast_asr_exit_unknown">La dernière reconnaissance des sous-titres ne s’est pas terminée normalement. Android ne fournit pas de raison précise.</string>
     <string name="podcast_asr_choose_tiny">Choisir Tiny</string>
+    <string name="navigation_bar_tabs">Onglets de la barre de navigation</string>
+    <string name="navigation_bar_tabs_desc">Faites glisser pour réorganiser les onglets ou masquez ceux dont vous n’avez pas besoin (gardez-en au moins un)</string>
+    <string name="podcast_asr_manage_models">Gérer les modèles de reconnaissance des sous-titres</string>
+    <string name="podcast_asr_manage_models_desc">Télécharger, changer ou supprimer les modèles locaux de reconnaissance des sous-titres</string>
 </resources>

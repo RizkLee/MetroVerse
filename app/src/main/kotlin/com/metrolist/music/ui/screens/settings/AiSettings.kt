@@ -733,7 +733,9 @@ fun AiSettings(navController: NavController, highlightApiKey: Boolean = false, a
 
         Spacer(modifier = Modifier.height(27.dp))
 
-        PodcastSubtitleSettings()
+        PodcastSubtitleSettings(
+            onManageModelsClick = { navController.navigate("settings/ai/asr_models") },
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
     }

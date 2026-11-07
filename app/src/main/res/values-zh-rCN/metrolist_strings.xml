@@ -1101,4 +1101,8 @@
     <string name="podcast_asr_exit_not_responding">上次识别字幕时，应用因长时间无响应而退出。可稍后重试。</string>
     <string name="podcast_asr_exit_unknown">上次字幕识别未正常结束，系统未提供明确的退出原因。</string>
     <string name="podcast_asr_choose_tiny">选择 Tiny</string>
+    <string name="navigation_bar_tabs">导航栏标签按钮</string>
+    <string name="navigation_bar_tabs_desc">拖动调整导航栏标签按钮顺序，或隐藏不需要的标签按钮（至少保留一个）</string>
+    <string name="podcast_asr_manage_models">管理字幕识别模型</string>
+    <string name="podcast_asr_manage_models_desc">下载、切换或删除端侧字幕识别模型</string>
 </resources>

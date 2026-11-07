@@ -69,7 +69,6 @@ import com.metrolist.music.constants.GridItemsSizeKey
 import com.metrolist.music.constants.HidePlayerThumbnailKey
 import com.metrolist.music.constants.HideStatusBarOnFullscreenKey
 import com.metrolist.music.constants.LibraryFilter
-import com.metrolist.music.constants.ListenTogetherInTopBarKey
 import com.metrolist.music.constants.LyricsAnimationStyle
 import com.metrolist.music.constants.LyricsAnimationStyleKey
 import com.metrolist.music.constants.LyricsClickKey
@@ -80,6 +79,7 @@ import com.metrolist.music.constants.LyricsTextPositionKey
 import com.metrolist.music.constants.LyricsTextSizeKey
 import com.metrolist.music.constants.MiniPlayerBackgroundStyle
 import com.metrolist.music.constants.MiniPlayerBackgroundStyleKey
+import com.metrolist.music.constants.NavigationBarTabsKey
 import com.metrolist.music.constants.PlayerBackgroundStyle
 import com.metrolist.music.constants.PlayerBackgroundStyleKey
 import com.metrolist.music.constants.PlayerButtonsStyle
@@ -107,9 +107,11 @@ import com.metrolist.music.ui.component.EnumDialog
 import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.component.Material3SettingsGroup
 import com.metrolist.music.ui.component.Material3SettingsItem
+import com.metrolist.music.ui.component.NavigationBarTabsDialog
 import com.metrolist.music.ui.component.PlayerSliderTrack
 import com.metrolist.music.ui.component.SquigglySlider
 import com.metrolist.music.ui.component.WavySlider
+import com.metrolist.music.ui.component.label
 import com.metrolist.music.ui.theme.DefaultThemeColor
 import com.metrolist.music.ui.theme.PlayerSliderColors
 import com.metrolist.music.ui.utils.backToMain
@@ -193,6 +195,17 @@ fun AppearanceSettings(
             DefaultOpenTabKey,
             defaultValue = NavigationTab.HOME,
         )
+    val (navigationBarTabsRaw, onNavigationBarTabsChange) =
+        rememberPreference(
+            NavigationBarTabsKey,
+            defaultValue = "",
+        )
+    val visibleNavTabs =
+        remember(navigationBarTabsRaw) {
+            deserializeNavigationTabs(navigationBarTabsRaw)
+                .filter { it.second }
+                .map { it.first }
+        }
     val (playerButtonsStyle, onPlayerButtonsStyleChange) =
         rememberEnumPreference(
             PlayerButtonsStyleKey,
@@ -282,12 +295,6 @@ fun AppearanceSettings(
         }
         showRestartDialog = true
     }
-
-    val (listenTogetherInTopBar, onListenTogetherInTopBarChange) =
-        rememberPreference(
-            ListenTogetherInTopBarKey,
-            defaultValue = true,
-        )
 
     val (swipeToSong, onSwipeToSongChange) =
         rememberPreference(
@@ -585,11 +592,34 @@ fun AppearanceSettings(
         )
     }
 
+    var showNavigationBarTabsDialog by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    if (showNavigationBarTabsDialog) {
+        NavigationBarTabsDialog(
+            initialTabsRaw = navigationBarTabsRaw,
+            onDismiss = { showNavigationBarTabsDialog = false },
+            onSave = { newRaw ->
+                onNavigationBarTabsChange(newRaw)
+                val newVisibleTabs =
+                    deserializeNavigationTabs(newRaw)
+                        .filter { it.second }
+                        .map { it.first }
+                if (defaultOpenTab !in newVisibleTabs && newVisibleTabs.isNotEmpty()) {
+                    onDefaultOpenTabChange(newVisibleTabs.first())
+                }
+            },
+        )
+    }
+
     var showDefaultOpenTabDialog by rememberSaveable {
         mutableStateOf(false)
     }
 
     if (showDefaultOpenTabDialog) {
+        val selectableTabs = visibleNavTabs.ifEmpty { NavigationTab.values().toList() }
+        val currentSelectedTab = if (defaultOpenTab in selectableTabs) defaultOpenTab else selectableTabs.first()
         EnumDialog(
             onDismiss = { showDefaultOpenTabDialog = false },
             onSelect = {
@@ -597,8 +627,8 @@ fun AppearanceSettings(
                 showDefaultOpenTabDialog = false
             },
             title = stringResource(R.string.default_open_tab),
-            current = defaultOpenTab,
-            values = NavigationTab.values().toList(),
+            current = currentSelectedTab,
+            values = selectableTabs,
             valueText = {
                 when (it) {
                     NavigationTab.HOME -> stringResource(R.string.home)
@@ -1582,16 +1612,27 @@ fun AppearanceSettings(
                 listOf(
                     Material3SettingsItem(
                         icon = painterResource(R.drawable.nav_bar),
+                        title = { Text(stringResource(R.string.navigation_bar_tabs)) },
+                        description = {
+                            val tabsSummary =
+                                visibleNavTabs
+                                    .map { it.label() }
+                                    .joinToString(" · ")
+                            Text(tabsSummary)
+                        },
+                        onClick = { showNavigationBarTabsDialog = true },
+                    ),
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.nav_bar),
                         title = { Text(stringResource(R.string.default_open_tab)) },
                         description = {
-                            Text(
-                                when (defaultOpenTab) {
-                                    NavigationTab.HOME -> stringResource(R.string.home)
-                                    NavigationTab.SEARCH -> stringResource(R.string.search)
-                                    NavigationTab.PODCAST -> stringResource(R.string.podcast)
-                                    NavigationTab.LIBRARY -> stringResource(R.string.filter_library)
-                                },
-                            )
+                            val effectiveOpenTab =
+                                if (defaultOpenTab in visibleNavTabs) {
+                                    defaultOpenTab
+                                } else {
+                                    visibleNavTabs.firstOrNull() ?: defaultOpenTab
+                                }
+                            Text(effectiveOpenTab.label())
                         },
                         onClick = { showDefaultOpenTabDialog = true },
                     ),
@@ -1674,28 +1715,6 @@ fun AppearanceSettings(
                             )
                         },
                         onClick = { onSlimNavChange(!slimNav) },
-                    ),
-                    Material3SettingsItem(
-                        icon = painterResource(R.drawable.group_outlined),
-                        title = { Text(stringResource(R.string.listen_together_in_top_bar)) },
-                        description = { Text(stringResource(R.string.listen_together_in_top_bar_desc)) },
-                        trailingContent = {
-                            Switch(
-                                checked = listenTogetherInTopBar,
-                                onCheckedChange = onListenTogetherInTopBarChange,
-                                thumbContent = {
-                                    Icon(
-                                        painter =
-                                            painterResource(
-                                                id = if (listenTogetherInTopBar) R.drawable.check else R.drawable.close,
-                                            ),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(SwitchDefaults.IconSize),
-                                    )
-                                },
-                            )
-                        },
-                        onClick = { onListenTogetherInTopBarChange(!listenTogetherInTopBar) },
                     ),
                     Material3SettingsItem(
                         icon = painterResource(R.drawable.grid_view),

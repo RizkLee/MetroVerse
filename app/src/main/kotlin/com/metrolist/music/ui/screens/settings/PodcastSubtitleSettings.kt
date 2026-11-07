@@ -5,15 +5,27 @@
 package com.metrolist.music.ui.screens.settings
 
 import android.text.format.Formatter
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,48 +37,42 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 import com.metrolist.music.LocalPodcastSubtitleManager
+import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
 import com.metrolist.music.constants.AlwaysUseAiPodcastSubtitleTranslationKey
-import com.metrolist.music.constants.PodcastTranslateLanguageKey
-import com.metrolist.music.constants.LanguageCodeToName
-import com.metrolist.music.ui.component.EnumDialog
-import com.metrolist.music.ui.component.asrLanguageName
-import com.metrolist.music.ui.utils.rememberEffectiveAppLanguageCode
-import com.metrolist.music.constants.PodcastAiSystemPromptKey
 import com.metrolist.music.constants.DEFAULT_PODCAST_AI_SYSTEM_PROMPT
+import com.metrolist.music.constants.LanguageCodeToName
+import com.metrolist.music.constants.PodcastAiSystemPromptKey
+import com.metrolist.music.constants.PodcastTranslateLanguageKey
 import com.metrolist.music.podcast.transcript.AsrLanguage
 import com.metrolist.music.podcast.transcript.AsrModel
 import com.metrolist.music.podcast.transcript.AsrModelVariant
 import com.metrolist.music.ui.component.AsrModelManagementDialog
+import com.metrolist.music.ui.component.EnumDialog
+import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.component.Material3SettingsGroup
 import com.metrolist.music.ui.component.Material3SettingsItem
 import com.metrolist.music.ui.component.TextFieldDialog
+import com.metrolist.music.ui.component.asrLanguageName
+import com.metrolist.music.ui.utils.backToMain
+import com.metrolist.music.ui.utils.rememberEffectiveAppLanguageCode
 import com.metrolist.music.utils.rememberPreference
 
 @Composable
-internal fun PodcastSubtitleSettings() {
-    val manager = LocalPodcastSubtitleManager.current
-    val context = LocalContext.current
+internal fun PodcastSubtitleSettings(
+    onManageModelsClick: () -> Unit = {},
+) {
     var alwaysTranslate by rememberPreference(AlwaysUseAiPodcastSubtitleTranslationKey, false)
     val appLanguage = rememberEffectiveAppLanguageCode()
     var targetLanguage by rememberPreference(PodcastTranslateLanguageKey, appLanguage)
     var showTargetLanguage by remember { mutableStateOf(false) }
-    val sizes = manager?.modelSizes?.collectAsStateWithLifecycle()?.value.orEmpty()
     var systemPrompt by rememberPreference(PodcastAiSystemPromptKey, "")
     var showPrompt by remember { mutableStateOf(false) }
-    val ready = manager?.readyLanguages?.collectAsStateWithLifecycle()?.value.orEmpty()
-    val busy = manager?.modelOperationBusy?.collectAsStateWithLifecycle()?.value == true
-    val operationLanguage = manager?.modelOperationLanguage?.collectAsStateWithLifecycle()?.value
-    val progress = manager?.modelDownloadProgress?.collectAsStateWithLifecycle()?.value
-    val error = manager?.modelDownloadError?.collectAsStateWithLifecycle()?.value
-    val variants = manager?.modelVariants?.collectAsStateWithLifecycle()?.value.orEmpty()
-    val readyModels = manager?.readyModels?.collectAsStateWithLifecycle()?.value.orEmpty()
-    val allSizes = manager?.allModelSizes?.collectAsStateWithLifecycle()?.value.orEmpty()
-    val modelsInUse = manager?.modelsInUse?.collectAsStateWithLifecycle()?.value.orEmpty()
-    var modelLanguage by remember { mutableStateOf<AsrLanguage?>(null) }
-    var deleteModel by remember { mutableStateOf<AsrModel?>(null) }
+
     if (showTargetLanguage) EnumDialog(
         title = stringResource(R.string.ai_target_language), current = targetLanguage,
         values = LanguageCodeToName.keys.sortedBy { LanguageCodeToName[it] },
@@ -85,6 +91,69 @@ internal fun PodcastSubtitleSettings() {
             TextButton(onClick = { systemPrompt = ""; showPrompt = false }) { Text(stringResource(R.string.ai_system_prompt_reset)) }
         },
     )
+
+    Material3SettingsGroup(
+        title = stringResource(R.string.settings_title_podcast_subtitles),
+        items = listOf(
+            Material3SettingsItem(
+                icon = painterResource(R.drawable.subtitles),
+                title = { Text(stringResource(R.string.ai_always_translate_podcast_subtitles)) },
+                description = { Text(stringResource(R.string.ai_always_translate_podcast_subtitles_desc)) },
+                onClick = { alwaysTranslate = !alwaysTranslate },
+                trailingContent = {
+                    Switch(
+                        checked = alwaysTranslate,
+                        onCheckedChange = { alwaysTranslate = it },
+                        thumbContent = {
+                            Icon(
+                                painter = painterResource(
+                                    id = if (alwaysTranslate) R.drawable.check else R.drawable.close,
+                                ),
+                                contentDescription = null,
+                                modifier = Modifier.size(SwitchDefaults.IconSize),
+                            )
+                        },
+                    )
+                },
+            ),
+            Material3SettingsItem(
+                icon = painterResource(R.drawable.edit),
+                title = { Text(stringResource(R.string.ai_system_prompt)) },
+                description = { Text(if (systemPrompt.isBlank()) stringResource(R.string.ai_system_prompt_default) else stringResource(R.string.ai_provider_custom)) },
+                onClick = { showPrompt = true },
+            ),
+            Material3SettingsItem(
+                icon = painterResource(R.drawable.language),
+                title = { Text(stringResource(R.string.ai_target_language)) },
+                description = { Text(LanguageCodeToName[targetLanguage] ?: targetLanguage) },
+                onClick = { showTargetLanguage = true },
+            ),
+            Material3SettingsItem(
+                icon = painterResource(R.drawable.storage),
+                title = { Text(stringResource(R.string.podcast_asr_manage_models)) },
+                description = { Text(stringResource(R.string.podcast_asr_manage_models_desc)) },
+                onClick = onManageModelsClick,
+            ),
+        ),
+    )
+}
+
+@Composable
+internal fun PodcastAsrModelManagementSection() {
+    val manager = LocalPodcastSubtitleManager.current
+    val context = LocalContext.current
+    val sizes = manager?.modelSizes?.collectAsStateWithLifecycle()?.value.orEmpty()
+    val ready = manager?.readyLanguages?.collectAsStateWithLifecycle()?.value.orEmpty()
+    val busy = manager?.modelOperationBusy?.collectAsStateWithLifecycle()?.value == true
+    val operationLanguage = manager?.modelOperationLanguage?.collectAsStateWithLifecycle()?.value
+    val progress = manager?.modelDownloadProgress?.collectAsStateWithLifecycle()?.value
+    val error = manager?.modelDownloadError?.collectAsStateWithLifecycle()?.value
+    val variants = manager?.modelVariants?.collectAsStateWithLifecycle()?.value.orEmpty()
+    val readyModels = manager?.readyModels?.collectAsStateWithLifecycle()?.value.orEmpty()
+    val allSizes = manager?.allModelSizes?.collectAsStateWithLifecycle()?.value.orEmpty()
+    val modelsInUse = manager?.modelsInUse?.collectAsStateWithLifecycle()?.value.orEmpty()
+    var modelLanguage by remember { mutableStateOf<AsrLanguage?>(null) }
+    var deleteModel by remember { mutableStateOf<AsrModel?>(null) }
 
     modelLanguage?.let { language ->
         AsrModelManagementDialog(
@@ -109,6 +178,7 @@ internal fun PodcastSubtitleSettings() {
             onDelete = { variant -> modelLanguage = null; deleteModel = language.model(variant) },
         )
     }
+
     deleteModel?.let { model ->
         AlertDialog(
             onDismissRequest = { deleteModel = null },
@@ -122,30 +192,8 @@ internal fun PodcastSubtitleSettings() {
     }
 
     Material3SettingsGroup(
-        title = stringResource(R.string.settings_title_podcast_subtitles),
-        items = listOf(
-            Material3SettingsItem(
-                icon = painterResource(R.drawable.subtitles),
-                title = { Text(stringResource(R.string.ai_always_translate_podcast_subtitles)) },
-                description = { Text(stringResource(R.string.ai_always_translate_podcast_subtitles_desc)) },
-                onClick = { alwaysTranslate = !alwaysTranslate },
-                trailingContent = {
-                    Switch(checked = alwaysTranslate, onCheckedChange = { alwaysTranslate = it })
-                },
-            ),
-            Material3SettingsItem(
-                icon = painterResource(R.drawable.edit),
-                title = { Text(stringResource(R.string.ai_system_prompt)) },
-                description = { Text(if (systemPrompt.isBlank()) stringResource(R.string.ai_system_prompt_default) else stringResource(R.string.ai_provider_custom)) },
-                onClick = { showPrompt = true },
-            ),
-            Material3SettingsItem(
-                icon = painterResource(R.drawable.language),
-                title = { Text(stringResource(R.string.ai_target_language)) },
-                description = { Text(LanguageCodeToName[targetLanguage] ?: targetLanguage) },
-                onClick = { showTargetLanguage = true },
-            ),
-        ) + AsrLanguage.entries.map { language ->
+        title = stringResource(R.string.podcast_asr_manage_models),
+        items = AsrLanguage.entries.map { language ->
             val modelReady = language in ready
             Material3SettingsItem(
                 icon = painterResource(R.drawable.language),
@@ -167,5 +215,49 @@ internal fun PodcastSubtitleSettings() {
             )
         },
     )
-    if (error != null) Text(error, color = androidx.compose.material3.MaterialTheme.colorScheme.error)
+    if (error != null) Text(error, color = MaterialTheme.colorScheme.error)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PodcastAsrModelsSettings(
+    navController: NavController,
+) {
+    Column(
+        Modifier
+            .windowInsetsPadding(
+                LocalPlayerAwareWindowInsets.current.only(
+                    WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom,
+                ),
+            )
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp),
+    ) {
+        Spacer(
+            Modifier.windowInsetsPadding(
+                LocalPlayerAwareWindowInsets.current.only(
+                    WindowInsetsSides.Top,
+                ),
+            ),
+        )
+
+        PodcastAsrModelManagementSection()
+
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+
+    TopAppBar(
+        title = { Text(stringResource(R.string.podcast_asr_manage_models)) },
+        navigationIcon = {
+            IconButton(
+                onClick = navController::navigateUp,
+                onLongClick = navController::backToMain,
+            ) {
+                Icon(
+                    painterResource(R.drawable.arrow_back),
+                    contentDescription = null,
+                )
+            }
+        },
+    )
 }

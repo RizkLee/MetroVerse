@@ -1019,4 +1019,8 @@
     <string name="podcast_asr_exit_not_responding">L’app ha smesso di rispondere ed è stata chiusa durante il riconoscimento dei sottotitoli. Riprova più tardi.</string>
     <string name="podcast_asr_exit_unknown">L’ultimo riconoscimento dei sottotitoli non è terminato normalmente. Android non ha indicato un motivo chiaro.</string>
     <string name="podcast_asr_choose_tiny">Scegli Tiny</string>
+    <string name="navigation_bar_tabs">Schede della barra di navigazione</string>
+    <string name="navigation_bar_tabs_desc">Trascina per riordinare le schede o nascondi quelle che non ti servono (mantienine almeno una)</string>
+    <string name="podcast_asr_manage_models">Gestisci modelli di riconoscimento dei sottotitoli</string>
+    <string name="podcast_asr_manage_models_desc">Scarica, cambia o elimina i modelli locali di riconoscimento dei sottotitoli</string>
 </resources>

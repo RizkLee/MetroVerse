@@ -1230,4 +1230,8 @@
     <string name="podcast_asr_exit_not_responding">The app stopped responding and was closed during subtitle recognition. Try again later.</string>
     <string name="podcast_asr_exit_unknown">The last subtitle recognition did not finish normally. Android did not report a clear exit reason.</string>
     <string name="podcast_asr_choose_tiny">Choose Tiny</string>
+    <string name="navigation_bar_tabs">Navigation bar tabs</string>
+    <string name="navigation_bar_tabs_desc">Drag to reorder tabs or hide tabs you do not need (keep at least one)</string>
+    <string name="podcast_asr_manage_models">Manage subtitle recognition models</string>
+    <string name="podcast_asr_manage_models_desc">Download, switch, or delete on-device subtitle recognition models</string>
 </resources>
