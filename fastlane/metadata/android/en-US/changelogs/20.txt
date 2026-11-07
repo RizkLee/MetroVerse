@@ -1,0 +1,3 @@
+Added navigation bar tab customization in Appearance settings to reorder tabs by drag-and-drop and hide unused tabs (keeping at least two visible).
+Kept Listen Together in the top app bar by default and removed the redundant top-bar toggle.
+Moved podcast subtitle recognition model management into a dedicated secondary screen under AI settings.

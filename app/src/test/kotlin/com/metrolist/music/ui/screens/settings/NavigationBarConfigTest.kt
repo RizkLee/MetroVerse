@@ -44,7 +44,7 @@ class NavigationBarConfigTest {
     }
 
     @Test
-    fun normalizeAppendsMissingTabsAndGuaranteesAtLeastOneVisibleTab() {
+    fun normalizeAppendsMissingTabsAndGuaranteesAtLeastTwoVisibleTabs() {
         val allDisabled =
             listOf(
                 NavigationTab.SEARCH to false,
@@ -64,8 +64,21 @@ class NavigationBarConfigTest {
         val everyTabDisabled =
             DefaultNavigationTabOrder.map { it to false }
         val normalizedAllDisabled = normalizeNavigationTabs(everyTabDisabled)
-        assertEquals(true, normalizedAllDisabled.first().second)
-        assertEquals(1, normalizedAllDisabled.count { it.second })
+        assertEquals(true, normalizedAllDisabled[0].second)
+        assertEquals(true, normalizedAllDisabled[1].second)
+        assertEquals(2, normalizedAllDisabled.count { it.second })
+
+        val onlyOneEnabled =
+            listOf(
+                NavigationTab.HOME to false,
+                NavigationTab.PODCAST to false,
+                NavigationTab.SEARCH to true,
+                NavigationTab.LIBRARY to false,
+            )
+        val normalizedOneEnabled = normalizeNavigationTabs(onlyOneEnabled)
+        assertEquals(true, normalizedOneEnabled[0].second)
+        assertEquals(true, normalizedOneEnabled[2].second)
+        assertEquals(2, normalizedOneEnabled.count { it.second })
     }
 
     @Test

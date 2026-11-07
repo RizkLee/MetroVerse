@@ -1020,7 +1020,7 @@
     <string name="podcast_asr_exit_unknown">Die letzte Untertitelerkennung wurde nicht normal beendet. Android hat keinen eindeutigen Grund gemeldet.</string>
     <string name="podcast_asr_choose_tiny">Tiny auswählen</string>
     <string name="navigation_bar_tabs">Tabs der Navigationsleiste</string>
-    <string name="navigation_bar_tabs_desc">Ziehe Tabs zum Sortieren oder blende nicht benötigte Tabs aus (mindestens einer muss bleiben)</string>
+    <string name="navigation_bar_tabs_desc">Ziehe Tabs zum Sortieren oder blende nicht benötigte Tabs aus (mindestens zwei müssen bleiben)</string>
     <string name="podcast_asr_manage_models">Untertitelerkennungsmodelle verwalten</string>
     <string name="podcast_asr_manage_models_desc">Lokale Modelle zur Untertitelerkennung herunterladen, wechseln oder löschen</string>
 </resources>

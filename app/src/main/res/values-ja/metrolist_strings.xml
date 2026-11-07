@@ -987,7 +987,7 @@
     <string name="podcast_asr_exit_unknown">前回の字幕認識が正常に終了しませんでした。Android から明確な終了理由は報告されていません。</string>
     <string name="podcast_asr_choose_tiny">Tiny を選択</string>
     <string name="navigation_bar_tabs">ナビゲーションバーのタブ</string>
-    <string name="navigation_bar_tabs_desc">ドラッグしてタブの順序を変更したり、不要なタブを非表示にしたりできます（少なくとも1つは残す必要があります）</string>
+    <string name="navigation_bar_tabs_desc">ドラッグしてタブの順序を変更したり、不要なタブを非表示にしたりできます（少なくとも2つは残す必要があります）</string>
     <string name="podcast_asr_manage_models">字幕認識モデルの管理</string>
     <string name="podcast_asr_manage_models_desc">端末内の字幕認識モデルのダウンロード、切り替え、削除</string>
 </resources>

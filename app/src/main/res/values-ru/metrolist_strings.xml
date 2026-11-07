@@ -1034,7 +1034,7 @@
     <string name="podcast_asr_exit_unknown">Последнее распознавание субтитров завершилось некорректно. Android не сообщил точную причину завершения.</string>
     <string name="podcast_asr_choose_tiny">Выбрать Tiny</string>
     <string name="navigation_bar_tabs">Вкладки панели навигации</string>
-    <string name="navigation_bar_tabs_desc">Перетаскивайте вкладки для изменения порядка или скрывайте ненужные (оставьте хотя бы одну)</string>
+    <string name="navigation_bar_tabs_desc">Перетаскивайте вкладки для изменения порядка или скрывайте ненужные (оставьте хотя бы две)</string>
     <string name="podcast_asr_manage_models">Управление моделями распознавания субтитров</string>
     <string name="podcast_asr_manage_models_desc">Скачивание, переключение и удаление локальных моделей распознавания субтитров</string>
 </resources>

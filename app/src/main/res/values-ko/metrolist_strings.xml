@@ -919,7 +919,7 @@
     <string name="podcast_asr_exit_unknown">지난 자막 인식이 정상적으로 끝나지 않았습니다. Android에서 명확한 종료 원인을 제공하지 않았습니다.</string>
     <string name="podcast_asr_choose_tiny">Tiny 선택</string>
     <string name="navigation_bar_tabs">내비게이션 바 탭</string>
-    <string name="navigation_bar_tabs_desc">드래그하여 탭 순서를 변경하거나 필요하지 않은 탭을 숨깁니다 (최소 1개 이상 유지)</string>
+    <string name="navigation_bar_tabs_desc">드래그하여 탭 순서를 변경하거나 필요하지 않은 탭을 숨깁니다 (최소 2개 이상 유지)</string>
     <string name="podcast_asr_manage_models">자막 인식 모델 관리</string>
     <string name="podcast_asr_manage_models_desc">기기 내 자막 인식 모델 다운로드, 전환 또는 삭제</string>
 </resources>

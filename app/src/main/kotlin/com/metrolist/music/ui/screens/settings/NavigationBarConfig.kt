@@ -7,6 +7,8 @@ package com.metrolist.music.ui.screens.settings
 
 import com.metrolist.music.ui.screens.Screens
 
+const val MIN_VISIBLE_NAVIGATION_TABS = 2
+
 val DefaultNavigationTabOrder: List<NavigationTab> =
     listOf(
         NavigationTab.HOME,
@@ -55,10 +57,17 @@ fun normalizeNavigationTabs(tabs: List<Pair<NavigationTab, Boolean>>): List<Pair
             .filter { it !in seen }
             .map { it to true }
     val combined = deduplicated + missing
-    return if (combined.any { it.second }) {
-        combined
-    } else {
-        combined.mapIndexed { index, (tab, _) -> tab to (index == 0) }
+    var enabledCount = combined.count { it.second }
+    if (enabledCount >= MIN_VISIBLE_NAVIGATION_TABS) {
+        return combined
+    }
+    return combined.map { (tab, enabled) ->
+        if (!enabled && enabledCount < MIN_VISIBLE_NAVIGATION_TABS) {
+            enabledCount++
+            tab to true
+        } else {
+            tab to enabled
+        }
     }
 }
 

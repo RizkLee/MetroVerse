@@ -1019,7 +1019,7 @@
     <string name="podcast_asr_exit_unknown">O último reconhecimento de legendas não terminou normalmente. O Android não informou um motivo claro.</string>
     <string name="podcast_asr_choose_tiny">Escolher Tiny</string>
     <string name="navigation_bar_tabs">Abas da barra de navegação</string>
-    <string name="navigation_bar_tabs_desc">Arraste para reordenar as abas ou oculte as que não precisar (mantenha pelo menos uma)</string>
+    <string name="navigation_bar_tabs_desc">Arraste para reordenar as abas ou oculte as que não precisar (mantenha pelo menos duas)</string>
     <string name="podcast_asr_manage_models">Gerenciar modelos de reconhecimento de legendas</string>
     <string name="podcast_asr_manage_models_desc">Baixar, alternar ou excluir modelos de reconhecimento de legendas no dispositivo</string>
 </resources>

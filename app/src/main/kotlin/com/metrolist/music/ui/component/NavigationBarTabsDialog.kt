@@ -52,6 +52,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.metrolist.music.R
 import com.metrolist.music.ui.screens.settings.DefaultNavigationTabOrder
+import com.metrolist.music.ui.screens.settings.MIN_VISIBLE_NAVIGATION_TABS
 import com.metrolist.music.ui.screens.settings.NavigationTab
 import com.metrolist.music.ui.screens.settings.deserializeNavigationTabs
 import com.metrolist.music.ui.screens.settings.normalizeNavigationTabs
@@ -219,7 +220,7 @@ fun NavigationBarTabsDialog(
                 userScrollEnabled = false,
             ) {
                 items(tabs, key = { (tab, _) -> tab.name }) { (tab, enabled) ->
-                    val canToggleOff = !enabled || enabledCount > 1
+                    val canToggleOff = !enabled || enabledCount > MIN_VISIBLE_NAVIGATION_TABS
                     val screen = tab.toScreen()
 
                     ReorderableItem(reorderableState, key = tab.name) { isDragging ->
@@ -250,7 +251,7 @@ fun NavigationBarTabsDialog(
                                 .clip(RoundedCornerShape(16.dp))
                                 .clickable(enabled = canToggleOff) {
                                     val newEnabled = !enabled
-                                    if (newEnabled || enabledCount > 1) {
+                                    if (newEnabled || enabledCount > MIN_VISIBLE_NAVIGATION_TABS) {
                                         tabs = tabs.map { (t, e) ->
                                             if (t == tab) t to newEnabled else t to e
                                         }
@@ -331,7 +332,7 @@ fun NavigationBarTabsDialog(
                                     checked = enabled,
                                     enabled = canToggleOff,
                                     onCheckedChange = { newEnabled ->
-                                        if (newEnabled || enabledCount > 1) {
+                                        if (newEnabled || enabledCount > MIN_VISIBLE_NAVIGATION_TABS) {
                                             tabs = tabs.map { (t, e) ->
                                                 if (t == tab) t to newEnabled else t to e
                                             }

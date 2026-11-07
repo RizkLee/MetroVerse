@@ -959,7 +959,7 @@
     <string name="podcast_asr_exit_unknown">上次字幕辨識未正常結束，系統未提供明確的退出原因。</string>
     <string name="podcast_asr_choose_tiny">選擇 Tiny</string>
     <string name="navigation_bar_tabs">導覽列分頁按鈕</string>
-    <string name="navigation_bar_tabs_desc">拖曳調整導覽列分頁按鈕順序，或隱藏不需要的分頁按鈕（至少保留一個）</string>
+    <string name="navigation_bar_tabs_desc">拖曳調整導覽列分頁按鈕順序，或隱藏不需要的分頁按鈕（至少保留兩個）</string>
     <string name="podcast_asr_manage_models">管理字幕辨識模型</string>
     <string name="podcast_asr_manage_models_desc">下載、切換或刪除裝置端字幕辨識模型</string>
 </resources>

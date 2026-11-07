@@ -1023,7 +1023,7 @@
     <string name="podcast_asr_exit_unknown">El último reconocimiento de subtítulos no terminó normalmente. Android no indicó un motivo claro.</string>
     <string name="podcast_asr_choose_tiny">Elegir Tiny</string>
     <string name="navigation_bar_tabs">Pestañas de la barra de navegación</string>
-    <string name="navigation_bar_tabs_desc">Arrastra para reordenar las pestañas u oculta las que no necesites (mantén al menos una)</string>
+    <string name="navigation_bar_tabs_desc">Arrastra para reordenar las pestañas u oculta las que no necesites (mantén al menos dos)</string>
     <string name="podcast_asr_manage_models">Gestionar modelos de reconocimiento de subtítulos</string>
     <string name="podcast_asr_manage_models_desc">Descargar, cambiar o eliminar modelos locales de reconocimiento de subtítulos</string>
 </resources>

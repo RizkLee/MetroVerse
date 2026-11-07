@@ -2,6 +2,12 @@
 
 All notable MetroVerse-specific changes are recorded here. Upstream Metrolist history remains available in Git history.
 
+## 1.2.1 - 2026-11-08
+
+- Add navigation bar tab customization in Settings → Appearance → Misc to reorder tabs by drag-and-drop and hide unused tabs (keeping at least two visible).
+- Keep Listen Together in the top app bar by default and remove the redundant top-bar toggle in Appearance settings.
+- Move podcast subtitle recognition model management into a dedicated secondary screen under Settings → AI Lyrics & Podcast Subtitles → Podcast Subtitles.
+
 ## 1.2.0 - 2026-10-26
 
 - Add Mandarin Chinese, Arabic, Tagalog, and Vietnamese on-device subtitles for RSS podcasts.
