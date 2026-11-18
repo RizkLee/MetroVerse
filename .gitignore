@@ -100,6 +100,7 @@ output-metadata.json
 core
 core.*
 *.so
+!/app/src/moonshine/ort/jni/arm64-v8a/libonnxruntime.so
 *.bin
 .env
 app/src/main/java/com/metrolist/music/listentogether/proto/*

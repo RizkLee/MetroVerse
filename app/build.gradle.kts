@@ -6,11 +6,16 @@ import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Internal
+import org.gradle.api.tasks.OutputFile
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.gradle.process.ExecOperations
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.gradle.api.file.ArchiveOperations
+import java.io.File
 import java.net.URL
+import java.security.MessageDigest
 import java.util.Properties
 import javax.inject.Inject
 
@@ -114,6 +119,72 @@ abstract class GenerateProtoTask : DefaultTask() {
     }
 }
 
+abstract class VerifyMoonshineNativeTask : DefaultTask() {
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val moonshineLibrary: RegularFileProperty
+
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val onnxruntimeLibrary: RegularFileProperty
+
+    @get:Input
+    abstract val expectedMoonshineSha256: Property<String>
+
+    @get:Input
+    abstract val expectedOnnxruntimeSha256: Property<String>
+
+    @get:Input
+    abstract val forbiddenKleidiaiSha256: Property<String>
+
+    @get:OutputFile
+    abstract val verificationStamp: RegularFileProperty
+
+    @TaskAction
+    fun verify() {
+        verifySha256(
+            file = moonshineLibrary.get().asFile,
+            expected = expectedMoonshineSha256.get(),
+            forbidden = null,
+        )
+        verifySha256(
+            file = onnxruntimeLibrary.get().asFile,
+            expected = expectedOnnxruntimeSha256.get(),
+            forbidden = forbiddenKleidiaiSha256.get(),
+        )
+        val stamp = verificationStamp.get().asFile
+        stamp.parentFile.mkdirs()
+        stamp.writeText("verified\n")
+    }
+
+    private fun verifySha256(file: File, expected: String, forbidden: String?) {
+        if (!file.isFile) {
+            throw GradleException("Missing native library: ${file.absolutePath}")
+        }
+        val digest = MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { input ->
+            val buffer = ByteArray(8192)
+            while (true) {
+                val read = input.read(buffer)
+                if (read <= 0) break
+                digest.update(buffer, 0, read)
+            }
+        }
+        val actual = digest.digest().joinToString("") { "%02x".format(it) }
+        if (forbidden != null && actual.equals(forbidden, ignoreCase = true)) {
+            throw GradleException(
+                "Refusing KleidiAI-enabled ONNX Runtime library ${file.name} ($actual); " +
+                    "expected --no_kleidiai build ${expected.lowercase()}."
+            )
+        }
+        if (!actual.equals(expected, ignoreCase = true)) {
+            throw GradleException(
+                "Unexpected SHA-256 for ${file.name}: expected ${expected.lowercase()}, actual $actual"
+            )
+        }
+    }
+}
+
 val moonshineRuntime by configurations.creating {
     isCanBeConsumed = false
     isTransitive = false
@@ -122,20 +193,36 @@ abstract class NativeArchiveAccess {
     @get:Inject abstract val archives: ArchiveOperations
 }
 
+val moonshineNativeDir = layout.buildDirectory.dir("moonshine-native")
+
 val prepareMoonshineNative by tasks.registering(Sync::class) {
     val archives = objects.newInstance<NativeArchiveAccess>().archives
     from(moonshineRuntime.elements.map { artifacts -> artifacts.map { archives.zipTree(it.asFile) } }) {
-        include("jni/arm64-v8a/libmoonshine.so", "jni/arm64-v8a/libonnxruntime.so")
+        // Use upstream libmoonshine.so only; libonnxruntime.so comes from our --no_kleidiai v1.23.2 build.
+        include("jni/arm64-v8a/libmoonshine.so")
     }
-    into(layout.buildDirectory.dir("moonshine-native"))
+    from(layout.projectDirectory.dir("src/moonshine/ort")) {
+        include("jni/arm64-v8a/libonnxruntime.so")
+    }
+    into(moonshineNativeDir)
+}
+
+val verifyMoonshineNative by tasks.registering(VerifyMoonshineNativeTask::class) {
+    dependsOn(prepareMoonshineNative)
+    moonshineLibrary.set(moonshineNativeDir.map { it.file("jni/arm64-v8a/libmoonshine.so") })
+    onnxruntimeLibrary.set(moonshineNativeDir.map { it.file("jni/arm64-v8a/libonnxruntime.so") })
+    expectedMoonshineSha256.set("922eddb6a0316f94091f40c5304db152e1b33ac4ad36db97823157dd402e19e0")
+    expectedOnnxruntimeSha256.set("8cad9eba519db70b9da8ff6d31044ff48dd02d939dba90bc557d0f467e955464")
+    forbiddenKleidiaiSha256.set("86e85022fc539963177e478c8e9a8a8219bc3b0d7515bf5297a62986dbc45e7a")
+    verificationStamp.set(layout.buildDirectory.file("moonshine-native-verified.stamp"))
 }
 
 tasks.named("preBuild") {
-    dependsOn(prepareMoonshineNative)
+    dependsOn(verifyMoonshineNative)
 }
 tasks.configureEach {
     if (name.startsWith("configureCMake") || name.startsWith("buildCMake")) {
-        dependsOn(prepareMoonshineNative)
+        dependsOn(verifyMoonshineNative)
     }
 }
 
