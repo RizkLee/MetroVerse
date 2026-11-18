@@ -13,6 +13,7 @@
 #include <shared_mutex>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 #include "Utf8.h"
@@ -37,6 +38,18 @@ std::unordered_map<int, std::shared_ptr<TranscriberState>> registry;
 // Model creation/destruction mutates the upstream process-wide handle table.
 // Independent live transcribers may still infer concurrently under shared locks.
 std::shared_mutex runtimeHandlesMutex;
+bool singleThreadConfigured = false;
+
+bool configureSingleThreadEnvironment() noexcept {
+    const char *existing = std::getenv("MOONSHINE_ORT_SINGLE_THREAD");
+    if (existing != nullptr && std::string_view(existing) == "1") {
+        return true;
+    }
+    // Moonshine v0.1.5 reads this when creating each ORT session. Configuring
+    // it once in JNI_OnLoad avoids mutating POSIX environ on subsequent create()
+    // calls while playback or network worker threads call getenv().
+    return setenv("MOONSHINE_ORT_SINGLE_THREAD", "1", 1) == 0;
+}
 
 void checkStatus(int status, const char *operation) {
     if (status != MOONSHINE_ERROR_NONE) {
@@ -179,6 +192,15 @@ jobjectArray copyTranscript(JNIEnv *env, const transcript_t *transcript) {
 
 }  // namespace
 
+extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *) {
+    JNIEnv *env = nullptr;
+    if (vm == nullptr || vm->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6) != JNI_OK) {
+        return JNI_ERR;
+    }
+    singleThreadConfigured = configureSingleThreadEnvironment();
+    return JNI_VERSION_1_6;
+}
+
 extern "C" JNIEXPORT jint JNICALL
 Java_com_metrolist_music_podcast_transcript_MoonshineNative_create(JNIEnv *env, jobject, jstring directory, jint modelArchitecture) {
     try {
@@ -196,9 +218,7 @@ Java_com_metrolist_music_podcast_transcript_MoonshineNative_create(JNIEnv *env, 
             {"ort_provider", "cpu"},
         };
         std::unique_lock<std::shared_mutex> runtimeLock(runtimeHandlesMutex);
-        // Moonshine v0.1.5 reads this when creating each ORT session. It does
-        // not change system settings or the application's other worker pools.
-        if (setenv("MOONSHINE_ORT_SINGLE_THREAD", "1", 1) != 0) {
+        if (!singleThreadConfigured) {
             throw std::runtime_error("Could not configure recognition threads");
         }
         const int handle = moonshine_load_transcriber_from_files(path.c_str(), modelArchitecture,
