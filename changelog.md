@@ -2,6 +2,10 @@
 
 All notable MetroVerse-specific changes are recorded here. Upstream Metrolist history remains available in Git history.
 
+## 1.2.2 - 2026-11-18
+
+- Fix an immediate crash when starting on-device podcast subtitle recognition on newer ARMv9 devices (such as Snapdragon 8 Elite Gen 5 phones).
+
 ## 1.2.1 - 2026-11-08
 
 - Add navigation bar tab customization in Settings → Appearance → Misc to reorder tabs by drag-and-drop and hide unused tabs (keeping at least two visible).

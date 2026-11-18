@@ -24,8 +24,8 @@ class InstalledChangelogTest {
     fun englishAndChineseInstalledNotesDescribeTheCurrentBuildAndLanguages() {
         val context = ApplicationProvider.getApplicationContext<Application>()
         val terms = mapOf(
-            Locale.ENGLISH to listOf("navigation bar", "at least two", "Listen Together", "subtitle recognition model"),
-            Locale.SIMPLIFIED_CHINESE to listOf("导航栏标签按钮", "至少保留两个", "一起听", "播客字幕识别模型管理"),
+            Locale.ENGLISH to listOf("podcast subtitle recognition", "ARMv9", "Snapdragon 8 Elite Gen 5"),
+            Locale.SIMPLIFIED_CHINESE to listOf("播客端侧字幕", "ARMv9", "骁龙 8 Elite Gen 5", "闪退"),
         )
         terms.forEach { (locale, languages) ->
             val configuration = Configuration(context.resources.configuration).apply { setLocale(locale) }

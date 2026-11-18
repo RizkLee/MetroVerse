@@ -1,0 +1,1 @@
+Fixed an immediate crash when starting on-device podcast subtitle recognition on newer ARMv9 devices (such as Snapdragon 8 Elite Gen 5 phones).

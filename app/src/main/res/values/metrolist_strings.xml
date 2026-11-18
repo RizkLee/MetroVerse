@@ -927,7 +927,7 @@
     <string name="metroverse_metrolist_relationship">MetroVerse is based on Metrolist and retains its music architecture, interface foundations, contributors, and GPL history.</string>
     <string name="metroverse_podium_relationship">The RSS and Apple Podcasts integration was developed by studying and adapting concepts from Podium under GPL-3.0.</string>
     <string name="metroverse_apple_podcasts_attribution">Apple Podcasts provides public discovery, charts, search metadata, and artwork. MetroVerse plays public RSS feeds independently and is not affiliated with Apple.</string>
-    <string name="metroverse_changelog_body">MetroVerse 1.2.1\n\n• Added navigation bar tab customization in Appearance settings to reorder tabs by drag-and-drop and hide unused tabs (keeping at least two visible)\n• Kept Listen Together in the top app bar by default and removed the redundant top-bar toggle\n• Moved podcast subtitle recognition model management into a dedicated secondary screen under AI settings</string>
+    <string name="metroverse_changelog_body">MetroVerse 1.2.2\n\n• Fixed an immediate crash when starting on-device podcast subtitle recognition on newer ARMv9 devices (such as Snapdragon 8 Elite Gen 5 phones)</string>
     <string name="wanna_play_favorite_song">Want to play their favorite song?</string>
     <string name="yeah">Yeah!</string>
     <string name="stands_with_palestine">This project stands with Palestine 🇵🇸</string>
