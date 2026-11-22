@@ -52,6 +52,7 @@ import com.metrolist.music.ui.screens.settings.AboutScreen
 import com.metrolist.music.ui.screens.settings.AiSettings
 import com.metrolist.music.ui.screens.settings.AndroidAutoSettings
 import com.metrolist.music.ui.screens.settings.AppearanceSettings
+import com.metrolist.music.ui.screens.settings.ArtworkAppearanceSettings
 import com.metrolist.music.ui.screens.settings.BackupAndRestore
 import com.metrolist.music.ui.screens.settings.ContentSettings
 import com.metrolist.music.ui.screens.settings.DarkMode
@@ -441,6 +442,10 @@ fun NavGraphBuilder.navigationBuilder(
 
     composable("settings/appearance/lyrics") {
         LyricsAppearanceSettings(navController)
+    }
+
+    composable("settings/appearance/artwork") {
+        ArtworkAppearanceSettings(navController)
     }
 
     composable("settings/content") {

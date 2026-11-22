@@ -9,6 +9,8 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -61,7 +63,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -88,10 +92,17 @@ import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.models.WatchEndpoint
 import com.metrolist.music.LocalDatabase
 import com.metrolist.music.LocalListenTogetherManager
+import com.metrolist.music.LocalNetworkConnectivityObserver
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
+import com.metrolist.music.artwork.AnimatedCoverVideo
+import com.metrolist.music.artwork.ArtworkVideoPriority
+import com.metrolist.music.artwork.isAnimatedArtworkAllowedOnNetwork
 import com.metrolist.music.constants.AppBarHeight
+import com.metrolist.music.constants.DisableAnimatedArtworkOnMobileDataKey
+import com.metrolist.music.constants.EnableAppleMusicArtistImagesKey
+import com.metrolist.music.constants.EnableAppleMusicArtistVideosKey
 import com.metrolist.music.constants.ShowArtistDescriptionKey
 import com.metrolist.music.constants.ShowArtistSubscriberCountKey
 import com.metrolist.music.constants.ShowMonthlyListenersKey
@@ -150,14 +161,26 @@ fun ArtistScreen(
     val librarySongs by viewModel.librarySongs.collectAsStateWithLifecycle()
     val libraryAlbums by viewModel.libraryAlbums.collectAsStateWithLifecycle()
     val isChannelSubscribed by viewModel.isChannelSubscribed.collectAsStateWithLifecycle()
+    val appleMusicArtwork by viewModel.appleMusicArtwork.collectAsStateWithLifecycle()
     val showArtistDescription by rememberPreference(key = ShowArtistDescriptionKey, defaultValue = true)
     val showArtistSubscriberCount by rememberPreference(key = ShowArtistSubscriberCountKey, defaultValue = true)
     val showMonthlyListeners by rememberPreference(key = ShowMonthlyListenersKey, defaultValue = true)
+    val enableAppleMusicArtistImages by rememberPreference(key = EnableAppleMusicArtistImagesKey, defaultValue = false)
+    val enableAppleMusicArtistVideos by rememberPreference(key = EnableAppleMusicArtistVideosKey, defaultValue = false)
+    val disableAnimatedOnMobile by rememberPreference(key = DisableAnimatedArtworkOnMobileDataKey, defaultValue = false)
+    val networkConnectivityObserver = LocalNetworkConnectivityObserver.current
+    val isCellularState = networkConnectivityObserver?.isCellular?.collectAsStateWithLifecycle()
+    val isCellular = isCellularState?.value == true
 
     val lazyListState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
     var showLocal by rememberSaveable { mutableStateOf(false) }
     val density = LocalDensity.current
+    val isHeaderVideoVisible by remember {
+        derivedStateOf { lazyListState.firstVisibleItemIndex == 0 }
+    }
+    var failedArtistVideoUrl by remember(viewModel.artistId) { mutableStateOf<String?>(null) }
+    var isArtistVideoReady by remember(viewModel.artistId) { mutableStateOf(false) }
 
     // Calculate the offset value outside of the offset lambda
     val systemBarsTopPadding = WindowInsets.systemBars.asPaddingValues().calculateTopPadding()
@@ -284,12 +307,37 @@ fun ArtistScreen(
                 }
             } else {
                 item(key = "header") {
-                    val thumbnail = artistPage?.artist?.thumbnail ?: libraryArtist?.artist?.thumbnailUrl
+                    val fallbackThumbnail = artistPage?.artist?.thumbnail ?: libraryArtist?.artist?.thumbnailUrl
+                    val appleMusicImage =
+                        appleMusicArtwork.imageUrl?.takeIf { enableAppleMusicArtistImages && !showLocal }
+                    val displayThumbnailModel = appleMusicImage ?: fallbackThumbnail?.resize(1200, 1200)
+                    val activeArtistVideoUrl =
+                        appleMusicArtwork.videoUrl?.takeIf {
+                            enableAppleMusicArtistVideos &&
+                                isAnimatedArtworkAllowedOnNetwork(disableAnimatedOnMobile, isCellular) &&
+                                !showLocal &&
+                                it != failedArtistVideoUrl
+                        }
+                    LaunchedEffect(activeArtistVideoUrl) {
+                        isArtistVideoReady = false
+                    }
                     val artistName = artistPage?.artist?.title ?: libraryArtist?.artist?.name
+                    val hasHeroVisual = displayThumbnailModel != null || activeArtistVideoUrl != null
+                    val backgroundColor = MaterialTheme.colorScheme.background
+                    val videoScrimAlpha by animateFloatAsState(
+                        targetValue =
+                            if (activeArtistVideoUrl != null && isArtistVideoReady && isHeaderVideoVisible) {
+                                1f
+                            } else {
+                                0f
+                            },
+                        animationSpec = tween(durationMillis = 250),
+                        label = "artistHeroVideoScrim",
+                    )
 
                     Box {
                         // Artist Image with offset
-                        if (thumbnail != null) {
+                        if (hasHeroVisual) {
                             Box(
                                 modifier =
                                     Modifier
@@ -299,18 +347,50 @@ fun ArtistScreen(
                                             IntOffset(x = 0, y = headerOffset)
                                         },
                             ) {
-                                AsyncImage(
-                                    model = thumbnail.resize(1200, 1200),
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Crop,
-                                    modifier =
-                                        Modifier
-                                            .fillMaxWidth()
-                                            .align(Alignment.TopCenter)
-                                            .fadingEdge(
-                                                bottom = 200.dp,
-                                            ),
-                                )
+                                if (displayThumbnailModel != null) {
+                                    AsyncImage(
+                                        model = displayThumbnailModel,
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        modifier =
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .align(Alignment.TopCenter)
+                                                .fadingEdge(
+                                                    bottom = 200.dp,
+                                                ),
+                                    )
+                                }
+                                if (activeArtistVideoUrl != null) {
+                                    AnimatedCoverVideo(
+                                        url = activeArtistVideoUrl,
+                                        priority = ArtworkVideoPriority.ARTIST,
+                                        active = isHeaderVideoVisible,
+                                        playing = isHeaderVideoVisible,
+                                        contentScaleCrop = true,
+                                        onReadyChanged = { isArtistVideoReady = it },
+                                        onError = {
+                                            isArtistVideoReady = false
+                                            failedArtistVideoUrl = activeArtistVideoUrl
+                                        },
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                    // Gradient scrim matches fadingEdge(bottom = 200.dp) without GPU DstIn TextureView artifacts.
+                                    Box(
+                                        modifier =
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .height(200.dp)
+                                                .align(Alignment.BottomCenter)
+                                                .graphicsLayer { alpha = videoScrimAlpha }
+                                                .background(
+                                                    Brush.verticalGradient(
+                                                        0f to Color.Transparent,
+                                                        1f to backgroundColor,
+                                                    ),
+                                                ),
+                                    )
+                                }
                             }
                         }
 
@@ -321,7 +401,7 @@ fun ArtistScreen(
                                     .fillMaxWidth()
                                     .padding(
                                         top =
-                                            if (thumbnail != null) {
+                                            if (hasHeroVisual) {
                                                 // Position content at the bottom part of the image
                                                 // Using screen width to calculate aspect ratio height minus overlap
                                                 LocalResources.current.displayMetrics.widthPixels.let { screenWidth ->

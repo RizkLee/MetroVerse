@@ -19,6 +19,18 @@ import com.metrolist.innertube.models.PlaylistItem
 import com.metrolist.innertube.models.PodcastItem
 import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.pages.ArtistPage
+import com.metrolist.music.artwork.AnimatedArtworkService
+import com.metrolist.music.artwork.ArtistArtworkFetchResult
+import com.metrolist.music.artwork.isAnimatedArtworkAllowedOnNetwork
+import com.metrolist.music.artwork.isEligibleForAppleMusicArtist
+import com.metrolist.music.constants.AnimatedCoverResolution
+import com.metrolist.music.constants.AppLanguageKey
+import com.metrolist.music.constants.AppleMusicArtistVideoResolutionKey
+import com.metrolist.music.constants.ContentCountryKey
+import com.metrolist.music.constants.ContentLanguageKey
+import com.metrolist.music.constants.DisableAnimatedArtworkOnMobileDataKey
+import com.metrolist.music.constants.EnableAppleMusicArtistImagesKey
+import com.metrolist.music.constants.EnableAppleMusicArtistVideosKey
 import com.metrolist.music.db.MusicDatabase
 import com.metrolist.music.db.entities.ArtistEntity
 import com.metrolist.music.db.entities.deserializeArtistPage
@@ -26,15 +38,23 @@ import com.metrolist.music.db.entities.serializeArtistPage
 import com.metrolist.music.db.entities.toArtistPage
 import com.metrolist.music.utils.ContentFilter
 import com.metrolist.music.utils.ContentFilterSnapshot
+import com.metrolist.music.utils.NetworkConnectivityObserver
 import com.metrolist.music.utils.SyncUtils
+import com.metrolist.music.utils.dataStore
 import com.metrolist.music.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
@@ -44,12 +64,30 @@ import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
 
+data class AppleMusicArtistArtworkState(
+    val imageUrl: String? = null,
+    val videoUrl: String? = null,
+    val isImageLookupComplete: Boolean = false,
+)
+
+private data class ArtistArtworkPrefsSnapshot(
+    val includeImage: Boolean,
+    val includeVideo: Boolean,
+    val disableOnMobileData: Boolean,
+    val videoResolution: AnimatedCoverResolution,
+    val country: String?,
+    val language: String?,
+    val appLanguage: String?,
+)
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ArtistViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val database: MusicDatabase,
     private val syncUtils: SyncUtils,
+    private val animatedArtworkService: AnimatedArtworkService,
+    private val networkConnectivityObserver: NetworkConnectivityObserver,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
     val artistId = savedStateHandle.get<String>("artistId")!!
@@ -60,6 +98,11 @@ class ArtistViewModel @Inject constructor(
 
     // Track API subscription state separately
     private val _apiSubscribed = MutableStateFlow<Boolean?>(null)
+    private val resolvedArtistName = MutableStateFlow<String?>(null)
+    private val _appleMusicArtwork = MutableStateFlow(AppleMusicArtistArtworkState())
+    val appleMusicArtwork: StateFlow<AppleMusicArtistArtworkState> = _appleMusicArtwork.asStateFlow()
+    private var lastArtworkRequestKey: String? = null
+    private var artworkFetchJob: Job? = null
 
     val libraryArtist = database.artist(artistId)
         .stateIn(viewModelScope, SharingStarted.Lazily, null)
@@ -100,6 +143,134 @@ class ArtistViewModel @Inject constructor(
                     }
                 }
         }
+
+        observeAppleMusicArtwork()
+    }
+
+    private fun observeAppleMusicArtwork() {
+        val prefsFlow =
+            context.dataStore.data
+                .map { prefs ->
+                    ArtistArtworkPrefsSnapshot(
+                        includeImage = prefs[EnableAppleMusicArtistImagesKey] ?: false,
+                        includeVideo = prefs[EnableAppleMusicArtistVideosKey] ?: false,
+                        disableOnMobileData = prefs[DisableAnimatedArtworkOnMobileDataKey] ?: false,
+                        videoResolution = AnimatedCoverResolution.fromStoredValue(prefs[AppleMusicArtistVideoResolutionKey]),
+                        country = prefs[ContentCountryKey],
+                        language = prefs[ContentLanguageKey],
+                        appLanguage = prefs[AppLanguageKey],
+                    )
+                }
+                .distinctUntilChanged()
+
+        val localArtistMetaFlow =
+            libraryArtist
+                .map { Triple(it?.artist?.name, it?.artist?.isLocal == true, it?.artist?.isPodcastChannel == true) }
+                .distinctUntilChanged()
+
+        viewModelScope.launch {
+            combine(
+                resolvedArtistName,
+                localArtistMetaFlow,
+                prefsFlow,
+                networkConnectivityObserver.isCellular,
+            ) { apiName, (localName, isLocalArtist, dbPodcastChannel), prefs, isCellular ->
+                val effectiveName = apiName?.takeIf(String::isNotBlank) ?: localName?.takeIf(String::isNotBlank)
+                Triple(effectiveName, isLocalArtist to (isPodcastChannel || dbPodcastChannel), prefs to isCellular)
+            }.collectLatest { (effectiveName, flags, networkPrefs) ->
+                val (isLocalArtist, podcastArtist) = flags
+                val (prefs, isCellular) = networkPrefs
+                val eligible =
+                    isEligibleForAppleMusicArtist(
+                        artistId = artistId,
+                        artistName = effectiveName,
+                        isPodcastChannel = podcastArtist,
+                        isLocalArtist = isLocalArtist,
+                    )
+                val includeImage = eligible && prefs.includeImage
+                val includeVideo =
+                    eligible &&
+                        prefs.includeVideo &&
+                        isAnimatedArtworkAllowedOnNetwork(prefs.disableOnMobileData, isCellular)
+
+                if (!eligible || (!includeImage && !includeVideo) || effectiveName == null) {
+                    artworkFetchJob?.cancel()
+                    lastArtworkRequestKey = null
+                    _appleMusicArtwork.value = AppleMusicArtistArtworkState(isImageLookupComplete = true)
+                    return@collectLatest
+                }
+
+                val requestKey =
+                    listOf(
+                        artistId,
+                        effectiveName,
+                        includeImage,
+                        includeVideo,
+                        prefs.videoResolution.name,
+                        prefs.country,
+                        prefs.language,
+                        prefs.appLanguage,
+                    ).joinToString("|")
+                if (requestKey == lastArtworkRequestKey) return@collectLatest
+                lastArtworkRequestKey = requestKey
+                artworkFetchJob?.cancel()
+                _appleMusicArtwork.value =
+                    AppleMusicArtistArtworkState(
+                        imageUrl = _appleMusicArtwork.value.imageUrl.takeIf { includeImage },
+                        videoUrl = null,
+                        isImageLookupComplete = !includeImage || _appleMusicArtwork.value.imageUrl != null,
+                    )
+
+                artworkFetchJob =
+                    launch {
+                        try {
+                            when (
+                                val result =
+                                    animatedArtworkService.fetchArtistArtwork(
+                                        artist = effectiveName,
+                                        includeImage = includeImage,
+                                        includeVideo = includeVideo,
+                                        videoResolution = prefs.videoResolution,
+                                    )
+                            ) {
+                                is ArtistArtworkFetchResult.Found -> {
+                                    if (lastArtworkRequestKey == requestKey) {
+                                        _appleMusicArtwork.value =
+                                            AppleMusicArtistArtworkState(
+                                                imageUrl = result.artwork.imageUrl,
+                                                videoUrl = result.artwork.videoUrl,
+                                                isImageLookupComplete = true,
+                                            )
+                                    }
+                                }
+
+                                ArtistArtworkFetchResult.Missing -> {
+                                    if (lastArtworkRequestKey == requestKey) {
+                                        _appleMusicArtwork.value =
+                                            AppleMusicArtistArtworkState(isImageLookupComplete = true)
+                                    }
+                                }
+
+                                ArtistArtworkFetchResult.Unavailable -> {
+                                    if (lastArtworkRequestKey == requestKey) {
+                                        lastArtworkRequestKey = null
+                                        _appleMusicArtwork.value =
+                                            _appleMusicArtwork.value.copy(isImageLookupComplete = true)
+                                    }
+                                }
+                            }
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (_: Exception) {
+                            if (lastArtworkRequestKey == requestKey) {
+                                lastArtworkRequestKey = null
+                                _appleMusicArtwork.value =
+                                    _appleMusicArtwork.value.copy(isImageLookupComplete = true)
+                            }
+                        }
+                    }
+            }
+        }
     }
 
     private fun applyPageFilter(
@@ -123,6 +294,7 @@ class ArtistViewModel @Inject constructor(
                 unfilteredPage = page
                 val filter = ContentFilter.current(context)
                 artistPage = applyPageFilter(page, filter)
+                resolvedArtistName.value = page.artist.title.takeIf(String::isNotBlank)
                 _apiSubscribed.value = page.isSubscribed
             }
         } catch (e: Exception) {
@@ -197,6 +369,7 @@ class ArtistViewModel @Inject constructor(
                     val resolvedPage = page.copy(sections = sectionsWithDurations)
                     unfilteredPage = resolvedPage
                     artistPage = applyPageFilter(resolvedPage, ContentFilter.current(context))
+                    resolvedArtistName.value = resolvedPage.artist.title.takeIf(String::isNotBlank)
                     // Cache page data + persist artist metadata
                     viewModelScope.launch(Dispatchers.IO) {
                         try {

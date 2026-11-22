@@ -45,10 +45,13 @@ import androidx.navigation.NavController
 import androidx.media3.exoplayer.offline.DownloadService
 import coil3.annotation.ExperimentalCoilApi
 import coil3.imageLoader
+import com.metrolist.music.LocalAnimatedArtworkService
+import com.metrolist.music.LocalAnimatedArtworkVideoCache
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
 import com.metrolist.music.constants.EnableSongCacheKey
+import com.metrolist.music.constants.MaxAnimatedArtworkCacheSizeKey
 import com.metrolist.music.constants.MaxImageCacheSizeKey
 import com.metrolist.music.constants.MaxSongCacheSizeKey
 import com.metrolist.music.extensions.tryOrNull
@@ -75,14 +78,21 @@ fun StorageSettings(
 ) {
     val context = LocalContext.current
     val imageDiskCache = context.imageLoader.diskCache
+    val animatedArtworkService = LocalAnimatedArtworkService.current
+    val animatedArtworkVideoCache = LocalAnimatedArtworkVideoCache.current
     val playerCache = LocalPlayerConnection.current?.service?.playerCache ?: return
     val downloadCache = LocalPlayerConnection.current?.service?.downloadCache ?: return
 
     val coroutineScope = rememberCoroutineScope()
     val songCacheString = stringResource(R.string.song_cache).lowercase()
     val imageCacheString = stringResource(R.string.image_cache).lowercase()
+    val animatedArtworkCacheString = stringResource(R.string.animated_artwork_cache).lowercase()
     val (maxImageCacheSize, onMaxImageCacheSizeChange) = rememberPreference(
         key = MaxImageCacheSizeKey,
+        defaultValue = 512
+    )
+    val (maxAnimatedArtworkCacheSize, onMaxAnimatedArtworkCacheSizeChange) = rememberPreference(
+        key = MaxAnimatedArtworkCacheSizeKey,
         defaultValue = 512
     )
     val (maxSongCacheSize, onMaxSongCacheSizeChange) = rememberPreference(
@@ -97,6 +107,7 @@ fun StorageSettings(
     var clearDownloads by remember { mutableStateOf(false) }
     var clearCacheDialog by remember { mutableStateOf(false) }
     var clearImageCacheDialog by remember { mutableStateOf(false) }
+    var clearAnimatedArtworkCacheDialog by remember { mutableStateOf(false) }
 
     // State for the confirmation dialog
     var showCacheWarningDialog by remember { mutableStateOf(false) }
@@ -106,6 +117,9 @@ fun StorageSettings(
 
     var imageCacheSize by remember {
         androidx.compose.runtime.mutableLongStateOf(imageDiskCache?.size ?: 0L)
+    }
+    var animatedArtworkCacheSize by remember {
+        mutableLongStateOf(0L)
     }
     var playerCacheSize by remember {
         androidx.compose.runtime.mutableLongStateOf(tryOrNull { playerCache.cacheSpace } ?: 0)
@@ -121,6 +135,15 @@ fun StorageSettings(
                 0f
             },
         label = "imageCacheProgress",
+    )
+    val animatedArtworkCacheProgress by animateFloatAsState(
+        targetValue =
+            if (maxAnimatedArtworkCacheSize > 0) {
+                (animatedArtworkCacheSize.toFloat() / (maxAnimatedArtworkCacheSize * 1024L * 1024L)).coerceIn(0f, 1f)
+            } else {
+                0f
+            },
+        label = "animatedArtworkCacheProgress",
     )
     val playerCacheProgress by animateFloatAsState(
         targetValue =
@@ -169,6 +192,20 @@ fun StorageSettings(
         while (isActive) {
             delay(500)
             downloadCacheSize = tryOrNull { downloadCache.cacheSpace } ?: 0
+        }
+    }
+    LaunchedEffect(maxAnimatedArtworkCacheSize, animatedArtworkVideoCache) {
+        withContext(Dispatchers.IO) {
+            animatedArtworkVideoCache?.setLimitMb(maxAnimatedArtworkCacheSize)
+        }
+    }
+    LaunchedEffect(animatedArtworkVideoCache) {
+        while (isActive) {
+            animatedArtworkCacheSize =
+                withContext(Dispatchers.IO) {
+                    animatedArtworkVideoCache?.sizeBytes() ?: 0L
+                }
+            delay(500)
         }
     }
 
@@ -221,6 +258,24 @@ fun StorageSettings(
             onCancel = { clearImageCacheDialog = false },
             content = {
                 Text(text = stringResource(R.string.clear_image_cache_dialog))
+            },
+        )
+    }
+    if (clearAnimatedArtworkCacheDialog) {
+        ActionPromptDialog(
+            title = stringResource(R.string.clear_animated_artwork_cache),
+            onDismiss = { clearAnimatedArtworkCacheDialog = false },
+            onConfirm = {
+                coroutineScope.launch(Dispatchers.IO) {
+                    animatedArtworkVideoCache?.clear()
+                    animatedArtworkService?.clearCache()
+                    animatedArtworkCacheSize = animatedArtworkVideoCache?.sizeBytes() ?: 0L
+                }
+                clearAnimatedArtworkCacheDialog = false
+            },
+            onCancel = { clearAnimatedArtworkCacheDialog = false },
+            content = {
+                Text(text = stringResource(R.string.clear_animated_artwork_cache_dialog))
             },
         )
     }
@@ -449,6 +504,71 @@ fun StorageSettings(
                         title = { Text(stringResource(R.string.clear_image_cache)) },
                         onClick = {
                             clearImageCacheDialog = true
+                        },
+                    ),
+                ),
+        )
+
+        Material3SettingsGroup(
+            title = stringResource(R.string.animated_artwork_cache),
+            items =
+                listOf(
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.slow_motion_video),
+                        title = { Text(stringResource(R.string.max_animated_artwork_cache_size)) },
+                        description = {
+                            val animatedCacheValues =
+                                remember { listOf(0, 128, 256, 512, 1024, 2048) }
+                            val selectedIndex = animatedCacheValues.indexOf(maxAnimatedArtworkCacheSize).coerceAtLeast(0)
+                            Column {
+                                Text(
+                                    text =
+                                        when (maxAnimatedArtworkCacheSize) {
+                                            0 -> stringResource(R.string.disable)
+                                            else -> Formatter.formatShortFileSize(context, maxAnimatedArtworkCacheSize * 1024L * 1024L)
+                                        },
+                                )
+                                Slider(
+                                    value = selectedIndex.toFloat(),
+                                    onValueChange = {
+                                        val newValue = animatedCacheValues[it.roundToInt()]
+                                        val newLimitInBytes = newValue * 1024L * 1024L
+
+                                        if (newLimitInBytes < animatedArtworkCacheSize) {
+                                            cacheUsage = animatedArtworkCacheSize
+                                            cacheType = animatedArtworkCacheString
+                                            onConfirmAction = { onMaxAnimatedArtworkCacheSizeChange(newValue) }
+                                            showCacheWarningDialog = true
+                                        } else {
+                                            onMaxAnimatedArtworkCacheSizeChange(newValue)
+                                        }
+                                    },
+                                    steps = animatedCacheValues.size - 2,
+                                    valueRange = 0f..(animatedCacheValues.size - 1).toFloat(),
+                                )
+                                LinearProgressIndicator(
+                                    progress = { animatedArtworkCacheProgress },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    strokeCap = StrokeCap.Round,
+                                )
+                                Spacer(modifier = Modifier.padding(2.dp))
+                                Text(
+                                    text = "${Formatter.formatShortFileSize(context, animatedArtworkCacheSize)} / ${
+                                        Formatter.formatShortFileSize(
+                                            context,
+                                            maxAnimatedArtworkCacheSize * 1024L * 1024L,
+                                        )
+                                    }",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            }
+                        },
+                    ),
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.clear_all),
+                        title = { Text(stringResource(R.string.clear_animated_artwork_cache)) },
+                        onClick = {
+                            clearAnimatedArtworkCacheDialog = true
                         },
                     ),
                 ),

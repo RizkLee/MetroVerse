@@ -252,6 +252,15 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var asrExitDiagnostics: com.metrolist.music.podcast.transcript.AsrExitDiagnostics
 
+    @Inject
+    lateinit var animatedArtworkService: com.metrolist.music.artwork.AnimatedArtworkService
+
+    @Inject
+    lateinit var animatedArtworkVideoCache: com.metrolist.music.artwork.AnimatedArtworkVideoCache
+
+    @Inject
+    lateinit var networkConnectivityObserver: com.metrolist.music.utils.NetworkConnectivityObserver
+
     private lateinit var navController: NavHostController
     private var pendingIntent: Intent? = null
     private var latestVersionName by mutableStateOf(BuildConfig.VERSION_NAME)
@@ -958,6 +967,9 @@ class MainActivity : ComponentActivity() {
                     LocalListenTogetherManager provides listenTogetherManager,
                     LocalPodcastSubtitleManager provides podcastSubtitleManager,
                     LocalChangelogState provides showChangelog,
+                    LocalAnimatedArtworkService provides animatedArtworkService,
+                    LocalAnimatedArtworkVideoCache provides animatedArtworkVideoCache,
+                    LocalNetworkConnectivityObserver provides networkConnectivityObserver,
                 ) {
                     if (showChangelog.value) {
                         ChangelogScreen(onDismiss = { showChangelog.value = false })
@@ -1564,3 +1576,9 @@ val LocalPodcastSubtitleManager =
     staticCompositionLocalOf<com.metrolist.music.podcast.transcript.PodcastSubtitleManager?> { null }
 val LocalChangelogState = staticCompositionLocalOf<MutableState<Boolean>> { error("No LocalChangelogState provided") }
 val LocalIsPlayerExpanded = compositionLocalOf { false }
+val LocalAnimatedArtworkService =
+    staticCompositionLocalOf<com.metrolist.music.artwork.AnimatedArtworkService?> { null }
+val LocalAnimatedArtworkVideoCache =
+    staticCompositionLocalOf<com.metrolist.music.artwork.AnimatedArtworkVideoCache?> { null }
+val LocalNetworkConnectivityObserver =
+    staticCompositionLocalOf<com.metrolist.music.utils.NetworkConnectivityObserver?> { null }

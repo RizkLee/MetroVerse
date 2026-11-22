@@ -70,14 +70,27 @@ import androidx.media3.common.Player
 import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
+import com.metrolist.music.LocalAnimatedArtworkService
 import com.metrolist.music.LocalListenTogetherManager
+import com.metrolist.music.LocalNetworkConnectivityObserver
 import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
+import com.metrolist.music.artwork.AnimatedCoverVideo
+import com.metrolist.music.artwork.ArtworkVideoPriority
+import com.metrolist.music.artwork.isAnimatedArtworkAllowedOnNetwork
+import com.metrolist.music.artwork.isEligibleForAnimatedCover
+import com.metrolist.music.constants.AnimatedCoverResolution
+import com.metrolist.music.constants.AnimatedCoverResolutionKey
+import com.metrolist.music.constants.ContentCountryKey
+import com.metrolist.music.constants.ContentLanguageKey
 import com.metrolist.music.constants.CropAlbumArtKey
+import com.metrolist.music.constants.DisableAnimatedArtworkOnMobileDataKey
+import com.metrolist.music.constants.EnableAnimatedCoversKey
 import com.metrolist.music.constants.HidePlayerThumbnailKey
 import com.metrolist.music.constants.PlayerBackgroundStyle
 import com.metrolist.music.constants.PlayerBackgroundStyleKey
 import com.metrolist.music.constants.PlayerHorizontalPadding
+import com.metrolist.music.constants.SYSTEM_DEFAULT
 import com.metrolist.music.constants.SeekExtraSeconds
 import com.metrolist.music.constants.SwipeThumbnailKey
 import com.metrolist.music.constants.ThumbnailCornerRadius
@@ -85,6 +98,7 @@ import com.metrolist.music.listentogether.RoomRole
 import com.metrolist.music.ui.component.CastButton
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 
 /**
@@ -206,6 +220,8 @@ fun Thumbnail(
     val playerConnection = LocalPlayerConnection.current ?: return
     val context = LocalContext.current
     val layoutDirection = LocalLayoutDirection.current
+    val animatedArtworkService = LocalAnimatedArtworkService.current
+    val networkConnectivityObserver = LocalNetworkConnectivityObserver.current
 
     // Collect states
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
@@ -220,6 +236,60 @@ fun Thumbnail(
     val swipeThumbnail = swipeThumbnailPref && !isListenTogetherGuest
     val hidePlayerThumbnail by rememberPreference(HidePlayerThumbnailKey, false)
     val cropAlbumArt by rememberPreference(CropAlbumArtKey, false)
+    val enableAnimatedCovers by rememberPreference(EnableAnimatedCoversKey, false)
+    val disableAnimatedOnMobile by rememberPreference(DisableAnimatedArtworkOnMobileDataKey, false)
+    val animatedCoverResolution by rememberEnumPreference(
+        key = AnimatedCoverResolutionKey,
+        defaultValue = AnimatedCoverResolution.MEDIUM_720,
+    )
+    val contentCountry by rememberPreference(ContentCountryKey, SYSTEM_DEFAULT)
+    val contentLanguage by rememberPreference(ContentLanguageKey, SYSTEM_DEFAULT)
+    val isCellularState = networkConnectivityObserver?.isCellular?.collectAsStateWithLifecycle()
+    val isCellular = isCellularState?.value == true
+    val isExpanded by remember { derivedStateOf { isPlayerExpanded() } }
+    val animatedCoverAllowed =
+        enableAnimatedCovers &&
+            !hidePlayerThumbnail &&
+            isAnimatedArtworkAllowedOnNetwork(disableAnimatedOnMobile, isCellular) &&
+            isEligibleForAnimatedCover(mediaMetadata)
+    var animatedCoverUrl by remember { mutableStateOf<String?>(null) }
+    var failedAnimatedCoverUrl by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(
+        mediaMetadata?.id,
+        mediaMetadata?.title,
+        mediaMetadata?.album?.title,
+        mediaMetadata?.artists,
+        mediaMetadata?.explicit,
+        animatedCoverAllowed,
+        isExpanded,
+        animatedCoverResolution,
+        contentCountry,
+        contentLanguage,
+        animatedArtworkService,
+    ) {
+        animatedCoverUrl = null
+        failedAnimatedCoverUrl = null
+        if (!animatedCoverAllowed || !isExpanded) return@LaunchedEffect
+        val metadata = mediaMetadata ?: return@LaunchedEffect
+        val primaryArtist = metadata.artists.firstOrNull { it.name.isNotBlank() }?.name ?: return@LaunchedEffect
+        val service = animatedArtworkService ?: return@LaunchedEffect
+        try {
+            val result =
+                service.fetchAnimatedCover(
+                    title = metadata.title,
+                    artist = primaryArtist,
+                    album = metadata.album?.title,
+                    explicit = if (metadata.explicit) true else null,
+                    resolution = animatedCoverResolution,
+                )
+            animatedCoverUrl = result?.url
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            animatedCoverUrl = null
+        }
+    }
     val playerBackground by rememberEnumPreference(
         key = PlayerBackgroundStyleKey,
         defaultValue = PlayerBackgroundStyle.BLUR
@@ -372,6 +442,9 @@ fun Thumbnail(
                     val isScrollEnabled by remember(swipeThumbnail) {
                         derivedStateOf { swipeThumbnail && isPlayerExpanded() }
                     }
+                    val isCarouselScrolling by remember {
+                        derivedStateOf { thumbnailLazyGridState.isScrollInProgress }
+                    }
                     
                     LazyHorizontalGrid(
                         state = thumbnailLazyGridState,
@@ -403,7 +476,11 @@ fun Thumbnail(
                                 isLandscape = isLandscape,
                                 isListenTogetherGuest = isListenTogetherGuest,
                                 currentMediaId = mediaMetadata?.id,
-                                currentMediaThumbnail = mediaMetadata?.thumbnailUrl
+                                currentMediaThumbnail = mediaMetadata?.thumbnailUrl,
+                                animatedCoverUrl = animatedCoverUrl.takeUnless { it == failedAnimatedCoverUrl },
+                                isAnimatedCoverActive = isExpanded && !hidePlayerThumbnail && animatedCoverAllowed,
+                                isAnimatedCoverPlaying = isExpanded && !isCarouselScrolling,
+                                onAnimatedCoverError = { failedAnimatedCoverUrl = it },
                             )
                         }
                     }
@@ -501,6 +578,10 @@ private fun ThumbnailItem(
     isListenTogetherGuest: Boolean = false,
     currentMediaId: String? = null,
     currentMediaThumbnail: String? = null,
+    animatedCoverUrl: String? = null,
+    isAnimatedCoverActive: Boolean = false,
+    isAnimatedCoverPlaying: Boolean = false,
+    onAnimatedCoverError: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val incrementalSeekSkipEnabled by rememberPreference(SeekExtraSeconds, defaultValue = false)
@@ -574,6 +655,20 @@ private fun ThumbnailItem(
                     artworkUri = artworkUriToUse,
                     cropArtwork = cropAlbumArt
                 )
+
+                val activeCoverVideoUrl =
+                    if (item.mediaId == currentMediaId && isAnimatedCoverActive) animatedCoverUrl else null
+                if (activeCoverVideoUrl != null) {
+                    AnimatedCoverVideo(
+                        url = activeCoverVideoUrl,
+                        priority = ArtworkVideoPriority.PLAYER,
+                        active = true,
+                        playing = isAnimatedCoverPlaying,
+                        contentScaleCrop = true,
+                        onError = { onAnimatedCoverError(activeCoverVideoUrl) },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
             }
             
             // Cast button at top-right corner of thumbnail

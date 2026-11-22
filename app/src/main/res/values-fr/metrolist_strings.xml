@@ -1057,4 +1057,27 @@
     <string name="lyrics_alignment_section">Alignement</string>
     <string name="lyrics_behavior_section">Comportement</string>
     <string name="lyrics_preview">Prévisualisation</string>
+    <string name="artwork">Pochettes</string>
+    <string name="settings_artwork_overview">Pochettes animées, photos d\'artistes et vidéos de profil Apple Music</string>
+    <string name="enable_animated_covers">Pochettes animées</string>
+    <string name="enable_animated_covers_desc">Affiche des pochettes d\'albums animées Apple Music dans le lecteur si disponible. Utilise plus de stockage et de données mobiles.</string>
+    <string name="disable_animated_artwork_on_mobile_data">Désactiver les pochettes animées sur les données mobiles</string>
+    <string name="disable_animated_artwork_on_mobile_data_desc">Affiche les pochettes statiques avec les données mobiles, même si les animations sont en cache</string>
+    <string name="animated_cover_resolution">Qualité des pochettes animées</string>
+    <string name="animated_cover_resolution_desc">Les clips disponibles dans une seule résolution utilisent leur résolution d\'origine</string>
+    <string name="animated_cover_resolution_low">Faible (360p)</string>
+    <string name="animated_cover_resolution_medium">Moyenne (720p)</string>
+    <string name="animated_cover_resolution_high">Élevée (1080p)</string>
+    <string name="animated_cover_resolution_original">Originale</string>
+    <string name="artist_artwork_section">Visuels de l\'artiste</string>
+    <string name="apple_music_artist_images_title">Images d\'artistes Apple Music</string>
+    <string name="apple_music_artist_images_description">Utilise les images de profil haute résolution Apple Music sur les pages d\'artistes</string>
+    <string name="apple_music_artist_videos_title">Vidéos de profil d\'artiste Apple Music</string>
+    <string name="apple_music_artist_videos_description">Lit les vidéos de profil animées Apple Music sur les pages d\'artistes lorsqu\'elles sont disponibles</string>
+    <string name="apple_music_artist_video_quality_title">Qualité des vidéos de profil d\'artiste</string>
+    <string name="apple_music_artist_video_quality_description">Sélectionnez la résolution maximale pour les vidéos de profil animées</string>
+    <string name="animated_artwork_cache">Cache des pochettes animées</string>
+    <string name="max_animated_artwork_cache_size">Taille maximale du cache des pochettes animées</string>
+    <string name="clear_animated_artwork_cache">Vider le cache des pochettes animées</string>
+    <string name="clear_animated_artwork_cache_dialog">Supprimer toutes les pochettes animées et métadonnées en cache ? Elles devront être téléchargées à nouveau en ligne.</string>
 </resources>

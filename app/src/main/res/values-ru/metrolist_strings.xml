@@ -1064,4 +1064,27 @@
     <string name="lyrics_alignment_section">Выравнивание</string>
     <string name="lyrics_behavior_section">Поведение</string>
     <string name="lyrics_preview">Предпросмотр</string>
+    <string name="artwork">Оформление</string>
+    <string name="settings_artwork_overview">Анимированные обложки, фото исполнителей и видео профиля Apple Music</string>
+    <string name="enable_animated_covers">Анимированные обложки</string>
+    <string name="enable_animated_covers_desc">Показывать анимированные обложки альбомов Apple Music в плеере при наличии. Использует больше памяти и мобильного трафика.</string>
+    <string name="disable_animated_artwork_on_mobile_data">Отключить анимированные обложки при использовании мобильных данных</string>
+    <string name="disable_animated_artwork_on_mobile_data_desc">Показывать статичные обложки при использовании мобильных данных, даже когда анимации кэшированы</string>
+    <string name="animated_cover_resolution">Качество анимированных обложек</string>
+    <string name="animated_cover_resolution_desc">Клипы одного разрешения используют исходное разрешение</string>
+    <string name="animated_cover_resolution_low">Низкое (360p)</string>
+    <string name="animated_cover_resolution_medium">Среднее (720p)</string>
+    <string name="animated_cover_resolution_high">Высокое (1080p)</string>
+    <string name="animated_cover_resolution_original">Оригинальное</string>
+    <string name="artist_artwork_section">Оформление исполнителя</string>
+    <string name="apple_music_artist_images_title">Изображения исполнителей Apple Music</string>
+    <string name="apple_music_artist_images_description">Использует изображения профилей высокого разрешения Apple Music на страницах исполнителей</string>
+    <string name="apple_music_artist_videos_title">Видео профиля исполнителя Apple Music</string>
+    <string name="apple_music_artist_videos_description">Проигрывать анимированные видео профиля Apple Music на страницах исполнителей, если они доступны</string>
+    <string name="apple_music_artist_video_quality_title">Качество видео профиля исполнителя</string>
+    <string name="apple_music_artist_video_quality_description">Выберите максимальное разрешение для анимированных видео профиля исполнителя</string>
+    <string name="animated_artwork_cache">Кэш анимированных изображений</string>
+    <string name="max_animated_artwork_cache_size">Максимальный размер кэша анимированных изображений</string>
+    <string name="clear_animated_artwork_cache">Очистить кэш анимированных изображений</string>
+    <string name="clear_animated_artwork_cache_dialog">Удалить все кэшированные анимированные обложки и метаданные оформления исполнителей? Их потребуется загрузить заново при подключении к сети.</string>
 </resources>

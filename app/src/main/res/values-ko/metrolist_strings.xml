@@ -949,4 +949,27 @@
     <string name="lyrics_alignment_section">정렬</string>
     <string name="lyrics_behavior_section">동작</string>
     <string name="lyrics_preview">미리보기</string>
+    <string name="artwork">아트워크</string>
+    <string name="settings_artwork_overview">Apple Music 애니메이션 커버, 아티스트 이미지 및 프로필 동영상</string>
+    <string name="enable_animated_covers">애니메이션 커버</string>
+    <string name="enable_animated_covers_desc">사용 가능한 경우 플레이어에서 Apple Music 애니메이션 앨범 커버를 표시합니다. 저장 공간과 모바일 데이터를 더 많이 사용합니다.</string>
+    <string name="disable_animated_artwork_on_mobile_data">모바일 데이터에서 움직이는 아트워크 비활성화</string>
+    <string name="disable_animated_artwork_on_mobile_data_desc">애니메이션이 캐시된 경우에도 모바일 데이터 연결 시 정적 아트워크를 표시합니다</string>
+    <string name="animated_cover_resolution">애니메이션 커버 화질</string>
+    <string name="animated_cover_resolution_desc">단일 해상도 클립은 원본 해상도를 사용합니다</string>
+    <string name="animated_cover_resolution_low">낮음 (360p)</string>
+    <string name="animated_cover_resolution_medium">중간 (720p)</string>
+    <string name="animated_cover_resolution_high">높음 (1080p)</string>
+    <string name="animated_cover_resolution_original">원본</string>
+    <string name="artist_artwork_section">아티스트 아트워크</string>
+    <string name="apple_music_artist_images_title">Apple Music 아티스트 이미지</string>
+    <string name="apple_music_artist_images_description">아티스트 페이지에서 고해상도 Apple Music 프로필 이미지를 사용합니다</string>
+    <string name="apple_music_artist_videos_title">Apple Music 아티스트 프로필 동영상</string>
+    <string name="apple_music_artist_videos_description">사용 가능한 경우 아티스트 페이지에서 애니메이션 Apple Music 프로필 동영상을 재생합니다</string>
+    <string name="apple_music_artist_video_quality_title">아티스트 프로필 동영상 화질</string>
+    <string name="apple_music_artist_video_quality_description">애니메이션 아티스트 프로필 동영상의 최대 해상도를 선택합니다</string>
+    <string name="animated_artwork_cache">움직이는 아트워크 캐시</string>
+    <string name="max_animated_artwork_cache_size">움직이는 아트워크 캐시 최대 크기</string>
+    <string name="clear_animated_artwork_cache">움직이는 아트워크 캐시 지우기</string>
+    <string name="clear_animated_artwork_cache_dialog">캐시된 모든 애니메이션 커버와 아티스트 아트워크 메타데이터를 지우시겠습니까? 온라인 상태일 때 다시 불러와야 합니다.</string>
 </resources>

@@ -1017,4 +1017,27 @@
     <string name="lyrics_alignment_section">配置</string>
     <string name="lyrics_behavior_section">動作</string>
     <string name="lyrics_preview">プレビュー</string>
+    <string name="artwork">アートワーク</string>
+    <string name="settings_artwork_overview">Apple Music アニメーションカバー、アーティスト画像、プロフィール動画</string>
+    <string name="enable_animated_covers">アニメーションカバー</string>
+    <string name="enable_animated_covers_desc">利用可能な場合、プレーヤーに Apple Music のアニメーションカバーを表示します。ストレージとモバイルデータをより多く消費します。</string>
+    <string name="disable_animated_artwork_on_mobile_data">モバイルデータ通信でアニメーションアートワークを無効にする</string>
+    <string name="disable_animated_artwork_on_mobile_data_desc">アニメーションがキャッシュされている場合でも、モバイルデータ通信時は静止画を表示します</string>
+    <string name="animated_cover_resolution">アニメーションカバーの画質</string>
+    <string name="animated_cover_resolution_desc">解像度が1種類のみのクリップは、元の解像度で再生されます</string>
+    <string name="animated_cover_resolution_low">低 (360p)</string>
+    <string name="animated_cover_resolution_medium">中 (720p)</string>
+    <string name="animated_cover_resolution_high">高 (1080p)</string>
+    <string name="animated_cover_resolution_original">オリジナル</string>
+    <string name="artist_artwork_section">アーティストアートワーク</string>
+    <string name="apple_music_artist_images_title">Apple Musicのアーティスト画像</string>
+    <string name="apple_music_artist_images_description">アーティストページで高解像度のApple Musicプロフィール画像を使用します</string>
+    <string name="apple_music_artist_videos_title">Apple Musicのアーティストプロフィール動画</string>
+    <string name="apple_music_artist_videos_description">利用可能な場合、アーティストページでApple Musicのアニメーションプロフィール動画を再生します</string>
+    <string name="apple_music_artist_video_quality_title">アーティストプロフィール動画の画質</string>
+    <string name="apple_music_artist_video_quality_description">アニメーションプロフィール動画の最大解像度を選択します</string>
+    <string name="animated_artwork_cache">アニメーションアートワークのキャッシュ</string>
+    <string name="max_animated_artwork_cache_size">アニメーションアートワークのキャッシュ上限</string>
+    <string name="clear_animated_artwork_cache">アニメーションアートワークのキャッシュを削除</string>
+    <string name="clear_animated_artwork_cache_dialog">キャッシュされたすべてのアニメーションカバーとアーティストアートワークのメタデータを削除しますか？オンライン時に再度読み込む必要があります。</string>
 </resources>

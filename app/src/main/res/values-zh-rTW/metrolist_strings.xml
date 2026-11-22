@@ -989,4 +989,27 @@
     <string name="lyrics_alignment_section">對齊</string>
     <string name="lyrics_behavior_section">行為</string>
     <string name="lyrics_preview">預覽</string>
+    <string name="artwork">封面與圖像</string>
+    <string name="settings_artwork_overview">Apple Music 動態專輯封面、藝人圖片與個人資料影片</string>
+    <string name="enable_animated_covers">啟用動畫封面</string>
+    <string name="enable_animated_covers_desc">可用時在播放器中顯示 Apple Music 動態專輯封面。這會佔用更多儲存空間與行動數據。</string>
+    <string name="disable_animated_artwork_on_mobile_data">使用行動數據時停用動態圖像</string>
+    <string name="disable_animated_artwork_on_mobile_data_desc">使用行動數據時顯示靜態封面，即使動態已快取亦然</string>
+    <string name="animated_cover_resolution">動態封面品質</string>
+    <string name="animated_cover_resolution_desc">只有一種解析度的片段會使用其原始解析度</string>
+    <string name="animated_cover_resolution_low">低等（360p）</string>
+    <string name="animated_cover_resolution_medium">中等（720p）</string>
+    <string name="animated_cover_resolution_high">高等（1080p）</string>
+    <string name="animated_cover_resolution_original">原始</string>
+    <string name="artist_artwork_section">藝人圖像</string>
+    <string name="apple_music_artist_images_title">Apple Music 藝人圖片</string>
+    <string name="apple_music_artist_images_description">在藝人頁面使用高解析度的 Apple Music 個人資料圖片</string>
+    <string name="apple_music_artist_videos_title">Apple Music 藝人個人資料影片</string>
+    <string name="apple_music_artist_videos_description">有可用內容時，在藝人頁面播放 Apple Music 動態個人資料影片</string>
+    <string name="apple_music_artist_video_quality_title">藝人個人資料影片畫質</string>
+    <string name="apple_music_artist_video_quality_description">選擇動態藝人個人資料影片的最高解析度</string>
+    <string name="animated_artwork_cache">動態圖片快取</string>
+    <string name="max_animated_artwork_cache_size">動態圖片快取上限</string>
+    <string name="clear_animated_artwork_cache">清除動態圖片快取</string>
+    <string name="clear_animated_artwork_cache_dialog">要清除所有已快取的動態封面與藝人圖像中繼資料嗎？連線後需重新載入。</string>
 </resources>

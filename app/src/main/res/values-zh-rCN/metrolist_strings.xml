@@ -1132,4 +1132,27 @@
     <string name="lyrics_alignment_section">对齐</string>
     <string name="lyrics_behavior_section">行为</string>
     <string name="lyrics_preview">预览</string>
+    <string name="artwork">封面与图像</string>
+    <string name="settings_artwork_overview">Apple Music 动态专辑封面、艺人图片和个人资料视频</string>
+    <string name="enable_animated_covers">启用动态封面</string>
+    <string name="enable_animated_covers_desc">可用时在播放器中显示 Apple Music 动态专辑封面。这会消耗更多存储空间和移动数据。</string>
+    <string name="disable_animated_artwork_on_mobile_data">在移动数据下停用动态封面</string>
+    <string name="disable_animated_artwork_on_mobile_data_desc">使用移动数据时始终显示静态封面，即使动态效果已缓存</string>
+    <string name="animated_cover_resolution">动态封面质量</string>
+    <string name="animated_cover_resolution_desc">仅提供一种分辨率的视频片段会使用其原始分辨率</string>
+    <string name="animated_cover_resolution_low">低 (360p)</string>
+    <string name="animated_cover_resolution_medium">中等 (720p)</string>
+    <string name="animated_cover_resolution_high">高 (1080p)</string>
+    <string name="animated_cover_resolution_original">原始</string>
+    <string name="artist_artwork_section">艺人图像</string>
+    <string name="apple_music_artist_images_title">Apple Music 艺人图片</string>
+    <string name="apple_music_artist_images_description">在艺人页面使用高分辨率的 Apple Music 个人资料图片</string>
+    <string name="apple_music_artist_videos_title">Apple Music 艺人个人资料视频</string>
+    <string name="apple_music_artist_videos_description">有可用内容时，在艺人页面播放 Apple Music 动态个人资料视频</string>
+    <string name="apple_music_artist_video_quality_title">艺人个人资料视频画质</string>
+    <string name="apple_music_artist_video_quality_description">选择动态艺人个人资料视频的最高分辨率</string>
+    <string name="animated_artwork_cache">动态图像缓存</string>
+    <string name="max_animated_artwork_cache_size">动态图像缓存上限</string>
+    <string name="clear_animated_artwork_cache">清除动态图像缓存</string>
+    <string name="clear_animated_artwork_cache_dialog">清除所有已缓存的动态封面视频与艺人图像元数据吗？联网后需要重新加载。</string>
 </resources>

@@ -1050,4 +1050,27 @@
     <string name="lyrics_alignment_section">Ausrichtung</string>
     <string name="lyrics_behavior_section">Verhalten</string>
     <string name="lyrics_preview">Vorschau</string>
+    <string name="artwork">Grafiken</string>
+    <string name="settings_artwork_overview">Animierte Apple Music-Cover, Künstlerbilder und Profilvideos</string>
+    <string name="enable_animated_covers">Animierte Cover</string>
+    <string name="enable_animated_covers_desc">Zeigt animierte Apple Music-Albumcover im Player an, wenn verfügbar. Verbraucht mehr Speicherplatz und mobile Daten.</string>
+    <string name="disable_animated_artwork_on_mobile_data">Animierte Cover bei mobilen Daten deaktivieren</string>
+    <string name="disable_animated_artwork_on_mobile_data_desc">Zeige statische Cover bei mobilen Daten, selbst wenn Animationen gecacht wurden</string>
+    <string name="animated_cover_resolution">Qualität animierter Cover</string>
+    <string name="animated_cover_resolution_desc">Clips mit nur einer Auflösung nutzen die Originalauflösung</string>
+    <string name="animated_cover_resolution_low">Niedrig (360p)</string>
+    <string name="animated_cover_resolution_medium">Mittel (720p)</string>
+    <string name="animated_cover_resolution_high">Hoch (1080p)</string>
+    <string name="animated_cover_resolution_original">Original</string>
+    <string name="artist_artwork_section">Künstlergrafiken</string>
+    <string name="apple_music_artist_images_title">Apple Music-Künstlerbilder</string>
+    <string name="apple_music_artist_images_description">Verwende hochauflösende Apple Music-Profilbilder auf Künstlerseiten</string>
+    <string name="apple_music_artist_videos_title">Apple Music-Künstlerprofilvideos</string>
+    <string name="apple_music_artist_videos_description">Spiele animierte Apple Music-Profilvideos auf Künstlerseiten ab, falls verfügbar</string>
+    <string name="apple_music_artist_video_quality_title">Qualität der Künstlerprofilvideos</string>
+    <string name="apple_music_artist_video_quality_description">Wähle die maximale Auflösung für animierte Künstlerprofilvideos</string>
+    <string name="animated_artwork_cache">Cache für animierte Grafiken</string>
+    <string name="max_animated_artwork_cache_size">Maximale Cache-Größe für animierte Grafiken</string>
+    <string name="clear_animated_artwork_cache">Cache für animierte Grafiken leeren</string>
+    <string name="clear_animated_artwork_cache_dialog">Alle gecachten animierten Cover und Künstlergrafik-Metadaten löschen? Sie müssen online erneut geladen werden.</string>
 </resources>

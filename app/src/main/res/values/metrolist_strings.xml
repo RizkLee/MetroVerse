@@ -1261,4 +1261,27 @@
     <string name="lyrics_alignment_section">Alignment</string>
     <string name="lyrics_behavior_section">Behavior</string>
     <string name="lyrics_preview">Preview</string>
+    <string name="artwork">Artwork</string>
+    <string name="settings_artwork_overview">Apple Music animated covers, artist photos, and profile videos</string>
+    <string name="enable_animated_covers">Animated covers</string>
+    <string name="enable_animated_covers_desc">Show animated Apple Music album covers in the player when available. Uses more storage and mobile data.</string>
+    <string name="disable_animated_artwork_on_mobile_data">Disable animated artwork on mobile data</string>
+    <string name="disable_animated_artwork_on_mobile_data_desc">Show static artwork on mobile data, even when animations are cached</string>
+    <string name="animated_cover_resolution">Animated cover quality</string>
+    <string name="animated_cover_resolution_desc">Single-resolution clips use their original resolution</string>
+    <string name="animated_cover_resolution_low">Low (360p)</string>
+    <string name="animated_cover_resolution_medium">Medium (720p)</string>
+    <string name="animated_cover_resolution_high">High (1080p)</string>
+    <string name="animated_cover_resolution_original">Original</string>
+    <string name="artist_artwork_section">Artist artwork</string>
+    <string name="apple_music_artist_images_title">Apple Music artist images</string>
+    <string name="apple_music_artist_images_description">Use high-resolution Apple Music profile images on artist pages</string>
+    <string name="apple_music_artist_videos_title">Apple Music artist profile videos</string>
+    <string name="apple_music_artist_videos_description">Play animated Apple Music profile videos on artist pages when available</string>
+    <string name="apple_music_artist_video_quality_title">Artist profile video quality</string>
+    <string name="apple_music_artist_video_quality_description">Choose the maximum resolution for animated artist profile videos</string>
+    <string name="animated_artwork_cache">Animated artwork cache</string>
+    <string name="max_animated_artwork_cache_size">Maximum animated artwork cache size</string>
+    <string name="clear_animated_artwork_cache">Clear animated artwork cache</string>
+    <string name="clear_animated_artwork_cache_dialog">Clear all cached animated covers and artist artwork metadata? They will need to load again when you are online.</string>
 </resources>

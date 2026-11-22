@@ -24,17 +24,23 @@ class NetworkConnectivityObserver(context: Context) {
     private val _networkStatus = MutableStateFlow(isCurrentlyConnected())
     val networkStatus = _networkStatus.asStateFlow()
 
+    private val _isCellular = MutableStateFlow(isCurrentlyCellular())
+    val isCellular = _isCellular.asStateFlow()
+
     private val networkCallback = object : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: Network) {
             _networkStatus.value = isCurrentlyConnected()
+            _isCellular.value = isCurrentlyCellular()
         }
 
         override fun onLost(network: Network) {
             _networkStatus.value = isCurrentlyConnected()
+            _isCellular.value = isCurrentlyCellular()
         }
 
         override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
             _networkStatus.value = isCurrentlyConnected()
+            _isCellular.value = isCurrentlyCellular()
         }
     }
 
@@ -49,11 +55,14 @@ class NetworkConnectivityObserver(context: Context) {
         } catch (e: Exception) {
             // Fallback: assume connected if registration fails
             _networkStatus.value = true
+            _isCellular.value = false
         }
     }
 
     fun unregister() {
-        connectivityManager.unregisterNetworkCallback(networkCallback)
+        runCatching {
+            connectivityManager.unregisterNetworkCallback(networkCallback)
+        }
     }
     
     /**
@@ -70,4 +79,19 @@ class NetworkConnectivityObserver(context: Context) {
             false
         }
     }
+
+    /**
+     * Returns true when the active transport is cellular and not unmetered Wi-Fi/Ethernet.
+     */
+    fun isCurrentlyCellular(): Boolean =
+        try {
+            val activeNetwork = connectivityManager.activeNetwork
+            val caps = connectivityManager.getNetworkCapabilities(activeNetwork)
+            caps != null &&
+                caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) &&
+                !caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) &&
+                !caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+        } catch (_: Exception) {
+            false
+        }
 }

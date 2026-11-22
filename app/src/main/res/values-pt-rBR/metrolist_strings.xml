@@ -1049,4 +1049,27 @@
     <string name="lyrics_alignment_section">Alinhamento</string>
     <string name="lyrics_behavior_section">Comportamento</string>
     <string name="lyrics_preview">Prévia</string>
+    <string name="artwork">Arte</string>
+    <string name="settings_artwork_overview">Capas animadas, fotos de artistas e vídeos de perfil do Apple Music</string>
+    <string name="enable_animated_covers">Capas animadas</string>
+    <string name="enable_animated_covers_desc">Mostra capas animadas do Apple Music no reprodutor quando disponíveis. Usa mais armazenamento e dados móveis.</string>
+    <string name="disable_animated_artwork_on_mobile_data">Desativar artes animadas nos dados móveis</string>
+    <string name="disable_animated_artwork_on_mobile_data_desc">Mostra arte estática nos dados móveis, mesmo quando as animações estiverem no cache</string>
+    <string name="animated_cover_resolution">Qualidade de capa animada</string>
+    <string name="animated_cover_resolution_desc">Clipes com uma única resolução usam sua resolução original</string>
+    <string name="animated_cover_resolution_low">Baixo (360p)</string>
+    <string name="animated_cover_resolution_medium">Médio (720p)</string>
+    <string name="animated_cover_resolution_high">Alto (1080p)</string>
+    <string name="animated_cover_resolution_original">Original</string>
+    <string name="artist_artwork_section">Arte do artista</string>
+    <string name="apple_music_artist_images_title">Imagens de artistas do Apple Music</string>
+    <string name="apple_music_artist_images_description">Usa imagens de perfil do Apple Music em alta resolução nas páginas de artistas</string>
+    <string name="apple_music_artist_videos_title">Vídeos de perfil de artistas no Apple Music</string>
+    <string name="apple_music_artist_videos_description">Reproduz vídeos animados de perfil do Apple Music nas páginas dos artistas quando disponíveis</string>
+    <string name="apple_music_artist_video_quality_title">Qualidade de vídeo de perfil de artistas</string>
+    <string name="apple_music_artist_video_quality_description">Escolhe a resolução máxima para vídeos animados de perfil de artistas</string>
+    <string name="animated_artwork_cache">Cache de imagens animadas</string>
+    <string name="max_animated_artwork_cache_size">Tamanho máximo do cache de imagens animadas</string>
+    <string name="clear_animated_artwork_cache">Limpar cache de imagens animadas</string>
+    <string name="clear_animated_artwork_cache_dialog">Limpar todas as capas animadas em cache e metadados de arte de artistas? Eles precisarão ser carregados novamente quando você estiver online.</string>
 </resources>

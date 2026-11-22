@@ -62,6 +62,28 @@ val UseNewPlayerDesignKey = booleanPreferencesKey("useNewPlayerDesign")
 val UseNewMiniPlayerDesignKey = booleanPreferencesKey("useNewMiniPlayerDesign")
 val HidePlayerThumbnailKey = booleanPreferencesKey("hidePlayerThumbnail")
 val CropAlbumArtKey = booleanPreferencesKey("cropAlbumArt")
+val EnableAnimatedCoversKey = booleanPreferencesKey("enableAnimatedCovers")
+val DisableAnimatedArtworkOnMobileDataKey = booleanPreferencesKey("disableAnimatedArtworkOnMobileData")
+val AnimatedCoverResolutionKey = stringPreferencesKey("animatedCoverResolution")
+val EnableAppleMusicArtistImagesKey = booleanPreferencesKey("enableAppleMusicArtistImages")
+val EnableAppleMusicArtistVideosKey = booleanPreferencesKey("enableAppleMusicArtistVideos")
+val AppleMusicArtistVideoResolutionKey = stringPreferencesKey("appleMusicArtistVideoResolution")
+
+enum class AnimatedCoverResolution(
+    val maxDimension: Int,
+) {
+    LOW_360(360),
+    MEDIUM_720(720),
+    HIGH_1080(1080),
+    ORIGINAL(Int.MAX_VALUE),
+    ;
+
+    companion object {
+        fun fromStoredValue(raw: String?): AnimatedCoverResolution =
+            entries.firstOrNull { it.name == raw } ?: MEDIUM_720
+    }
+}
+
 val SeekExtraSeconds = booleanPreferencesKey("seekExtraSeconds")
 val PauseOnMute = booleanPreferencesKey("pauseOnMute")
 val ResumeOnBluetoothConnectKey = booleanPreferencesKey("resumeOnBluetoothConnect")
@@ -171,6 +193,7 @@ val CrossfadeDurationKey = floatPreferencesKey("crossfadeDurationFloat")
 val CrossfadeGaplessKey = booleanPreferencesKey("crossfadeGapless")
 
 val MaxImageCacheSizeKey = intPreferencesKey("maxImageCacheSize")
+val MaxAnimatedArtworkCacheSizeKey = intPreferencesKey("maxAnimatedArtworkCacheSize")
 val MaxSongCacheSizeKey = intPreferencesKey("maxSongCacheSize")
 val EnableSongCacheKey = booleanPreferencesKey("enableSongCache")
 
