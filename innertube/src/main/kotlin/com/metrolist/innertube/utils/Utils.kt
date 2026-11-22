@@ -121,6 +121,12 @@ fun supportedYouTubeAuthCredential(cookie: String): String? {
 
 fun hasSupportedYouTubeAuthCookie(cookie: String): Boolean = supportedYouTubeAuthCredential(cookie) != null
 
+private val TEXT_DURATION_REGEX =
+    Regex(
+        """^(?:(\d+)\s*(?:hr|hrs|h|hours?))?\s*(?:(\d+)\s*(?:min|mins|m|minutes?))?\s*(?:(\d+)\s*(?:s|secs?|seconds?))?$""",
+        RegexOption.IGNORE_CASE,
+    )
+
 fun String.parseTime(): Int? {
     try {
         // YouTube Music returns duration with locale-dependent separators
@@ -132,10 +138,15 @@ fun String.parseTime(): Int? {
         if (parts.size == 3) {
             return parts[0] * 3600 + parts[1] * 60 + parts[2]
         }
-    } catch (e: Exception) {
-        return null
+    } catch (_: Exception) {
+        // Fall through to English duration text matching below.
     }
-    return null
+    val match = TEXT_DURATION_REGEX.matchEntire(trim()) ?: return null
+    val hours = match.groupValues[1].toIntOrNull()
+    val minutes = match.groupValues[2].toIntOrNull()
+    val seconds = match.groupValues[3].toIntOrNull()
+    if (hours == null && minutes == null && seconds == null) return null
+    return (hours ?: 0) * 3600 + (minutes ?: 0) * 60 + (seconds ?: 0)
 }
 
 fun isPrivateId(browseId: String): Boolean {

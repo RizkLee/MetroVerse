@@ -408,11 +408,12 @@ object LyricsUtils {
     }
 
     fun parseLyrics(lyrics: String): List<LyricsEntry> {
-        if (lyrics.isBlank()) return emptyList()
+        val cleanLyrics = lyrics.removePrefix("\uFEFF")
+        if (cleanLyrics.isBlank()) return emptyList()
 
         // Fast unescape
-        val unescapedLyrics = if (lyrics.contains('\\') || lyrics.startsWith("\"")) {
-            val s = lyrics.trim().removePrefix("\"").removeSuffix("\"")
+        val unescapedLyrics = if (cleanLyrics.contains('\\') || cleanLyrics.startsWith("\"")) {
+            val s = cleanLyrics.trim().removePrefix("\"").removeSuffix("\"")
             val sb = StringBuilder(s.length)
             var j = 0
             while (j < s.length) {
@@ -432,7 +433,7 @@ object LyricsUtils {
                 }
             }
             sb.toString()
-        } else lyrics
+        } else cleanLyrics
 
         val decodedLyrics = decodeHtmlEntities(unescapedLyrics)
 

@@ -14,9 +14,8 @@ import android.widget.Toast
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
-import coil3.disk.DiskCache
-import coil3.disk.directory
 import coil3.memory.MemoryCache
+import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.CachePolicy
 import coil3.request.allowHardware
 import coil3.request.crossfade
@@ -32,6 +31,7 @@ import com.metrolist.music.extensions.toEnum
 import com.metrolist.music.extensions.toInetSocketAddress
 import com.metrolist.music.utils.CrashHandler
 import com.metrolist.music.utils.InnerTubeXPlayer
+import com.metrolist.music.utils.ResizableImageDiskCache
 import com.metrolist.music.utils.SecureCredentialStore
 import com.metrolist.music.utils.dataStore
 import com.metrolist.music.utils.safeDataStoreEdit
@@ -48,6 +48,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import okhttp3.Credentials
+import okhttp3.Interceptor
+import okhttp3.OkHttpClient
+import okhttp3.ResponseBody.Companion.asResponseBody
+import okio.Buffer
+import okio.ForwardingSource
+import okio.Path.Companion.toPath
+import okio.buffer
 import timber.log.Timber
 import java.io.File
 import java.io.IOException
@@ -55,6 +62,7 @@ import java.net.Authenticator
 import java.net.PasswordAuthentication
 import java.net.Proxy
 import java.util.Locale
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 @HiltAndroidApp
@@ -295,11 +303,24 @@ class App :
         val cacheSize = cachedCoilCacheSize ?: runBlocking {
             dataStore.data.map { it[MaxImageCacheSizeKey] ?: 512 }.first()
         }
+        val artworkClient = OkHttpClient.Builder()
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
+            .addNetworkInterceptor(ResponseSizeLimitInterceptor)
+            .build()
         return ImageLoader
             .Builder(this)
             .apply {
                 crossfade(true)
                 allowHardware(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
+                components {
+                    add(
+                        OkHttpNetworkFetcherFactory(
+                            callFactory = { artworkClient },
+                        ),
+                    )
+                }
                 // Memory cache for fast image loading (prevents network requests on recomposition)
                 memoryCache {
                     MemoryCache
@@ -307,20 +328,54 @@ class App :
                         .maxSizePercent(context, 0.15)
                         .build()
                 }
-                if (cacheSize == 0) {
-                    diskCachePolicy(CachePolicy.DISABLED)
-                } else {
-                    diskCache(
-                        DiskCache
-                            .Builder()
-                            .directory(cacheDir.resolve("coil"))
-                            .maxSizeBytes(cacheSize * 1024 * 1024L)
-                            .build(),
-                    )
-                    // Allow reading from disk cache as fallback when network is unavailable
-                    networkCachePolicy(CachePolicy.ENABLED)
-                }
+                diskCache(
+                    ResizableImageDiskCache(
+                        directory = cacheDir.resolve("coil").absolutePath.toPath(),
+                        maxSizeBytes = cacheSize * 1024 * 1024L,
+                    ),
+                )
+                diskCachePolicy(CachePolicy.ENABLED)
+                networkCachePolicy(CachePolicy.ENABLED)
             }.build()
+    }
+
+    private object ResponseSizeLimitInterceptor : Interceptor {
+        private const val MAX_REMOTE_ARTWORK_BYTES = 12L * 1024 * 1024
+
+        override fun intercept(chain: Interceptor.Chain): okhttp3.Response {
+            val request = chain.request()
+            val url = request.url
+            if ((url.scheme != "https" && url.scheme != "http") || url.username.isNotEmpty() || url.password.isNotEmpty()) {
+                throw IOException("Remote artwork URL is not trusted")
+            }
+            val response = chain.proceed(request)
+            val body = response.body
+            if (body.contentLength() > MAX_REMOTE_ARTWORK_BYTES) {
+                response.close()
+                throw IOException("Remote artwork exceeds the response size limit")
+            }
+
+            var bytesRead = 0L
+            val limitedSource =
+                object : ForwardingSource(body.source()) {
+                    override fun read(
+                        sink: Buffer,
+                        byteCount: Long,
+                    ): Long {
+                        val read = super.read(sink, minOf(byteCount, MAX_REMOTE_ARTWORK_BYTES + 1 - bytesRead))
+                        if (read > 0L) bytesRead += read
+                        if (bytesRead > MAX_REMOTE_ARTWORK_BYTES) {
+                            response.close()
+                            throw IOException("Remote artwork exceeds the response size limit")
+                        }
+                        return read
+                    }
+                }.buffer()
+            return response
+                .newBuilder()
+                .body(limitedSource.asResponseBody(body.contentType(), body.contentLength()))
+                .build()
+        }
     }
 
     private fun isPotokenProcess(): Boolean {

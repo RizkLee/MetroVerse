@@ -43,6 +43,8 @@ constructor(
     val filter = MutableStateFlow<YouTube.SearchFilter?>(null)
     var summaryPage by mutableStateOf<SearchSummaryPage?>(null)
     val viewStateMap = mutableStateMapOf<String, ItemsPage?>()
+    private val seenContinuationsByFilter = mutableMapOf<String, MutableSet<String>>()
+    private val loadingMoreFilters = mutableSetOf<String>()
 
     private suspend fun loadSummaryPage() {
         if (summaryPage == null) {
@@ -118,23 +120,31 @@ constructor(
     fun loadMore() {
         val currentFilter = filter.value
         val filterValue = currentFilter?.value ?: return
+        val viewState = viewStateMap[filterValue] ?: return
+        val continuation = viewState.continuation ?: return
+        val seen = seenContinuationsByFilter.getOrPut(filterValue) { mutableSetOf() }
+        if (continuation in seen || !loadingMoreFilters.add(filterValue)) return
+        seen.add(continuation)
         viewModelScope.launch {
-            val viewState = viewStateMap[filterValue] ?: return@launch
-            val continuation = viewState.continuation ?: return@launch
-            val searchResult =
-                YouTube.searchContinuation(continuation).getOrNull() ?: return@launch
-            val resolvedItems = YouTube.resolveArtistIds(searchResult.items)
-            val hideExplicit = context.dataStore.get(HideExplicitKey, false)
-            val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
-            val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, false)
-            val newItems = resolvedItems
-                .filterExplicit(hideExplicit)
-                .filterVideoSongs(hideVideoSongs)
-                .filterYoutubeShorts(hideYoutubeShorts)
-            viewStateMap[filterValue] = ItemsPage(
-                (viewState.items + newItems).distinctBy { it.id },
-                searchResult.continuation
-            )
+            try {
+                val searchResult =
+                    YouTube.searchContinuation(continuation).getOrNull() ?: return@launch
+                val resolvedItems = YouTube.resolveArtistIds(searchResult.items)
+                val hideExplicit = context.dataStore.get(HideExplicitKey, false)
+                val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
+                val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, false)
+                val newItems = resolvedItems
+                    .filterExplicit(hideExplicit)
+                    .filterVideoSongs(hideVideoSongs)
+                    .filterYoutubeShorts(hideYoutubeShorts)
+                val nextContinuation = searchResult.continuation?.takeIf { it != continuation && it !in seen }
+                viewStateMap[filterValue] = ItemsPage(
+                    (viewState.items + newItems).distinctBy { it.id },
+                    nextContinuation,
+                )
+            } finally {
+                loadingMoreFilters.remove(filterValue)
+            }
         }
     }
 }

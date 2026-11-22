@@ -32,6 +32,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.datastore.preferences.core.Preferences
@@ -246,15 +247,21 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import timber.log.Timber
+import java.io.File
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.time.LocalDateTime
 import javax.inject.Inject
 import kotlin.random.Random
 import java.util.Collections
+import java.util.concurrent.atomic.AtomicLong
 
 private const val INSTANT_SILENCE_SKIP_STEP_MS = 15_000L
 private const val INSTANT_SILENCE_SKIP_SETTLE_MS = 350L
@@ -532,7 +539,13 @@ class MusicService :
     // Tracks the original queue size to distinguish original items from auto-added ones
     private var originalQueueSize: Int = 0
 
-    private var consecutivePlaybackErr = 0
+    private val isPlayingFlow = MutableStateFlow(false)
+    private val playbackParametersFlow = MutableStateFlow(PlaybackParameters.DEFAULT)
+    private val offloadSinkErrored = MutableStateFlow(false)
+    private val offloadStallTracker = OffloadSleepStallTracker()
+    private val failureSkipBudget = PlaybackFailureSkipBudget()
+    private val failureTokenCounter = AtomicLong(0L)
+    private val persistQueueMutex = Mutex()
     private var retryJob: Job? = null
     private var retryCount = 0
     private var initialBufferRecoveryJob: Job? = null
@@ -717,8 +730,9 @@ class MusicService :
                 ): MediaNotification {
                     val trackingCallback =
                         MediaNotification.Provider.Callback { notification ->
-                            latestMediaNotification = notification.notification
-                            onNotificationChangedCallback.onNotificationChanged(notification)
+                            val promoted = notification.applyOngoingFlags(mediaSession)
+                            latestMediaNotification = promoted.notification
+                            onNotificationChangedCallback.onNotificationChanged(promoted)
                         }
 
                     return defaultMediaNotificationProvider
@@ -727,7 +741,7 @@ class MusicService :
                             mediaButtonPreferences,
                             actionFactory,
                             trackingCallback,
-                        ).also { mediaNotification ->
+                        ).applyOngoingFlags(mediaSession).also { mediaNotification ->
                             latestMediaNotification = mediaNotification.notification
                         }
                 }
@@ -740,6 +754,15 @@ class MusicService :
 
                 override fun getNotificationChannelInfo(): MediaNotification.Provider.NotificationChannelInfo =
                     defaultMediaNotificationProvider.notificationChannelInfo
+
+                private fun MediaNotification.applyOngoingFlags(session: MediaSession): MediaNotification {
+                    if (!session.player.isPlaying) return this
+                    notification.flags = notification.flags or Notification.FLAG_ONGOING_EVENT
+                    if (Build.VERSION.SDK_INT >= 36) {
+                        notification.extras.putBoolean("android.requestPromotedOngoing", true)
+                    }
+                    return this
+                }
             },
         )
         cachedAutoplay = startupPrefs!![AutoplayKey] ?: true
@@ -760,6 +783,7 @@ class MusicService :
                         shouldPauseAtMediaBoundary(cachedAutoplay, enabled, _queueStopAfterEach.value),
                     )
                 },
+                onCancelCrossfade = { cancelCrossfadeIfRunning() },
             )
         player.addListener(sleepTimer!!)
 
@@ -888,14 +912,13 @@ class MusicService :
 
                     songUrlCache.invalidate(mediaId)
 
-                    // CRITICAL: Clear caches synchronously to prevent format parsing errors
-                    runBlocking(Dispatchers.IO) {
+                    // Clear only the transient player cache on quality change; never delete user downloads.
+                    withContext(Dispatchers.IO) {
                         try {
                             playerCache.removeResource(mediaId)
-                            downloadCache.removeResource(mediaId)
-                            Timber.tag(TAG).d("Cleared player and download cache for $mediaId")
+                            Timber.tag(TAG).d("Cleared player cache for $mediaId after quality change")
                         } catch (e: Exception) {
-                            Timber.tag(TAG).e(e, "Failed to clear cache for $mediaId")
+                            Timber.tag(TAG).e(e, "Failed to clear player cache for $mediaId")
                         }
                     }
 
@@ -1002,11 +1025,29 @@ class MusicService :
         }
 
         combine(
-            dataStore.data.map { it[AudioOffload] ?: false },
-            dataStore.data.map { it[CrossfadeEnabledKey] ?: false },
-        ) { offloadPref, crossfadeEnabled ->
-            // Force disable offload if crossfade is enabled to prevent volume ramp issues
-            if (crossfadeEnabled) false else offloadPref
+            dataStore.data
+                .map { prefs ->
+                    listOf(
+                        prefs[AudioOffload] ?: false,
+                        prefs[CrossfadeEnabledKey] ?: false,
+                        prefs[SkipSilenceKey] ?: false,
+                        prefs[AudioNormalizationKey] ?: true,
+                    )
+                }.distinctUntilChanged(),
+            eqProfileRepository.activeProfile.map { it != null }.distinctUntilChanged(),
+            playbackParametersFlow,
+            offloadSinkErrored,
+        ) { boolPrefs, eqActive, params, sinkErrored ->
+            AudioOffloadEligibility(
+                offloadPref = boolPrefs[0],
+                crossfadeEnabled = boolPrefs[1],
+                skipSilenceEnabled = boolPrefs[2],
+                normalizationActive = boolPrefs[3],
+                equalizerActive = eqActive,
+                speed = params.speed,
+                pitch = params.pitch,
+                sinkErrored = sinkErrored,
+            ).canOffload
         }.distinctUntilChanged()
             .collectLatest(scope) { useOffload ->
                 player.setOffloadEnabled(useOffload)
@@ -1149,14 +1190,6 @@ class MusicService :
                     Timber.tag("DiscordSvc").i("Settings changed, syncing RPC")
                     syncDiscordState()
                 }
-            }
-        }
-
-        scope.launch {
-            while (isActive) {
-                delay(5_000)
-                Timber.tag("DiscordSvc").v("polling: periodic syncDiscordState tick")
-                syncDiscordState()
             }
         }
 
@@ -1339,26 +1372,37 @@ class MusicService :
             }
         }
 
-        // Save queue periodically to prevent queue loss from crash or force kill
-        scope.launch {
-            while (isActive) {
-                delay(15.seconds)
-                if (cachedPersistentQueue) {
-                    saveQueueToDisk()
+        // Single active-playback loop: offload stall watchdog (1s), skip budget reset (5s), queue/episode persistence (15s).
+        isPlayingFlow.collectLatest(scope) { playing ->
+            if (!playing) return@collectLatest
+            var ticks = 0
+            while (coroutineContext.isActive) {
+                delay(1.seconds)
+                ticks++
+                if (offloadStallTracker.isSleeping() &&
+                    offloadStallTracker.shouldDisableOffload(
+                        outputPosition = player.currentPosition,
+                        expectProgress = player.playWhenReady && player.playbackState == Player.STATE_READY,
+                        nowMs = SystemClock.elapsedRealtime(),
+                    )
+                ) {
+                    Timber.tag(TAG).w("Audio offload stalled while sleeping; falling back to PCM output")
+                    offloadSinkErrored.value = true
+                    player.setOffloadEnabled(false)
+                    secondaryPlayer?.setOffloadEnabled(false)
                 }
-                val currentMetadata = player.currentMediaItem?.metadata
-                if (currentMetadata?.isEpisode == true && player.isPlaying && player.currentPosition > 0) {
-                    previousEpisodePosition = player.currentPosition
-                    saveEpisodePosition(currentMetadata.id, player.currentPosition)
+                if (ticks % 5 == 0) {
+                    failureSkipBudget.observeProgress(player.currentMediaItem?.mediaId, player.currentPosition)
                 }
-            }
-        }
-
-        scope.launch {
-            while (isActive) {
-                delay(10.seconds)
-                if (cachedPersistentQueue && player.isPlaying) {
-                    saveQueueToDisk()
+                if (ticks % 15 == 0) {
+                    if (cachedPersistentQueue) {
+                        saveQueueToDisk()
+                    }
+                    val currentMetadata = player.currentMediaItem?.metadata
+                    if (currentMetadata?.isEpisode == true && player.isPlaying && player.currentPosition > 0) {
+                        previousEpisodePosition = player.currentPosition
+                        saveEpisodePosition(currentMetadata.id, player.currentPosition)
+                    }
                 }
             }
         }
@@ -1416,20 +1460,73 @@ class MusicService :
         playerSilenceProcessors[player] = silenceProcessor
 
         if (prefs != null) {
-            val offload = prefs[AudioOffload] ?: false
+            val offloadPref = prefs[AudioOffload] ?: false
             val crossfade = prefs[CrossfadeEnabledKey] ?: false
-            player.setOffloadEnabled(if (crossfade) false else offload)
-            player.skipSilenceEnabled = prefs[SkipSilenceKey] ?: false
+            val skipSilence = prefs[SkipSilenceKey] ?: false
+            val normalization = prefs[AudioNormalizationKey] ?: true
+            player.skipSilenceEnabled = skipSilence
+            player.setOffloadEnabled(
+                AudioOffloadEligibility(
+                    offloadPref = offloadPref,
+                    crossfadeEnabled = crossfade,
+                    skipSilenceEnabled = skipSilence,
+                    normalizationActive = normalization,
+                    equalizerActive = eqProfileRepository.activeProfile.value != null,
+                    speed = player.playbackParameters.speed,
+                    pitch = player.playbackParameters.pitch,
+                    sinkErrored = offloadSinkErrored.value,
+                ).canOffload,
+            )
         } else {
             player.apply {
                 runBlocking {
-                    val offload = dataStore.get(AudioOffload, false)
+                    val offloadPref = dataStore.get(AudioOffload, false)
                     val crossfade = dataStore.get(CrossfadeEnabledKey, false)
-                    setOffloadEnabled(if (crossfade) false else offload)
-                    skipSilenceEnabled = dataStore.get(SkipSilenceKey, false)
+                    val skipSilence = dataStore.get(SkipSilenceKey, false)
+                    val normalization = dataStore.get(AudioNormalizationKey, true)
+                    skipSilenceEnabled = skipSilence
+                    setOffloadEnabled(
+                        AudioOffloadEligibility(
+                            offloadPref = offloadPref,
+                            crossfadeEnabled = crossfade,
+                            skipSilenceEnabled = skipSilence,
+                            normalizationActive = normalization,
+                            equalizerActive = eqProfileRepository.activeProfile.value != null,
+                            speed = playbackParameters.speed,
+                            pitch = playbackParameters.pitch,
+                            sinkErrored = offloadSinkErrored.value,
+                        ).canOffload,
+                    )
                 }
             }
         }
+        player.addAudioOffloadListener(
+            object : ExoPlayer.AudioOffloadListener {
+                override fun onSleepingForOffloadChanged(sleepingForOffload: Boolean) {
+                    if (sleepingForOffload) {
+                        offloadStallTracker.onSleepingForOffload(
+                            nowMs = SystemClock.elapsedRealtime(),
+                            outputPosition = player.currentPosition,
+                        )
+                    } else {
+                        offloadStallTracker.reset()
+                    }
+                }
+            },
+        )
+        player.addAnalyticsListener(
+            object : AnalyticsListener {
+                override fun onAudioSinkError(
+                    eventTime: AnalyticsListener.EventTime,
+                    audioSinkError: Exception,
+                ) {
+                    Timber.tag(TAG).w(audioSinkError, "AudioSink error; disabling offload fallback to PCM")
+                    offloadSinkErrored.value = true
+                    player.setOffloadEnabled(false)
+                    secondaryPlayer?.setOffloadEnabled(false)
+                }
+            },
+        )
         player.addAnalyticsListener(PlaybackStatsListener(false, this@MusicService))
 
         // Cleanup handled manually in onDestroy/release
@@ -1618,27 +1715,19 @@ class MusicService :
         }
     }
 
-    private fun skipOnError() {
-        /**
-         * Auto skip to the next media item on error.
-         *
-         * To prevent a "runaway diesel engine" scenario, force the user to take action after
-         * too many errors come up too quickly. Pause to show player "stopped" state
-         */
-        consecutivePlaybackErr += 2
+    private fun skipOnError(): Boolean {
         val nextWindowIndex = player.nextMediaItemIndex
-
-        if (consecutivePlaybackErr <= MAX_CONSECUTIVE_ERR && nextWindowIndex != C.INDEX_UNSET) {
+        if (nextWindowIndex != C.INDEX_UNSET && failureSkipBudget.tryAdvance(failureTokenCounter.incrementAndGet())) {
             player.seekTo(nextWindowIndex, C.TIME_UNSET)
             player.prepare()
             if (castConnectionHandler?.isCasting?.value != true) {
                 player.play()
             }
-            return
+            return true
         }
 
         player.pause()
-        consecutivePlaybackErr = 0
+        return false
     }
 
     private fun stopOnError() {
@@ -2764,6 +2853,8 @@ class MusicService :
         reason: Int,
     ) {
         audioCachePolicy.onPlaybackChanged(mediaItem?.mediaId, mediaItem?.metadata?.isEpisode == true)
+        offloadSinkErrored.value = false
+        offloadStallTracker.reset()
         com.metrolist.music.cache.TextCacheSignals.protect("playback", mediaItem?.mediaId)
         textCacheManager.recordUse(mediaItem?.mediaId)
         val previousItemWasEpisode = previousEpisodeId != null
@@ -2938,7 +3029,6 @@ class MusicService :
         }
 
         if (playbackState == Player.STATE_READY) {
-            consecutivePlaybackErr = 0
             retryCount = 0
             waitingForNetworkConnection.value = false
             retryJob?.cancel()
@@ -3079,6 +3169,7 @@ class MusicService :
         }
 
         if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED)) {
+            isPlayingFlow.value = player.isPlaying
             updateWidgetUI(player.isPlaying)
             if (player.isPlaying) {
                 discordIntentionalDisconnect = false
@@ -3086,6 +3177,10 @@ class MusicService :
                 screenOffHandler.removeCallbacks(pauseTimeout)
                 startWidgetUpdates()
             } else {
+                offloadStallTracker.reset()
+                if (cachedPersistentQueue && !isSilenceSkipping) {
+                    saveQueueToDisk()
+                }
                 stopWidgetUpdates()
                 if (isScreenOff) {
                     screenOffHandler.removeCallbacks(screenOffTimeout)
@@ -3199,6 +3294,7 @@ class MusicService :
 
     override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) {
         super.onPlaybackParametersChanged(playbackParameters)
+        playbackParametersFlow.value = playbackParameters
         if (playbackParameters.speed != lastPlaybackSpeed) {
             Timber.tag("DiscordSvc").d("onPlaybackParametersChanged: speed changed %s -> %s", lastPlaybackSpeed, playbackParameters.speed)
             lastPlaybackSpeed = playbackParameters.speed
@@ -3425,13 +3521,7 @@ class MusicService :
             return
         }
 
-        if (dataStore.get(AutoSkipNextOnErrorKey, false)) {
-            Timber.tag(TAG).d("Auto-skipping to next track due to unrecoverable error")
-            skipOnError()
-        } else {
-            Timber.tag(TAG).d("Stopping playback due to unrecoverable error")
-            stopOnError()
-        }
+        handleFinalFailure(isNetworkOrTimeoutFailure = isNetworkRelatedError(error) || error.isNetworkTimeoutOrDisconnect())
     }
 
     /**
@@ -3785,14 +3875,18 @@ class MusicService :
     /**
      * Handles final failure when all recovery attempts have been exhausted.
      */
-    private fun handleFinalFailure() {
+    private fun handleFinalFailure(isNetworkOrTimeoutFailure: Boolean = false) {
         val autoSkipOnError = dataStore.get(AutoSkipNextOnErrorKey, false)
-        val autoplay = dataStore.get(AutoplayKey, true)
-        val canAdvance = player.hasNextMediaItem()
+        val shouldSkip = shouldSkipAfterPlaybackFailure(
+            autoSkipNextOnError = autoSkipOnError,
+            wantsPlayback = player.playWhenReady,
+            networkConnected = isNetworkConnected.value,
+            repeatOne = player.repeatMode == REPEAT_MODE_ONE,
+            isNetworkOrTimeoutFailure = isNetworkOrTimeoutFailure,
+        )
 
-        if (autoSkipOnError || (autoplay && canAdvance)) {
+        if (shouldSkip && skipOnError()) {
             Timber.tag(TAG).d("All recovery attempts exhausted, auto-skipping to next track")
-            skipOnError()
         } else {
             Timber.tag(TAG).d("All recovery attempts exhausted, stopping playback")
             stopOnError()
@@ -3807,13 +3901,27 @@ class MusicService :
         val pauseOnMute = dataStore.get(PauseOnMute, false)
 
         if ((volume == 0 || muted) && pauseOnMute) {
-            if (player.isPlaying) {
+            val activeForMute =
+                player.isPlaying ||
+                    (
+                        player.playWhenReady &&
+                            player.playbackState == Player.STATE_BUFFERING &&
+                            player.currentMediaItem != null &&
+                            castConnectionHandler?.isCasting?.value != true
+                        )
+            if (activeForMute) {
                 wasPlayingBeforeVolumeMute = true
                 isPausedByVolumeMute = true
                 player.pause()
             }
         } else if (volume > 0 && !muted && pauseOnMute) {
-            if (wasPlayingBeforeVolumeMute && !player.isPlaying && castConnectionHandler?.isCasting?.value != true) {
+            val listenTogetherGuestLocked = listenTogetherManager.isInRoom && !listenTogetherManager.isHost
+            if (
+                wasPlayingBeforeVolumeMute &&
+                !player.isPlaying &&
+                !listenTogetherGuestLocked &&
+                castConnectionHandler?.isCasting?.value != true
+            ) {
                 wasPlayingBeforeVolumeMute = false
                 isPausedByVolumeMute = false
                 player.play()
@@ -4501,7 +4609,7 @@ class MusicService :
         }
     }
 
-    private fun saveQueueToDisk() {
+    private fun saveQueueToDisk(blocking: Boolean = false) {
         if (player.mediaItemCount == 0) {
             Timber.tag(TAG).d("Skipping queue save - no media items")
             return
@@ -4535,44 +4643,45 @@ class MusicService :
                     playbackState = player.playbackState,
                 )
 
-            runCatching {
-                filesDir.resolve(PERSISTENT_QUEUE_FILE).outputStream().use { fos ->
-                    ObjectOutputStream(fos).use { oos ->
-                        oos.writeObject(persistQueue)
-                    }
+            val persistBlock: suspend () -> Unit = {
+                persistQueueMutex.withLock {
+                    writeSerializedAtomically(filesDir.resolve(PERSISTENT_QUEUE_FILE), persistQueue, "queue")
+                    writeSerializedAtomically(filesDir.resolve(PERSISTENT_AUTOMIX_FILE), persistAutomix, "automix")
+                    writeSerializedAtomically(filesDir.resolve(PERSISTENT_PLAYER_STATE_FILE), persistPlayerState, "player state")
                 }
-                Timber.tag(TAG).d("Queue saved successfully")
-            }.onFailure {
-                Timber.tag(TAG).e(it, "Failed to save queue")
-                reportException(it)
             }
 
-            runCatching {
-                filesDir.resolve(PERSISTENT_AUTOMIX_FILE).outputStream().use { fos ->
-                    ObjectOutputStream(fos).use { oos ->
-                        oos.writeObject(persistAutomix)
-                    }
-                }
-                Timber.tag(TAG).d("Automix saved successfully")
-            }.onFailure {
-                Timber.tag(TAG).e(it, "Failed to save automix")
-                reportException(it)
-            }
-
-            runCatching {
-                filesDir.resolve(PERSISTENT_PLAYER_STATE_FILE).outputStream().use { fos ->
-                    ObjectOutputStream(fos).use { oos ->
-                        oos.writeObject(persistPlayerState)
-                    }
-                }
-                Timber.tag(TAG).d("Player state saved successfully")
-            }.onFailure {
-                Timber.tag(TAG).e(it, "Failed to save player state")
-                reportException(it)
+            if (blocking) {
+                runBlocking(Dispatchers.IO) { persistBlock() }
+            } else {
+                scope.launch(Dispatchers.IO) { persistBlock() }
             }
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "Error during queue save operation")
             reportException(e)
+        }
+    }
+
+    private fun writeSerializedAtomically(
+        target: File,
+        value: Any,
+        label: String,
+    ) {
+        val tempFile = File("${target.path}.tmp")
+        runCatching {
+            tempFile.outputStream().use { fos ->
+                ObjectOutputStream(fos).use { oos ->
+                    oos.writeObject(value)
+                    oos.flush()
+                }
+                fos.fd.sync()
+            }
+            Files.move(tempFile.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
+            Timber.tag(TAG).d("Saved $label atomically")
+        }.onFailure { error ->
+            tempFile.delete()
+            Timber.tag(TAG).e(error, "Failed to save $label")
+            reportException(error)
         }
     }
 
@@ -4694,7 +4803,7 @@ class MusicService :
         audioManager.unregisterAudioDeviceCallback(audioDeviceCallback)
         castConnectionHandler?.release()
         if (dataStore.get(PersistentQueueKey, true)) {
-            saveQueueToDisk()
+            saveQueueToDisk(blocking = true)
         }
         screenOffHandler.removeCallbacks(screenOffTimeout)
         screenOffHandler.removeCallbacks(pauseTimeout)
@@ -5102,7 +5211,7 @@ class MusicService :
         widgetUpdateJob?.cancel()
         widgetUpdateJob =
             scope.launch {
-                while (isActive) {
+                while (coroutineContext.isActive) {
                     if (player.isPlaying) {
                         updateWidgetUI(true)
                     }
@@ -5194,7 +5303,18 @@ class MusicService :
         reason: Int,
     ) {
         if (reason == Player.DISCONTINUITY_REASON_SEEK) {
+            cancelCrossfadeIfRunning()
             scheduleCrossfade()
+        }
+    }
+
+    private fun cancelCrossfadeIfRunning() {
+        if (!isCrossfading && crossfadeJob == null) return
+        crossfadeJob?.cancel()
+        crossfadeJob = null
+        if (isCrossfading) {
+            val fadingSessionId = fadingPlayer?.audioSessionId ?: C.AUDIO_SESSION_ID_UNSET
+            cleanupCrossfade(fadingPlayerSessionId = fadingSessionId)
         }
     }
 
@@ -5307,6 +5427,8 @@ class MusicService :
         fadingPlayer = currentPlayer
         player = nextPlayer
         _playerFlow.value = player
+        isPlayingFlow.value = player.isPlaying
+        playbackParametersFlow.value = player.playbackParameters
         secondaryPlayer = null
 
         fadingPlayer?.repeatMode = Player.REPEAT_MODE_OFF
@@ -5373,8 +5495,8 @@ class MusicService :
 
                 for (i in 0..steps) {
                     if (!isActive) break
-                    while (!player.isPlaying && isActive) {
-                        delay(100)
+                    if (!player.isPlaying) {
+                        isPlayingFlow.first { it }
                     }
 
                     val progress = i / steps.toFloat()

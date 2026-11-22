@@ -143,9 +143,10 @@ fun PlaybackSleepTimerBottomSheet(
     val playerConnection = LocalPlayerConnection.current ?: return
     val timer = playerConnection.service.sleepTimer ?: return
     val stopAfterCurrentSong by rememberPreference(SleepTimerStopAfterCurrentSongKey, false)
-    val initialMinutes = remember(timer.triggerTime) {
-        if (timer.triggerTime > 0L) {
-            ceil((timer.triggerTime - System.currentTimeMillis()).coerceAtLeast(0L) / 60_000.0)
+    val initialMinutes = remember(timer.triggerTime, timer.mode) {
+        val remaining = timer.remainingTimeMs()
+        if (timer.triggerTime > 0L && remaining > 0L) {
+            ceil(remaining / 60_000.0)
                 .toInt()
                 .coerceIn(5, MAX_SLEEP_MINUTES)
         } else {

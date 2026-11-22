@@ -5,6 +5,7 @@
 
 package com.metrolist.music.playback
 
+import android.os.SystemClock
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -54,6 +55,9 @@ class SleepTimer(
     player: Player,
     private val onVolumeMultiplierChanged: (Float) -> Unit = {},
     private val onPauseAtEndOfMediaItemsChanged: (Player, Boolean) -> Unit = { _, _ -> },
+    private val onCancelCrossfade: () -> Unit = {},
+    private val elapsedRealtimeMs: () -> Long = SystemClock::elapsedRealtime,
+    private val currentTimeMs: () -> Long = System::currentTimeMillis,
 ) : Player.Listener {
     private companion object {
         private const val TIMER_TICK_MS = 1000L
@@ -64,6 +68,8 @@ class SleepTimer(
     private var shuffleModeBeforeEndTimer: Boolean? = null
     private var queueEndMediaIndex: Int = C.INDEX_UNSET
     private var lastObservedMediaIndex: Int = C.INDEX_UNSET
+    @Volatile
+    private var deadlineElapsedMs: Long = -1L
     var player: Player = player
         set(value) {
             field = value
@@ -106,12 +112,16 @@ class SleepTimer(
         resetTimerState()
         mode = SleepTimerMode.TIMED
         stopAfterCurrentSongOnTimeout = stopAfterCurrentSong
-        triggerTime = System.currentTimeMillis() + minute.minutes.inWholeMilliseconds
+        val durationMs = minute.minutes.inWholeMilliseconds
+        deadlineElapsedMs = elapsedRealtimeMs() + durationMs
+        triggerTime = currentTimeMs() + durationMs
+        val fadeEnabled = sleepTimerFadeOutEnabled(mode, stopAfterCurrentSongOnTimeout)
         sleepTimerJob =
             scope.launch {
                 while (mode == SleepTimerMode.TIMED) {
-                    val remainingMs = triggerTime - System.currentTimeMillis()
+                    val remainingMs = deadlineElapsedMs - elapsedRealtimeMs()
                     if (remainingMs <= 0L) {
+                        deadlineElapsedMs = -1L
                         triggerTime = -1L
                         if (stopAfterCurrentSongOnTimeout) {
                             stopAfterCurrentSongOnTimeout = false
@@ -122,10 +132,18 @@ class SleepTimer(
                         break
                     }
 
-                    if (sleepTimerFadeOutEnabled(mode, stopAfterCurrentSongOnTimeout)) {
-                        updateVolumeMultiplier(sleepTimerVolumeMultiplier(remainingMs))
-                    }
-                    delay(TIMER_TICK_MS)
+                    val delayMs =
+                        if (fadeEnabled) {
+                            if (remainingMs <= SLEEP_TIMER_FADE_OUT_WINDOW_MS) {
+                                updateVolumeMultiplier(sleepTimerVolumeMultiplier(remainingMs))
+                                TIMER_TICK_MS.coerceAtMost(remainingMs)
+                            } else {
+                                (remainingMs - SLEEP_TIMER_FADE_OUT_WINDOW_MS).coerceAtLeast(1L)
+                            }
+                        } else {
+                            remainingMs
+                        }
+                    delay(delayMs)
                 }
             }
     }
@@ -151,6 +169,7 @@ class SleepTimer(
     private fun startEndMode(newMode: SleepTimerMode) {
         require(newMode == SleepTimerMode.END_OF_MEDIA || newMode == SleepTimerMode.END_OF_QUEUE)
         resetTimerState()
+        onCancelCrossfade()
         repeatModeBeforeEndTimer = player.repeatMode
         shuffleModeBeforeEndTimer = player.shuffleModeEnabled
         player.repeatMode = Player.REPEAT_MODE_OFF
@@ -218,7 +237,8 @@ class SleepTimer(
     fun remainingTimeMs(): Long =
         when (mode) {
             SleepTimerMode.OFF -> 0L
-            SleepTimerMode.TIMED -> (triggerTime - System.currentTimeMillis()).coerceAtLeast(0L)
+            SleepTimerMode.TIMED ->
+                if (deadlineElapsedMs >= 0L) (deadlineElapsedMs - elapsedRealtimeMs()).coerceAtLeast(0L) else 0L
             SleepTimerMode.END_OF_MEDIA -> currentMediaRemainingMs()
             SleepTimerMode.END_OF_QUEUE -> estimatedQueueRemainingMs()
         }
@@ -263,6 +283,7 @@ class SleepTimer(
         queueEndMediaIndex = C.INDEX_UNSET
         lastObservedMediaIndex = C.INDEX_UNSET
         stopAfterCurrentSongOnTimeout = false
+        deadlineElapsedMs = -1L
         triggerTime = -1L
         updateVolumeMultiplier(1f)
         onPauseAtEndOfMediaItemsChanged(player, false)

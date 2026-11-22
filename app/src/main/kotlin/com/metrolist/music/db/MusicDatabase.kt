@@ -92,6 +92,13 @@ class MusicDatabase(
     fun close() = delegate.close()
 }
 
+class DatabaseDowngradeException(
+    val actualVersion: Int,
+    val expectedVersion: Int,
+) : IllegalStateException(
+    "Database downgrade from version $actualVersion to $expectedVersion is not supported",
+)
+
 @Database(
     entities = [
         SongEntity::class,
@@ -168,6 +175,7 @@ abstract class InternalDatabase : RoomDatabase() {
 
     companion object {
         const val DB_NAME = "song.db"
+        const val SCHEMA_VERSION = 40
 
         /**
          * Reads the SQLite user_version pragma from a database file without
@@ -195,6 +203,12 @@ abstract class InternalDatabase : RoomDatabase() {
             dbName: String = DB_NAME,
             withPragmaCallback: Boolean = true,
         ): InternalDatabase {
+            val dbPath = context.getDatabasePath(dbName).absolutePath
+            val existingVersion = readDatabaseVersion(dbPath)
+            if (existingVersion > SCHEMA_VERSION) {
+                throw DatabaseDowngradeException(existingVersion, SCHEMA_VERSION)
+            }
+
             val builder = Room
                 .databaseBuilder(context, InternalDatabase::class.java, dbName)
                 .openHelperFactory(BackupBeforeMigrationFactory(context, dbName))
@@ -203,7 +217,7 @@ abstract class InternalDatabase : RoomDatabase() {
                     MIGRATION_21_24,
                     MIGRATION_22_24,
                     MIGRATION_24_25,
-                ).fallbackToDestructiveMigration()
+                )
                 .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
                 .setTransactionExecutor(
                     java.util.concurrent.Executors

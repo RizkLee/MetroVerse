@@ -45,6 +45,7 @@ import androidx.core.content.FileProvider
 import com.metrolist.music.R
 import com.metrolist.music.ui.theme.MetrolistTheme
 import com.metrolist.music.utils.CrashHandler
+import com.metrolist.music.utils.redactDiagnosticText
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -55,8 +56,8 @@ class CrashActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        
-        val crashLog = intent.getStringExtra(CrashHandler.EXTRA_CRASH_LOG) ?: getString(R.string.crash_no_log)
+
+        val crashLog = loadRedactedCrashLog()
         
         setContent {
             val darkTheme = isSystemInDarkTheme()
@@ -68,6 +69,28 @@ class CrashActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    private fun loadRedactedCrashLog(): String {
+        val store = CrashHandler.store(this)
+        val requestedId = intent.getStringExtra(CrashHandler.EXTRA_CRASH_ID)
+        if (!requestedId.isNullOrBlank()) {
+            store.get(requestedId)?.let { report ->
+                store.acknowledge(requestedId)
+                return report.formatForDisplay()
+            }
+        }
+        intent.getStringExtra(CrashHandler.EXTRA_CRASH_LOG)?.let { legacy ->
+            return redactDiagnosticText(legacy)
+        }
+        val pendingId = store.pendingReportId()
+        if (!pendingId.isNullOrBlank()) {
+            store.get(pendingId)?.let { report ->
+                store.acknowledge(pendingId)
+                return report.formatForDisplay()
+            }
+        }
+        return getString(R.string.crash_no_log)
     }
     
     private fun shareCrashLog(crashLog: String) {

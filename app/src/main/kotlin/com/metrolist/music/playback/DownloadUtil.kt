@@ -74,6 +74,31 @@ constructor(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val rssDownloadIds = ConcurrentHashMap.newKeySet<String>()
 
+    private val probeLock = Any()
+    @Volatile
+    private var cachedProbeProxy: Pair<java.net.Proxy?, String?>? = null
+    @Volatile
+    private var sharedProbeClient: OkHttpClient? = null
+
+    private fun probeHttpClient(): OkHttpClient {
+        val currentProxy = YouTube.proxy to YouTube.proxyAuth
+        val existing = sharedProbeClient
+        if (existing != null && cachedProbeProxy == currentProxy) return existing
+        return synchronized(probeLock) {
+            val check = sharedProbeClient
+            if (check != null && cachedProbeProxy == currentProxy) return@synchronized check
+            SharedHttpPool.newClient(proxy = currentProxy.first, proxyAuth = currentProxy.second)
+                .newBuilder()
+                .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                .build()
+                .also {
+                    cachedProbeProxy = currentProxy
+                    sharedProbeClient = it
+                }
+        }
+    }
+
     val downloads = MutableStateFlow<Map<String, Download>>(emptyMap())
 
     private val rssHttpDataSourceFactory =
@@ -170,16 +195,7 @@ constructor(
             val format = playbackData.format
 
             val actualContentLength = format.contentLength?.takeIf { it > 0L } ?: run {
-                val client = OkHttpClient.Builder()
-                    .proxy(YouTube.proxy)
-                    .proxyAuthenticator { _, response ->
-                        YouTube.proxyAuth?.let { auth ->
-                            auth.takeIf { response.request.header("Proxy-Authorization") != it }?.let {
-                                response.request.newBuilder().header("Proxy-Authorization", it).build()
-                            }
-                        }
-                    }
-                    .build()
+                val client = probeHttpClient()
                 val request = okhttp3.Request.Builder()
                     .get()
                     .url(playbackData.streamUrl)
@@ -315,17 +331,19 @@ constructor(
                         val downloadId = download.request.id
                         songUrlCache.invalidate(downloadId)
 
-                        runCatching {
-                            database.updateDownloadedInfo(downloadId, false, null)
-                        }.onSuccess {
-                            downloads.update { map ->
-                                map.toMutableMap().apply {
-                                    remove(downloadId)
+                        scope.launch {
+                            runCatching {
+                                database.updateDownloadedInfo(downloadId, false, null)
+                            }.onSuccess {
+                                downloads.update { map ->
+                                    map.toMutableMap().apply {
+                                        remove(downloadId)
+                                    }
                                 }
+                                Timber.tag(TAG).d("Successfully removed download $downloadId from in-memory map")
+                            }.onFailure { error ->
+                                Timber.tag(TAG).e(error, "Failed to update database for removed download $downloadId, keeping in-memory entry")
                             }
-                            Timber.tag(TAG).d("Successfully removed download $downloadId from in-memory map")
-                        }.onFailure { error ->
-                            Timber.tag(TAG).e(error, "Failed to update database for removed download $downloadId, keeping in-memory entry")
                         }
                     }
                 }
@@ -354,6 +372,22 @@ constructor(
         }
         return false
     }
+}
+
+internal fun Throwable?.isNetworkTimeoutOrDisconnect(): Boolean {
+    var current = this
+    while (current != null) {
+        if (
+            current is java.net.SocketTimeoutException ||
+            current is java.net.SocketException ||
+            current is java.net.UnknownHostException ||
+            current is io.ktor.client.plugins.HttpRequestTimeoutException
+        ) {
+            return true
+        }
+        current = current.cause
+    }
+    return false
 }
 
 internal fun readDownloadSnapshot(cursor: DownloadCursor): Map<String, Download> = cursor.use {

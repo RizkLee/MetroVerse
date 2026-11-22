@@ -24,6 +24,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.guava.future
 import timber.log.Timber
+import java.io.IOException
 
 class CoilBitmapLoader(
     private val context: Context,
@@ -59,32 +60,28 @@ class CoilBitmapLoader(
 
     override fun loadBitmap(uri: Uri): ListenableFuture<Bitmap> =
         scope.future(Dispatchers.IO) {
-            try {
-                val request =
-                    ImageRequest
-                        .Builder(context)
-                        .data(uri)
-                        .allowHardware(false)
-                        .build()
+            val request =
+                ImageRequest
+                    .Builder(context)
+                    .data(uri)
+                    .allowHardware(false)
+                    .build()
 
-                when (val result = context.imageLoader.execute(request)) {
-                    is ErrorResult -> {
-                        createFallbackBitmap()
-                    }
+            when (val result = context.imageLoader.execute(request)) {
+                is ErrorResult -> {
+                    Timber.tag("CoilBitmapLoader").w(result.throwable, "Failed to load artwork from uri")
+                    throw IOException("Failed to load artwork from uri", result.throwable)
+                }
 
-                    is SuccessResult -> {
-                        try {
-                            val bitmap = result.image.toBitmap()
-                            bitmap.createIndependentCopy()
-                        } catch (e: Exception) {
-                            Timber.tag("CoilBitmapLoader").w(e, "Failed to convert image to bitmap")
-                            createFallbackBitmap()
-                        }
+                is SuccessResult -> {
+                    try {
+                        val bitmap = result.image.toBitmap()
+                        bitmap.createIndependentCopy()
+                    } catch (e: Exception) {
+                        Timber.tag("CoilBitmapLoader").w(e, "Failed to convert image to bitmap")
+                        throw IOException("Failed to convert image to bitmap", e)
                     }
                 }
-            } catch (e: Exception) {
-                Timber.tag("CoilBitmapLoader").w(e, "Failed to load bitmap from uri")
-                createFallbackBitmap()
             }
         }
 

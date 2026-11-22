@@ -30,6 +30,8 @@ import com.metrolist.music.constants.InnerTubeCookieKey
 import com.metrolist.music.constants.VisitorDataKey
 import com.metrolist.music.db.InternalDatabase
 import com.metrolist.music.db.MusicDatabase
+import com.metrolist.music.db.createDatabaseSnapshot
+import com.metrolist.music.db.validateBackupDatabaseFile
 import com.metrolist.music.db.entities.ArtistEntity
 import com.metrolist.music.db.entities.Song
 import com.metrolist.music.db.entities.SongEntity
@@ -126,28 +128,22 @@ class BackupRestoreViewModel @Inject constructor(
                             stageFile.delete()
                         }
                     }
-                    runBlocking(Dispatchers.IO) {
-                        database.checkpoint()
-                    }
                     val dbPath = database.openHelper.writableDatabase.path
                     if (dbPath != null) {
-                        FileInputStream(dbPath).use { inputStream ->
-                            outputStream.putNextEntry(ZipEntry(InternalDatabase.DB_NAME))
-                            inputStream.copyTo(outputStream)
-                        }
-                        val walFile = File("$dbPath-wal")
-                        if (walFile.exists()) {
-                            FileInputStream(walFile).use { inputStream ->
-                                outputStream.putNextEntry(ZipEntry("${InternalDatabase.DB_NAME}-wal"))
+                        val snapshotFile = File.createTempFile("db_backup_", ".db", context.cacheDir)
+                        try {
+                            createDatabaseSnapshot(
+                                context = context,
+                                database = database.openHelper.writableDatabase,
+                                source = File(dbPath),
+                                destination = snapshotFile,
+                            )
+                            snapshotFile.inputStream().buffered().use { inputStream ->
+                                outputStream.putNextEntry(ZipEntry(InternalDatabase.DB_NAME))
                                 inputStream.copyTo(outputStream)
                             }
-                        }
-                        val shmFile = File("$dbPath-shm")
-                        if (shmFile.exists()) {
-                            FileInputStream(shmFile).use { inputStream ->
-                                outputStream.putNextEntry(ZipEntry("${InternalDatabase.DB_NAME}-shm"))
-                                inputStream.copyTo(outputStream)
-                            }
+                        } finally {
+                            snapshotFile.delete()
                         }
                     }
                 }
@@ -243,6 +239,15 @@ class BackupRestoreViewModel @Inject constructor(
                         )
                         kotlinx.coroutines.withContext(Dispatchers.Main) {
                             Toast.makeText(context, R.string.restore_database_incompatible, Toast.LENGTH_LONG).show()
+                        }
+                        return@launch
+                    }
+                    runCatching {
+                        validateBackupDatabaseFile(restoreDbPath)
+                    }.onFailure { validationError ->
+                        Timber.tag("RESTORE").e(validationError, "Backup database failed integrity/foreign-key validation")
+                        kotlinx.coroutines.withContext(Dispatchers.Main) {
+                            Toast.makeText(context, R.string.restore_failed, Toast.LENGTH_SHORT).show()
                         }
                         return@launch
                     }

@@ -42,11 +42,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import coil3.SingletonImageLoader
-import coil3.annotation.DelicateCoilApi
+import androidx.media3.exoplayer.offline.DownloadService
 import coil3.annotation.ExperimentalCoilApi
 import coil3.imageLoader
-import com.metrolist.music.LocalDatabase
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
@@ -54,29 +52,28 @@ import com.metrolist.music.constants.EnableSongCacheKey
 import com.metrolist.music.constants.MaxImageCacheSizeKey
 import com.metrolist.music.constants.MaxSongCacheSizeKey
 import com.metrolist.music.extensions.tryOrNull
+import com.metrolist.music.playback.ExoDownloadService
 import com.metrolist.music.ui.component.ActionPromptDialog
 import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.component.Material3SettingsGroup
 import com.metrolist.music.ui.component.Material3SettingsItem
 import android.text.format.Formatter
 import com.metrolist.music.ui.utils.backToMain
+import com.metrolist.music.utils.ResizableImageDiskCache
 import com.metrolist.music.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import okio.ByteString.Companion.encodeUtf8
-import java.io.File
+import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalCoilApi::class, ExperimentalMaterial3Api::class, DelicateCoilApi::class)
+@OptIn(ExperimentalCoilApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun StorageSettings(
     navController: NavController
 ) {
     val context = LocalContext.current
-    val database = LocalDatabase.current
     val imageDiskCache = context.imageLoader.diskCache
     val playerCache = LocalPlayerConnection.current?.service?.playerCache ?: return
     val downloadCache = LocalPlayerConnection.current?.service?.downloadCache ?: return
@@ -118,25 +115,30 @@ fun StorageSettings(
     }
     val imageCacheProgress by animateFloatAsState(
         targetValue =
-            (imageCacheSize.toFloat() / (maxImageCacheSize * 1024 * 1024L)).coerceIn(
-                0f,
-                1f,
-            ),
+            if (maxImageCacheSize > 0) {
+                (imageCacheSize.toFloat() / (maxImageCacheSize * 1024 * 1024L)).coerceIn(0f, 1f)
+            } else {
+                0f
+            },
         label = "imageCacheProgress",
     )
     val playerCacheProgress by animateFloatAsState(
         targetValue =
-            (playerCacheSize.toFloat() / (maxSongCacheSize * 1024 * 1024L)).coerceIn(
-                0f,
-                1f,
-            ),
+            if (maxSongCacheSize > 0) {
+                (playerCacheSize.toFloat() / (maxSongCacheSize * 1024 * 1024L)).coerceIn(0f, 1f)
+            } else {
+                0f
+            },
         label = "playerCacheProgress",
     )
 
     LaunchedEffect(maxImageCacheSize) {
-        SingletonImageLoader.reset()
-        if (maxImageCacheSize == 0) {
-            coroutineScope.launch(Dispatchers.IO) {
+        withContext(Dispatchers.IO) {
+            val maxBytes = maxImageCacheSize * 1024L * 1024L
+            val resizable = imageDiskCache as? ResizableImageDiskCache
+            if (resizable != null) {
+                resizable.resize(maxBytes)
+            } else if (maxImageCacheSize == 0) {
                 imageDiskCache?.clear()
             }
         }
@@ -175,11 +177,11 @@ fun StorageSettings(
             title = stringResource(R.string.clear_all_downloads),
             onDismiss = { clearDownloads = false },
             onConfirm = {
-                coroutineScope.launch(Dispatchers.IO) {
-                    downloadCache.keys.forEach { key ->
-                        downloadCache.removeResource(key)
-                    }
-                }
+                DownloadService.sendRemoveAllDownloads(
+                    context,
+                    ExoDownloadService::class.java,
+                    false,
+                )
                 clearDownloads = false
             },
             onCancel = { clearDownloads = false },
@@ -212,28 +214,6 @@ fun StorageSettings(
             onDismiss = { clearImageCacheDialog = false },
             onConfirm = {
                 coroutineScope.launch(Dispatchers.IO) {
-                    val urlsToPreserve = mutableSetOf<String>()
-                    val downloadedSongs =
-                        try {
-                            database.downloadedSongsByNameAsc().first()
-                        } catch (e: Exception) {
-                            emptyList()
-                        }
-                    downloadedSongs.forEach { song ->
-                        song.song.thumbnailUrl?.let { urlsToPreserve.add(it.encodeUtf8().sha256().hex()) }
-                        song.album?.thumbnailUrl?.let { urlsToPreserve.add(it.encodeUtf8().sha256().hex()) }
-                    }
-                    val directory = imageDiskCache?.directory?.toFile()
-                    if (directory != null && directory.exists() && directory.isDirectory) {
-                        directory.listFiles()?.forEach { file ->
-                            if (file.isFile && !file.name.startsWith("journal")) {
-                                val isPreserved = urlsToPreserve.any { hash -> file.name.startsWith(hash) }
-                                if (!isPreserved) {
-                                    file.delete()
-                                }
-                            }
-                        }
-                    }
                     imageDiskCache?.clear()
                 }
                 clearImageCacheDialog = false

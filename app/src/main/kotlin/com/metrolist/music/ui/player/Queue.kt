@@ -568,7 +568,9 @@ fun Queue(
         val mutableQueueWindows = remember { mutableStateListOf<Timeline.Window>() }
         val queueLength =
             remember(queueWindows) {
-                queueWindows.sumOf { it.mediaItem.metadata!!.duration }
+                queueWindows.sumOf { window ->
+                    (window.mediaItem.metadata?.duration ?: 0).coerceAtLeast(0)
+                }
             }
 
         val coroutineScope = rememberCoroutineScope()
