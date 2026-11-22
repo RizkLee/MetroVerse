@@ -40,6 +40,31 @@ class InnerTube {
 
     private companion object {
         const val PLAYBACK_TELEMETRY_VER = "2"
+        val SUPPORTED_AUTH_COOKIES = listOf("SAPISID", "__Secure-3PAPISID", "__Secure-1PAPISID")
+    }
+
+    internal fun requireTrustedPlaybackTrackingUrl(url: String) {
+        val parsed = runCatching { Url(url) }.getOrNull()
+            ?: throw IllegalArgumentException("Invalid playback tracking URL")
+        require(
+            parsed.protocol == URLProtocol.HTTPS &&
+                (parsed.specifiedPort == 0 || parsed.specifiedPort == 443) &&
+                parsed.user == null &&
+                parsed.password == null &&
+                (parsed.host == "s.youtube.com" || parsed.host == "youtube.com" || parsed.host.endsWith(".youtube.com")) &&
+                parsed.encodedPath == "/api/stats/playback",
+        ) { "Untrusted playback tracking URL" }
+    }
+
+    private fun HeadersBuilder.appendSapisidAuthHeaders(origin: String = YouTubeClient.ORIGIN_YOUTUBE_MUSIC) {
+        cookie?.let { rawCookie ->
+            append("cookie", rawCookie)
+            val sapisid = SUPPORTED_AUTH_COOKIES.firstNotNullOfOrNull { name -> cookieMap[name]?.takeIf(String::isNotEmpty) }
+                ?: return@let
+            val currentTime = System.currentTimeMillis() / 1000
+            val sapisidHash = sha1("$currentTime $sapisid $origin")
+            append("Authorization", "SAPISIDHASH ${currentTime}_$sapisidHash")
+        }
     }
 
     var locale = YouTubeLocale(
@@ -158,13 +183,7 @@ class InnerTube {
             visitorData?.let { append("X-Goog-Visitor-Id", it) }
             if (setLogin && client.loginSupported) {
                 append("X-Goog-AuthUser", authUser)
-                cookie?.let { cookie ->
-                    append("cookie", cookie)
-                    if ("SAPISID" !in cookieMap) return@let
-                    val currentTime = System.currentTimeMillis() / 1000
-                    val sapisidHash = sha1("$currentTime ${cookieMap["SAPISID"]} ${YouTubeClient.ORIGIN_YOUTUBE_MUSIC}")
-                    append("Authorization", "SAPISIDHASH ${currentTime}_${sapisidHash}")
-                }
+                appendSapisidAuthHeaders()
             }
         }
         userAgent(client.userAgent)
@@ -263,6 +282,7 @@ class InnerTube {
         playlistId: String?,
         client: YouTubeClient = YouTubeClient.WEB_REMIX,
     ) = withRetry {
+        requireTrustedPlaybackTrackingUrl(url)
         httpClient.get(url) {
             ytClient(client, true)
             parameter("c", client.clientName)
@@ -726,13 +746,7 @@ class InnerTube {
                 append("X-Goog-Upload-Header-Content-Length", contentLength.toString())
                 append("X-Goog-AuthUser", authUser)
                 append("Origin", YouTubeClient.ORIGIN_YOUTUBE_MUSIC)
-                cookie?.let { cookie ->
-                    append("cookie", cookie)
-                    if ("SAPISID" !in cookieMap) return@let
-                    val currentTime = System.currentTimeMillis() / 1000
-                    val sapisidHash = sha1("$currentTime ${cookieMap["SAPISID"]} ${YouTubeClient.ORIGIN_YOUTUBE_MUSIC}")
-                    append("Authorization", "SAPISIDHASH ${currentTime}_${sapisidHash}")
-                }
+                appendSapisidAuthHeaders()
             }
             contentType(ContentType.Application.FormUrlEncoded)
             setBody("filename=$filename")
@@ -753,13 +767,7 @@ class InnerTube {
                 append("X-Goog-Upload-Offset", "0")
                 append("X-Goog-AuthUser", "0")
                 append("Origin", YouTubeClient.ORIGIN_YOUTUBE_MUSIC)
-                cookie?.let { cookie ->
-                    append("cookie", cookie)
-                    if ("SAPISID" !in cookieMap) return@let
-                    val currentTime = System.currentTimeMillis() / 1000
-                    val sapisidHash = sha1("$currentTime ${cookieMap["SAPISID"]} ${YouTubeClient.ORIGIN_YOUTUBE_MUSIC}")
-                    append("Authorization", "SAPISIDHASH ${currentTime}_${sapisidHash}")
-                }
+                appendSapisidAuthHeaders()
             }
             contentType(ContentType.Application.OctetStream)
             setBody(data)
@@ -782,13 +790,7 @@ class InnerTube {
             headers {
                 append("Referer", YouTubeClient.REFERER_YOUTUBE_MUSIC)
                 append("Origin", YouTubeClient.ORIGIN_YOUTUBE_MUSIC)
-                cookie?.let { cookie ->
-                    append("cookie", cookie)
-                    if ("SAPISID" !in cookieMap) return@let
-                    val currentTime = System.currentTimeMillis() / 1000
-                    val sapisidHash = sha1("$currentTime ${cookieMap["SAPISID"]} ${YouTubeClient.ORIGIN_YOUTUBE_MUSIC}")
-                    append("Authorization", "SAPISIDHASH ${currentTime}_${sapisidHash}")
-                }
+                appendSapisidAuthHeaders()
             }
             parameter("key", "AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX3")
             parameter("prettyPrint", false)

@@ -43,6 +43,7 @@ import com.metrolist.music.constants.InnerTubeCookieKey
 import com.metrolist.music.constants.VisitorDataKey
 import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.utils.backToMain
+import com.metrolist.music.utils.SecureCredentialStore
 import com.metrolist.music.utils.reportException
 import com.metrolist.music.utils.safeDataStoreEdit
 import kotlinx.coroutines.Dispatchers
@@ -123,10 +124,18 @@ fun LoginScreen(navController: NavController) {
                     // works reliably: write atomically, then start the
                     // launch intent and exit the process so all services reinitialize cleanly.
                     val saved = withContext(Dispatchers.IO) {
-                        context.safeDataStoreEdit { settings ->
-                            settings[InnerTubeCookieKey] = currentCookie
-                            settings[VisitorDataKey] = savedVisitorData
-                            settings[DataSyncIdKey] = savedDataSyncId
+                        val secureSaved = SecureCredentialStore.putBatch(
+                            context,
+                            mapOf(
+                                Pair(InnerTubeCookieKey, currentCookie),
+                                Pair(VisitorDataKey, savedVisitorData),
+                                Pair(DataSyncIdKey, savedDataSyncId),
+                            ),
+                        )
+                        secureSaved && context.safeDataStoreEdit { settings ->
+                            settings.remove(InnerTubeCookieKey)
+                            settings.remove(VisitorDataKey)
+                            settings.remove(DataSyncIdKey)
                             settings[InnerTubeAuthUserKey] = savedAuthUser
                             settings[AccountNameKey] = info.name
                             settings[AccountEmailKey] = info.email.orEmpty()

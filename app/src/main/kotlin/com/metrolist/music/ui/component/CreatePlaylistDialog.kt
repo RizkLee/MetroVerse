@@ -28,12 +28,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.metrolist.innertube.YouTube
+import com.metrolist.innertube.utils.hasSupportedYouTubeAuthCookie
 import com.metrolist.music.LocalDatabase
 import com.metrolist.music.R
 import com.metrolist.music.constants.InnerTubeCookieKey
 import com.metrolist.music.db.entities.PlaylistEntity
 import com.metrolist.music.extensions.isSyncEnabled
-import com.metrolist.music.utils.rememberPreference
+import com.metrolist.music.utils.rememberSecurePreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -52,8 +53,8 @@ fun CreatePlaylistDialog(
     var syncedPlaylist by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    val innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
-    val isSignedIn = innerTubeCookie.isNotEmpty()
+    val innerTubeCookie by rememberSecurePreference(InnerTubeCookieKey, "")
+    val isSignedIn = hasSupportedYouTubeAuthCookie(innerTubeCookie)
 
     val notLoggedInYoutubeStr = stringResource(R.string.not_logged_in_youtube)
     val syncDisabledStr = stringResource(R.string.sync_disabled)

@@ -46,6 +46,7 @@ import com.metrolist.music.ui.component.NewActionGrid
 import com.metrolist.music.ui.component.TranslationApiKeyDialog
 import com.metrolist.music.ui.component.asrLanguageName
 import com.metrolist.music.utils.rememberPreference
+import com.metrolist.music.utils.rememberSecurePreference
 
 @Composable
 fun PodcastSubtitleMenu(
@@ -63,8 +64,8 @@ fun PodcastSubtitleMenu(
     val episodeOverride = manager?.translationOverride?.collectAsStateWithLifecycle()?.value
     val translationEnabled = episodeOverride ?: alwaysTranslate
     val provider by rememberPreference(AiProviderKey, "OpenRouter")
-    val apiKey by rememberPreference(OpenRouterApiKey, "")
-    val deeplApiKey by rememberPreference(DeeplApiKey, "")
+    val apiKey by rememberSecurePreference(OpenRouterApiKey, "")
+    val deeplApiKey by rememberSecurePreference(DeeplApiKey, "")
     val hasApiKey = if (provider == "DeepL") deeplApiKey.isNotBlank() else apiKey.isNotBlank()
     var showApiKeyPrompt by remember { mutableStateOf(false) }
     val modelBusy = manager?.modelOperationBusy?.collectAsStateWithLifecycle()?.value == true

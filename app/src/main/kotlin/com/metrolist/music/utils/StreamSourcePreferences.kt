@@ -16,7 +16,14 @@ import com.metrolist.music.constants.StreamSourceWebRemixKey
 internal fun Preferences.disabledStreamClients(): Set<String> = buildSet {
     if (this@disabledStreamClients[StreamSourceWebRemixKey] == false) add("WEB_REMIX")
     if (this@disabledStreamClients[StreamSourceAndroidVRKey] == false) add("ANDROID_VR")
-    if (this@disabledStreamClients[StreamSourceVisionOSKey] == false) add("VISIONOS")
+    if (this@disabledStreamClients[StreamSourceVisionOSKey] == false) {
+        add("VISIONOS")
+        addAll(
+            PlaybackClientCatalog.manifests
+                .filter { it.id.startsWith("VISIONOS") || it.client.clientName.startsWith("VISIONOS") }
+                .flatMap { listOf(it.id, it.client.clientName) },
+        )
+    }
     if (this@disabledStreamClients[StreamSourceWebCreatorKey] == false) add("WEB_CREATOR")
     if (this@disabledStreamClients[StreamSourceTVHTML5Key] == false) {
         // The existing TV switch also covers InnerTubeX's embedded and downgraded TV profiles.

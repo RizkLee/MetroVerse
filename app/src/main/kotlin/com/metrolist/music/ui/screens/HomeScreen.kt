@@ -104,7 +104,7 @@ import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.models.WatchEndpoint
 import com.metrolist.innertube.models.YTItem
 import com.metrolist.innertube.utils.completed
-import com.metrolist.innertube.utils.parseCookieString
+import com.metrolist.innertube.utils.hasSupportedYouTubeAuthCookie
 import com.metrolist.music.LocalDatabase
 import com.metrolist.music.LocalListenTogetherManager
 import com.metrolist.music.LocalPlayerAwareWindowInsets
@@ -163,6 +163,7 @@ import com.metrolist.music.utils.joinToArtistString
 import com.metrolist.music.utils.makeTimeString
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
+import com.metrolist.music.utils.rememberSecurePreference
 import com.metrolist.music.viewmodels.CommunityPlaylistItem
 import com.metrolist.music.viewmodels.HomeViewModel
 import kotlinx.coroutines.Dispatchers
@@ -674,7 +675,7 @@ fun HomeScreen(
 
     val accountName by viewModel.accountName.collectAsStateWithLifecycle()
     val accountImageUrl by viewModel.accountImageUrl.collectAsStateWithLifecycle()
-    val innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
+    val innerTubeCookie by rememberSecurePreference(InnerTubeCookieKey, "")
     val (randomizeHomeOrder) = rememberPreference(RandomizeHomeOrderKey, true)
     val autoRadioQueue by rememberPreference(AutoRadioQueueKey, defaultValue = true)
 
@@ -686,7 +687,7 @@ fun HomeScreen(
 
     val isLoggedIn =
         remember(innerTubeCookie) {
-            "SAPISID" in parseCookieString(innerTubeCookie)
+            hasSupportedYouTubeAuthCookie(innerTubeCookie)
         }
     val url = if (isLoggedIn) accountImageUrl else null
 

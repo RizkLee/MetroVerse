@@ -53,7 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.metrolist.innertube.utils.parseCookieString
+import com.metrolist.innertube.utils.hasSupportedYouTubeAuthCookie
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
 import com.metrolist.music.constants.CONTENT_TYPE_HEADER
@@ -88,6 +88,7 @@ import com.metrolist.music.extensions.matchesNormalizedQuery
 import com.metrolist.music.extensions.normalizeForSearch
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
+import com.metrolist.music.utils.rememberSecurePreference
 import com.metrolist.music.viewmodels.LibraryPlaylistsViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -289,9 +290,9 @@ fun LibraryPlaylistsScreen(
     val scrollToTop =
         backStackEntry?.savedStateHandle?.getStateFlow("scrollToTop", false)?.collectAsStateWithLifecycle()
 
-    val (innerTubeCookie) = rememberPreference(InnerTubeCookieKey, "")
+    val (innerTubeCookie) = rememberSecurePreference(InnerTubeCookieKey, "")
     val isLoggedIn = remember(innerTubeCookie) {
-        "SAPISID" in parseCookieString(innerTubeCookie)
+        hasSupportedYouTubeAuthCookie(innerTubeCookie)
     }
 
     val (ytmSync) = rememberPreference(YtmSyncKey, true)

@@ -5,13 +5,16 @@
 
 package com.metrolist.music.utils
 
-import com.metrolist.innertubex.extraction.PlayerConfig
 import com.metrolist.innertubex.extraction.ExtractedStream
-import kotlinx.coroutines.CancellationException
+import com.metrolist.innertubex.extraction.PlayerConfig
+import com.metrolist.innertubex.extraction.StreamResolveException
 import com.metrolist.innertubex.extraction.YtConfigParser
+import com.metrolist.music.utils.potoken.WebPoTokenHealth
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -19,6 +22,7 @@ class InnerTubeXPlayerTest {
     @After
     fun tearDown() {
         InnerTubeXPlayer.clearStreamClientFailures()
+        WebPoTokenHealth.reset()
     }
 
     @Test
@@ -71,8 +75,86 @@ class InnerTubeXPlayerTest {
         assertEquals(1_024L, mapped.rangeChunkSizeBytes)
         assertTrue(mapped.requireBoundedRange)
         assertTrue(mapped.useRangeChunks)
+        assertEquals("WEB_REMIX", mapped.profileId)
         assertEquals(-8.0, mapped.audioConfig?.loudnessDb)
         assertEquals(300, mapped.streamExpiresInSeconds)
+    }
+
+    @Test
+    fun `resolveWithClientFallback falls back to hard exclusions at low quality when no playable stream`() =
+        runBlocking {
+            val attempts = mutableListOf<Pair<Set<String>, Boolean>>()
+            val resolved =
+                InnerTubeXPlayer.resolveWithClientFallback(
+                    excludedClients = setOf("WEB_REMIX", "TVHTML5"),
+                    hardExclusions = setOf("TVHTML5"),
+                ) { excluded, useLowQuality ->
+                    attempts += excluded to useLowQuality
+                    if (!useLowQuality) {
+                        throw StreamResolveException(
+                            reason = StreamResolveException.Reason.NO_PLAYABLE_STREAM,
+                            message = "none",
+                        )
+                    }
+                    "fallback-stream"
+                }
+
+            assertEquals("fallback-stream", resolved)
+            assertEquals(
+                listOf(
+                    setOf("WEB_REMIX", "TVHTML5") to false,
+                    setOf("TVHTML5") to true,
+                ),
+                attempts,
+            )
+        }
+
+    @Test
+    fun `resolveWithClientFallback rethrows non-playable stream errors immediately`() =
+        runBlocking {
+            var calls = 0
+            var caught: StreamResolveException? = null
+            try {
+                InnerTubeXPlayer.resolveWithClientFallback(
+                    excludedClients = setOf("WEB_REMIX"),
+                    hardExclusions = emptySet(),
+                ) { _, _ ->
+                    calls++
+                    throw StreamResolveException(
+                        reason = StreamResolveException.Reason.AGE_RESTRICTED,
+                        message = "age",
+                    )
+                }
+            } catch (e: StreamResolveException) {
+                caught = e
+            }
+
+            assertEquals(1, calls)
+            assertEquals(StreamResolveException.Reason.AGE_RESTRICTED, caught?.reason)
+        }
+
+    @Test
+    fun `usesOriginalAudioTrack distinguishes original and dubbed xtags`() {
+        assertTrue(usesOriginalAudioTrack("https://rr1.googlevideo.com/videoplayback?itag=251"))
+        assertTrue(usesOriginalAudioTrack("https://rr1.googlevideo.com/videoplayback?xtags=acont%3Doriginal"))
+        assertFalse(usesOriginalAudioTrack("https://rr1.googlevideo.com/videoplayback?xtags=acont%3Ddubbed"))
+        assertFalse(usesOriginalAudioTrack("https://rr1.googlevideo.com/videoplayback", formatTags = "lang=es:acont=dubbed"))
+        assertTrue(usesOriginalAudioTrack("https://rr1.googlevideo.com/videoplayback", formatTags = "lang=en&acont=original"))
+    }
+
+    @Test
+    fun `web po token rejection expires after ttl and records 403 on __po profile`() {
+        assertFalse(WebPoTokenHealth.tokensRejected(nowMs = 1_000L))
+        InnerTubeXPlayer.markStreamClientFailed(
+            videoId = "song1",
+            clientName = "WEB_REMIX",
+            profileId = "WEB_REMIX__po",
+            responseCode = 403,
+            nowMs = 1_000L,
+        )
+        assertTrue(WebPoTokenHealth.tokensRejected(nowMs = 1_000L))
+        assertTrue(WebPoTokenHealth.tokensRejected(nowMs = 30 * 60_000L))
+        assertFalse(WebPoTokenHealth.tokensRejected(nowMs = 30 * 60_000L + 1_000L))
     }
 
     @Test

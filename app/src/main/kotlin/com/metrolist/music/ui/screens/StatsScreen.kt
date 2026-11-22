@@ -63,7 +63,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.metrolist.innertube.models.Artist
 import com.metrolist.innertube.models.WatchEndpoint
-import com.metrolist.innertube.utils.parseCookieString
+import com.metrolist.innertube.utils.hasSupportedYouTubeAuthCookie
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
@@ -93,6 +93,7 @@ import com.metrolist.music.ui.utils.backToMain
 import com.metrolist.music.utils.joinByBullet
 import com.metrolist.music.utils.makeTimeString
 import com.metrolist.music.utils.rememberPreference
+import com.metrolist.music.utils.rememberSecurePreference
 import com.metrolist.music.viewmodels.StatsViewModel
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -174,10 +175,10 @@ fun StatsScreen(
             mostPlayedSongsStats.mapNotNull { statsSong -> songsById[statsSong.id] }
         }
     val mostPeriodPlaylists = listOfNotNull(weeklyMostPlaylist, monthlyMostPlaylist)
-    val (innerTubeCookie) = rememberPreference(InnerTubeCookieKey, "")
+    val (innerTubeCookie) = rememberSecurePreference(InnerTubeCookieKey, "")
     val isLoggedIn =
         remember(innerTubeCookie) {
-            "SAPISID" in parseCookieString(innerTubeCookie)
+            hasSupportedYouTubeAuthCookie(innerTubeCookie)
         }
     val visibleStatsPlaylists =
         remember(mostPeriodPlaylists, recapPlaylists, isLoggedIn) {

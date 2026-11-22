@@ -69,6 +69,7 @@ import com.metrolist.music.ui.component.Material3SettingsItem
 import com.metrolist.music.ui.utils.backToMain
 import com.metrolist.music.utils.makeTimeString
 import com.metrolist.music.utils.rememberPreference
+import com.metrolist.music.utils.rememberSecurePreference
 import com.metrolist.music.utils.reportException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -82,7 +83,7 @@ fun LastFMSettings(
     val coroutineScope = rememberCoroutineScope()
 
     var lastfmUsername by rememberPreference(LastFMUsernameKey, "")
-    var lastfmSession by rememberPreference(LastFMSessionKey, "")
+    var lastfmSession by rememberSecurePreference(LastFMSessionKey, "")
 
     val isLoggedIn =
         remember(lastfmSession) {

@@ -26,10 +26,12 @@ class StreamSourcePreferencesTest {
     fun `native switch disables every version of the same InnerTubeX client`() {
         val excluded = preferencesOf(StreamSourceVisionOSKey to false, StreamSourceAndroidVRKey to false)
             .disabledStreamClients()
-        assertEquals(setOf("VISIONOS", "ANDROID_VR"), excluded)
+        assertTrue("VISIONOS" in excluded)
+        assertTrue("VISIONOS_0_1" in excluded)
+        assertTrue("ANDROID_VR" in excluded)
         val selected = ContentAwareFallbackStrategy().selectClients(request(excluded)).candidates
         assertTrue(selected.isNotEmpty())
-        assertTrue(selected.none { it.client.clientName in excluded })
+        assertTrue(selected.none { it.client.clientName in excluded || it.manifest?.id in excluded })
     }
 
     @Test
@@ -58,6 +60,6 @@ class StreamSourcePreferencesTest {
         excludedClients = excluded,
         javaScriptRuntimeAvailable = true,
         webViewAvailable = true,
-        availablePoTokenProviders = setOf(PoTokenProviderKind.WEB_BOTGUARD),
+        availablePoTokenProviders = setOf(PoTokenProviderKind.WEB_BOTGUARD, PoTokenProviderKind.WEBPAGE_ATTESTATION),
     )
 }

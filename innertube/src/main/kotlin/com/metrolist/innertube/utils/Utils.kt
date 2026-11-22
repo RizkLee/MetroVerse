@@ -101,15 +101,25 @@ fun ByteArray.toHex(): String = joinToString(separator = "") { eachByte -> "%02x
 
 fun sha1(str: String): String = MessageDigest.getInstance("SHA-1").digest(str.toByteArray()).toHex()
 
+private val SUPPORTED_AUTH_COOKIES = listOf("SAPISID", "__Secure-3PAPISID", "__Secure-1PAPISID")
+
 fun parseCookieString(cookie: String): Map<String, String> =
-    cookie.split("; ")
+    cookie.split(';')
+        .map { it.trim() }
         .filter { it.isNotEmpty() }
         .mapNotNull { part ->
             val splitIndex = part.indexOf('=')
-            if (splitIndex == -1) null
-            else part.substring(0, splitIndex) to part.substring(splitIndex + 1)
+            if (splitIndex <= 0) null
+            else part.substring(0, splitIndex).trim() to part.substring(splitIndex + 1).trim()
         }
         .toMap()
+
+fun supportedYouTubeAuthCredential(cookie: String): String? {
+    val parsed = parseCookieString(cookie)
+    return SUPPORTED_AUTH_COOKIES.firstNotNullOfOrNull { name -> parsed[name]?.takeIf(String::isNotEmpty) }
+}
+
+fun hasSupportedYouTubeAuthCookie(cookie: String): Boolean = supportedYouTubeAuthCredential(cookie) != null
 
 fun String.parseTime(): Int? {
     try {

@@ -17,8 +17,8 @@ import com.metrolist.music.constants.DataSyncIdKey
 import com.metrolist.music.constants.InnerTubeAuthUserKey
 import com.metrolist.music.constants.InnerTubeCookieKey
 import com.metrolist.music.constants.VisitorDataKey
+import com.metrolist.music.utils.SecureCredentialStore
 import com.metrolist.music.utils.SyncUtils
-import com.metrolist.music.utils.dataStore
 import com.metrolist.music.utils.safeDataStoreEdit
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -104,10 +104,18 @@ class AccountSettingsViewModel @Inject constructor(
         accountChannelHandle: String,
     ) {
         viewModelScope.launch(Dispatchers.IO) {
-            val saved = context.safeDataStoreEdit { settings ->
-                settings[InnerTubeCookieKey] = cookie
-                settings[VisitorDataKey] = visitorData
-                settings[DataSyncIdKey] = dataSyncId
+            val secureSaved = SecureCredentialStore.putBatch(
+                context,
+                mapOf(
+                    Pair(InnerTubeCookieKey, cookie),
+                    Pair(VisitorDataKey, visitorData),
+                    Pair(DataSyncIdKey, dataSyncId),
+                ),
+            )
+            val saved = secureSaved && context.safeDataStoreEdit { settings ->
+                settings.remove(InnerTubeCookieKey)
+                settings.remove(VisitorDataKey)
+                settings.remove(DataSyncIdKey)
                 settings[InnerTubeAuthUserKey] = "0"
                 settings[AccountNameKey] = accountName
                 settings[AccountEmailKey] = accountEmail

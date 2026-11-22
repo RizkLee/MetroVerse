@@ -55,9 +55,11 @@ import androidx.media3.common.Timeline
 import androidx.media3.common.audio.SonicAudioProcessor
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.ResolvingDataSource
+import androidx.media3.datasource.TransferListener
 import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR
@@ -88,8 +90,9 @@ import androidx.media3.session.MediaSessionService
 import androidx.media3.session.SessionToken
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.MoreExecutors
+import com.metrolist.innertube.SharedHttpPool
 import com.metrolist.innertube.YouTube
-import com.metrolist.innertube.strategy.ContentHints
+import com.metrolist.innertubex.extraction.ContentHints
 import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.models.WatchEndpoint
 import com.metrolist.lastfm.LastFM
@@ -2942,6 +2945,16 @@ class MusicService :
 
             player.currentMediaItem?.mediaId?.let { mediaId ->
                 resetRetryCount(mediaId)
+                if (!directMediaUrlCache.containsKey(mediaId)) {
+                    val profileOrClient = songUrlCache.profileId(mediaId) ?: songUrlCache.clientName(mediaId)
+                    if (profileOrClient != null) {
+                        val metadata = player.currentMediaItem?.metadata
+                        InnerTubeXPlayer.reportStreamSuccess(
+                            clientOrProfileId = profileOrClient,
+                            isExplicit = metadata?.explicit,
+                        )
+                    }
+                }
                 Timber.tag(TAG).d("Playback successful for $mediaId, reset retry count")
             }
             scheduleCrossfade()
@@ -3027,10 +3040,13 @@ class MusicService :
                     handleGenericIOError(mediaId)
                     return@launch
                 }
+                val failedProfileId = songUrlCache.profileId(mediaId)
                 performAggressiveCacheClear(mediaId)
                 refreshStreamAndRetry(
                     mediaId = mediaId,
                     failedStreamClient = failedStreamClient,
+                    failedProfileId = failedProfileId,
+                    httpResponseCode = null,
                     refreshCipherConfig = false,
                     retryReason = "initial buffer stall",
                 )
@@ -3318,6 +3334,8 @@ class MusicService :
 
         val mediaId = player.currentMediaItem?.mediaId
         val failedStreamClient = mediaId?.let(songUrlCache::clientName)
+        val failedProfileId = mediaId?.let(songUrlCache::profileId)
+        val httpResponseCode = getHttpResponseCode(error)
         Timber
             .tag(TAG)
             .w(error, "Player error occurred for $mediaId: errorCode=${error.errorCode}, message=${error.message}")
@@ -3365,7 +3383,7 @@ class MusicService :
 
             isExpiredUrlError(error) -> {
                 Timber.tag(TAG).d("Expired URL (403/410) detected, refreshing stream URL")
-                handleExpiredUrlError(mediaId, failedStreamClient)
+                handleExpiredUrlError(mediaId, failedStreamClient, failedProfileId, httpResponseCode)
                 return
             }
 
@@ -3377,13 +3395,13 @@ class MusicService :
 
             isRemotePlaybackError(error) -> {
                 Timber.tag(TAG).d("Remote playback error detected (${error.errorCode}), refreshing stream URL")
-                handleExpiredUrlError(mediaId, failedStreamClient)
+                handleExpiredUrlError(mediaId, failedStreamClient, failedProfileId, httpResponseCode)
                 return
             }
 
             isStreamClientError(error) -> {
                 Timber.tag(TAG).d("Stream client error detected (${error.errorCode}), rotating client")
-                handleStreamClientError(mediaId, failedStreamClient)
+                handleStreamClientError(mediaId, failedStreamClient, failedProfileId, httpResponseCode)
                 return
             }
 
@@ -3596,6 +3614,8 @@ class MusicService :
     private fun handleExpiredUrlError(
         mediaId: String?,
         failedStreamClient: String?,
+        failedProfileId: String? = null,
+        httpResponseCode: Int? = null,
     ) {
         if (mediaId == null) {
             handleFinalFailure()
@@ -3605,6 +3625,8 @@ class MusicService :
         refreshStreamAndRetry(
             mediaId = mediaId,
             failedStreamClient = failedStreamClient,
+            failedProfileId = failedProfileId,
+            httpResponseCode = httpResponseCode,
             refreshCipherConfig = true,
             retryReason = "expired URL error",
         )
@@ -3613,6 +3635,8 @@ class MusicService :
     private fun refreshStreamAndRetry(
         mediaId: String,
         failedStreamClient: String?,
+        failedProfileId: String? = null,
+        httpResponseCode: Int? = null,
         refreshCipherConfig: Boolean,
         retryReason: String,
     ) {
@@ -3626,8 +3650,18 @@ class MusicService :
         incrementRetryCount(mediaId)
 
         songUrlCache.invalidate(mediaId)
-        failedStreamClient?.let { InnerTubeXPlayer.markStreamClientFailed(mediaId, it) }
-        Timber.tag(TAG).d("Cleared cached URL after $retryReason (client=$failedStreamClient)")
+        failedStreamClient?.let {
+            InnerTubeXPlayer.markStreamClientFailed(
+                videoId = mediaId,
+                clientName = it,
+                profileId = failedProfileId,
+                responseCode = httpResponseCode,
+            )
+        }
+        if (httpResponseCode == 403) {
+            scope.launch { InnerTubeXPlayer.onStreamForbiddenRejection(failedProfileId) }
+        }
+        Timber.tag(TAG).d("Cleared cached URL after $retryReason (client=$failedStreamClient, profile=$failedProfileId)")
 
         if (refreshCipherConfig) {
             // A rejection can mean the cipher produced a wrong-but-non-throwing signature. If a
@@ -3668,6 +3702,8 @@ class MusicService :
     private fun handleStreamClientError(
         mediaId: String?,
         failedStreamClient: String?,
+        failedProfileId: String? = null,
+        httpResponseCode: Int? = null,
     ) {
         if (mediaId == null) {
             handleFinalFailure()
@@ -3676,6 +3712,8 @@ class MusicService :
         refreshStreamAndRetry(
             mediaId = mediaId,
             failedStreamClient = failedStreamClient,
+            failedProfileId = failedProfileId,
+            httpResponseCode = httpResponseCode,
             refreshCipherConfig = false,
             retryReason = "stream client error",
         )
@@ -3783,25 +3821,83 @@ class MusicService :
         }
     }
 
-    private fun createCacheDataSource(): DataSource.Factory =
-        DataSource.Factory {
-            val networkFactory =
+    @Volatile
+    private var cachedProxyPair: Pair<java.net.Proxy?, String?>? = null
+    @Volatile
+    private var cachedRssUpstreamFactory: DataSource.Factory? = null
+    @Volatile
+    private var cachedYoutubeUpstreamFactory: DataSource.Factory? = null
+
+    private fun upstreamFactoriesForProxy(): Pair<DataSource.Factory, DataSource.Factory> {
+        val currentProxy = YouTube.proxy to YouTube.proxyAuth
+        val existingRss = cachedRssUpstreamFactory
+        val existingYt = cachedYoutubeUpstreamFactory
+        if (existingRss != null && existingYt != null && cachedProxyPair == currentProxy) {
+            return existingRss to existingYt
+        }
+        return synchronized(this) {
+            val rssCheck = cachedRssUpstreamFactory
+            val ytCheck = cachedYoutubeUpstreamFactory
+            if (rssCheck != null && ytCheck != null && cachedProxyPair == currentProxy) {
+                return@synchronized rssCheck to ytCheck
+            }
+            val rssFactory =
                 DefaultDataSource.Factory(
                     this,
                     OkHttpDataSource.Factory(
-                        OkHttpClient
-                            .Builder()
-                            .proxy(YouTube.proxy)
-                            .proxyAuthenticator { _, response ->
-                                YouTube.proxyAuth?.let { auth ->
-                                    response.request
-                                        .newBuilder()
-                                        .header("Proxy-Authorization", auth)
-                                        .build()
-                                } ?: response.request
-                            }.build(),
+                        SharedHttpPool.newClient(proxy = currentProxy.first, proxyAuth = currentProxy.second),
                     ),
                 )
+            val ytFactory =
+                DefaultDataSource.Factory(
+                    this,
+                    OkHttpDataSource.Factory(
+                        SharedHttpPool.newClient(
+                            proxy = currentProxy.first,
+                            proxyAuth = currentProxy.second,
+                            redirectInterceptor = DirectMediaRedirectInterceptor,
+                            followRedirects = false,
+                        ),
+                    ),
+                )
+            cachedProxyPair = currentProxy
+            cachedRssUpstreamFactory = rssFactory
+            cachedYoutubeUpstreamFactory = ytFactory
+            rssFactory to ytFactory
+        }
+    }
+
+    private fun createCacheDataSource(): DataSource.Factory =
+        DataSource.Factory {
+            val (rssFactory, youtubeFactory) = upstreamFactoriesForProxy()
+            val networkFactory =
+                DataSource.Factory {
+                    val rssSource = rssFactory.createDataSource()
+                    val ytSource = youtubeFactory.createDataSource()
+                    object : DataSource {
+                        private var activeSource: DataSource = ytSource
+
+                        override fun addTransferListener(transferListener: TransferListener) {
+                            rssSource.addTransferListener(transferListener)
+                            ytSource.addTransferListener(transferListener)
+                        }
+
+                        override fun open(dataSpec: DataSpec): Long {
+                            val key = dataSpec.key
+                            activeSource = if (key != null && directMediaUrlCache.containsKey(key)) rssSource else ytSource
+                            return activeSource.open(dataSpec)
+                        }
+
+                        override fun read(buffer: ByteArray, offset: Int, length: Int): Int =
+                            activeSource.read(buffer, offset, length)
+
+                        override fun getUri() = activeSource.uri
+
+                        override fun getResponseHeaders(): Map<String, List<String>> = activeSource.responseHeaders
+
+                        override fun close() = activeSource.close()
+                    }
+                }
             val streamingFactory =
                 if (dataStore.get(EnableSongCacheKey, true)) {
                     CacheDataSource.Factory()
@@ -4115,6 +4211,7 @@ class MusicService :
                         ),
                     )
             }
+            directMediaUrlCache.remove(mediaId)
 
             val shouldBypassCache = bypassCacheForQualityChange.contains(mediaId)
 
@@ -4250,6 +4347,7 @@ class MusicService :
                     requestHeaders = nonNullPlayback.streamHeaders,
                     clientName = nonNullPlayback.streamClient,
                     expiresInSeconds = nonNullPlayback.streamExpiresInSeconds,
+                    profileId = nonNullPlayback.profileId,
                     requireBoundedRange = nonNullPlayback.requireBoundedRange,
                     rangeChunkSizeBytes = nonNullPlayback.rangeChunkSizeBytes,
                     useRangeChunks = nonNullPlayback.useRangeChunks,
@@ -4267,6 +4365,7 @@ class MusicService :
                         url = streamUrl,
                         requestHeaders = nonNullPlayback.streamHeaders,
                         clientName = nonNullPlayback.streamClient,
+                        profileId = nonNullPlayback.profileId,
                         requireBoundedRange = nonNullPlayback.requireBoundedRange,
                         rangeChunkSizeBytes = nonNullPlayback.rangeChunkSizeBytes,
                         useRangeChunks = nonNullPlayback.useRangeChunks,

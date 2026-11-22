@@ -129,6 +129,7 @@ import com.metrolist.music.ui.utils.rememberEffectiveAppLanguageCode
 import com.metrolist.music.utils.ComposeToImage
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
+import com.metrolist.music.utils.rememberSecurePreference
 import com.metrolist.music.viewmodels.LyricsViewModel
 import com.metrolist.music.viewmodels.processedLyricsBelongToCurrentMedia
 import kotlinx.coroutines.delay
@@ -255,8 +256,8 @@ fun ExperimentalLyrics(
     val showIntervalIndicator by rememberPreference(ShowIntervalIndicatorKey, true)
     
     // AI Translation Preferences
-    val openRouterApiKey by rememberPreference(OpenRouterApiKey, "")
-    val deeplApiKey by rememberPreference(DeeplApiKey, "")
+    val openRouterApiKey by rememberSecurePreference(OpenRouterApiKey, "")
+    val deeplApiKey by rememberSecurePreference(DeeplApiKey, "")
     val aiProvider by rememberPreference(AiProviderKey, "OpenRouter")
     val openRouterBaseUrl by rememberPreference(OpenRouterBaseUrlKey, OpenRouterDefaultBaseUrl)
     val openRouterModel by rememberPreference(OpenRouterModelKey, OpenRouterDefaultModel)

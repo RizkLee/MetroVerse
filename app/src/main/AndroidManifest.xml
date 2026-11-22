@@ -47,6 +47,11 @@
             android:name="org.apache.http.legacy"
             android:required="false" />
 
+        <service
+            android:name=".utils.potoken.PoTokenService"
+            android:exported="false"
+            android:process=":potoken" />
+
         <activity
             android:name=".ui.screens.CrashActivity"
             android:exported="false"

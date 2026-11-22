@@ -32,6 +32,7 @@ import com.metrolist.music.extensions.toEnum
 import com.metrolist.music.extensions.toInetSocketAddress
 import com.metrolist.music.utils.CrashHandler
 import com.metrolist.music.utils.InnerTubeXPlayer
+import com.metrolist.music.utils.SecureCredentialStore
 import com.metrolist.music.utils.dataStore
 import com.metrolist.music.utils.safeDataStoreEdit
 import com.metrolist.music.utils.reportException
@@ -39,6 +40,7 @@ import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -66,6 +68,11 @@ class App :
     override fun onCreate() {
         super.onCreate()
 
+        if (isPotokenProcess()) {
+            Timber.plant(Timber.DebugTree())
+            return
+        }
+
         // Install crash handler first
         CrashHandler.install(this)
 
@@ -92,6 +99,7 @@ class App :
 
         // تهيئة إعدادات التطبيق عند الإقلاع
         applicationScope.launch {
+            SecureCredentialStore.initializeAndMigrate(this@App)
             // The extractor must observe the configured proxy and persisted session before warm-up.
             initializeSettings()
             observeSettingsChanges()
@@ -193,19 +201,23 @@ class App :
 
     private fun observeSettingsChanges() {
         applicationScope.launch(Dispatchers.IO) {
-            dataStore.data
-                .map { settings ->
-                    listOf(
-                        settings[InnerTubeCookieKey],
-                        settings[VisitorDataKey]?.takeIf { it.isNotBlank() && it != "null" },
-                        settings[DataSyncIdKey]?.let {
-                            it.takeIf { !it.contains("||") }
-                                ?: it.takeIf { it.endsWith("||") }?.substringBefore("||")
-                                ?: it.substringAfter("||")
-                        },
-                        settings[InnerTubeAuthUserKey] ?: "0",
-                    )
-                }
+            combine(
+                SecureCredentialStore.flow(this@App, InnerTubeCookieKey),
+                SecureCredentialStore.flow(this@App, VisitorDataKey),
+                SecureCredentialStore.flow(this@App, DataSyncIdKey),
+                dataStore.data.map { it[InnerTubeAuthUserKey] ?: "0" },
+            ) { rawCookie, rawVisitorData, rawDataSyncId, authUser ->
+                listOf(
+                    rawCookie,
+                    rawVisitorData?.takeIf { it.isNotBlank() && it != "null" },
+                    rawDataSyncId?.let {
+                        it.takeIf { !it.contains("||") }
+                            ?: it.takeIf { it.endsWith("||") }?.substringBefore("||")
+                            ?: it.substringAfter("||")
+                    },
+                    authUser,
+                )
+            }
                 .distinctUntilChanged()
                 .collect { (cookie, visitorData, dataSyncId, authUser) ->
                     try {
@@ -220,11 +232,10 @@ class App :
                     if (visitorData == null) {
                         try {
                             YouTube.visitorData().getOrNull()?.let { freshVisitorData ->
-                                safeDataStoreEdit { settings ->
-                                    val visitorMissing = settings[VisitorDataKey].isNullOrBlank() || settings[VisitorDataKey] == "null"
-                                    if (settings[InnerTubeCookieKey] == cookie && visitorMissing) {
-                                        settings[VisitorDataKey] = freshVisitorData
-                                    }
+                                val currentVisitor = SecureCredentialStore.get(this@App, VisitorDataKey)
+                                val visitorMissing = currentVisitor.isNullOrBlank() || currentVisitor == "null"
+                                if (SecureCredentialStore.get(this@App, InnerTubeCookieKey) == cookie && visitorMissing) {
+                                    SecureCredentialStore.put(this@App, VisitorDataKey, freshVisitorData)
                                 }
                             }
                         } catch (error: kotlinx.coroutines.CancellationException) {
@@ -237,8 +248,7 @@ class App :
         }
 
         applicationScope.launch(Dispatchers.IO) {
-            dataStore.data
-                .map { it[LastFMSessionKey] }
+            SecureCredentialStore.flow(this@App, LastFMSessionKey)
                 .distinctUntilChanged()
                 .collect { session ->
                     try {
@@ -313,9 +323,27 @@ class App :
             }.build()
     }
 
+    private fun isPotokenProcess(): Boolean {
+        val processName = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            Application.getProcessName()
+        } else {
+            runCatching {
+                File("/proc/self/cmdline").readText().substringBefore('\u0000').trim()
+            }.getOrDefault("")
+        }
+        return processName.endsWith(":potoken")
+    }
+
     companion object {
         suspend fun forgetAccount(context: Context) {
             Timber.d("forgetAccount: Starting logout process")
+
+            val secureCleared = SecureCredentialStore.remove(
+                context,
+                InnerTubeCookieKey,
+                VisitorDataKey,
+                DataSyncIdKey,
+            )
 
             // Clear DataStore preferences
             Timber.d("forgetAccount: Clearing DataStore preferences")
@@ -328,7 +356,7 @@ class App :
                 settings.remove(AccountEmailKey)
                 settings.remove(AccountChannelHandleKey)
             }
-            if (!cleared) {
+            if (!cleared || !secureCleared) {
                 Timber.e("forgetAccount: Failed to clear DataStore preferences — proceeding with in-memory cleanup only")
             } else {
                 Timber.d("forgetAccount: DataStore preferences cleared")

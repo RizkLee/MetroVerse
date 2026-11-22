@@ -15,8 +15,46 @@ import io.ktor.client.plugins.compression.ContentEncoding
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import okhttp3.ConnectionPool
+import okhttp3.Interceptor
+import okhttp3.OkHttpClient
 import java.net.Proxy
 import java.util.concurrent.TimeUnit
+
+/** Shared base OkHttp client pool reused across playback extraction and media data sources. */
+object SharedHttpPool {
+    val baseClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .connectionPool(ConnectionPool(10, 5, TimeUnit.MINUTES))
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+            .build()
+    }
+
+    fun newClient(
+        proxy: Proxy? = null,
+        proxyAuth: String? = null,
+        redirectInterceptor: Interceptor? = null,
+        followRedirects: Boolean = true,
+    ): OkHttpClient =
+        baseClient.newBuilder()
+            .followRedirects(followRedirects)
+            .followSslRedirects(followRedirects)
+            .apply {
+                proxy(proxy)
+                if (proxyAuth != null) {
+                    proxyAuthenticator { _, response ->
+                        if (response.request.header("Proxy-Authorization") == proxyAuth) null
+                        else response.request.newBuilder().header("Proxy-Authorization", proxyAuth).build()
+                    }
+                }
+                if (redirectInterceptor != null) {
+                    addInterceptor(redirectInterceptor)
+                }
+            }
+            .build()
+}
 
 /** Keeps stream extraction separate from the existing browse, playlist and upload API. */
 class InnerTubeXTransport internal constructor(
@@ -99,6 +137,7 @@ class InnerTubeXTransport internal constructor(
 private fun createPlaybackClient(proxy: Proxy?, proxyAuth: String?): HttpClient =
     HttpClient(OkHttp) {
         expectSuccess = false
+        install(ExtractionHttpCooldown)
         install(ContentNegotiation) {
             json(Json {
                 ignoreUnknownKeys = true
@@ -116,17 +155,6 @@ private fun createPlaybackClient(proxy: Proxy?, proxyAuth: String?): HttpClient 
             socketTimeoutMillis = 60_000
         }
         engine {
-            config {
-                connectTimeout(30, TimeUnit.SECONDS)
-                readTimeout(60, TimeUnit.SECONDS)
-                writeTimeout(60, TimeUnit.SECONDS)
-                proxy(proxy)
-                if (proxyAuth != null) {
-                    proxyAuthenticator { _, response ->
-                        if (response.request.header("Proxy-Authorization") == proxyAuth) null
-                        else response.request.newBuilder().header("Proxy-Authorization", proxyAuth).build()
-                    }
-                }
-            }
+            preconfigured = SharedHttpPool.newClient(proxy = proxy, proxyAuth = proxyAuth)
         }
     }

@@ -29,15 +29,13 @@ composeReorderable = "3.1.0"
 shimmer = "1.5.0"
 palette = "1.0.0"
 apacheLang3 = "3.20.0"
-brotli = "0.1.2"
 desugaring = "2.1.5"
 junit = "4.13.2"
 mockwebserver = "5.3.2"
 timber = "5.0.1"
 materialKolor = "5.0.0"
 kuromojiIpadic = "0.9.0"
-extractor = "3cd3341"
-innertubex = "v0.5.2"
+innertubex = "v0.13.0"
 tinypinyin = "2.0.3"
 protobuf = "4.35.1"
 rssparser = "6.1.4"
@@ -111,8 +109,6 @@ jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
 
 json = { module = "org.json:json", version.ref = "json" }
 
-brotli = { module = "org.brotli:dec", version.ref = "brotli" }
-
 desugaring = { module = "com.android.tools:desugar_jdk_libs_nio", version.ref = "desugaring" }
 
 junit = { module = "junit:junit", version.ref = "junit" }
@@ -120,8 +116,6 @@ mockwebserver = { module = "com.squareup.okhttp3:mockwebserver3", version.ref = 
 
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 
-# newpipeextractor = { module = "com.github.TeamNewPipe:NewPipeExtractor", version.ref = "newpipeextractor" }
-extractor = { module = "com.github.MetrolistGroup:MetrolistExtractor", version.ref = "extractor" }
 innertubex = { module = "com.github.MetrolistGroup.innertubex:innertubex", version.ref = "innertubex" }
 
 kuromoji-ipadic = { module = "com.atilika.kuromoji:kuromoji-ipadic", version.ref = "kuromojiIpadic" }

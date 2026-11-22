@@ -30,7 +30,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.metrolist.innertube.utils.parseCookieString
+import com.metrolist.innertube.utils.hasSupportedYouTubeAuthCookie
 import com.metrolist.music.LocalDatabase
 import com.metrolist.music.R
 import com.metrolist.music.constants.AddToPlaylistSortDescendingKey
@@ -47,6 +47,7 @@ import com.metrolist.music.ui.component.PlaylistListItem
 import com.metrolist.music.ui.component.SortHeader
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
+import com.metrolist.music.utils.rememberSecurePreference
 import com.metrolist.music.viewmodels.PlaylistsViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -97,9 +98,9 @@ fun AddToPlaylistDialog(
         false
     )
     val playlists by viewModel.allPlaylists.collectAsStateWithLifecycle()
-    val (innerTubeCookie) = rememberPreference(InnerTubeCookieKey, "")
+    val (innerTubeCookie) = rememberSecurePreference(InnerTubeCookieKey, "")
     val isLoggedIn = remember(innerTubeCookie) {
-        "SAPISID" in parseCookieString(innerTubeCookie)
+        hasSupportedYouTubeAuthCookie(innerTubeCookie)
     }
     var showCreatePlaylistDialog by rememberSaveable {
         mutableStateOf(false)

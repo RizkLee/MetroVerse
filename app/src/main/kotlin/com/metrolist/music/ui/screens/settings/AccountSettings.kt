@@ -54,7 +54,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.metrolist.innertube.YouTube
-import com.metrolist.innertube.utils.parseCookieString
+import com.metrolist.innertube.utils.hasSupportedYouTubeAuthCookie
 import com.metrolist.music.BuildConfig
 import com.metrolist.music.R
 import com.metrolist.music.constants.AccountChannelHandleKey
@@ -73,6 +73,7 @@ import com.metrolist.music.ui.component.PreferenceEntry
 import com.metrolist.music.ui.component.TextFieldDialog
 import com.metrolist.music.utils.Updater
 import com.metrolist.music.utils.rememberPreference
+import com.metrolist.music.utils.rememberSecurePreference
 import com.metrolist.music.viewmodels.AccountSettingsViewModel
 import com.metrolist.music.viewmodels.HomeViewModel
 
@@ -88,12 +89,12 @@ fun AccountSettings(
     val (accountNamePref, onAccountNameChange) = rememberPreference(AccountNameKey, "")
     val (accountEmail, onAccountEmailChange) = rememberPreference(AccountEmailKey, "")
     val (accountChannelHandle, onAccountChannelHandleChange) = rememberPreference(AccountChannelHandleKey, "")
-    val (innerTubeCookie, onInnerTubeCookieChange) = rememberPreference(InnerTubeCookieKey, "")
-    val (visitorData, onVisitorDataChange) = rememberPreference(VisitorDataKey, "")
-    val (dataSyncId, onDataSyncIdChange) = rememberPreference(DataSyncIdKey, "")
+    val (innerTubeCookie, onInnerTubeCookieChange) = rememberSecurePreference(InnerTubeCookieKey, "")
+    val (visitorData, onVisitorDataChange) = rememberSecurePreference(VisitorDataKey, "")
+    val (dataSyncId, onDataSyncIdChange) = rememberSecurePreference(DataSyncIdKey, "")
 
     val isLoggedIn = remember(innerTubeCookie) {
-        "SAPISID" in parseCookieString(innerTubeCookie)
+        hasSupportedYouTubeAuthCookie(innerTubeCookie)
     }
     val (useLoginForBrowse, onUseLoginForBrowseChange) = rememberPreference(UseLoginForBrowse, true)
     val (ytmSync, onYtmSyncChange) = rememberPreference(YtmSyncKey, true)
@@ -241,7 +242,7 @@ fun AccountSettings(
                     val cookieLine = fullText.lines()
                         .find { it.startsWith("***INNERTUBE COOKIE*** =") }
                     val cookieValue = cookieLine?.substringAfter("***INNERTUBE COOKIE*** =")?.trim() ?: ""
-                    cookieValue.isNotEmpty() && "SAPISID" in parseCookieString(cookieValue)
+                    cookieValue.isNotEmpty() && hasSupportedYouTubeAuthCookie(cookieValue)
                 },
                 extraContent = {
                     Spacer(Modifier.height(8.dp))

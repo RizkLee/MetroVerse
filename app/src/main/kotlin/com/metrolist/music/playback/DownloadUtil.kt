@@ -10,8 +10,11 @@ import android.net.ConnectivityManager
 import androidx.core.content.getSystemService
 import androidx.core.net.toUri
 import androidx.media3.database.DatabaseProvider
+import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.ResolvingDataSource
+import androidx.media3.datasource.TransferListener
 import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
@@ -19,8 +22,9 @@ import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadCursor
 import androidx.media3.exoplayer.offline.DownloadManager
 import androidx.media3.exoplayer.offline.DownloadNotificationHelper
+import com.metrolist.innertube.SharedHttpPool
 import com.metrolist.innertube.YouTube
-import com.metrolist.innertube.strategy.ContentHints
+import com.metrolist.innertubex.extraction.ContentHints
 import com.metrolist.music.constants.AudioQuality
 import com.metrolist.music.constants.AudioQualityKey
 import com.metrolist.music.db.MusicDatabase
@@ -47,6 +51,7 @@ import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import timber.log.Timber
 import java.time.LocalDateTime
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executor
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -67,28 +72,58 @@ constructor(
     private val songUrlCache = StreamUrlCache()
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val rssDownloadIds = ConcurrentHashMap.newKeySet<String>()
 
     val downloads = MutableStateFlow<Map<String, Download>>(emptyMap())
+
+    private val rssHttpDataSourceFactory =
+        OkHttpDataSource.Factory(
+            SharedHttpPool.newClient(proxy = YouTube.proxy, proxyAuth = YouTube.proxyAuth),
+        )
+
+    private val youtubeHttpDataSourceFactory =
+        OkHttpDataSource.Factory(
+            SharedHttpPool.newClient(
+                proxy = YouTube.proxy,
+                proxyAuth = YouTube.proxyAuth,
+                redirectInterceptor = DirectMediaRedirectInterceptor,
+                followRedirects = false,
+            ),
+        )
+
+    private val routingUpstreamFactory = DataSource.Factory {
+        val rssSource = rssHttpDataSourceFactory.createDataSource()
+        val ytSource = youtubeHttpDataSourceFactory.createDataSource()
+        object : DataSource {
+            private var activeSource: DataSource = ytSource
+
+            override fun addTransferListener(transferListener: TransferListener) {
+                rssSource.addTransferListener(transferListener)
+                ytSource.addTransferListener(transferListener)
+            }
+
+            override fun open(dataSpec: DataSpec): Long {
+                activeSource = if (dataSpec.key in rssDownloadIds) rssSource else ytSource
+                return activeSource.open(dataSpec)
+            }
+
+            override fun read(buffer: ByteArray, offset: Int, length: Int): Int =
+                activeSource.read(buffer, offset, length)
+
+            override fun getUri() = activeSource.uri
+
+            override fun getResponseHeaders(): Map<String, List<String>> = activeSource.responseHeaders
+
+            override fun close() = activeSource.close()
+        }
+    }
 
     private val dataSourceFactory =
         ResolvingDataSource.Factory(
             CacheDataSource
                 .Factory()
                 .setCache(playerCache)
-                .setUpstreamDataSourceFactory(
-                    OkHttpDataSource.Factory(
-                        OkHttpClient.Builder()
-                            .proxy(YouTube.proxy)
-                            .proxyAuthenticator { _, response ->
-                                YouTube.proxyAuth?.let { auth ->
-                                    response.request.newBuilder()
-                                        .header("Proxy-Authorization", auth)
-                                        .build()
-                                } ?: response.request
-                            }
-                            .build(),
-                    ),
-                ),
+                .setUpstreamDataSourceFactory(routingUpstreamFactory),
         ) { dataSpec ->
             val mediaId = dataSpec.key ?: error("No media id")
             val length = if (dataSpec.length >= 0) dataSpec.length else 1
@@ -97,6 +132,7 @@ constructor(
             }
 
             if (!directMediaUrl.isNullOrBlank()) {
+                rssDownloadIds.add(mediaId)
                 return@Factory dataSpec
                     .withUri(directMediaUrl.toUri())
                     .withRequestHeaders(
@@ -106,6 +142,7 @@ constructor(
                         ),
                     )
             }
+            rssDownloadIds.remove(mediaId)
 
             if (playerCache.isCached(mediaId, dataSpec.position, length)) {
                 return@Factory dataSpec
@@ -203,6 +240,7 @@ constructor(
                 requestHeaders = playbackData.streamHeaders,
                 clientName = playbackData.streamClient,
                 expiresInSeconds = playbackData.streamExpiresInSeconds,
+                profileId = playbackData.profileId,
                 requireBoundedRange = playbackData.requireBoundedRange,
                 rangeChunkSizeBytes = playbackData.rangeChunkSizeBytes,
                 useRangeChunks = playbackData.useRangeChunks,
@@ -213,6 +251,7 @@ constructor(
             dataSpec.withResolvedStream(
                 CachedStreamUrl(
                     streamUrl, playbackData.streamHeaders, playbackData.streamClient,
+                    playbackData.profileId,
                     playbackData.requireBoundedRange, playbackData.rangeChunkSizeBytes, playbackData.useRangeChunks,
                 ),
             )
@@ -240,7 +279,10 @@ constructor(
                     ) {
                         if (download.state == Download.STATE_FAILED && finalException.isExpiredStreamError()) {
                             val mediaId = download.request.id
-                            songUrlCache.clientName(mediaId)?.let { InnerTubeXPlayer.markStreamClientFailed(mediaId, it) }
+                            val profileId = songUrlCache.profileId(mediaId)
+                            songUrlCache.clientName(mediaId)?.let {
+                                InnerTubeXPlayer.markStreamClientFailed(mediaId, it, profileId = profileId)
+                            }
                             songUrlCache.invalidate(mediaId)
                         }
 

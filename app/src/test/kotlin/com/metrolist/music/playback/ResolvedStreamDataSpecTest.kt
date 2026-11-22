@@ -19,7 +19,13 @@ class ResolvedStreamDataSpecTest {
             .setPosition(2_048).setKey("song")
             .setHttpRequestHeaders(mapOf("X-Test" to "present")).build()
         val resolved = request.withResolvedStream(
-            CachedStreamUrl("https://example.com/resolved", mapOf("User-Agent" to "client"), "IOS", true, 1_024),
+            CachedStreamUrl(
+                url = "https://example.com/resolved",
+                requestHeaders = mapOf("User-Agent" to "client"),
+                clientName = "IOS",
+                requireBoundedRange = true,
+                rangeChunkSizeBytes = 1_024,
+            ),
         )
         assertEquals(2_048L, resolved.position)
         assertEquals(1_024L, resolved.length)
@@ -30,10 +36,33 @@ class ResolvedStreamDataSpecTest {
     @Test
     fun `short final range is never expanded and regular streams remain unbounded`() {
         val request = DataSpec.Builder().setUri("https://example.com/stream").setPosition(2_048).setLength(100).build()
-        assertEquals(100L, request.withResolvedStream(CachedStreamUrl("https://example.com/media", emptyMap(), "IOS", true, 1_024)).length)
+        assertEquals(
+            100L,
+            request.withResolvedStream(
+                CachedStreamUrl(
+                    url = "https://example.com/media",
+                    requestHeaders = emptyMap(),
+                    clientName = "IOS",
+                    requireBoundedRange = true,
+                    rangeChunkSizeBytes = 1_024,
+                ),
+            ).length,
+        )
         val unknownLength = DataSpec.Builder().setUri("https://example.com/stream").build()
         assertEquals(C.LENGTH_UNSET.toLong(), unknownLength.withResolvedStream(CachedStreamUrl("https://example.com/media", emptyMap(), "VISIONOS")).length)
-        assertEquals(1_024L, unknownLength.withResolvedStream(CachedStreamUrl("https://example.com/media", emptyMap(), "IOS", false, 1_024, true)).length)
+        assertEquals(
+            1_024L,
+            unknownLength.withResolvedStream(
+                CachedStreamUrl(
+                    url = "https://example.com/media",
+                    requestHeaders = emptyMap(),
+                    clientName = "IOS",
+                    requireBoundedRange = false,
+                    rangeChunkSizeBytes = 1_024,
+                    useRangeChunks = true,
+                ),
+            ).length,
+        )
     }
 
     @Test

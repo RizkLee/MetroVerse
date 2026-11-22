@@ -14,7 +14,7 @@ import com.metrolist.innertube.models.PlaylistItem
 import com.metrolist.innertube.models.PodcastItem
 import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.utils.completed
-import com.metrolist.innertube.utils.parseCookieString
+import com.metrolist.innertube.utils.hasSupportedYouTubeAuthCookie
 import com.metrolist.lastfm.LastFM
 import com.metrolist.music.constants.InnerTubeCookieKey
 import com.metrolist.music.constants.LastFMUseSendLikes
@@ -393,10 +393,8 @@ class SyncUtils @Inject constructor(
 
     private suspend fun isLoggedIn(): Boolean {
         return try {
-            val cookie = context.dataStore.data
-                .map { it[InnerTubeCookieKey] }
-                .first()
-            cookie?.let { "SAPISID" in parseCookieString(it) } ?: false
+            val cookie = SecureCredentialStore.getMigrated(context, InnerTubeCookieKey)
+            cookie?.let(::hasSupportedYouTubeAuthCookie) ?: false
         } catch (e: Exception) {
             Timber.e(e, "Error checking login status")
             false

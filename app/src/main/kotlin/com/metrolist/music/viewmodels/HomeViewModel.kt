@@ -44,6 +44,7 @@ import com.metrolist.music.models.resolveSpeedDialMetadata
 import com.metrolist.music.models.toSpeedDialSongItem
 import com.metrolist.music.ui.screens.wrapped.WrappedAudioService
 import com.metrolist.music.ui.screens.wrapped.WrappedManager
+import com.metrolist.music.utils.SecureCredentialStore
 import com.metrolist.music.utils.SyncUtils
 import com.metrolist.music.utils.dataStore
 import com.metrolist.music.utils.safeDataStoreEdit
@@ -732,8 +733,8 @@ class HomeViewModel @Inject constructor(
 
         // Listen for cookie changes and reload account data
         viewModelScope.launch(Dispatchers.IO) {
-            context.dataStore.data
-                .map { it[InnerTubeCookieKey] }
+            SecureCredentialStore.awaitMigrated(context)
+            SecureCredentialStore.flow(context, InnerTubeCookieKey)
                 .collect { cookie ->
                     if (isProcessingAccountData) return@collect
 
@@ -780,10 +781,7 @@ class HomeViewModel @Inject constructor(
         if (isHomeDataLoaded) return
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val cookie = context.dataStore.data
-                    .map { it[InnerTubeCookieKey] }
-                    .distinctUntilChanged()
-                    .first()
+                val cookie = SecureCredentialStore.getMigrated(context, InnerTubeCookieKey)
 
                 if (!cookie.isNullOrEmpty()) {
                     YouTube.cookie = cookie

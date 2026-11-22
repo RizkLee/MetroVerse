@@ -196,6 +196,7 @@ import com.metrolist.music.utils.dataStore
 import com.metrolist.music.utils.makeTimeString
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
+import com.metrolist.music.utils.rememberSecurePreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOf
@@ -377,8 +378,8 @@ fun BottomSheetPlayer(
     }
 
     val appLanguageCode = rememberEffectiveAppLanguageCode()
-    val openRouterApiKey by rememberPreference(OpenRouterApiKey, "")
-    val deeplApiKey by rememberPreference(DeeplApiKey, "")
+    val openRouterApiKey by rememberSecurePreference(OpenRouterApiKey, "")
+    val deeplApiKey by rememberSecurePreference(DeeplApiKey, "")
     val aiProvider by rememberPreference(AiProviderKey, "OpenRouter")
     val translateLanguage by rememberPreference(com.metrolist.music.constants.PodcastTranslateLanguageKey, appLanguageCode)
     val translateMode by rememberPreference(TranslateModeKey, "Literal")

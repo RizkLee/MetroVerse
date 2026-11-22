@@ -15,6 +15,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import com.metrolist.innertube.utils.parseCookieString
 import com.metrolist.innertube.utils.sha1
+import com.metrolist.innertube.utils.supportedYouTubeAuthCredential
 import com.metrolist.music.R
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
@@ -40,9 +41,13 @@ import com.metrolist.music.playback.MusicService
 import com.metrolist.music.playback.MusicService.Companion.PERSISTENT_AUTOMIX_FILE
 import com.metrolist.music.playback.MusicService.Companion.PERSISTENT_PLAYER_STATE_FILE
 import com.metrolist.music.playback.MusicService.Companion.PERSISTENT_QUEUE_FILE
+import com.metrolist.music.utils.SecureCredentialStore
 import com.metrolist.music.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import timber.log.Timber
 import java.io.File
@@ -80,11 +85,47 @@ class BackupRestoreViewModel @Inject constructor(
         runCatching {
             context.applicationContext.contentResolver.openOutputStream(uri)?.use {
                 it.buffered().zipOutputStream().use { outputStream ->
-                    (context.filesDir / "datastore" / SETTINGS_FILENAME).inputStream().buffered()
-                        .use { inputStream ->
-                            outputStream.putNextEntry(ZipEntry(SETTINGS_FILENAME))
-                            inputStream.copyTo(outputStream)
+                    val decryptedSecrets = SecureCredentialStore.allDecryptedEntries(context)
+                    val liveSettingsFile = context.filesDir / "datastore" / SETTINGS_FILENAME
+                    if (decryptedSecrets.isEmpty()) {
+                        if (liveSettingsFile.exists()) {
+                            liveSettingsFile.inputStream().buffered().use { inputStream ->
+                                outputStream.putNextEntry(ZipEntry(SETTINGS_FILENAME))
+                                inputStream.copyTo(outputStream)
+                            }
                         }
+                    } else {
+                        val stageFile = File.createTempFile("settings_backup_", ".preferences_pb", context.cacheDir)
+                        if (liveSettingsFile.exists()) {
+                            liveSettingsFile.copyTo(stageFile, overwrite = true)
+                        }
+                        val stageJob = SupervisorJob()
+                        val stageScope = CoroutineScope(stageJob + Dispatchers.IO)
+                        try {
+                            val stageStore =
+                                androidx.datastore.preferences.core.PreferenceDataStoreFactory.create(
+                                    scope = stageScope,
+                                ) {
+                                    stageFile
+                                }
+                            runBlocking {
+                                stageStore.edit { prefs ->
+                                    decryptedSecrets.forEach { (key, value) ->
+                                        prefs[key] = value
+                                    }
+                                }
+                            }
+                            stageScope.cancel()
+                            runBlocking { stageJob.join() }
+                            stageFile.inputStream().buffered().use { inputStream ->
+                                outputStream.putNextEntry(ZipEntry(SETTINGS_FILENAME))
+                                inputStream.copyTo(outputStream)
+                            }
+                        } finally {
+                            stageScope.cancel()
+                            stageFile.delete()
+                        }
+                    }
                     runBlocking(Dispatchers.IO) {
                         database.checkpoint()
                     }
@@ -304,6 +345,9 @@ class BackupRestoreViewModel @Inject constructor(
                             )
                             tempSettings.copyTo(actualSettings, overwrite = true)
                         }
+                        runBlocking {
+                            SecureCredentialStore.clearAll(context)
+                        }
                     }
 
                     context.filesDir.resolve(PERSISTENT_QUEUE_FILE).delete()
@@ -346,8 +390,11 @@ class BackupRestoreViewModel @Inject constructor(
                             val bytes = inputStream.readBytes()
                             val content = bytes.decodeToString(throwOnInvalidSequence = false)
 
-                            // Check for auth data (SAPISID cookie indicates logged in)
-                            val hasAuthData = content.contains("SAPISID=")
+                            // Check for auth data (SAPISID / __Secure-3PAPISID / __Secure-1PAPISID cookie indicates logged in)
+                            val hasAuthData =
+                                content.contains("SAPISID=") ||
+                                    content.contains("__Secure-3PAPISID=") ||
+                                    content.contains("__Secure-1PAPISID=")
 
                             // Extract cookie string from backup
                             val cookie = if (hasAuthData) {
@@ -421,9 +468,8 @@ class BackupRestoreViewModel @Inject constructor(
 
     suspend fun fetchAccountInfoFromBackup(cookie: String): BackupPreviewInfo? {
         return runCatching {
-            // Parse cookie to get SAPISID for auth header
-            val cookieMap = parseCookieString(cookie)
-            val sapisid = cookieMap["SAPISID"] ?: return@runCatching null
+            // Parse cookie to get supported SAPISID auth credential
+            val sapisid = supportedYouTubeAuthCredential(cookie) ?: return@runCatching null
 
             // Generate SAPISIDHASH auth header
             val origin = "https://music.youtube.com"

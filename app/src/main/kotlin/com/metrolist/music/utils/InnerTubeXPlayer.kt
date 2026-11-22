@@ -8,11 +8,13 @@ package com.metrolist.music.utils
 import android.content.Context
 import android.net.ConnectivityManager
 import androidx.core.content.edit
+import com.metrolist.innertube.ExtractionCooldown
 import com.metrolist.innertube.InnerTubeXTransport
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.Thumbnail
 import com.metrolist.innertube.models.Thumbnails
 import com.metrolist.innertube.models.response.PlayerResponse
+import com.metrolist.innertube.utils.hasSupportedYouTubeAuthCookie
 import com.metrolist.innertubex.InnerTubeLogLevel
 import com.metrolist.innertubex.InnerTubeLogger
 import com.metrolist.innertubex.cipher.PlayerConfigRepository
@@ -22,26 +24,31 @@ import com.metrolist.innertubex.extraction.AudioQuality as InnerTubeXAudioQualit
 import com.metrolist.innertubex.extraction.ContentHints
 import com.metrolist.innertubex.extraction.ExtractedStream
 import com.metrolist.innertubex.extraction.InnerTubeExtractor
-import com.metrolist.innertubex.extraction.PoTokenResult
 import com.metrolist.innertubex.extraction.StreamResolveException
 import com.metrolist.innertubex.extraction.TokenProvider
-import com.metrolist.innertubex.extraction.TokenProviderCapabilities
 import com.metrolist.innertubex.extraction.YtConfigParser
 import com.metrolist.innertubex.extraction.YtConfigParserImpl
 import com.metrolist.innertubex.extraction.generateClientPlaybackNonce
-import com.metrolist.innertubex.extraction.strategy.PoTokenProviderKind
+import com.metrolist.innertubex.extraction.strategy.ClientFailureKind
+import com.metrolist.innertubex.extraction.strategy.ContentAwareFallbackStrategy
+import com.metrolist.innertubex.extraction.strategy.PlaybackClientCatalog
+import com.metrolist.innertubex.extraction.strategy.PlaybackTransport
 import com.metrolist.innertubex.models.YouTubeClient
 import com.metrolist.music.constants.AudioQuality
-import com.metrolist.music.utils.potoken.PoTokenGenerator
+import com.metrolist.music.utils.potoken.AndroidTokenProvider
+import com.metrolist.music.utils.potoken.WebPoTokenHealth
 import io.ktor.client.call.body
+import io.ktor.http.Url
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
+import java.util.Base64
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Clock
-import com.metrolist.innertube.strategy.ContentHints as LegacyContentHints
 import com.metrolist.innertubex.InnerTube as PlaybackInnerTube
 
 /** The sole stream extraction entry point for the Android app. */
@@ -49,6 +56,7 @@ object InnerTubeXPlayer {
     private const val TAG = "InnerTubeXPlayer"
     private const val STREAM_CLIENT_FAILURE_TTL_MS = 5 * 60 * 1000L
     private const val DEFAULT_STREAM_TTL_SECONDS = 5 * 60
+    private const val TOKENLESS_AUDIO_TIMEOUT_MS = 8_000L
 
     @Volatile
     private var applicationContext: Context? = null
@@ -57,14 +65,23 @@ object InnerTubeXPlayer {
     private var currentBundle: ExtractionBundle? = null
 
     private val bundleMutex = Mutex()
-    private val streamClientFailures = java.util.concurrent.ConcurrentHashMap<String, FailedStreamClients>()
+    private val cooldownMutex = Mutex()
+    private val streamClientFailures = ConcurrentHashMap<String, FailedStreamClients>()
+    private var cooldownScope: InnerTubeXTransport.SessionKey? = null
+    private var extractionCooldown = ExtractionCooldown()
 
     @Synchronized
     fun initialize(context: Context) {
         if (applicationContext == null) applicationContext = context.applicationContext
     }
 
-    suspend fun prewarm() = bundle().extractor.prewarm()
+    suspend fun prewarm() {
+        val bundle = bundle()
+        currentExtractionCooldown().run(resetOnSuccess = false) {
+            bundle.extractor.prewarm()
+        }
+        tokenProvider.prewarm()
+    }
 
     internal suspend fun disabledStreamClients(): Set<String> =
         requireNotNull(applicationContext) { "InnerTubeXPlayer is not initialized" }
@@ -81,17 +98,14 @@ object InnerTubeXPlayer {
         playlistId: String? = null,
         audioQuality: AudioQuality,
         connectivityManager: ConnectivityManager,
-        contentHints: LegacyContentHints = LegacyContentHints(),
+        contentHints: ContentHints = ContentHints(),
         allowBoundedRange: Boolean = true,
         allowCustomHeaders: Boolean = true,
         excludedForReceiver: Set<String> = emptySet(),
     ): Result<PlaybackData> {
         return try {
             val hints =
-                ContentHints(
-                    isExplicit = contentHints.isExplicit,
-                    isKidsContent = contentHints.isKidsContent,
-                    isLive = contentHints.isLive,
+                contentHints.copy(
                     isUploaded =
                         contentHints.isUploaded == true ||
                             playlistId == "MLPT" ||
@@ -100,31 +114,78 @@ object InnerTubeXPlayer {
                     allowHls = false,
                     allowSabr = false,
                     allowBoundedRange = allowBoundedRange,
+                    allowProgressive = false,
                 )
             val extraction = bundle()
             val sessionKey = sessionKey()
-            val excludedClients = failuresForSession(videoId, sessionKey) + disabledStreamClients() + excludedForReceiver
+            val userDisabled = disabledStreamClients()
+            val videoFailed = failuresForSession(videoId, sessionKey)
+            val hardExclusions = userDisabled + excludedForReceiver
+            val excludedClients = videoFailed + hardExclusions
+            val resolvedQuality = audioQuality.toInnerTubeX(connectivityManager)
+            val cooldown = currentExtractionCooldown()
             val stream =
-                requireNotNull(
-                    extraction.extractor.extract(
-                        videoId = videoId,
-                        hints = hints,
-                        excludedClients = excludedClients,
-                        audioQuality = audioQuality.toInnerTubeX(connectivityManager),
-                        clientPlaybackNonce = generateClientPlaybackNonce(),
-                    ),
-                ) { "InnerTubeX returned no playable stream" }
+                cooldown.run {
+                    val tokenlessStream =
+                        if (
+                            WebPoTokenHealth.tokensRejected() &&
+                            hints.isUploaded != true &&
+                            hints.isLive != true &&
+                            WebPoTokenHealth.TOKENLESS_AUDIO_CLIENT !in hardExclusions &&
+                            WebPoTokenHealth.TOKENLESS_AUDIO_PROFILE !in excludedClients
+                        ) {
+                            try {
+                                withTimeoutOrNull(TOKENLESS_AUDIO_TIMEOUT_MS) {
+                                    extraction.extractor.extract(
+                                        videoId = videoId,
+                                        hints = hints.copy(playbackClientOverrideId = WebPoTokenHealth.TOKENLESS_AUDIO_CLIENT),
+                                        excludedClients = excludedClients,
+                                        audioQuality = resolvedQuality,
+                                        clientPlaybackNonce = generateClientPlaybackNonce(),
+                                    )
+                                }
+                            } catch (_: StreamResolveException) {
+                                Timber.tag(TAG).w("Tokenless audio preference failed; trying remaining clients")
+                                null
+                            }
+                        } else {
+                            null
+                        }
+
+                    requireNotNull(
+                        tokenlessStream ?: resolveWithClientFallback(excludedClients, hardExclusions) { clients, useLowQuality ->
+                            extraction.extractor.extract(
+                                videoId = videoId,
+                                hints = hints,
+                                excludedClients = clients,
+                                audioQuality = if (useLowQuality) InnerTubeXAudioQuality.LOW else resolvedQuality,
+                                clientPlaybackNonce = generateClientPlaybackNonce(),
+                            )
+                        },
+                    ) { "InnerTubeX returned no playable stream" }
+                }
             if (sessionKey() != sessionKey || sessionKey.transportGeneration != extraction.transportGeneration) {
                 throw CancellationException("Playback session changed")
             }
             check(stream.sabrBootstrap == null) { "SABR is not supported by this playback engine" }
+            if (!usesOriginalAudioTrack(stream.audioUrl, stream.sabrBootstrap?.audioFormat?.xtags)) {
+                throw StreamResolveException(
+                    reason = StreamResolveException.Reason.NO_PLAYABLE_STREAM,
+                    message = "No original audio stream found for this track.",
+                )
+            }
             // Cast and the Wrapped player cannot apply per-stream headers or chunked requests.
             // Exclude such a client and resolve again instead of returning an unusable URL.
             if (!allowCustomHeaders && (stream.headers.isNotEmpty() || stream.requireBoundedRange || stream.useRangeChunks)) {
                 check(stream.clientName !in excludedForReceiver) { "No compatible stream for this receiver" }
                 return playerResponseForPlayback(
-                    videoId, playlistId, audioQuality, connectivityManager, contentHints,
-                    allowBoundedRange = false, allowCustomHeaders = false,
+                    videoId,
+                    playlistId,
+                    audioQuality,
+                    connectivityManager,
+                    contentHints,
+                    allowBoundedRange = false,
+                    allowCustomHeaders = false,
                     excludedForReceiver = excludedForReceiver + stream.clientName,
                 )
             }
@@ -145,37 +206,63 @@ object InnerTubeXPlayer {
         }
     }
 
+    internal suspend fun <T : Any> resolveWithClientFallback(
+        excludedClients: Set<String>,
+        hardExclusions: Set<String> = emptySet(),
+        extract: suspend (Set<String>, Boolean) -> T?,
+    ): T? {
+        if (excludedClients == hardExclusions) return extract(hardExclusions, false)
+
+        val alternative =
+            try {
+                extract(excludedClients, false)
+            } catch (error: StreamResolveException) {
+                if (error.reason != StreamResolveException.Reason.NO_PLAYABLE_STREAM) throw error
+                null
+            }
+        if (alternative != null) return alternative
+
+        Timber.tag(TAG).w("Alternate stream clients exhausted; retrying enabled clients at low quality")
+        return extract(hardExclusions, true)
+    }
+
     suspend fun playerResponseForMetadata(
         videoId: String,
         playlistId: String? = null,
-        contentHints: LegacyContentHints = LegacyContentHints(),
-    ): Result<PlayerResponse> = try {
-        coroutineScope {
-            val transport = YouTube.extractionTransport()
-            val expectedKey = transport.sessionKey
-            val session = transport.innerTube.sessionSnapshot()
-            val client = if (contentHints.isUploaded == true) YouTubeClient.TVHTML5 else YouTubeClient.WEB_REMIX
-            val response = transport.innerTube.playerWithSessionBound(
-                client = client,
-                videoId = videoId,
-                playlistId = playlistId,
-                signatureTimestamp = null,
-                poToken = null,
-                requestVisitorData = session.visitorData,
-                requestSession = session,
-            ).body<PlayerResponse>()
-            if (sessionKey() != expectedKey) throw CancellationException("Playback session changed")
-            Result.success(response)
+        contentHints: ContentHints = ContentHints(),
+    ): Result<PlayerResponse> =
+        try {
+            coroutineScope {
+                val transport = YouTube.extractionTransport()
+                val expectedKey = transport.sessionKey
+                val session = transport.innerTube.sessionSnapshot()
+                val client = if (contentHints.isUploaded == true) YouTubeClient.TVHTML5 else YouTubeClient.WEB_REMIX
+                val response =
+                    transport.innerTube
+                        .playerWithSessionBound(
+                            client = client,
+                            videoId = videoId,
+                            playlistId = playlistId,
+                            signatureTimestamp = null,
+                            poToken = null,
+                            requestVisitorData = session.visitorData,
+                            requestSession = session,
+                        ).body<PlayerResponse>()
+                if (sessionKey() != expectedKey) throw CancellationException("Playback session changed")
+                Result.success(response)
+            }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            Result.failure(error)
         }
-    } catch (error: CancellationException) {
-        throw error
-    } catch (error: Exception) {
-        Result.failure(error)
-    }
 
     private var failureSessionKey: InnerTubeXTransport.SessionKey? = null
 
-    private fun failuresForSession(videoId: String, sessionKey: InnerTubeXTransport.SessionKey): Set<String> =
+    private fun failuresForSession(
+        videoId: String,
+        sessionKey: InnerTubeXTransport.SessionKey,
+    ): Set<String> =
         synchronized(streamClientFailures) {
             if (failureSessionKey != sessionKey) {
                 streamClientFailures.clear()
@@ -187,12 +274,60 @@ object InnerTubeXPlayer {
     internal fun markStreamClientFailed(
         videoId: String,
         clientName: String,
+        profileId: String? = null,
+        responseCode: Int? = null,
         nowMs: Long = System.currentTimeMillis(),
     ) {
+        val untokenizedProfile403 = responseCode == 403 && profileId?.endsWith("_nopo") == true
+        if (responseCode == 403 && profileId?.endsWith("__po") == true) {
+            WebPoTokenHealth.recordRejection(nowMs)
+        }
         streamClientFailures.compute(videoId) { _, failures ->
             val stillCurrent = failures?.takeIf { (nowMs - it.failedAtMs) in 0 until STREAM_CLIENT_FAILURE_TTL_MS }
-            FailedStreamClients(stillCurrent?.clientNames.orEmpty() + clientName, nowMs)
+            val additions = buildSet {
+                profileId?.takeIf { it.isNotBlank() }?.let(::add)
+                val isDirect =
+                    PlaybackClientCatalog.manifests
+                        .firstOrNull { it.id == PlaybackClientCatalog.manifestIdFromProfileId(profileId) }
+                        ?.transports
+                        ?.contains(PlaybackTransport.DIRECT) == true
+                if ((!untokenizedProfile403 && responseCode == 403 && !isDirect) || !untokenizedProfile403 || isEmpty()) {
+                    add(clientName)
+                }
+            }
+            FailedStreamClients(stillCurrent?.clientNames.orEmpty() + additions, nowMs)
         }
+        clientHealthTrackerOrNull()?.recordPlaybackFailure(
+            clientOrProfileId = profileId ?: clientName,
+            kind =
+                when (responseCode) {
+                    401, 407 -> ClientFailureKind.TOKEN
+                    403 -> ClientFailureKind.MEDIA_FORBIDDEN
+                    else -> ClientFailureKind.MEDIA_FAILURE
+                },
+            hints = ContentHints(),
+            authenticated = hasSupportedYouTubeAuthCookie(YouTube.cookie.orEmpty()),
+        )
+    }
+
+    internal suspend fun onStreamForbiddenRejection(profileId: String?) {
+        val untokenized = profileId?.endsWith("_nopo") == true
+        if (!untokenized) {
+            WebPoTokenHealth.recordRejection()
+            runCatching { tokenProvider.invalidateAttestation() }
+        }
+    }
+
+    internal fun reportStreamSuccess(
+        clientOrProfileId: String?,
+        isExplicit: Boolean? = null,
+        isUploaded: Boolean? = null,
+    ) {
+        clientHealthTrackerOrNull()?.recordPlaybackSuccess(
+            clientOrProfileId = clientOrProfileId,
+            hints = ContentHints(isExplicit = isExplicit, isUploaded = isUploaded),
+            authenticated = hasSupportedYouTubeAuthCookie(YouTube.cookie.orEmpty()),
+        )
     }
 
     fun clearStreamClientFailures() {
@@ -213,6 +348,17 @@ object InnerTubeXPlayer {
         return failures.clientNames
     }
 
+    private suspend fun currentExtractionCooldown(): ExtractionCooldown {
+        val key = sessionKey()
+        return cooldownMutex.withLock {
+            if (cooldownScope != key) {
+                cooldownScope = key
+                extractionCooldown = ExtractionCooldown()
+            }
+            extractionCooldown
+        }
+    }
+
     private suspend fun bundle(): ExtractionBundle {
         val transport = YouTube.extractionTransport()
         currentBundle?.takeIf { it.transportGeneration == transport.generation }?.let { return it }
@@ -221,7 +367,7 @@ object InnerTubeXPlayer {
             currentBundle?.takeIf { it.transportGeneration == latestTransport.generation }?.let { return@withLock it }
             try {
                 currentBundle?.cipherService?.dispose()
-                if (currentBundle != null) poTokenGenerator.close()
+                if (currentBundle != null) tokenProvider.close()
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
@@ -237,6 +383,7 @@ object InnerTubeXPlayer {
 
             val remoteStore = RemotePlayerConfigStore(latestTransport.httpClient, configRepository, logger)
             val cipherService = YouTubeCipherService(latestTransport.httpClient, remoteStore, logger)
+            val healthTracker = clientHealthTracker
             val extractor =
                 InnerTubeExtractor(
                     configParser =
@@ -245,13 +392,18 @@ object InnerTubeXPlayer {
                             latestTransport.innerTube,
                             remoteStore,
                             logger,
+                            cipherService = cipherService,
                         ).withEmbeddedConfigFallback(),
                     cipherService = cipherService,
                     innerTube = latestTransport.innerTube,
+                    fallbackStrategy = ContentAwareFallbackStrategy(healthTracker),
                     tokenProvider = tokenProvider,
+                    clientHealthMonitor = healthTracker,
                     logger = logger,
                 )
-            ExtractionBundle(latestTransport.generation, latestTransport.innerTube, cipherService, extractor).also { currentBundle = it }
+            ExtractionBundle(latestTransport.generation, latestTransport.innerTube, cipherService, extractor).also {
+                currentBundle = it
+            }
         }
     }
 
@@ -259,35 +411,16 @@ object InnerTubeXPlayer {
         AndroidPlayerConfigRepository(requireNotNull(applicationContext) { "InnerTubeXPlayer is not initialized" })
     }
 
-    private val poTokenGenerator: PoTokenGenerator by lazy {
-        PoTokenGenerator(requireNotNull(applicationContext) { "InnerTubeXPlayer is not initialized" })
+    private val clientHealthTracker: ClientHealthTracker by lazy {
+        ClientHealthTracker(requireNotNull(applicationContext) { "InnerTubeXPlayer is not initialized" })
     }
 
-    private val tokenProvider =
-        object : TokenProvider {
-            override val capabilities =
-                TokenProviderCapabilities(
-                    providers = setOf(PoTokenProviderKind.WEB_BOTGUARD),
-                    usesWebView = true,
-                )
+    private fun clientHealthTrackerOrNull(): ClientHealthTracker? =
+        applicationContext?.let { clientHealthTracker }
 
-            override suspend fun getPoToken(
-                videoId: String,
-                visitorData: String,
-                cookie: String?,
-            ): PoTokenResult? =
-                poTokenGenerator.getWebClientPoToken(videoId, visitorData)?.let { token ->
-                    PoTokenResult(
-                        playerRequestToken = token.playerRequestPoToken,
-                        streamingDataToken = token.streamingDataPoToken,
-                        visitorData = visitorData,
-                    )
-                }
-
-            override suspend fun close() {
-                poTokenGenerator.close()
-            }
-        }
+    private val tokenProvider: AndroidTokenProvider by lazy {
+        AndroidTokenProvider(requireNotNull(applicationContext) { "InnerTubeXPlayer is not initialized" })
+    }
 
     private val logger =
         InnerTubeLogger { event ->
@@ -309,6 +442,7 @@ object InnerTubeXPlayer {
         val streamUrl: String,
         val streamExpiresInSeconds: Int,
         val streamClient: String,
+        val profileId: String,
         val streamHeaders: Map<String, String>,
         val requireBoundedRange: Boolean,
         val rangeChunkSizeBytes: Long,
@@ -349,7 +483,7 @@ object InnerTubeXPlayer {
 
         private companion object {
             const val PLAYER_CONFIG_URL =
-                "https://raw.githubusercontent.com/ZemerTeam/zemer-cipher/master/library/src/main/assets/player_configs.json"
+                "https://raw.githubusercontent.com/MetrolistGroup/faraday/master/registry/player_configs.json"
         }
     }
 
@@ -454,6 +588,7 @@ object InnerTubeXPlayer {
                     ?.coerceAtLeast(1)
                     ?: DEFAULT_STREAM_TTL_SECONDS,
             streamClient = clientName,
+            profileId = profileId,
             streamHeaders = headers,
             requireBoundedRange = this.requireBoundedRange,
             rangeChunkSizeBytes = this.rangeChunkSizeBytes,
@@ -461,4 +596,69 @@ object InnerTubeXPlayer {
             sessionKey = sessionKey,
         )
     }
+}
+
+internal fun usesOriginalAudioTrack(
+    url: String,
+    formatTags: String? = null,
+): Boolean {
+    val tags = runCatching { Url(url).parameters.getAll("xtags").orEmpty() }.getOrDefault(emptyList()) + listOfNotNull(formatTags)
+    val audioContent = tags.mapNotNull(::audioContentTag)
+    return audioContent.isEmpty() || audioContent.all { it == "original" }
+}
+
+private fun audioContentTag(tags: String): String? {
+    tags
+        .split(':', '&')
+        .firstOrNull { it.startsWith("acont=") }
+        ?.let { return it.substringAfter('=') }
+    if (tags.length > 2048) return null
+
+    val encoded = tags.replace('-', '+').replace('_', '/').let { it + "=".repeat((4 - it.length % 4) % 4) }
+    val bytes = runCatching { Base64.getDecoder().decode(encoded) }.getOrNull() ?: return null
+    var offset = 0
+    while (offset < bytes.size) {
+        val outerTag = readProtoVarint(bytes, offset, bytes.size) ?: return null
+        val outerLength = readProtoVarint(bytes, outerTag.second, bytes.size) ?: return null
+        if (outerTag.first != 10 || outerLength.first < 0) return null
+        val entryEnd = outerLength.second + outerLength.first
+        if (entryEnd > bytes.size) return null
+
+        var entryOffset = outerLength.second
+        var key: String? = null
+        var value: String? = null
+        while (entryOffset < entryEnd) {
+            val entryTag = readProtoVarint(bytes, entryOffset, entryEnd) ?: return null
+            val length = readProtoVarint(bytes, entryTag.second, entryEnd) ?: return null
+            if (entryTag.first and 7 != 2 || length.first < 0) return null
+            val fieldEnd = length.second + length.first
+            if (fieldEnd > entryEnd) return null
+            val text = bytes.decodeToString(length.second, fieldEnd)
+            when (entryTag.first ushr 3) {
+                1 -> key = text
+                2 -> value = text
+            }
+            entryOffset = fieldEnd
+        }
+        if (key == "acont") return value
+        offset = entryEnd
+    }
+    return null
+}
+
+private fun readProtoVarint(
+    bytes: ByteArray,
+    start: Int,
+    limit: Int,
+): Pair<Int, Int>? {
+    var value = 0
+    var offset = start
+    var shift = 0
+    while (offset < limit && shift < 32) {
+        val byte = bytes[offset++].toInt() and 0xff
+        value = value or ((byte and 0x7f) shl shift)
+        if (byte and 0x80 == 0) return value to offset
+        shift += 7
+    }
+    return null
 }

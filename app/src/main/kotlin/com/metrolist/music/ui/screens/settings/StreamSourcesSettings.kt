@@ -56,6 +56,7 @@ import com.metrolist.music.ui.component.Material3SettingsItem
 import com.metrolist.music.ui.utils.backToMain
 import com.metrolist.music.utils.disabledStreamClients
 import com.metrolist.music.utils.rememberPreference
+import com.metrolist.music.utils.rememberSecurePreference
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,7 +69,7 @@ fun StreamSourcesSettings(
     val (androidVR, onAndroidVRChange) = rememberPreference(StreamSourceAndroidVRKey, defaultValue = true)
     val (webCreator, onWebCreatorChange) = rememberPreference(StreamSourceWebCreatorKey, defaultValue = true)
 
-    val (cookie) = rememberPreference(InnerTubeCookieKey, defaultValue = "")
+    val (cookie) = rememberSecurePreference(InnerTubeCookieKey, defaultValue = "")
     val excludedClients = preferencesOf(
         StreamSourceWebRemixKey to webRemix,
         StreamSourceTVHTML5Key to tvhtml5,
@@ -91,7 +92,7 @@ fun StreamSourcesSettings(
             excludedClients = excludedClients,
             javaScriptRuntimeAvailable = true,
             webViewAvailable = true,
-            availablePoTokenProviders = setOf(PoTokenProviderKind.WEB_BOTGUARD),
+            availablePoTokenProviders = setOf(PoTokenProviderKind.WEB_BOTGUARD, PoTokenProviderKind.WEBPAGE_ATTESTATION),
         ),
     ).candidates
         .filterNot { it.client.useSabr }

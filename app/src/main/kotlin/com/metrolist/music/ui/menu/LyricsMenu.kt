@@ -91,6 +91,7 @@ import com.metrolist.music.constants.OpenRouterDefaultModel
 import com.metrolist.music.constants.OpenRouterModelKey
 import com.metrolist.music.constants.DeeplFormalityKey
 import com.metrolist.music.utils.rememberPreference
+import com.metrolist.music.utils.rememberSecurePreference
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -107,8 +108,8 @@ fun LyricsMenu(
     val database = LocalDatabase.current
     val appLanguageCode = rememberEffectiveAppLanguageCode()
 
-    val openRouterApiKey by rememberPreference(OpenRouterApiKey, "")
-    val deeplApiKey by rememberPreference(DeeplApiKey, "")
+    val openRouterApiKey by rememberSecurePreference(OpenRouterApiKey, "")
+    val deeplApiKey by rememberSecurePreference(DeeplApiKey, "")
     val aiProvider by rememberPreference(AiProviderKey, "OpenRouter")
     val translateLanguage by rememberPreference(TranslateLanguageKey, appLanguageCode)
     val translateMode by rememberPreference(TranslateModeKey, "Literal")

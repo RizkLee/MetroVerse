@@ -56,7 +56,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.util.fastForEachReversed
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.metrolist.innertube.utils.parseCookieString
+import com.metrolist.innertube.utils.hasSupportedYouTubeAuthCookie
 import com.metrolist.music.LocalDatabase
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.LocalPlayerConnection
@@ -80,6 +80,7 @@ import com.metrolist.music.ui.menu.SongMenu
 import com.metrolist.music.ui.menu.YouTubeSongMenu
 import com.metrolist.music.ui.utils.backToMain
 import com.metrolist.music.utils.rememberPreference
+import com.metrolist.music.utils.rememberSecurePreference
 import com.metrolist.music.viewmodels.DateAgo
 import com.metrolist.music.viewmodels.HistoryViewModel
 import java.time.format.DateTimeFormatter
@@ -137,10 +138,10 @@ fun HistoryScreen(
 
     val events by viewModel.events.collectAsStateWithLifecycle()
 
-    val innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
+    val innerTubeCookie by rememberSecurePreference(InnerTubeCookieKey, "")
     val isLoggedIn =
         remember(innerTubeCookie) {
-            "SAPISID" in parseCookieString(innerTubeCookie)
+            hasSupportedYouTubeAuthCookie(innerTubeCookie)
         }
 
     @Composable

@@ -76,6 +76,7 @@ import com.metrolist.music.ui.component.Material3SettingsItem
 import com.metrolist.music.ui.component.TextFieldDialog
 import com.metrolist.music.ui.utils.rememberEffectiveAppLanguageCode
 import com.metrolist.music.utils.rememberPreference
+import com.metrolist.music.utils.rememberSecurePreference
 import com.metrolist.music.utils.dataStore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -86,12 +87,12 @@ fun AiSettings(navController: NavController, highlightApiKey: Boolean = false, a
     val context = LocalContext.current
     val appLanguageCode = rememberEffectiveAppLanguageCode()
     var aiProvider by rememberPreference(AiProviderKey, "OpenRouter")
-    var openRouterApiKey by rememberPreference(OpenRouterApiKey, "")
+    var openRouterApiKey by rememberSecurePreference(OpenRouterApiKey, "")
     var openRouterBaseUrl by rememberPreference(OpenRouterBaseUrlKey, "https://openrouter.ai/api/v1/chat/completions")
     var openRouterModel by rememberPreference(OpenRouterModelKey, OpenRouterDefaultModel)
     var translateLanguage by rememberPreference(TranslateLanguageKey, appLanguageCode)
     var translateMode by rememberPreference(TranslateModeKey, "Literal")
-    var deeplApiKey by rememberPreference(DeeplApiKey, "")
+    var deeplApiKey by rememberSecurePreference(DeeplApiKey, "")
     var deeplFormality by rememberPreference(DeeplFormalityKey, "default")
     var aiSystemPrompt by rememberPreference(AiSystemPromptKey, "")
     var alwaysUseAiTranslation by rememberPreference(AlwaysUseAiTranslationKey, false)

@@ -14,6 +14,7 @@ internal data class CachedStreamUrl(
     val url: String,
     val requestHeaders: Map<String, String>,
     val clientName: String,
+    val profileId: String = clientName,
     val requireBoundedRange: Boolean = false,
     val rangeChunkSizeBytes: Long = 0L,
     val useRangeChunks: Boolean = false,
@@ -84,6 +85,9 @@ internal class StreamUrlCache(
     fun clientName(mediaId: String): String? =
         synchronized(entries) { entries[mediaId]?.stream?.clientName }
 
+    fun profileId(mediaId: String): String? =
+        synchronized(entries) { entries[mediaId]?.stream?.profileId }
+
     fun generation(mediaId: String): Long =
         synchronized(entries) { generations[mediaId] ?: 0L }
 
@@ -93,6 +97,7 @@ internal class StreamUrlCache(
         requestHeaders: Map<String, String>,
         clientName: String,
         expiresInSeconds: Int,
+        profileId: String = clientName,
         requireBoundedRange: Boolean = false,
         rangeChunkSizeBytes: Long = 0L,
         useRangeChunks: Boolean = false,
@@ -110,7 +115,7 @@ internal class StreamUrlCache(
             entries[mediaId] =
                 Entry(
                     stream = CachedStreamUrl(
-                        url, requestHeaders.toMap(), clientName,
+                        url, requestHeaders.toMap(), clientName, profileId,
                         requireBoundedRange, rangeChunkSizeBytes, useRangeChunks, sessionKey,
                     ),
                     expiresAtMillis = expiresAtMillis,
