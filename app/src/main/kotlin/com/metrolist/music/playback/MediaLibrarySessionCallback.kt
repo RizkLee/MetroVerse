@@ -30,12 +30,8 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.PlaylistItem
 import com.metrolist.innertube.models.SongItem
-import com.metrolist.innertube.models.filterExplicit
-import com.metrolist.innertube.models.filterVideoSongs
 import com.metrolist.music.R
 import com.metrolist.music.constants.AndroidAutoSearchLocalLimitKey
-import com.metrolist.music.constants.HideExplicitKey
-import com.metrolist.music.constants.HideVideoSongsKey
 import com.metrolist.music.constants.MediaSessionConstants
 import com.metrolist.music.constants.SongSortType
 import com.metrolist.music.db.MusicDatabase
@@ -44,6 +40,7 @@ import com.metrolist.music.db.entities.Song
 import com.metrolist.music.extensions.toMediaItem
 import com.metrolist.music.extensions.toggleRepeatMode
 import com.metrolist.music.models.toMediaMetadata
+import com.metrolist.music.utils.ContentFilter
 import com.metrolist.music.utils.dataStore
 import com.metrolist.music.utils.get
 import com.metrolist.music.utils.getArtistSeparator
@@ -404,10 +401,10 @@ constructor(
                             parentId.startsWith("${MusicService.YOUTUBE_PLAYLIST}/") -> {
                                 val playlistId = parentId.removePrefix("${MusicService.YOUTUBE_PLAYLIST}/")
                                 try {
+                                    val contentFilter = ContentFilter.current(context)
                                     val songs = YouTube.playlist(playlistId).getOrNull()?.songs
+                                        ?.let { contentFilter.filterItems(it) }
                                         ?.take(100)
-                                        ?.filterExplicit(context.dataStore.get(HideExplicitKey, false))
-                                        ?.filterVideoSongs(context.dataStore.get(HideVideoSongsKey, false))
                                         ?: emptyList()
 
                                     // Add shuffle item at the top
@@ -509,12 +506,12 @@ constructor(
                 }
 
                 try {
+                    val contentFilter = ContentFilter.current(context)
                     val onlineResults = YouTube.search(query, YouTube.SearchFilter.FILTER_SONG)
                         .getOrNull()
                         ?.items
                         ?.filterIsInstance<SongItem>()
-                        ?.filterExplicit(context.dataStore.get(HideExplicitKey, false))
-                        ?.filterVideoSongs(context.dataStore.get(HideVideoSongsKey, false))
+                        ?.let { contentFilter.filterItems(it) }
                         ?.filter { onlineSong ->
                             !allLocalSongs.any { localSong ->
                                 localSong.id == onlineSong.id ||
@@ -718,12 +715,12 @@ constructor(
                     }
                     
                     try {
+                        val contentFilter = ContentFilter.current(context)
                         val onlineResults = YouTube.search(searchQuery, YouTube.SearchFilter.FILTER_SONG)
                             .getOrNull()
                             ?.items
                             ?.filterIsInstance<SongItem>()
-                            ?.filterExplicit(context.dataStore.get(HideExplicitKey, false))
-                            ?.filterVideoSongs(context.dataStore.get(HideVideoSongsKey, false))
+                            ?.let { contentFilter.filterItems(it) }
                             ?.filter { onlineSong ->
                                 !allLocalSongs.any { localSong ->
                                     localSong.id == onlineSong.id ||
@@ -766,10 +763,9 @@ constructor(
                         val radioQueue = YouTubeQueue.radio(selectedSong?.toMediaMetadata() ?: return@future defaultResult)
                         val radioStatus = runCatching {
                             withContext(Dispatchers.IO) {
-                                radioQueue
-                                    .getInitialStatus()
-                                    .filterExplicit(context.dataStore.get(HideExplicitKey, false))
-                                    .filterVideoSongs(context.dataStore.get(HideVideoSongsKey, false))
+                                ContentFilter
+                                    .current(context)
+                                    .filterQueueStatus(radioQueue.getInitialStatus())
                             }
                         }.getOrNull()
 

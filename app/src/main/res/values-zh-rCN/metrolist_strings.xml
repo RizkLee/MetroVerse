@@ -1105,4 +1105,22 @@
     <string name="navigation_bar_tabs_desc">拖动调整导航栏标签按钮顺序，或隐藏不需要的标签按钮（至少保留两个）</string>
     <string name="podcast_asr_manage_models">管理字幕识别模型</string>
     <string name="podcast_asr_manage_models_desc">下载、切换或删除端侧字幕识别模型</string>
+    <!-- Content filtering -->
+    <string name="content_filters_filtering">内容过滤</string>
+    <string name="hide_explicit_desc">在浏览、搜索和播放中隐藏 Explicit 歌曲</string>
+    <string name="explicit_only">仅显示 Explicit 歌曲</string>
+    <string name="explicit_only_desc">隐藏未标记为不适宜内容的歌曲</string>
+    <string name="block_ai_slop_artists">屏蔽已知 AI 生成艺人</string>
+    <string name="block_ai_slop_artists_desc">隐藏 Override92/AiSList 列表中的频道。该 CC BY-NC 4.0 列表每日更新且支持离线使用。</string>
+    <string name="hide_video_songs_desc">在搜索与播放列表中隐藏带视频版本的歌曲</string>
+    <string name="hide_non_musical_videos">隐藏非音乐视频</string>
+    <string name="hide_non_musical_videos_desc">保留官方音乐视频，隐藏 Vlog 与预告片等其他视频内容</string>
+    <string name="hide_short_songs">隐藏短音频歌曲</string>
+    <string name="hide_short_songs_desc">隐藏预览片段、Shorts 音频以及短于设定时长的曲目</string>
+    <string name="minimum_song_duration">最短歌曲时长</string>
+    <string name="minimum_song_duration_desc">隐藏短于 %1$d 秒的歌曲</string>
+    <string name="hide_podcasts">隐藏 YouTube 播客</string>
+    <string name="hide_podcasts_desc">在浏览、搜索和播放中隐藏 YouTube 播客与单集（不影响开放 RSS 播客）</string>
+    <string name="settings_seconds_value">%1$d 秒</string>
+    <string name="settings_requires_enabled">请启用 %1$s 以更改此设置</string>
 </resources>

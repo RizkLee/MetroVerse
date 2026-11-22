@@ -31,6 +31,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -64,6 +65,7 @@ import com.metrolist.music.ui.menu.YouTubeAlbumMenu
 import com.metrolist.music.ui.menu.YouTubeArtistMenu
 import com.metrolist.music.ui.menu.YouTubePlaylistMenu
 import com.metrolist.music.ui.utils.backToMain
+import com.metrolist.music.utils.rememberContentFilter
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.viewmodels.AccountContentType
 import com.metrolist.music.viewmodels.AccountViewModel
@@ -88,6 +90,13 @@ fun AccountScreen(
     val podcastChannels by viewModel.podcastChannels.collectAsStateWithLifecycle()
     val selectedContentType by viewModel.selectedContentType.collectAsStateWithLifecycle()
     val gridItemSize by rememberEnumPreference(GridItemsSizeKey, GridItemSize.BIG)
+    val hidePodcasts = rememberContentFilter().hidePodcasts
+
+    LaunchedEffect(hidePodcasts, selectedContentType) {
+        if (hidePodcasts && selectedContentType == AccountContentType.PODCASTS) {
+            viewModel.setSelectedContentType(AccountContentType.PLAYLISTS)
+        }
+    }
 
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = GridThumbnailHeight + if (gridItemSize == GridItemSize.BIG) 24.dp else (-24).dp),
@@ -96,12 +105,14 @@ fun AccountScreen(
         item(span = { GridItemSpan(maxLineSpan) }) {
             ChipsRow(
                 chips =
-                    listOf(
-                        AccountContentType.PLAYLISTS to stringResource(R.string.filter_playlists),
-                        AccountContentType.ALBUMS to stringResource(R.string.filter_albums),
-                        AccountContentType.ARTISTS to stringResource(R.string.filter_artists),
-                        AccountContentType.PODCASTS to stringResource(R.string.filter_podcasts),
-                    ),
+                    buildList {
+                        add(AccountContentType.PLAYLISTS to stringResource(R.string.filter_playlists))
+                        add(AccountContentType.ALBUMS to stringResource(R.string.filter_albums))
+                        add(AccountContentType.ARTISTS to stringResource(R.string.filter_artists))
+                        if (!hidePodcasts) {
+                            add(AccountContentType.PODCASTS to stringResource(R.string.filter_podcasts))
+                        }
+                    },
                 currentValue = selectedContentType,
                 onValueUpdate = { viewModel.setSelectedContentType(it) },
             )

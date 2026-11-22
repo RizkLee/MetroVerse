@@ -77,7 +77,6 @@ import coil3.compose.AsyncImage
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
-import com.metrolist.music.constants.HideExplicitKey
 import com.metrolist.music.constants.SongSortDescendingKey
 import com.metrolist.music.constants.SongSortType
 import com.metrolist.music.constants.SongSortTypeKey
@@ -121,7 +120,6 @@ fun CachePlaylistScreen(
         SongSortType.CREATE_DATE
     )
     val (sortDescending, onSortDescendingChange) = rememberPreference(SongSortDescendingKey, true)
-    val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
 
     val sortedSongs = remember(cachedSongs, sortType, sortDescending) {
         val sorted = when (sortType) {

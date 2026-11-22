@@ -1026,4 +1026,22 @@
     <string name="navigation_bar_tabs_desc">Arrastra para reordenar las pestañas u oculta las que no necesites (mantén al menos dos)</string>
     <string name="podcast_asr_manage_models">Gestionar modelos de reconocimiento de subtítulos</string>
     <string name="podcast_asr_manage_models_desc">Descargar, cambiar o eliminar modelos locales de reconocimiento de subtítulos</string>
+    <!-- Content filtering -->
+    <string name="content_filters_filtering">Filtrado</string>
+    <string name="hide_explicit_desc">Ocultar canciones explícitas al navegar, buscar y reproducir</string>
+    <string name="explicit_only">Solo canciones explícitas</string>
+    <string name="explicit_only_desc">Ocultar canciones que no están marcadas como explícitas</string>
+    <string name="block_ai_slop_artists">Bloquear artistas identificados como generados por IA</string>
+    <string name="block_ai_slop_artists_desc">Ocultar canales en Override92/AiSList. La lista CC BY-NC 4.0 se actualiza diariamente y permanece disponible sin conexión.</string>
+    <string name="hide_video_songs_desc">Ocultar versiones de vídeo de canciones en la búsqueda y listas de reproducción</string>
+    <string name="hide_non_musical_videos">Ocultar vídeos no musicales</string>
+    <string name="hide_non_musical_videos_desc">Conserva los vídeos musicales oficiales y oculta otro contenido de vídeo, como vlogs y tráileres</string>
+    <string name="hide_short_songs">Ocultar canciones cortas</string>
+    <string name="hide_short_songs_desc">Oculta vistas previas, audio de Shorts y otras canciones más cortas que la duración definida</string>
+    <string name="minimum_song_duration">Duración mínima de la canción</string>
+    <string name="minimum_song_duration_desc">Ocultar canciones más cortas que %1$d segundos</string>
+    <string name="hide_podcasts">Ocultar pódcasts de YouTube</string>
+    <string name="hide_podcasts_desc">Ocultar pódcasts y episodios de YouTube de la navegación, búsqueda y reproducción (no afecta a los pódcasts RSS abiertos)</string>
+    <string name="settings_seconds_value">%1$d segundos</string>
+    <string name="settings_requires_enabled">Activa %1$s para cambiar este ajuste</string>
 </resources>

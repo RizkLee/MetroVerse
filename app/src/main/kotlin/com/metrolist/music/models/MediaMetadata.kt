@@ -7,11 +7,15 @@ package com.metrolist.music.models
 
 import androidx.compose.runtime.Immutable
 import com.metrolist.innertube.models.EpisodeItem
+import com.metrolist.innertube.models.MUSIC_VIDEO_TYPE_PODCAST_EPISODE
+import com.metrolist.innertube.models.MUSIC_VIDEO_TYPE_UNSPECIFIED_VIDEO
 import com.metrolist.innertube.models.SongItem
-import com.metrolist.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_ATV
+import com.metrolist.innertube.models.isOfficialVideoType
+import com.metrolist.innertube.models.isVideoType
 import com.metrolist.music.db.entities.Song
 import com.metrolist.music.db.entities.SongEntity
 import com.metrolist.music.ui.utils.resize
+import com.metrolist.music.utils.isOpenRssEpisode
 import java.io.Serializable
 import java.time.LocalDateTime
 
@@ -40,7 +44,13 @@ data class MediaMetadata(
     val publishedAt: LocalDateTime? = null,
 ) : Serializable {
     val isVideoSong: Boolean
-        get() = musicVideoType != null && musicVideoType != MUSIC_VIDEO_TYPE_ATV
+        get() = uploadEntityId == null && !isOpenRssEpisode() && isVideoType(musicVideoType)
+
+    val isOfficialMusicVideo: Boolean
+        get() = isOfficialVideoType(musicVideoType)
+
+    val isNonMusicalVideo: Boolean
+        get() = isVideoSong && musicVideoType != MUSIC_VIDEO_TYPE_UNSPECIFIED_VIDEO && !isOfficialMusicVideo
 
     data class Artist(
         val id: String?,
@@ -116,8 +126,11 @@ fun Song.toMediaMetadata() =
             )
         },
         explicit = song.explicit,
-        // Use a non-ATV type if isVideo is true to indicate it's a video song
-        musicVideoType = if (song.isVideo) "MUSIC_VIDEO_TYPE_OMV" else null,
+        musicVideoType = when {
+            song.isEpisode && !song.isOpenRssEpisode() -> MUSIC_VIDEO_TYPE_PODCAST_EPISODE
+            song.isVideo -> MUSIC_VIDEO_TYPE_UNSPECIFIED_VIDEO
+            else -> null
+        },
         suggestedBy = null,
         isEpisode = song.isEpisode,
         mediaUrl = song.mediaUrl,
@@ -183,6 +196,7 @@ fun EpisodeItem.toMediaMetadata() =
             )
         },
         explicit = explicit,
+        musicVideoType = MUSIC_VIDEO_TYPE_PODCAST_EPISODE,
         suggestedBy = null,
         isEpisode = true,
         libraryAddToken = libraryAddToken,

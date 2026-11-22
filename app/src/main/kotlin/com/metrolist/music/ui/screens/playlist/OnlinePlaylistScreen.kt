@@ -87,7 +87,6 @@ import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.LocalSyncUtils
 import com.metrolist.music.R
-import com.metrolist.music.constants.HideExplicitKey
 import com.metrolist.music.db.entities.Playlist
 import com.metrolist.music.db.entities.PlaylistEntity
 import com.metrolist.music.db.entities.PlaylistSongMap
@@ -103,6 +102,7 @@ import com.metrolist.music.ui.menu.YouTubeSongMenu
 import com.metrolist.music.ui.utils.backToMain
 import com.metrolist.music.ui.utils.resize
 import com.metrolist.music.utils.makeTimeString
+import com.metrolist.music.utils.rememberContentFilter
 import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.viewmodels.OnlinePlaylistViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -134,7 +134,7 @@ fun OnlinePlaylistScreen(
     val error by viewModel.error.collectAsStateWithLifecycle()
     val isPodcastPlaylist = viewModel.isPodcastPlaylist
 
-    val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
+    val contentFilter = rememberContentFilter()
 
     val lazyListState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -143,11 +143,12 @@ fun OnlinePlaylistScreen(
     var query by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
 
     val filteredSongs =
-        remember(songs, query) {
+        remember(songs, query, contentFilter) {
+            val base = songs.filterNot { contentFilter.shouldHide(it) }
             if (query.text.isEmpty()) {
-                songs.mapIndexed { i, s -> i to s }
+                base.mapIndexed { i, s -> i to s }
             } else {
-                songs.mapIndexed { i, s -> i to s }.filter {
+                base.mapIndexed { i, s -> i to s }.filter {
                     it.second.title.contains(query.text, true) ||
                         it.second.artists.fastAny { a -> a.name.contains(query.text, true) }
                 }
@@ -278,7 +279,7 @@ fun OnlinePlaylistScreen(
                             modifier =
                                 Modifier
                                     .combinedClickable(
-                                        enabled = !hideExplicit || !songItem.explicit,
+                                        enabled = !contentFilter.shouldHide(songItem),
                                         onClick = {
                                             if (inSelectMode) {
                                                 onCheckedChange(songItem.id !in selection)

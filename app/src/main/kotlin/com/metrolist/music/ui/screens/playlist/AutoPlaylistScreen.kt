@@ -98,7 +98,6 @@ import com.metrolist.music.LocalDownloadUtil
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
-import com.metrolist.music.constants.HideExplicitKey
 import com.metrolist.music.constants.SongSortDescendingKey
 import com.metrolist.music.constants.SongSortType
 import com.metrolist.music.constants.SongSortTypeKey
@@ -167,8 +166,6 @@ fun AutoPlaylistScreen(
             focusRequester.requestFocus()
         }
     }
-
-    val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
 
     val (ytmSync) = rememberPreference(YtmSyncKey, true)
 

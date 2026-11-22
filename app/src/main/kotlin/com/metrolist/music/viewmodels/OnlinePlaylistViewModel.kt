@@ -12,11 +12,8 @@ import androidx.lifecycle.viewModelScope
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.PlaylistItem
 import com.metrolist.innertube.models.SongItem
-import com.metrolist.innertube.models.filterVideoSongs
-import com.metrolist.music.constants.HideVideoSongsKey
 import com.metrolist.music.db.MusicDatabase
-import com.metrolist.music.utils.dataStore
-import com.metrolist.music.utils.get
+import com.metrolist.music.utils.ContentFilter
 import com.metrolist.music.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -168,8 +165,10 @@ class OnlinePlaylistViewModel @Inject constructor(
             timber.log.Timber.d("[SE_LOCAL] Episode $index: id=${ep.song.id}, title=${ep.song.title}, isEpisode=${ep.song.isEpisode}, inLibrary=${ep.song.inLibrary}")
         }
         if (savedEpisodes.isNotEmpty()) {
+            val contentFilter = ContentFilter.current(context)
+            val filteredLocalEpisodes = contentFilter.filterSongs(savedEpisodes)
             // Convert local Song entities to SongItem format
-            val songItems = savedEpisodes.map { song ->
+            val songItems = filteredLocalEpisodes.map { song ->
                 SongItem(
                     id = song.song.id,
                     title = song.song.title,
@@ -179,6 +178,7 @@ class OnlinePlaylistViewModel @Inject constructor(
                     thumbnail = song.song.thumbnailUrl ?: "",
                     explicit = song.song.explicit,
                     endpoint = null,
+                    isEpisode = song.song.isEpisode,
                 )
             }
             timber.log.Timber.d("[SE_LOCAL] Converted to ${songItems.size} SongItems")
@@ -192,9 +192,8 @@ class OnlinePlaylistViewModel @Inject constructor(
                 shuffleEndpoint = null,
                 radioEndpoint = null,
             )
-            val filtered = applySongFilters(songItems)
-            timber.log.Timber.d("[SE_LOCAL] After filter: ${filtered.size} episodes, setting playlistSongs")
-            playlistSongs.value = filtered
+            timber.log.Timber.d("[SE_LOCAL] After filter: ${songItems.size} episodes, setting playlistSongs")
+            playlistSongs.value = songItems.distinctBy { it.id }
             _isLoading.value = false
             timber.log.Timber.d("[SE_LOCAL] Done, isLoading=false")
         } else {
@@ -265,12 +264,8 @@ class OnlinePlaylistViewModel @Inject constructor(
         fetchInitialPlaylistData() // This will also restart proactive loading if applicable
     }
 
-    private fun applySongFilters(songs: List<SongItem>): List<SongItem> {
-        val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
-        return songs
-            .distinctBy { it.id }
-            .filterVideoSongs(hideVideoSongs)
-    }
+    private suspend fun applySongFilters(songs: List<SongItem>): List<SongItem> =
+        ContentFilter.current(context).filterItems(songs.distinctBy { it.id })
 
     override fun onCleared() {
         super.onCleared()

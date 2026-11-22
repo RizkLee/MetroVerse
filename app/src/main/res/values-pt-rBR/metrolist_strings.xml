@@ -1022,4 +1022,22 @@
     <string name="navigation_bar_tabs_desc">Arraste para reordenar as abas ou oculte as que não precisar (mantenha pelo menos duas)</string>
     <string name="podcast_asr_manage_models">Gerenciar modelos de reconhecimento de legendas</string>
     <string name="podcast_asr_manage_models_desc">Baixar, alternar ou excluir modelos de reconhecimento de legendas no dispositivo</string>
+    <!-- Content filtering -->
+    <string name="content_filters_filtering">Filtragem</string>
+    <string name="hide_explicit_desc">Oculte músicas explícitas da navegação, pesquisa e reprodução</string>
+    <string name="explicit_only">Apenas músicas explícitas</string>
+    <string name="explicit_only_desc">Oculta músicas que não estão marcadas como explícitas</string>
+    <string name="block_ai_slop_artists">Bloquear artistas gerados por IA conhecidos</string>
+    <string name="block_ai_slop_artists_desc">Oculte canais listados por Override92/AiSList. A lista CC BY-NC 4.0 atualiza diariamente e fica disponível offline.</string>
+    <string name="hide_video_songs_desc">Oculta versões em vídeo das músicas na pesquisa e playlists</string>
+    <string name="hide_non_musical_videos">Esconder vídeos não-musicais</string>
+    <string name="hide_non_musical_videos_desc">Mantém videoclipes oficiais porém esconde outros vídeos como vlogs e trailers</string>
+    <string name="hide_short_songs">Ocultar músicas curtas</string>
+    <string name="hide_short_songs_desc">Ocultar prévias, áudios de Shorts e outras faixas abaixo de um limite de duração</string>
+    <string name="minimum_song_duration">Duração mínima da música</string>
+    <string name="minimum_song_duration_desc">Oculte músicas com menos de %1$d segundos</string>
+    <string name="hide_podcasts">Ocultar podcasts do YouTube</string>
+    <string name="hide_podcasts_desc">Oculte podcasts e episódios do YouTube da navegação, pesquisa e reprodução (não afeta podcasts Open RSS)</string>
+    <string name="settings_seconds_value">%1$d segundos</string>
+    <string name="settings_requires_enabled">Ative %1$s para alterar esta configuração</string>
 </resources>

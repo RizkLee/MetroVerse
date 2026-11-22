@@ -11,7 +11,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.PlaylistItem
-import com.metrolist.music.constants.HideVideoSongsKey
 import com.metrolist.music.constants.PlaylistSongSortDescendingKey
 import com.metrolist.music.constants.PlaylistSongSortType
 import com.metrolist.music.constants.PlaylistSongSortTypeKey
@@ -19,6 +18,7 @@ import com.metrolist.music.db.MusicDatabase
 import com.metrolist.music.db.entities.PlaylistSong
 import com.metrolist.music.extensions.reversed
 import com.metrolist.music.extensions.toEnum
+import com.metrolist.music.utils.ContentFilter
 import com.metrolist.music.utils.dataStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -58,18 +58,12 @@ constructor(
             database.playlistSongs(playlistId),
             context.dataStore.data
                 .map {
-                    Triple(
-                        it[PlaylistSongSortTypeKey].toEnum(PlaylistSongSortType.CUSTOM),
-                        it[PlaylistSongSortDescendingKey] ?: true,
-                        it[HideVideoSongsKey] ?: false
-                    )
+                    it[PlaylistSongSortTypeKey].toEnum(PlaylistSongSortType.CUSTOM) to
+                        (it[PlaylistSongSortDescendingKey] ?: true)
                 }.distinctUntilChanged(),
-        ) { songs, (sortType, sortDescending, hideVideoSongs) ->
-            val filteredSongs = if (hideVideoSongs) {
-                songs.filter { !it.song.song.isVideo }
-            } else {
-                songs
-            }
+            ContentFilter.observe(context),
+        ) { songs, (sortType, sortDescending), contentFilter ->
+            val filteredSongs = songs.filterNot { contentFilter.shouldHide(it.song) }
             when (sortType) {
                 PlaylistSongSortType.CUSTOM -> filteredSongs
                 PlaylistSongSortType.CREATE_DATE -> filteredSongs.sortedBy { it.map.id }

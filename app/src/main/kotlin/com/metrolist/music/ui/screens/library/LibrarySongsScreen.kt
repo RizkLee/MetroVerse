@@ -67,7 +67,6 @@ import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
 import com.metrolist.music.constants.CONTENT_TYPE_HEADER
 import com.metrolist.music.constants.CONTENT_TYPE_SONG
-import com.metrolist.music.constants.HideExplicitKey
 import com.metrolist.music.constants.SongFilter
 import com.metrolist.music.constants.SongFilterKey
 import com.metrolist.music.constants.SongSortDescendingKey
@@ -124,7 +123,6 @@ fun LibrarySongsScreen(
     val (sortDescending, onSortDescendingChange) = rememberPreference(SongSortDescendingKey, true)
 
     val (ytmSync) = rememberPreference(YtmSyncKey, true)
-    val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
 
     val songs by viewModel.allSongs.collectAsStateWithLifecycle()
     var isSearchActive by rememberSaveable { mutableStateOf(false) }
@@ -292,11 +290,7 @@ fun LibrarySongsScreen(
     }
 
     val filteredSongs =
-        (if (hideExplicit) {
-            songs.filter { !it.song.explicit }
-        } else {
-            songs
-        }).filter { song ->
+        songs.filter { song ->
             val artistNames = song.artists.map { it.name }.toTypedArray()
             matchesNormalizedQuery(normalizedQuery, song.song.title, song.album?.title, *artistNames)
         }

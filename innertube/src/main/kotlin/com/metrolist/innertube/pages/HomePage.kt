@@ -19,6 +19,7 @@ import com.metrolist.innertube.models.oddElements
 import com.metrolist.innertube.models.splitBySeparator
 import com.metrolist.innertube.models.filterExplicit
 import com.metrolist.innertube.models.filterVideoSongs
+import com.metrolist.innertube.models.isPodcastBrowseId
 import com.metrolist.innertube.utils.parseTime
 import timber.log.Timber
 
@@ -32,6 +33,9 @@ data class HomePage(
         val endpoint: BrowseEndpoint?,
         val deselectEndPoint: BrowseEndpoint?,
     ) {
+        val isPodcastChip: Boolean
+            get() = endpoint?.browseId.isPodcastBrowseId() || title.contains("Podcast", ignoreCase = true)
+
         companion object {
             fun fromChipCloudChipRenderer(renderer: SectionListRenderer.Header.ChipCloudRenderer.Chip): Chip? {
                 return Chip(
@@ -156,6 +160,7 @@ data class HomePage(
                             )
                         },
                     duration = secondaryLine.lastOrNull()?.firstOrNull()?.text?.parseTime(),
+                    musicVideoType = renderer.musicVideoType,
                     thumbnail = renderer.thumbnail?.getThumbnailUrl() ?: return null,
                     explicit = renderer.badges?.find {
                         it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
@@ -210,11 +215,13 @@ data class HomePage(
                                 )
                             },
                             duration = null,
+                            musicVideoType = renderer.musicVideoType,
                             thumbnail = renderer.thumbnailRenderer.getThumbnailUrl()
                                 ?: return null,
                             explicit = renderer.subtitleBadges?.any {
                                 it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
-                            } == true
+                            } == true,
+                            endpoint = renderer.navigationEndpoint.watchEndpoint,
                         )
                     }
                     renderer.isAlbum -> {

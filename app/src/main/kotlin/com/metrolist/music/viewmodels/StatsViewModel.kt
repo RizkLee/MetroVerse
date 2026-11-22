@@ -12,7 +12,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.Artist
-import com.metrolist.music.constants.HideVideoSongsKey
 import com.metrolist.music.constants.LastMonthlyMostPlaylistSyncKey
 import com.metrolist.music.constants.LastWeeklyMostPlaylistSyncKey
 import com.metrolist.music.constants.ShowMostStatsPlaylistsKey
@@ -21,6 +20,8 @@ import com.metrolist.music.constants.statToPeriod
 import com.metrolist.music.db.MusicDatabase
 import com.metrolist.music.db.entities.PlaylistEntity
 import com.metrolist.music.ui.screens.OptionStats
+import com.metrolist.music.utils.ContentFilter
+import com.metrolist.music.utils.ContentFilterSnapshot
 import com.metrolist.music.utils.dataStore
 import com.metrolist.music.utils.safeDataStoreEdit
 import com.metrolist.music.utils.reportException
@@ -69,9 +70,9 @@ constructor(
         combine(
             selectedOption,
             indexChips,
-            context.dataStore.data.map { it[HideVideoSongsKey] ?: false }.distinctUntilChanged()
+            ContentFilter.observe(context),
         ) { first, second, third -> Triple(first, second, third) }
-            .flatMapLatest { (selection, t, hideVideoSongs) ->
+            .flatMapLatest { (selection, t, contentFilter) ->
                 database
                     .mostPlayedSongsStats(
                         fromTimeStamp = statToPeriod(selection, t),
@@ -82,18 +83,16 @@ constructor(
                         } else {
                             statToPeriod(selection, t - 1)
                         },
-                    ).map { songs ->
-                        if (hideVideoSongs) songs.filter { !it.isVideo } else songs
-                    }
+                    ).map(contentFilter::filterSongsWithStats)
             }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     val mostPlayedSongs =
         combine(
             selectedOption,
             indexChips,
-            context.dataStore.data.map { it[HideVideoSongsKey] ?: false }.distinctUntilChanged()
+            ContentFilter.observe(context),
         ) { first, second, third -> Triple(first, second, third) }
-            .flatMapLatest { (selection, t, hideVideoSongs) ->
+            .flatMapLatest { (selection, t, contentFilter) ->
                 database
                     .mostPlayedSongs(
                         fromTimeStamp = statToPeriod(selection, t),
@@ -104,9 +103,7 @@ constructor(
                         } else {
                             statToPeriod(selection, t - 1)
                         },
-                    ).map { songs ->
-                        if (hideVideoSongs) songs.filter { !it.song.isVideo } else songs
-                    }
+                    ).map(contentFilter::filterSongs)
             }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     val mostPlayedArtists =
@@ -245,7 +242,7 @@ constructor(
                 val now = LocalDateTime.now()
                 val nowEpochMillis = System.currentTimeMillis()
                 val preferences = context.dataStore.data.first()
-                val hideVideoSongs = preferences[HideVideoSongsKey] ?: false
+                val contentFilter = ContentFilter.fromPreferences(preferences)
                 val shouldShowMostStatsPlaylists = preferences[ShowMostStatsPlaylistsKey] ?: true
 
                 if (!shouldShowMostStatsPlaylists) {
@@ -278,7 +275,7 @@ constructor(
                         playlistId = PlaylistEntity.WEEKLY_MOST_PLAYLIST_ID,
                         playlistName = context.getString(R.string.weekly_most_playlist_name),
                         fromTimeStamp = StatPeriod.WEEK_1.toLocalDateTime(),
-                        hideVideoSongs = hideVideoSongs,
+                        contentFilter = contentFilter,
                         now = now,
                     )
                 }
@@ -288,7 +285,7 @@ constructor(
                         playlistId = PlaylistEntity.MONTHLY_MOST_PLAYLIST_ID,
                         playlistName = context.getString(R.string.monthly_most_playlist_name),
                         fromTimeStamp = StatPeriod.MONTH_1.toLocalDateTime(),
-                        hideVideoSongs = hideVideoSongs,
+                        contentFilter = contentFilter,
                         now = now,
                     )
                 }
@@ -347,7 +344,7 @@ constructor(
         playlistId: String,
         playlistName: String,
         fromTimeStamp: LocalDateTime,
-        hideVideoSongs: Boolean,
+        contentFilter: ContentFilterSnapshot,
         now: LocalDateTime,
     ) {
         val songs =
@@ -357,13 +354,8 @@ constructor(
                     limit = -1,
                     toTimeStamp = now,
                 ).first()
-                .let { mostPlayedSongs ->
-                    if (hideVideoSongs) {
-                        mostPlayedSongs.filter { !it.song.isVideo }
-                    } else {
-                        mostPlayedSongs
-                    }
-                }.distinctBy { it.song.id }
+                .let(contentFilter::filterSongs)
+                .distinctBy { it.song.id }
 
         val existingPlaylist = database.playlist(playlistId).first()?.playlist
         val playlistEntity =

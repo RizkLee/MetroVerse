@@ -1030,4 +1030,22 @@
     <string name="navigation_bar_tabs_desc">Faites glisser pour réorganiser les onglets ou masquez ceux dont vous n’avez pas besoin (gardez-en au moins deux)</string>
     <string name="podcast_asr_manage_models">Gérer les modèles de reconnaissance des sous-titres</string>
     <string name="podcast_asr_manage_models_desc">Télécharger, changer ou supprimer les modèles locaux de reconnaissance des sous-titres</string>
+    <!-- Content filtering -->
+    <string name="content_filters_filtering">Filtres</string>
+    <string name="hide_explicit_desc">Masque les titres explicites dans la navigation, la recherche et à la lecture</string>
+    <string name="explicit_only">Contenu explicite uniquement</string>
+    <string name="explicit_only_desc">Masque les titres qui ne sont pas marqués comme explicites</string>
+    <string name="block_ai_slop_artists">Masquer les artistes IA</string>
+    <string name="block_ai_slop_artists_desc">Masque les chaînes listées dans Override92/AiSList (licence CC BY-NC 4.0). La liste est mise à jour quotidiennement et est disponible hors connexion.</string>
+    <string name="hide_video_songs_desc">Masque les versions vidéos des titres dans la recherche et les playlists</string>
+    <string name="hide_non_musical_videos">Masquer les vidéos non musicales</string>
+    <string name="hide_non_musical_videos_desc">Conserve les clips vidéos officiels, mais masque les autres contenus vidéos tels que les vlogs ou les bandes-annonces</string>
+    <string name="hide_short_songs">Masquer les titres courts</string>
+    <string name="hide_short_songs_desc">Masque les Shorts, les aperçus, et tout contenu audio de durée inférieure au seuil défini</string>
+    <string name="minimum_song_duration">Durée minimale des titres</string>
+    <string name="minimum_song_duration_desc">Masque les titres de durée inférieure à %1$d secondes</string>
+    <string name="hide_podcasts">Masquer les podcasts YouTube</string>
+    <string name="hide_podcasts_desc">Masque les podcasts et épisodes YouTube de la navigation, de la recherche et de la lecture (n\'affecte pas les podcasts RSS ouverts)</string>
+    <string name="settings_seconds_value">%1$d secondes</string>
+    <string name="settings_requires_enabled">Activez %1$s pour modifier ce paramètre</string>
 </resources>

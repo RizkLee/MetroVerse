@@ -9,10 +9,9 @@ import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.metrolist.music.constants.HideVideoSongsKey
 import com.metrolist.music.constants.MyTopFilter
 import com.metrolist.music.db.MusicDatabase
-import com.metrolist.music.utils.dataStore
+import com.metrolist.music.utils.ContentFilter
 import java.time.LocalDateTime
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -20,7 +19,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -42,17 +40,15 @@ constructor(
     val topSongs =
         combine(
             topPeriod,
-            context.dataStore.data.map { it[HideVideoSongsKey] ?: false }.distinctUntilChanged()
-        ) { period, hideVideoSongs -> period to hideVideoSongs }
-            .flatMapLatest { (period, hideVideoSongs) ->
+            ContentFilter.observe(context),
+        ) { period, contentFilter -> period to contentFilter }
+            .flatMapLatest { (period, contentFilter) ->
                 val now = LocalDateTime.now()
                 database.mostPlayedSongs(
                     fromTimeStamp = period.toLocalDateTime(),
                     limit = top.toInt(),
                     offset = 0,
                     toTimeStamp = now
-                ).map { songs ->
-                    if (hideVideoSongs) songs.filter { !it.song.isVideo } else songs
-                }
+                ).map(contentFilter::filterSongs)
             }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 }

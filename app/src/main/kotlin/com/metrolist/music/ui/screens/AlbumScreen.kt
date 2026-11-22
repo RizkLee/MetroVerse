@@ -77,8 +77,6 @@ import com.metrolist.music.LocalListenTogetherManager
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
-import com.metrolist.music.constants.HideExplicitKey
-import com.metrolist.music.constants.HideVideoSongsKey
 import com.metrolist.music.db.entities.Album
 import com.metrolist.music.playback.queues.LocalAlbumRadio
 import com.metrolist.music.ui.component.ClickableArtistText
@@ -93,6 +91,7 @@ import com.metrolist.music.ui.menu.SongMenu
 import com.metrolist.music.ui.menu.YouTubeAlbumMenu
 import com.metrolist.music.ui.utils.backToMain
 import com.metrolist.music.ui.utils.resize
+import com.metrolist.music.utils.rememberContentFilter
 import com.metrolist.music.utils.makeTimeString
 import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.viewmodels.AlbumViewModel
@@ -120,19 +119,11 @@ fun AlbumScreen(
     val playlistId by viewModel.playlistId.collectAsStateWithLifecycle()
     val albumWithSongs by viewModel.albumWithSongs.collectAsStateWithLifecycle()
     val otherVersions by viewModel.otherVersions.collectAsStateWithLifecycle()
-    val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
-    val hideVideoSongs by rememberPreference(key = HideVideoSongsKey, defaultValue = false)
+    val contentFilter = rememberContentFilter()
 
     val filteredSongs =
-        remember(albumWithSongs, hideExplicit, hideVideoSongs) {
-            var songs = albumWithSongs?.songs ?: emptyList()
-            if (hideExplicit) {
-                songs = songs.filter { !it.song.explicit }
-            }
-            if (hideVideoSongs) {
-                songs = songs.filter { !it.song.isVideo }
-            }
-            songs
+        remember(albumWithSongs, contentFilter) {
+            contentFilter.filterSongs(albumWithSongs?.songs ?: emptyList())
         }
 
     var inSelectMode by rememberSaveable { mutableStateOf(false) }

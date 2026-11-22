@@ -18,23 +18,15 @@ import com.metrolist.innertube.models.EpisodeItem
 import com.metrolist.innertube.models.PlaylistItem
 import com.metrolist.innertube.models.PodcastItem
 import com.metrolist.innertube.models.SongItem
-import com.metrolist.innertube.models.filterExplicit
-import com.metrolist.innertube.models.filterVideoSongs
-import com.metrolist.innertube.models.filterYoutubeShorts
 import com.metrolist.innertube.pages.ArtistPage
-import com.metrolist.music.constants.HideExplicitKey
-import com.metrolist.music.constants.HideVideoSongsKey
-import com.metrolist.music.constants.HideYoutubeShortsKey
 import com.metrolist.music.db.MusicDatabase
 import com.metrolist.music.db.entities.ArtistEntity
 import com.metrolist.music.db.entities.deserializeArtistPage
 import com.metrolist.music.db.entities.serializeArtistPage
 import com.metrolist.music.db.entities.toArtistPage
-import com.metrolist.music.extensions.filterExplicit
-import com.metrolist.music.extensions.filterExplicitAlbums
+import com.metrolist.music.utils.ContentFilter
+import com.metrolist.music.utils.ContentFilterSnapshot
 import com.metrolist.music.utils.SyncUtils
-import com.metrolist.music.utils.dataStore
-import com.metrolist.music.utils.get
 import com.metrolist.music.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -43,7 +35,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
@@ -52,7 +43,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
-import com.metrolist.music.extensions.filterVideoSongs as filterVideoSongsLocal
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -65,6 +55,8 @@ class ArtistViewModel @Inject constructor(
     val artistId = savedStateHandle.get<String>("artistId")!!
     private val isPodcastChannel = savedStateHandle.get<Boolean>("isPodcastChannel") ?: false
     var artistPage by mutableStateOf<ArtistPage?>(null)
+    private var unfilteredPage: ArtistPage? = null
+    private var hasFetchedFromYtm = false
 
     // Track API subscription state separately
     private val _apiSubscribed = MutableStateFlow<Boolean?>(null)
@@ -80,18 +72,14 @@ class ArtistViewModel @Inject constructor(
         val locallyBookmarked = localArtist?.artist?.bookmarkedAt != null
         locallyBookmarked || (apiState == true)
     }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
-    val librarySongs = context.dataStore.data
-        .map { (it[HideExplicitKey] ?: false) to (it[HideVideoSongsKey] ?: false) }
-        .distinctUntilChanged()
-        .flatMapLatest { (hideExplicit, hideVideoSongs) ->
-            database.artistSongsPreview(artistId).map { it.filterExplicit(hideExplicit).filterVideoSongsLocal(hideVideoSongs) }
+    val librarySongs = ContentFilter.observe(context)
+        .flatMapLatest { filter ->
+            database.artistSongsPreview(artistId).map(filter::filterSongs)
         }
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-    val libraryAlbums = context.dataStore.data
-        .map { it[HideExplicitKey] ?: false }
-        .distinctUntilChanged()
-        .flatMapLatest { hideExplicit ->
-            database.artistAlbumsPreview(artistId).map { it.filterExplicitAlbums(hideExplicit) }
+    val libraryAlbums = ContentFilter.observe(context)
+        .flatMapLatest { filter ->
+            database.artistAlbumsPreview(artistId).map(filter::filterAlbums)
         }
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
@@ -100,19 +88,30 @@ class ArtistViewModel @Inject constructor(
             // Load cached page first for instant display, then fetch fresh data
             loadCachedPage()
 
-            context.dataStore.data
-                .map {
-                    Triple(
-                        it[HideExplicitKey] ?: false,
-                        it[HideVideoSongsKey] ?: false,
-                        it[HideYoutubeShortsKey] ?: false
-                    )
-                }
-                .distinctUntilChanged()
-                .collect {
-                    fetchArtistsFromYTM()
+            ContentFilter.observe(context)
+                .collect { filter ->
+                    if (!hasFetchedFromYtm) {
+                        hasFetchedFromYtm = true
+                        fetchArtistsFromYTM()
+                    } else {
+                        unfilteredPage?.let { page ->
+                            artistPage = applyPageFilter(page, filter)
+                        }
+                    }
                 }
         }
+    }
+
+    private fun applyPageFilter(
+        page: ArtistPage,
+        filter: ContentFilterSnapshot,
+    ): ArtistPage {
+        val filteredSections = page.sections
+            .map { section ->
+                section.copy(items = filter.filterItems(section.items))
+            }
+            .filter { section -> section.items.isNotEmpty() }
+        return page.copy(sections = filteredSections)
     }
 
     private suspend fun loadCachedPage() {
@@ -121,17 +120,9 @@ class ArtistViewModel @Inject constructor(
             if (cachedJson != null) {
                 val cachedDto = withContext(Dispatchers.IO) { deserializeArtistPage(cachedJson) }
                 val page = cachedDto.toArtistPage()
-                val hideExplicit = context.dataStore.get(HideExplicitKey, false)
-                val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
-                val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, false)
-
-                val filteredSections = page.sections
-                    .map { section ->
-                        section.copy(items = section.items.filterExplicit(hideExplicit).filterVideoSongs(hideVideoSongs).filterYoutubeShorts(hideYoutubeShorts))
-                    }
-                    .filter { section -> section.items.isNotEmpty() }
-
-                artistPage = page.copy(sections = filteredSections)
+                unfilteredPage = page
+                val filter = ContentFilter.current(context)
+                artistPage = applyPageFilter(page, filter)
                 _apiSubscribed.value = page.isSubscribed
             }
         } catch (e: Exception) {
@@ -141,9 +132,6 @@ class ArtistViewModel @Inject constructor(
 
     fun fetchArtistsFromYTM() {
         viewModelScope.launch {
-            val hideExplicit = context.dataStore.get(HideExplicitKey, false)
-            val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
-            val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, false)
             YouTube.artist(artistId)
                 .onSuccess { page ->
                     // Collect all items from all sections and resolve artist IDs once
@@ -207,13 +195,8 @@ class ArtistViewModel @Inject constructor(
                     }
 
                     val resolvedPage = page.copy(sections = sectionsWithDurations)
-                    val filteredSections = resolvedPage.sections
-                        .map { section ->
-                            section.copy(items = section.items.filterExplicit(hideExplicit).filterVideoSongs(hideVideoSongs).filterYoutubeShorts(hideYoutubeShorts))
-                        }
-                        .filter { section -> section.items.isNotEmpty() }
-
-                    artistPage = resolvedPage.copy(sections = filteredSections)
+                    unfilteredPage = resolvedPage
+                    artistPage = applyPageFilter(resolvedPage, ContentFilter.current(context))
                     // Cache page data + persist artist metadata
                     viewModelScope.launch(Dispatchers.IO) {
                         try {

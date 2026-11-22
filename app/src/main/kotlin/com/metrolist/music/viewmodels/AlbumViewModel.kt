@@ -5,14 +5,17 @@
 
 package com.metrolist.music.viewmodels
 
+import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.AlbumItem
 import com.metrolist.music.db.MusicDatabase
+import com.metrolist.music.utils.ContentFilter
 import com.metrolist.music.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.first
@@ -24,6 +27,7 @@ import javax.inject.Inject
 class AlbumViewModel
 @Inject
 constructor(
+    @ApplicationContext context: Context,
     database: MusicDatabase,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
@@ -42,7 +46,7 @@ constructor(
                 .album(albumId)
                 .onSuccess {
                     playlistId.value = it.album.playlistId
-                    otherVersions.value = it.otherVersions
+                    otherVersions.value = ContentFilter.current(context).filterItems(it.otherVersions)
                     database.transaction {
                         if (album == null) {
                             insert(it)

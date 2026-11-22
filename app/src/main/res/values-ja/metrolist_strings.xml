@@ -990,4 +990,22 @@
     <string name="navigation_bar_tabs_desc">ドラッグしてタブの順序を変更したり、不要なタブを非表示にしたりできます（少なくとも2つは残す必要があります）</string>
     <string name="podcast_asr_manage_models">字幕認識モデルの管理</string>
     <string name="podcast_asr_manage_models_desc">端末内の字幕認識モデルのダウンロード、切り替え、削除</string>
+    <!-- Content filtering -->
+    <string name="content_filters_filtering">フィルタリング</string>
+    <string name="hide_explicit_desc">閲覧、検索、再生から露骨な表現を含む曲を非表示にします</string>
+    <string name="explicit_only">露骨な表現を含む曲のみ</string>
+    <string name="explicit_only_desc">露骨な表現としてマークされていない曲を非表示にします</string>
+    <string name="block_ai_slop_artists">既知の AI 生成アーティストをブロック</string>
+    <string name="block_ai_slop_artists_desc">Override92/AiSList に掲載されたチャンネルを非表示にします。CC BY-NC 4.0 リストは毎日更新され、オフラインでも利用できます。</string>
+    <string name="hide_video_songs_desc">検索やプレイリストで動画バージョンの曲を非表示にします</string>
+    <string name="hide_non_musical_videos">音楽以外の動画を非表示</string>
+    <string name="hide_non_musical_videos_desc">公式ミュージックビデオを残し、Vlog や予告編などの他の動画コンテンツを非表示にします</string>
+    <string name="hide_short_songs">短い曲を非表示</string>
+    <string name="hide_short_songs_desc">プレビュー、Shorts 音声、設定された時間より短いトラックを非表示にします</string>
+    <string name="minimum_song_duration">最小再生時間</string>
+    <string name="minimum_song_duration_desc">%1$d 秒未満の曲を非表示にします</string>
+    <string name="hide_podcasts">YouTube ポッドキャストを非表示</string>
+    <string name="hide_podcasts_desc">閲覧、検索、再生から YouTube ポッドキャストとエピソードを非表示にします（Open RSS ポッドキャストには影響しません）</string>
+    <string name="settings_seconds_value">%1$d 秒</string>
+    <string name="settings_requires_enabled">この設定を変更するには %1$s を有効にしてください</string>
 </resources>

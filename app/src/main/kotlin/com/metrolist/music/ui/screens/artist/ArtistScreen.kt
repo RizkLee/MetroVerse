@@ -92,7 +92,6 @@ import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
 import com.metrolist.music.constants.AppBarHeight
-import com.metrolist.music.constants.HideExplicitKey
 import com.metrolist.music.constants.ShowArtistDescriptionKey
 import com.metrolist.music.constants.ShowArtistSubscriberCountKey
 import com.metrolist.music.constants.ShowMonthlyListenersKey
@@ -151,7 +150,6 @@ fun ArtistScreen(
     val librarySongs by viewModel.librarySongs.collectAsStateWithLifecycle()
     val libraryAlbums by viewModel.libraryAlbums.collectAsStateWithLifecycle()
     val isChannelSubscribed by viewModel.isChannelSubscribed.collectAsStateWithLifecycle()
-    val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
     val showArtistDescription by rememberPreference(key = ShowArtistDescriptionKey, defaultValue = true)
     val showArtistSubscriberCount by rememberPreference(key = ShowArtistSubscriberCountKey, defaultValue = true)
     val showMonthlyListeners by rememberPreference(key = ShowMonthlyListenersKey, defaultValue = true)
@@ -540,14 +538,8 @@ fun ArtistScreen(
                             )
                         }
 
-                        val filteredLibrarySongs =
-                            if (hideExplicit) {
-                                librarySongs.filter { !it.song.explicit }
-                            } else {
-                                librarySongs
-                            }
                         itemsIndexed(
-                            items = filteredLibrarySongs,
+                            items = librarySongs,
                             key = { index, item -> "local_song_${item.id}_$index" },
                         ) { index, song ->
                             SongListItem(
@@ -617,18 +609,12 @@ fun ArtistScreen(
                         }
 
                         item(key = "local_albums_list") {
-                            val filteredLibraryAlbums =
-                                if (hideExplicit) {
-                                    libraryAlbums.filter { !it.album.explicit }
-                                } else {
-                                    libraryAlbums
-                                }
                             LazyRow(
                                 contentPadding = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).asPaddingValues(),
                             ) {
                                 items(
-                                    items = filteredLibraryAlbums,
-                                    key = { "local_album_${it.id}_${filteredLibraryAlbums.indexOf(it)}" },
+                                    items = libraryAlbums,
+                                    key = { "local_album_${it.id}_${libraryAlbums.indexOf(it)}" },
                                 ) { album ->
                                     AlbumGridItem(
                                         album = album,

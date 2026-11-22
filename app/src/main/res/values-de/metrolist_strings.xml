@@ -1023,4 +1023,22 @@
     <string name="navigation_bar_tabs_desc">Ziehe Tabs zum Sortieren oder blende nicht benötigte Tabs aus (mindestens zwei müssen bleiben)</string>
     <string name="podcast_asr_manage_models">Untertitelerkennungsmodelle verwalten</string>
     <string name="podcast_asr_manage_models_desc">Lokale Modelle zur Untertitelerkennung herunterladen, wechseln oder löschen</string>
+    <!-- Content filtering -->
+    <string name="content_filters_filtering">Filterung</string>
+    <string name="hide_explicit_desc">Explizite Songs beim Durchsuchen, in der Suche und bei der Wiedergabe ausblenden</string>
+    <string name="explicit_only">Nur explizite Songs</string>
+    <string name="explicit_only_desc">Blende Songs, die nicht als explizit markiert wurden, aus</string>
+    <string name="block_ai_slop_artists">Bekannte KI-Künstler blockieren</string>
+    <string name="block_ai_slop_artists_desc">Kanäle aus Override92/AiSList ausblenden. Die CC BY-NC 4.0-Liste aktualisiert sich täglich und bleibt offline verfügbar.</string>
+    <string name="hide_video_songs_desc">Videoversionen von Songs in Suche und Playlists ausblenden</string>
+    <string name="hide_non_musical_videos">Nicht-musikalische Videos ausblenden</string>
+    <string name="hide_non_musical_videos_desc">Offizielle Musikvideos behalten und andere Videoinhalte, wie Vlogs und Trailer, ausblenden</string>
+    <string name="hide_short_songs">Kurze Songs ausblenden</string>
+    <string name="hide_short_songs_desc">Vorschauen, Shorts-Audio und andere Titel unterhalb der festgelegten Mindestdauer ausblenden</string>
+    <string name="minimum_song_duration">Mindestlänge des Songs</string>
+    <string name="minimum_song_duration_desc">Songs ausblenden, die kürzer als %1$d Sekunden sind</string>
+    <string name="hide_podcasts">YouTube-Podcasts ausblenden</string>
+    <string name="hide_podcasts_desc">YouTube-Podcasts und -Episoden beim Durchsuchen, Suchen und bei der Wiedergabe ausblenden (betrifft keine Open-RSS-Podcasts)</string>
+    <string name="settings_seconds_value">%1$d Sekunden</string>
+    <string name="settings_requires_enabled">Aktiviere %1$s, um diese Einstellung zu ändern</string>
 </resources>

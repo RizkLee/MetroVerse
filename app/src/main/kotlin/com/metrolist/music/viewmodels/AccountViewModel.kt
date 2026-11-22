@@ -12,22 +12,18 @@ import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.AlbumItem
 import com.metrolist.innertube.models.ArtistItem
 import com.metrolist.innertube.models.PlaylistItem
-import com.metrolist.innertube.models.filterYoutubeShorts
 import com.metrolist.innertube.utils.completed
-import com.metrolist.music.constants.HideYoutubeShortsKey
 import com.metrolist.music.db.MusicDatabase
 import com.metrolist.music.db.entities.PodcastEntity
 import com.metrolist.music.ui.utils.resize
-import com.metrolist.music.utils.dataStore
-import com.metrolist.music.utils.get
+import com.metrolist.music.utils.ContentFilter
 import com.metrolist.music.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -41,31 +37,48 @@ class AccountViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     database: MusicDatabase,
 ) : ViewModel() {
-    val playlists = MutableStateFlow<List<PlaylistItem>?>(null)
-    val albums = MutableStateFlow<List<AlbumItem>?>(null)
-    val artists = MutableStateFlow<List<ArtistItem>?>(null)
+    private val contentFilter = ContentFilter.observe(context)
+    private val rawPlaylists = MutableStateFlow<List<PlaylistItem>?>(null)
+    private val rawAlbums = MutableStateFlow<List<AlbumItem>?>(null)
+    private val rawArtists = MutableStateFlow<List<ArtistItem>?>(null)
+    private val rawPodcastChannels = MutableStateFlow<List<ArtistItem>>(emptyList())
+
+    val playlists =
+        combine(rawPlaylists, contentFilter) { items, filter ->
+            items?.let(filter::filterItems)
+        }.stateIn(viewModelScope, SharingStarted.Lazily, null)
+    val albums =
+        combine(rawAlbums, contentFilter) { items, filter ->
+            items?.let(filter::filterItems)
+        }.stateIn(viewModelScope, SharingStarted.Lazily, null)
+    val artists =
+        combine(rawArtists, contentFilter) { items, filter ->
+            items?.let(filter::filterItems)
+        }.stateIn(viewModelScope, SharingStarted.Lazily, null)
     // SE "Episodes for Later" playlist shown in Podcasts tab
     val sePlaylist = MutableStateFlow<PlaylistItem?>(null)
     // RDPN "New Episodes" playlist (real thumbnail + count from YouTube)
     val rdpnPlaylist = MutableStateFlow<PlaylistItem?>(null)
-    // Subscribed podcast shows (from local DB, synced from YT Music)
-    val podcastPlaylists = database.subscribedPodcasts()
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    // Subscribed podcast shows (from local DB, synced from YT Music; Open RSS kept exempt)
+    val podcastPlaylists =
+        combine(database.subscribedPodcasts(), contentFilter) { podcasts, filter ->
+            filter.filterPodcasts(podcasts)
+        }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
     // Podcast host channels from YT Music library
-    val podcastChannels = MutableStateFlow<List<ArtistItem>>(emptyList())
+    val podcastChannels =
+        combine(rawPodcastChannels, contentFilter) { channels, filter ->
+            if (filter.hidePodcasts) emptyList() else filter.filterItems(channels)
+        }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     // Selected content type for chips
     val selectedContentType = MutableStateFlow(AccountContentType.PLAYLISTS)
 
     private suspend fun loadPlaylists() {
-        val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, false)
         YouTube.library("FEmusic_liked_playlists").completed().onSuccess {
             val all = it.items.filterIsInstance<PlaylistItem>()
             // Extract SE playlist separately for Podcasts tab
             sePlaylist.value = all.find { it.id == "SE" }
-            playlists.value = all
-                .filterNot { it.id == "SE" }
-                .filterYoutubeShorts(hideYoutubeShorts)
+            rawPlaylists.value = all.filterNot { it.id == "SE" }
         }.onFailure {
             reportException(it)
         }
@@ -75,12 +88,12 @@ class AccountViewModel @Inject constructor(
         viewModelScope.launch {
             loadPlaylists()
             YouTube.library("FEmusic_liked_albums").completed().onSuccess {
-                albums.value = it.items.filterIsInstance<AlbumItem>()
+                rawAlbums.value = it.items.filterIsInstance<AlbumItem>()
             }.onFailure {
                 reportException(it)
             }
             YouTube.library("FEmusic_library_corpus_artists").completed().onSuccess {
-                artists.value = it.items.filterIsInstance<ArtistItem>().map { artist ->
+                rawArtists.value = it.items.filterIsInstance<ArtistItem>().map { artist ->
                     artist.copy(
                         thumbnail = artist.thumbnail?.resize(544, 544)
                     )
@@ -98,22 +111,10 @@ class AccountViewModel @Inject constructor(
         }
         viewModelScope.launch(Dispatchers.IO) {
             YouTube.libraryPodcastChannels().onSuccess {
-                podcastChannels.value = it.items.filterIsInstance<ArtistItem>()
+                rawPodcastChannels.value = it.items.filterIsInstance<ArtistItem>()
             }.onFailure {
                 reportException(it)
             }
-        }
-
-        // Listen for HideYoutubeShorts preference changes and reload playlists instantly
-        viewModelScope.launch(Dispatchers.IO) {
-            context.dataStore.data
-                .map { it[HideYoutubeShortsKey] ?: false }
-                .distinctUntilChanged()
-                .collect {
-                    if (playlists.value != null) {
-                        loadPlaylists()
-                    }
-                }
         }
     }
 

@@ -44,7 +44,6 @@ import com.metrolist.music.constants.ArtistSongSortDescendingKey
 import com.metrolist.music.constants.ArtistSongSortType
 import com.metrolist.music.constants.ArtistSongSortTypeKey
 import com.metrolist.music.constants.CONTENT_TYPE_HEADER
-import com.metrolist.music.constants.HideExplicitKey
 import com.metrolist.music.extensions.toMediaItem
 import com.metrolist.music.playback.queues.ListQueue
 import com.metrolist.music.ui.component.HideOnScrollFAB
@@ -81,7 +80,6 @@ fun ArtistSongsScreen(
             ArtistSongSortDescendingKey,
             true,
         )
-    val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
     val artist by viewModel.artist.collectAsStateWithLifecycle()
     val songs by viewModel.songs.collectAsStateWithLifecycle()
     val lazyListState = rememberLazyListState()

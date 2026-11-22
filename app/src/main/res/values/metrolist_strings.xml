@@ -1234,4 +1234,22 @@
     <string name="navigation_bar_tabs_desc">Drag to reorder tabs or hide tabs you do not need (keep at least two)</string>
     <string name="podcast_asr_manage_models">Manage subtitle recognition models</string>
     <string name="podcast_asr_manage_models_desc">Download, switch, or delete on-device subtitle recognition models</string>
+    <!-- Content filtering -->
+    <string name="content_filters_filtering">Filtering</string>
+    <string name="hide_explicit_desc">Hide explicit songs from browsing, search, and playback</string>
+    <string name="explicit_only">Explicit songs only</string>
+    <string name="explicit_only_desc">Hide songs that are not marked explicit</string>
+    <string name="block_ai_slop_artists">Block known AI-generated artists</string>
+    <string name="block_ai_slop_artists_desc">Hide channels on Override92/AiSList. The CC BY-NC 4.0 list updates daily and stays available offline.</string>
+    <string name="hide_video_songs_desc">Hide video versions of songs in search and playlists</string>
+    <string name="hide_non_musical_videos">Hide non-musical videos</string>
+    <string name="hide_non_musical_videos_desc">Keep official music videos and hide other video content, such as vlogs and trailers</string>
+    <string name="hide_short_songs">Hide short songs</string>
+    <string name="hide_short_songs_desc">Hide previews, Shorts audio and other tracks shorter than the set duration</string>
+    <string name="minimum_song_duration">Minimum song duration</string>
+    <string name="minimum_song_duration_desc">Hide songs shorter than %1$d seconds</string>
+    <string name="hide_podcasts">Hide YouTube podcasts</string>
+    <string name="hide_podcasts_desc">Hide YouTube podcasts and episodes from browsing, search, and playback (does not affect Open RSS podcasts)</string>
+    <string name="settings_seconds_value">%1$d seconds</string>
+    <string name="settings_requires_enabled">Enable %1$s to change this setting</string>
 </resources>

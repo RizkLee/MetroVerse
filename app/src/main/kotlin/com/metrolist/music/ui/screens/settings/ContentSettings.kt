@@ -42,6 +42,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -49,6 +50,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.navigation.NavController
@@ -56,6 +62,7 @@ import com.metrolist.music.LocalDatabase
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
 import com.metrolist.music.constants.AppLanguageKey
+import com.metrolist.music.constants.BlockAiSlopArtistsKey
 import com.metrolist.music.constants.ContentCountryKey
 import com.metrolist.music.constants.ContentLanguageKey
 import com.metrolist.music.constants.CountryCodeToName
@@ -64,12 +71,17 @@ import com.metrolist.music.constants.EnableKugouKey
 import com.metrolist.music.constants.EnableLrcLibKey
 import com.metrolist.music.constants.EnablePaxsenixKey
 import com.metrolist.music.constants.EnableLyricsPlus
+import com.metrolist.music.constants.ExplicitOnlyKey
 import com.metrolist.music.constants.HideExplicitKey
+import com.metrolist.music.constants.HideNonMusicalVideosKey
+import com.metrolist.music.constants.HidePodcastsKey
+import com.metrolist.music.constants.HideShortSongsKey
 import com.metrolist.music.constants.LoadLyricsInBackgroundKey
 import com.metrolist.music.constants.HideVideoSongsKey
 import com.metrolist.music.constants.HideYoutubeShortsKey
 import com.metrolist.music.constants.LanguageCodeToName
 import com.metrolist.music.constants.LyricsProviderOrderKey
+import com.metrolist.music.constants.MinimumSongDurationSecondsKey
 import com.metrolist.music.constants.ProxyEnabledKey
 import com.metrolist.music.constants.ProxyPasswordKey
 import com.metrolist.music.constants.ProxyTypeKey
@@ -93,9 +105,16 @@ import com.metrolist.music.ui.component.DraggableLyricsProviderItem
 import com.metrolist.music.ui.component.DraggableLyricsProviderList
 import com.metrolist.music.lyrics.LyricsProviderRegistry
 import com.metrolist.music.ui.utils.backToMain
+import com.metrolist.music.utils.AiSlopBlocklist
+import com.metrolist.music.utils.ContentFilterSnapshot
+import com.metrolist.music.utils.rememberContentFilter
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
+import com.metrolist.music.utils.safeDataStoreEdit
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.net.Proxy
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -104,14 +123,58 @@ fun ContentSettings(
 ) {
     val context = LocalContext.current
     val database = LocalDatabase.current
+    val coroutineScope = rememberCoroutineScope()
     // Used only before Android 13
     val (appLanguage, onAppLanguageChange) = rememberPreference(key = AppLanguageKey, defaultValue = SYSTEM_DEFAULT)
 
     val (contentLanguage, onContentLanguageChange) = rememberPreference(key = ContentLanguageKey, defaultValue = "system")
     val (contentCountry, onContentCountryChange) = rememberPreference(key = ContentCountryKey, defaultValue = "system")
-    val (hideExplicit, onHideExplicitChange) = rememberPreference(key = HideExplicitKey, defaultValue = false)
-    val (hideVideoSongs, onHideVideoSongsChange) = rememberPreference(key = HideVideoSongsKey, defaultValue = false)
-    val (hideYoutubeShorts, onHideYoutubeShortsChange) = rememberPreference(key = HideYoutubeShortsKey, defaultValue = false)
+    val contentFilter = rememberContentFilter()
+    val (_, onBlockAiSlopArtistsChange) = rememberPreference(key = BlockAiSlopArtistsKey, defaultValue = false)
+    val (_, onHideVideoSongsChange) = rememberPreference(key = HideVideoSongsKey, defaultValue = false)
+    val (_, onHideNonMusicalVideosChange) = rememberPreference(key = HideNonMusicalVideosKey, defaultValue = false)
+    val (_, onMinimumSongDurationChange) = rememberPreference(
+        key = MinimumSongDurationSecondsKey,
+        defaultValue = ContentFilterSnapshot.DEFAULT_MINIMUM_SONG_DURATION_SECONDS,
+    )
+    val (_, onHidePodcastsChange) = rememberPreference(key = HidePodcastsKey, defaultValue = false)
+    var sliderDurationSeconds by remember {
+        mutableFloatStateOf(contentFilter.effectiveMinimumDurationSeconds.toFloat())
+    }
+    LaunchedEffect(contentFilter.effectiveMinimumDurationSeconds) {
+        sliderDurationSeconds = contentFilter.effectiveMinimumDurationSeconds.toFloat()
+    }
+    val hideExplicit = contentFilter.hideExplicit
+    val explicitOnly = contentFilter.explicitOnly
+    val blockAiSlopArtists = contentFilter.blockAiSlopArtists
+    val hideVideoSongs = contentFilter.hideVideoSongs
+    val hideNonMusicalVideos = contentFilter.hideNonMusicalVideos
+    val hideShortSongs = contentFilter.hideShortSongs
+    val hidePodcasts = contentFilter.hidePodcasts
+    val blocklistDescription = stringResource(R.string.block_ai_slop_artists_desc)
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val blocklistLink = remember(blocklistDescription, primaryColor) {
+        buildAnnotatedString {
+            append(blocklistDescription)
+            val sourceName = AiSlopBlocklist.CONTRIBUTION_URL.substringAfterLast('/')
+            val sourceIndex = blocklistDescription.indexOf(sourceName)
+            val start = if (sourceIndex >= 0) sourceIndex else length.also { append(" ") } + 1
+            if (sourceIndex < 0) append(AiSlopBlocklist.CONTRIBUTION_URL)
+            addLink(
+                LinkAnnotation.Url(
+                    AiSlopBlocklist.CONTRIBUTION_URL,
+                    TextLinkStyles(
+                        SpanStyle(
+                            color = primaryColor,
+                            textDecoration = TextDecoration.Underline,
+                        ),
+                    ),
+                ),
+                start,
+                if (sourceIndex >= 0) start + sourceName.length else length,
+            )
+        }
+    }
     val (showArtistDescription, onShowArtistDescriptionChange) = rememberPreference(key = ShowArtistDescriptionKey, defaultValue = true)
     val (showArtistSubscriberCount, onShowArtistSubscriberCountChange) = rememberPreference(key = ShowArtistSubscriberCountKey, defaultValue = true)
     val (showMonthlyListeners, onShowMonthlyListenersChange) = rememberPreference(key = ShowMonthlyListenersKey, defaultValue = true)
@@ -702,13 +765,31 @@ fun ContentSettings(
                     },
                     onClick = { showContentCountryDialog = true }
                 ),
+            )
+        )
+
+        Spacer(modifier = Modifier.height(27.dp))
+
+        Material3SettingsGroup(
+            title = stringResource(R.string.content_filters_filtering),
+            items = listOf(
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.explicit),
                     title = { Text(stringResource(R.string.hide_explicit)) },
+                    description = { Text(stringResource(R.string.hide_explicit_desc)) },
+                    enabled = !explicitOnly,
                     trailingContent = {
                         Switch(
                             checked = hideExplicit,
-                            onCheckedChange = onHideExplicitChange,
+                            enabled = !explicitOnly,
+                            onCheckedChange = { enabled ->
+                                coroutineScope.launch {
+                                    context.safeDataStoreEdit { prefs ->
+                                        prefs[HideExplicitKey] = enabled
+                                        if (enabled) prefs[ExplicitOnlyKey] = false
+                                    }
+                                }
+                            },
                             thumbContent = {
                                 Icon(
                                     painter = painterResource(
@@ -720,11 +801,98 @@ fun ContentSettings(
                             }
                         )
                     },
-                    onClick = { onHideExplicitChange(!hideExplicit) }
+                    onClick = {
+                        if (!explicitOnly) {
+                            val enabled = !hideExplicit
+                            coroutineScope.launch {
+                                context.safeDataStoreEdit { prefs ->
+                                    prefs[HideExplicitKey] = enabled
+                                    if (enabled) prefs[ExplicitOnlyKey] = false
+                                }
+                            }
+                        }
+                    }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.explicit),
+                    title = { Text(stringResource(R.string.explicit_only)) },
+                    description = { Text(stringResource(R.string.explicit_only_desc)) },
+                    enabled = !hideExplicit,
+                    trailingContent = {
+                        Switch(
+                            checked = explicitOnly,
+                            enabled = !hideExplicit,
+                            onCheckedChange = { enabled ->
+                                coroutineScope.launch {
+                                    context.safeDataStoreEdit { prefs ->
+                                        prefs[ExplicitOnlyKey] = enabled
+                                        if (enabled) prefs[HideExplicitKey] = false
+                                    }
+                                }
+                            },
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (explicitOnly) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = {
+                        if (!hideExplicit) {
+                            val enabled = !explicitOnly
+                            coroutineScope.launch {
+                                context.safeDataStoreEdit { prefs ->
+                                    prefs[ExplicitOnlyKey] = enabled
+                                    if (enabled) prefs[HideExplicitKey] = false
+                                }
+                            }
+                        }
+                    }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.security),
+                    title = { Text(stringResource(R.string.block_ai_slop_artists)) },
+                    description = { Text(text = blocklistLink) },
+                    trailingContent = {
+                        Switch(
+                            checked = blockAiSlopArtists,
+                            onCheckedChange = { enabled ->
+                                onBlockAiSlopArtistsChange(enabled)
+                                if (enabled) {
+                                    coroutineScope.launch(Dispatchers.IO) {
+                                        AiSlopBlocklist.refresh(context, force = true)
+                                    }
+                                }
+                            },
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (blockAiSlopArtists) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = {
+                        val enabled = !blockAiSlopArtists
+                        onBlockAiSlopArtistsChange(enabled)
+                        if (enabled) {
+                            coroutineScope.launch(Dispatchers.IO) {
+                                AiSlopBlocklist.refresh(context, force = true)
+                            }
+                        }
+                    }
                 ),
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.slow_motion_video),
                     title = { Text(stringResource(R.string.hide_video_songs)) },
+                    description = { Text(stringResource(R.string.hide_video_songs_desc)) },
                     trailingContent = {
                         Switch(
                             checked = hideVideoSongs,
@@ -744,15 +912,16 @@ fun ContentSettings(
                 ),
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.hide_image),
-                    title = { Text(stringResource(R.string.hide_youtube_shorts)) },
+                    title = { Text(stringResource(R.string.hide_non_musical_videos)) },
+                    description = { Text(stringResource(R.string.hide_non_musical_videos_desc)) },
                     trailingContent = {
                         Switch(
-                            checked = hideYoutubeShorts,
-                            onCheckedChange = onHideYoutubeShortsChange,
+                            checked = hideNonMusicalVideos,
+                            onCheckedChange = onHideNonMusicalVideosChange,
                             thumbContent = {
                                 Icon(
                                     painter = painterResource(
-                                        id = if (hideYoutubeShorts) R.drawable.check else R.drawable.close
+                                        id = if (hideNonMusicalVideos) R.drawable.check else R.drawable.close
                                     ),
                                     contentDescription = null,
                                     modifier = Modifier.size(SwitchDefaults.IconSize)
@@ -760,7 +929,116 @@ fun ContentSettings(
                             }
                         )
                     },
-                    onClick = { onHideYoutubeShortsChange(!hideYoutubeShorts) }
+                    onClick = { onHideNonMusicalVideosChange(!hideNonMusicalVideos) }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.timer),
+                    title = { Text(stringResource(R.string.hide_short_songs)) },
+                    description = { Text(stringResource(R.string.hide_short_songs_desc)) },
+                    trailingContent = {
+                        Switch(
+                            checked = hideShortSongs,
+                            onCheckedChange = { enabled ->
+                                coroutineScope.launch {
+                                    context.safeDataStoreEdit { prefs ->
+                                        prefs[HideShortSongsKey] = enabled
+                                        prefs.remove(HideYoutubeShortsKey)
+                                    }
+                                }
+                            },
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (hideShortSongs) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = {
+                        val enabled = !hideShortSongs
+                        coroutineScope.launch {
+                            context.safeDataStoreEdit { prefs ->
+                                prefs[HideShortSongsKey] = enabled
+                                prefs.remove(HideYoutubeShortsKey)
+                            }
+                        }
+                    }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.tune),
+                    title = { Text(stringResource(R.string.minimum_song_duration)) },
+                    enabled = hideShortSongs,
+                    description = {
+                        val displaySeconds = sliderDurationSeconds.roundToInt()
+                        Column {
+                            Text(
+                                text =
+                                    if (hideShortSongs) {
+                                        stringResource(R.string.minimum_song_duration_desc, displaySeconds)
+                                    } else {
+                                        stringResource(
+                                            R.string.settings_requires_enabled,
+                                            stringResource(R.string.hide_short_songs),
+                                        )
+                                    },
+                            )
+                            Slider(
+                                value = sliderDurationSeconds,
+                                onValueChange = { value ->
+                                    sliderDurationSeconds =
+                                        value.roundToInt()
+                                            .coerceIn(
+                                                ContentFilterSnapshot.MIN_SONG_DURATION_SECONDS,
+                                                ContentFilterSnapshot.MAX_SONG_DURATION_SECONDS,
+                                            ).toFloat()
+                                },
+                                onValueChangeFinished = {
+                                    onMinimumSongDurationChange(sliderDurationSeconds.roundToInt())
+                                },
+                                valueRange =
+                                    ContentFilterSnapshot.MIN_SONG_DURATION_SECONDS.toFloat()..
+                                        ContentFilterSnapshot.MAX_SONG_DURATION_SECONDS.toFloat(),
+                                steps = 10,
+                                enabled = hideShortSongs,
+                            )
+                        }
+                    },
+                    trailingContent = {
+                        Text(
+                            text = stringResource(R.string.settings_seconds_value, sliderDurationSeconds.roundToInt()),
+                            style = MaterialTheme.typography.labelLarge,
+                            color =
+                                if (hideShortSongs) {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                },
+                        )
+                    },
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.podcast),
+                    title = { Text(stringResource(R.string.hide_podcasts)) },
+                    description = { Text(stringResource(R.string.hide_podcasts_desc)) },
+                    trailingContent = {
+                        Switch(
+                            checked = hidePodcasts,
+                            onCheckedChange = onHidePodcastsChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (hidePodcasts) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onHidePodcastsChange(!hidePodcasts) }
                 )
             )
         )

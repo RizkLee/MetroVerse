@@ -8,7 +8,6 @@ package com.metrolist.music.viewmodels
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.metrolist.music.constants.HideVideoSongsKey
 import com.metrolist.music.db.MusicDatabase
 import com.metrolist.music.db.entities.Album
 import com.metrolist.music.db.entities.Artist
@@ -16,14 +15,13 @@ import com.metrolist.music.db.entities.LocalItem
 import com.metrolist.music.db.entities.Playlist
 import com.metrolist.music.db.entities.PodcastEntity
 import com.metrolist.music.db.entities.Song
-import com.metrolist.music.utils.dataStore
+import com.metrolist.music.utils.ContentFilter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -45,10 +43,10 @@ constructor(
         combine(
             query,
             filter,
-            context.dataStore.data.map { it[HideVideoSongsKey] ?: false }.distinctUntilChanged(),
-        ) { query, filter, hideVideoSongs ->
-            Triple(query, filter, hideVideoSongs)
-        }.flatMapLatest { (query, filter, hideVideoSongs) ->
+            ContentFilter.observe(context),
+        ) { query, filter, contentFilter ->
+            Triple(query, filter, contentFilter)
+        }.flatMapLatest { (query, filter, contentFilter) ->
             if (query.isEmpty()) {
                 flowOf(LocalSearchResult("", filter, emptyMap()))
             } else {
@@ -60,8 +58,10 @@ constructor(
                             database.searchArtists(query, PREVIEW_SIZE),
                             database.searchPlaylists(query, PREVIEW_SIZE),
                         ) { songs, albums, artists, playlists ->
-                            val filteredSongs = if (hideVideoSongs) songs.filter { !it.song.isVideo } else songs
-                            filteredSongs + albums + artists + playlists
+                            contentFilter.filterSongs(songs) +
+                                contentFilter.filterAlbums(albums) +
+                                contentFilter.filterArtists(artists) +
+                                contentFilter.filterPlaylists(playlists)
                         }
                         combine(
                             mediaResults,
@@ -71,7 +71,7 @@ constructor(
                                 query = query,
                                 filter = filter,
                                 map = items.groupByLocalFilter(),
-                                podcasts = podcasts,
+                                podcasts = contentFilter.filterPodcasts(podcasts),
                             )
                         }
                     }
@@ -81,18 +81,16 @@ constructor(
                             query = query,
                             filter = filter,
                             map = emptyMap(),
-                            podcasts = podcasts,
+                            podcasts = contentFilter.filterPodcasts(podcasts),
                         )
                     }
 
                     else -> {
                         val items = when (filter) {
-                            LocalFilter.SONG -> database.searchSongs(query).map { songs ->
-                                if (hideVideoSongs) songs.filter { !it.song.isVideo } else songs
-                            }
-                            LocalFilter.ALBUM -> database.searchAlbums(query)
-                            LocalFilter.ARTIST -> database.searchArtists(query)
-                            LocalFilter.PLAYLIST -> database.searchPlaylists(query)
+                            LocalFilter.SONG -> database.searchSongs(query).map(contentFilter::filterSongs)
+                            LocalFilter.ALBUM -> database.searchAlbums(query).map(contentFilter::filterAlbums)
+                            LocalFilter.ARTIST -> database.searchArtists(query).map(contentFilter::filterArtists)
+                            LocalFilter.PLAYLIST -> database.searchPlaylists(query).map(contentFilter::filterPlaylists)
                             LocalFilter.ALL, LocalFilter.PODCAST -> error("Handled above")
                         }
                         items.map { mediaItems ->

@@ -26,20 +26,43 @@ interface Queue {
         val mediaItemIndex: Int,
         val position: Long = 0L,
     ) {
+        fun filter(predicate: (MediaItem) -> Boolean): Status {
+            if (items.isEmpty()) {
+                return copy(items = emptyList(), mediaItemIndex = 0, position = 0L)
+            }
+            val targetIndex = mediaItemIndex.coerceIn(0, items.lastIndex)
+            val kept = ArrayList<MediaItem>(items.size)
+            var keptBeforeTarget = 0
+            var targetKept = false
+            items.forEachIndexed { index, item ->
+                if (predicate(item)) {
+                    kept.add(item)
+                    if (index < targetIndex) {
+                        keptBeforeTarget++
+                    } else if (index == targetIndex) {
+                        targetKept = true
+                    }
+                }
+            }
+            if (kept.isEmpty()) {
+                return copy(items = emptyList(), mediaItemIndex = 0, position = 0L)
+            }
+            val remappedIndex =
+                if (targetKept) keptBeforeTarget else keptBeforeTarget.coerceIn(0, kept.lastIndex)
+            val remappedPosition = if (targetKept) position else 0L
+            return copy(items = kept, mediaItemIndex = remappedIndex, position = remappedPosition)
+        }
+
         fun filterExplicit(enabled: Boolean = true) =
             if (enabled) {
-                copy(
-                    items = items.filterExplicit(),
-                )
+                filter { it.metadata?.explicit != true }
             } else {
                 this
             }
 
         fun filterVideoSongs(disableVideos: Boolean = false) =
             if (disableVideos) {
-                copy(
-                    items = items.filterVideoSongs(true),
-                )
+                filter { it.metadata?.isVideoSong != true }
             } else {
                 this
             }

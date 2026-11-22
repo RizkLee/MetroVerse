@@ -922,4 +922,22 @@
     <string name="navigation_bar_tabs_desc">드래그하여 탭 순서를 변경하거나 필요하지 않은 탭을 숨깁니다 (최소 2개 이상 유지)</string>
     <string name="podcast_asr_manage_models">자막 인식 모델 관리</string>
     <string name="podcast_asr_manage_models_desc">기기 내 자막 인식 모델 다운로드, 전환 또는 삭제</string>
+    <!-- Content filtering -->
+    <string name="content_filters_filtering">필터링</string>
+    <string name="hide_explicit_desc">탐색, 검색 및 재생에서 선정적인 곡을 숨깁니다</string>
+    <string name="explicit_only">선정적인 곡만 표시</string>
+    <string name="explicit_only_desc">선정적 콘텐츠로 표시되지 않은 곡을 숨깁니다</string>
+    <string name="block_ai_slop_artists">알려진 AI 생성 아티스트 차단</string>
+    <string name="block_ai_slop_artists_desc">Override92/AiSList 목록의 채널을 숨깁니다. CC BY-NC 4.0 목록은 매일 업데이트되며 오프라인에서도 사용할 수 있습니다.</string>
+    <string name="hide_video_songs_desc">검색 및 재생목록에서 비디오 버전 곡을 숨깁니다</string>
+    <string name="hide_non_musical_videos">비음악 동영상 숨기기</string>
+    <string name="hide_non_musical_videos_desc">공식 뮤직비디오는 유지하고 브이로그, 예고편 등 기타 동영상 콘텐츠를 숨깁니다</string>
+    <string name="hide_short_songs">짧은 곡 숨기기</string>
+    <string name="hide_short_songs_desc">미리듣기, Shorts 오디오 및 설정한 길이보다 짧은 트랙을 숨깁니다</string>
+    <string name="minimum_song_duration">최소 곡 길이</string>
+    <string name="minimum_song_duration_desc">%1$d초보다 짧은 곡 숨기기</string>
+    <string name="hide_podcasts">YouTube 팟캐스트 숨기기</string>
+    <string name="hide_podcasts_desc">탐색, 검색 및 재생에서 YouTube 팟캐스트와 에피소드를 숨깁니다 (Open RSS 팟캐스트에는 영향을 주지 않음)</string>
+    <string name="settings_seconds_value">%1$d초</string>
+    <string name="settings_requires_enabled">이 설정을 변경하려면 %1$s을(를) 켜세요</string>
 </resources>

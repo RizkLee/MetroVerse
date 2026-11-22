@@ -1,7 +1,5 @@
 package com.metrolist.innertube.models
 
-import com.metrolist.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_ATV
-
 sealed class YTItem {
     abstract val id: String
     abstract val title: String
@@ -40,7 +38,13 @@ data class SongItem(
     val uploadEntityId: String? = null
 ) : YTItem() {
     val isVideoSong: Boolean
-        get() = musicVideoType != null && musicVideoType != MUSIC_VIDEO_TYPE_ATV
+        get() = uploadEntityId == null && isVideoType(musicVideoType)
+
+    val isOfficialMusicVideo: Boolean
+        get() = isOfficialVideoType(musicVideoType)
+
+    val isNonMusicalVideo: Boolean
+        get() = isVideoSong && musicVideoType != MUSIC_VIDEO_TYPE_UNSPECIFIED_VIDEO && !isOfficialMusicVideo
 
     override val shareLink: String
         get() = "https://music.youtube.com/watch?v=$id"
@@ -151,6 +155,7 @@ data class EpisodeItem(
         artists = listOfNotNull(author),
         album = podcast,
         duration = duration,
+        musicVideoType = MUSIC_VIDEO_TYPE_PODCAST_EPISODE,
         thumbnail = thumbnail,
         explicit = explicit,
         endpoint = endpoint,
@@ -159,6 +164,15 @@ data class EpisodeItem(
         libraryRemoveToken = libraryRemoveToken,
     )
 }
+
+val YTItem.isYouTubePodcast: Boolean
+    get() =
+        when (this) {
+            is PodcastItem, is EpisodeItem -> true
+            is PlaylistItem -> isPodcast || id.isPodcastBrowseId()
+            is SongItem -> isEpisode || parseMusicVideoType(musicVideoType) == MusicVideoType.PODCAST_EPISODE
+            else -> false
+        }
 
 fun <T : YTItem> List<T>.filterExplicit(enabled: Boolean = true) =
     if (enabled) {

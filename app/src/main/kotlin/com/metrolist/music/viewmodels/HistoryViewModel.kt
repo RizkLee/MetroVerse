@@ -10,10 +10,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.pages.HistoryPage
-import com.metrolist.music.constants.HideVideoSongsKey
 import com.metrolist.music.constants.HistorySource
 import com.metrolist.music.db.MusicDatabase
-import com.metrolist.music.utils.dataStore
+import com.metrolist.music.utils.ContentFilter
 import com.metrolist.music.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -21,7 +20,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -48,15 +46,13 @@ constructor(
     val historyPage = MutableStateFlow<HistoryPage?>(null)
 
     val events =
-        context.dataStore.data
-            .map { it[HideVideoSongsKey] ?: false }
-            .distinctUntilChanged()
-            .flatMapLatest { hideVideoSongs ->
+        ContentFilter.observe(context)
+            .flatMapLatest { contentFilter ->
                 database
                     .events()
                     .map { events ->
                         events
-                            .filter { !hideVideoSongs || !it.song.song.isVideo }
+                            .filterNot { contentFilter.shouldHide(it.song) }
                             .groupBy {
                                 val date = it.event.timestamp.toLocalDate()
                                 val daysAgo = ChronoUnit.DAYS.between(date, today).toInt()

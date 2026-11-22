@@ -161,6 +161,7 @@ import com.metrolist.music.ui.utils.resize
 import com.metrolist.music.utils.joinByBullet
 import com.metrolist.music.utils.joinToArtistString
 import com.metrolist.music.utils.makeTimeString
+import com.metrolist.music.utils.rememberContentFilter
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.utils.rememberSecurePreference
@@ -676,6 +677,7 @@ fun HomeScreen(
     val accountName by viewModel.accountName.collectAsStateWithLifecycle()
     val accountImageUrl by viewModel.accountImageUrl.collectAsStateWithLifecycle()
     val innerTubeCookie by rememberSecurePreference(InnerTubeCookieKey, "")
+    val contentFilter = rememberContentFilter()
     val (randomizeHomeOrder) = rememberPreference(RandomizeHomeOrderKey, true)
     val autoRadioQueue by rememberPreference(AutoRadioQueueKey, defaultValue = true)
 
@@ -1188,7 +1190,11 @@ fun HomeScreen(
             ) {
                 item {
                     ChipsRow(
-                        chips = homePage?.chips?.map { it to it.title } ?: emptyList(),
+                        chips =
+                            homePage?.chips
+                                ?.filterNot { contentFilter.hidePodcasts && it.isPodcastChip }
+                                ?.map { it to it.title }
+                                ?: emptyList(),
                         currentValue = selectedChip,
                         onValueUpdate = {
                             viewModel.toggleChip(it)
@@ -1220,7 +1226,7 @@ fun HomeScreen(
                 }
 
                 // Show podcast sections FIRST when podcast chip is selected (fixed at top)
-                if (selectedChip?.title?.contains("Podcast", ignoreCase = true) == true) {
+                if (!contentFilter.hidePodcasts && selectedChip?.title?.contains("Podcast", ignoreCase = true) == true) {
                     // Show "Your Shows" section from official API
                     if (savedPodcastShows.isNotEmpty()) {
                         item(key = "00_your_shows_title") {
@@ -2233,7 +2239,7 @@ fun HomeScreen(
                         is HomeSection.HomePageSection -> {
                             // Skip HomePageSection rendering when podcast chip is selected
                             // Podcast sections are handled separately with special UI
-                            if (selectedChip?.title?.contains("Podcast", ignoreCase = true) == true) {
+                            if (!contentFilter.hidePodcasts && selectedChip?.title?.contains("Podcast", ignoreCase = true) == true) {
                                 return@forEach
                             }
                             val sectionData = homePage?.sections?.getOrNull(section.index)
@@ -2412,7 +2418,7 @@ fun HomeScreen(
 
                         HomeSection.MoodAndGenres -> {
                             // Skip MoodAndGenres when podcast chip is selected
-                            if (selectedChip?.title?.contains("Podcast", ignoreCase = true) == true) {
+                            if (!contentFilter.hidePodcasts && selectedChip?.title?.contains("Podcast", ignoreCase = true) == true) {
                                 return@forEach
                             }
                             explorePage?.moodAndGenres?.let { moodAndGenres ->

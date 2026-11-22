@@ -11,13 +11,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.BrowseEndpoint
-import com.metrolist.innertube.models.filterExplicit
-import com.metrolist.innertube.models.filterVideoSongs
-import com.metrolist.music.constants.HideExplicitKey
-import com.metrolist.music.constants.HideVideoSongsKey
 import com.metrolist.music.models.ItemsPage
-import com.metrolist.music.utils.dataStore
-import com.metrolist.music.utils.get
+import com.metrolist.music.utils.ContentFilter
 import com.metrolist.music.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -49,15 +44,11 @@ constructor(
                     ),
                 )                .onSuccess { artistItemsPage ->
                     val resolvedItems = YouTube.resolveArtistIds(artistItemsPage.items)
-                    val hideExplicit = context.dataStore.get(HideExplicitKey, false)
-                    val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
+                    val contentFilter = ContentFilter.current(context)
                     title.value = artistItemsPage.title
                     itemsPage.value =
                         ItemsPage(
-                            items = resolvedItems
-                                .distinctBy { it.id }
-                                .filterExplicit(hideExplicit)
-                                .filterVideoSongs(hideVideoSongs),
+                            items = contentFilter.filterItems(resolvedItems.distinctBy { it.id }),
                             continuation = artistItemsPage.continuation,
                         )
                 }.onFailure {
@@ -74,15 +65,10 @@ constructor(
                 .artistItemsContinuation(continuation)
                 .onSuccess { artistItemsContinuationPage ->
                     val resolvedItems = YouTube.resolveArtistIds(artistItemsContinuationPage.items)
-                    val hideExplicit = context.dataStore.get(HideExplicitKey, false)
-                    val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
+                    val contentFilter = ContentFilter.current(context)
                     itemsPage.update {
                         ItemsPage(
-                            items =
-                            (oldItemsPage.items + resolvedItems)
-                                .distinctBy { it.id }
-                                .filterExplicit(hideExplicit)
-                                .filterVideoSongs(hideVideoSongs),
+                            items = contentFilter.filterItems((oldItemsPage.items + resolvedItems).distinctBy { it.id }),
                             continuation = artistItemsContinuationPage.continuation,
                         )
                     }

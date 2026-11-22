@@ -9,12 +9,9 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.metrolist.innertube.YouTube
-import com.metrolist.innertube.models.filterExplicit
 import com.metrolist.innertube.pages.ExplorePage
-import com.metrolist.music.constants.HideExplicitKey
 import com.metrolist.music.db.MusicDatabase
-import com.metrolist.music.utils.dataStore
-import com.metrolist.music.utils.get
+import com.metrolist.music.utils.ContentFilter
 import com.metrolist.music.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -64,7 +61,7 @@ constructor(
                                         }
                                     } ?: Int.MAX_VALUE
                                 firstArtistKey
-                            }.filterExplicit(context.dataStore.get(HideExplicitKey, false)),
+                            }.let { ContentFilter.current(context).filterItems(it) },
                     )
             }.onFailure {
                 reportException(it)

@@ -10,15 +10,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.CacheSpan
-import com.metrolist.music.constants.HideExplicitKey
-import com.metrolist.music.constants.HideVideoSongsKey
 import com.metrolist.music.db.MusicDatabase
 import com.metrolist.music.db.entities.Song
 import com.metrolist.music.di.DownloadCache
 import com.metrolist.music.di.PlayerCache
-import com.metrolist.music.extensions.filterExplicit
-import com.metrolist.music.extensions.filterVideoSongs
-import com.metrolist.music.utils.dataStore
+import com.metrolist.music.utils.ContentFilter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
@@ -80,15 +76,8 @@ class CachePlaylistViewModel
                     }
                     partition.stillCached
                 }
-                .combine(
-                    context.dataStore.data.map {
-                        (it[HideExplicitKey] ?: false) to (it[HideVideoSongsKey] ?: false)
-                    }.distinctUntilChanged(),
-                ) { songs, (hideExplicit, hideVideoSongs) ->
-                    songs
-                        .sortedByDescending { it.song.dateDownload }
-                        .filterExplicit(hideExplicit)
-                        .filterVideoSongs(hideVideoSongs)
+                .combine(ContentFilter.observe(context)) { songs, contentFilter ->
+                    contentFilter.filterSongs(songs.sortedByDescending { it.song.dateDownload })
                 }
                 .flowOn(Dispatchers.IO)
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())

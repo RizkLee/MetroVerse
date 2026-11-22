@@ -134,8 +134,6 @@ import com.metrolist.music.discord.DiscordTemplateRenderer
 import com.metrolist.music.discord.PresenceStatus
 import com.metrolist.music.constants.EnableLastFMScrobblingKey
 import com.metrolist.music.constants.EnableSongCacheKey
-import com.metrolist.music.constants.HideExplicitKey
-import com.metrolist.music.constants.HideVideoSongsKey
 import com.metrolist.music.constants.HistoryDuration
 import com.metrolist.music.constants.LastFMUseNowPlaying
 import com.metrolist.music.constants.MediaSessionConstants
@@ -201,11 +199,11 @@ import com.metrolist.music.playback.queues.Queue
 import com.metrolist.music.playback.queues.YouTubeQueue
 import com.metrolist.music.podcast.PODCAST_USER_AGENT
 import com.metrolist.music.playback.queues.YouTubePlaylistQueue
-import com.metrolist.music.playback.queues.filterExplicit
-import com.metrolist.music.playback.queues.filterVideoSongs
 import com.metrolist.music.constants.LoudnessLevel
 import com.metrolist.music.constants.LoudnessLevelKey
 import com.metrolist.music.utils.CoilBitmapLoader
+import com.metrolist.music.utils.ContentFilter
+import com.metrolist.music.utils.ContentFilterSnapshot
 import com.metrolist.music.utils.NetworkConnectivityObserver
 import com.metrolist.music.utils.ScrobbleManager
 import com.metrolist.music.utils.SyncUtils
@@ -570,9 +568,7 @@ class MusicService :
     @Volatile
     private var cachedDisableLoadMoreWhenRepeatAll = false
     @Volatile
-    private var cachedHideExplicit = false
-    @Volatile
-    private var cachedHideVideoSongs = false
+    private var cachedContentFilter = ContentFilterSnapshot()
     @Volatile
     private var cachedShufflePlaylistFirst = false
     @Volatile
@@ -1280,10 +1276,7 @@ class MusicService :
             dataStore.data.map { it[DisableLoadMoreWhenRepeatAllKey] ?: false }.distinctUntilChanged().collect { cachedDisableLoadMoreWhenRepeatAll = it }
         }
         scope.launch {
-            dataStore.data.map { it[HideExplicitKey] ?: false }.distinctUntilChanged().collect { cachedHideExplicit = it }
-        }
-        scope.launch {
-            dataStore.data.map { it[HideVideoSongsKey] ?: false }.distinctUntilChanged().collect { cachedHideVideoSongs = it }
+            ContentFilter.observe(this@MusicService).collect { cachedContentFilter = it }
         }
         scope.launch {
             dataStore.data.map { it[ShufflePlaylistFirstKey] ?: false }.distinctUntilChanged().collect { cachedShufflePlaylistFirst = it }
@@ -2006,10 +1999,9 @@ class MusicService :
         scope.launch(SilentHandler) {
             val initialStatus =
                 withContext(Dispatchers.IO) {
-                    queue
-                        .getInitialStatus()
-                        .filterExplicit(dataStore.get(HideExplicitKey, false))
-                        .filterVideoSongs(dataStore.get(HideVideoSongsKey, false))
+                    ContentFilter
+                        .current(this@MusicService)
+                        .filterQueueStatus(queue.getInitialStatus())
                 }
             if (queue.preloadItem != null && player.playbackState == STATE_IDLE) return@launch
             if (initialStatus.title != null) {
@@ -2018,7 +2010,9 @@ class MusicService :
             if (initialStatus.items.isEmpty()) return@launch
             // Track original queue size for shuffle playlist first feature
             originalQueueSize = initialStatus.items.size
-            if (queue.preloadItem != null) {
+            if (queue.preloadItem != null &&
+                initialStatus.items.getOrNull(initialStatus.mediaItemIndex)?.mediaId == queue.preloadItem?.id
+            ) {
                 player.addMediaItems(
                     0,
                     initialStatus.items.subList(0, initialStatus.mediaItemIndex),
@@ -2032,13 +2026,7 @@ class MusicService :
             } else {
                 player.setMediaItems(
                     initialStatus.items,
-                    if (initialStatus.mediaItemIndex >
-                        0
-                    ) {
-                        initialStatus.mediaItemIndex
-                    } else {
-                        0
-                    },
+                    initialStatus.mediaItemIndex.coerceIn(0, initialStatus.items.lastIndex),
                     initialStatus.position,
                 )
                 player.prepare()
@@ -2209,10 +2197,9 @@ class MusicService :
             try {
                 val initialStatus =
                     withContext(Dispatchers.IO) {
-                        radioQueue
-                            .getInitialStatus()
-                            .filterExplicit(dataStore.get(HideExplicitKey, false))
-                            .filterVideoSongs(dataStore.get(HideVideoSongsKey, false))
+                        ContentFilter
+                            .current(this@MusicService)
+                            .filterQueueStatus(radioQueue.getInitialStatus())
                     }
 
                 if (initialStatus.title != null) {
@@ -2253,11 +2240,11 @@ class MusicService :
                             }
                         relatedPage?.songs?.let { songs ->
                             val radioItems =
-                                songs
-                                    .filter { it.id != currentMediaId }
-                                    .map { it.toMediaItem() }
-                                    .filterExplicit(cachedHideExplicit)
-                                    .filterVideoSongs(cachedHideVideoSongs)
+                                cachedContentFilter.filterMediaItems(
+                                    songs
+                                        .filter { it.id != currentMediaId }
+                                        .map { it.toMediaItem() },
+                                )
 
                             if (radioItems.isNotEmpty()) {
                                 val itemCount = player.mediaItemCount
@@ -2404,7 +2391,7 @@ class MusicService :
         items: List<MediaItem>,
     ) {
         if (shouldStoreAutomixResponse(requestGeneration, automixRequestGeneration)) {
-            automixItems.value = items
+            automixItems.value = cachedContentFilter.filterMediaItems(items)
             if (cachedPersistentQueue) {
                 saveQueueToDisk()
             }
@@ -2954,10 +2941,7 @@ class MusicService :
             scope.launch(SilentHandler) {
                 val mediaItems =
                     withContext(Dispatchers.IO) {
-                        queueToLoad
-                            .nextPage()
-                            .filterExplicit(cachedHideExplicit)
-                            .filterVideoSongs(cachedHideVideoSongs)
+                        cachedContentFilter.filterMediaItems(queueToLoad.nextPage())
                     }
                 if (
                     currentQueue === queueToLoad &&

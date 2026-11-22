@@ -87,7 +87,6 @@ import com.metrolist.music.LocalDatabase
 import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
 import com.metrolist.music.constants.AutoRadioQueueKey
-import com.metrolist.music.constants.HideVideoSongsKey
 import com.metrolist.music.constants.MiniPlayerBottomSpacing
 import com.metrolist.music.constants.MiniPlayerHeight
 import com.metrolist.music.constants.NavigationBarHeight
@@ -110,6 +109,7 @@ import com.metrolist.music.ui.menu.YouTubeArtistMenu
 import com.metrolist.music.ui.menu.YouTubePlaylistMenu
 import com.metrolist.music.ui.menu.YouTubeSongMenu
 import com.metrolist.music.utils.SearchRoutes
+import com.metrolist.music.utils.rememberContentFilter
 import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.viewmodels.OnlineSearchViewModel
 import kotlinx.coroutines.Dispatchers
@@ -158,7 +158,9 @@ fun OnlineSearchResult(
     }
 
     val pauseSearchHistory by rememberPreference(PauseSearchHistoryKey, defaultValue = false)
-    val hideVideoSongs by rememberPreference(HideVideoSongsKey, defaultValue = false)
+    val contentFilter = rememberContentFilter()
+    val hideVideoSongs = contentFilter.hideVideoSongs
+    val hidePodcasts = contentFilter.hidePodcasts
     val autoRadioQueue by rememberPreference(AutoRadioQueueKey, defaultValue = true)
 
     BackHandler(enabled = isSearchFocused) {
@@ -203,9 +205,11 @@ fun OnlineSearchResult(
         query = TextFieldValue(decodedQuery, TextRange(decodedQuery.length))
     }
 
-    // Clear video filter if hideVideoSongs setting is enabled and filter is set to FILTER_VIDEO
-    LaunchedEffect(hideVideoSongs) {
-        if (hideVideoSongs && viewModel.filter.value == FILTER_VIDEO) {
+    // Clear hidden filters if corresponding settings are enabled
+    LaunchedEffect(hideVideoSongs, hidePodcasts) {
+        if ((hideVideoSongs && viewModel.filter.value == FILTER_VIDEO) ||
+            (hidePodcasts && (viewModel.filter.value == FILTER_PODCAST || viewModel.filter.value == FILTER_EPISODE))
+        ) {
             viewModel.filter.value = null
         }
     }
@@ -456,22 +460,27 @@ fun OnlineSearchResult(
                     listOf(
                         null to stringResource(R.string.filter_all),
                         FILTER_SONG to stringResource(R.string.filter_songs),
-                    ).let { baseChips ->
-                        if (!hideVideoSongs) {
-                            baseChips + (FILTER_VIDEO to stringResource(R.string.filter_videos))
+                    ) +
+                        (if (!hideVideoSongs) {
+                            listOf(FILTER_VIDEO to stringResource(R.string.filter_videos))
                         } else {
-                            baseChips
-                        }
-                    } +
+                            emptyList()
+                        }) +
                         listOf(
                             FILTER_ALBUM to stringResource(R.string.filter_albums),
                             FILTER_ARTIST to stringResource(R.string.filter_artists),
                             FILTER_COMMUNITY_PLAYLIST to stringResource(R.string.filter_community_playlists),
                             FILTER_FEATURED_PLAYLIST to stringResource(R.string.filter_featured_playlists),
-                            FILTER_PODCAST to stringResource(R.string.youtube_podcasts),
-                            FILTER_EPISODE to stringResource(R.string.filter_episodes),
-                            FILTER_PROFILE to stringResource(R.string.filter_profiles),
-                        )
+                        ) +
+                        (if (!hidePodcasts) {
+                            listOf(
+                                FILTER_PODCAST to stringResource(R.string.youtube_podcasts),
+                                FILTER_EPISODE to stringResource(R.string.filter_episodes),
+                            )
+                        } else {
+                            emptyList()
+                        }) +
+                        listOf(FILTER_PROFILE to stringResource(R.string.filter_profiles))
 
                 ChipsRow(
                     chips = visibleChips,

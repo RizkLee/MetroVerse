@@ -15,15 +15,10 @@ import com.metrolist.innertube.models.PlaylistItem
 import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.models.WatchEndpoint
 import com.metrolist.innertube.models.YTItem
-import com.metrolist.innertube.models.filterExplicit
-import com.metrolist.innertube.models.filterVideoSongs
 import com.metrolist.innertube.utils.YouTubeUrlParser
-import com.metrolist.music.constants.HideExplicitKey
-import com.metrolist.music.constants.HideVideoSongsKey
 import com.metrolist.music.db.MusicDatabase
 import com.metrolist.music.db.entities.SearchHistory
-import com.metrolist.music.utils.dataStore
-import com.metrolist.music.utils.get
+import com.metrolist.music.utils.ContentFilter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -76,8 +71,7 @@ class OnlineSearchSuggestionViewModel
                                     }
                             } else {
                                 val result = YouTube.searchSuggestions(query).getOrNull()
-                                val hideExplicit = context.dataStore.get(HideExplicitKey, false)
-                                val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
+                                val contentFilter = ContentFilter.current(context)
 
                                 database
                                     .searchHistory(query)
@@ -95,8 +89,7 @@ class OnlineSearchSuggestionViewModel
                                                 result
                                                     ?.recommendedItems
                                                     ?.distinctBy { it.id }
-                                                    ?.filterExplicit(hideExplicit)
-                                                    ?.filterVideoSongs(hideVideoSongs)
+                                                    ?.let { contentFilter.filterItems(it) }
                                                     .orEmpty(),
                                         )
                                     }

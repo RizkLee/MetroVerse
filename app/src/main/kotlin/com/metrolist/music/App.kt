@@ -29,6 +29,7 @@ import com.metrolist.music.constants.*
 import com.metrolist.music.di.ApplicationScope
 import com.metrolist.music.extensions.toEnum
 import com.metrolist.music.extensions.toInetSocketAddress
+import com.metrolist.music.utils.AiSlopBlocklist
 import com.metrolist.music.utils.CrashHandler
 import com.metrolist.music.utils.InnerTubeXPlayer
 import com.metrolist.music.utils.ResizableImageDiskCache
@@ -133,6 +134,13 @@ class App :
                     preferences[com.metrolist.music.constants.AppLanguageKey], resources.configuration.locales[0],
                 ),
             )
+            if (preferences[HideShortSongsKey] == null && preferences[HideYoutubeShortsKey] == true) {
+                preferences[HideShortSongsKey] = true
+                preferences.remove(HideYoutubeShortsKey)
+            }
+            if (preferences[HideExplicitKey] == true && preferences[ExplicitOnlyKey] == true) {
+                preferences[ExplicitOnlyKey] = false
+            }
         }
 
         ArtistConjunctions.conjunctions = listOf(
@@ -205,6 +213,11 @@ class App :
             }
         val nm = getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(channel)
+
+        AiSlopBlocklist.init(this@App)
+        applicationScope.launch(Dispatchers.IO) {
+            AiSlopBlocklist.refresh(this@App)
+        }
     }
 
     private fun observeSettingsChanges() {

@@ -87,6 +87,7 @@ import com.metrolist.music.ui.component.PlaylistListItem
 import com.metrolist.music.ui.component.SortHeader
 import com.metrolist.music.ui.menu.SongMenu
 import com.metrolist.music.ui.screens.podcast.PodcastEpisodeRow
+import com.metrolist.music.utils.rememberContentFilter
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.viewmodels.LibraryPodcastsViewModel
@@ -121,6 +122,13 @@ fun LibraryPodcastsScreen(
     val savedEpisodes by viewModel.savedEpisodes.collectAsStateWithLifecycle()
     val podcastChannels by viewModel.podcastChannels.collectAsStateWithLifecycle()
     val rdpnPlaylist by viewModel.rdpnPlaylist.collectAsStateWithLifecycle()
+    val hidePodcasts = rememberContentFilter().hidePodcasts
+
+    LaunchedEffect(hidePodcasts, podcastFilter) {
+        if (hidePodcasts && podcastFilter == PodcastFilter.CHANNELS) {
+            podcastFilter = PodcastFilter.EPISODES
+        }
+    }
 
     // Refresh channels when screen becomes visible (ON_RESUME)
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -174,11 +182,13 @@ fun LibraryPodcastsScreen(
                 )
                 ChipsRow(
                     chips =
-                        listOf(
-                            PodcastFilter.EPISODES to stringResource(R.string.filter_episodes),
-                            PodcastFilter.CHANNELS to stringResource(R.string.filter_channels),
-                            PodcastFilter.DOWNLOADED to stringResource(R.string.filter_downloaded),
-                        ),
+                        buildList {
+                            add(PodcastFilter.EPISODES to stringResource(R.string.filter_episodes))
+                            if (!hidePodcasts) {
+                                add(PodcastFilter.CHANNELS to stringResource(R.string.filter_channels))
+                            }
+                            add(PodcastFilter.DOWNLOADED to stringResource(R.string.filter_downloaded))
+                        },
                     currentValue = podcastFilter,
                     onValueUpdate = { podcastFilter = it },
                     modifier = Modifier.weight(1f),
@@ -197,26 +207,28 @@ fun LibraryPodcastsScreen(
                         chipsHeader()
                     }
 
-                    // RDPN is YouTube Music's auto-playlist of recent episodes from subscribed shows.
-                    item(key = "rdpn_playlist", contentType = CONTENT_TYPE_HEADER) {
-                        PlaylistListItem(
-                            playlist = Playlist(
-                                playlist = PlaylistEntity(
-                                    id = "RDPN",
-                                    name = stringResource(R.string.new_episodes),
-                                    browseId = "RDPN",
-                                    isEditable = false,
-                                    thumbnailUrl = rdpnPlaylist?.thumbnail,
+                    if (!hidePodcasts) {
+                        // RDPN is YouTube Music's auto-playlist of recent episodes from subscribed shows.
+                        item(key = "rdpn_playlist", contentType = CONTENT_TYPE_HEADER) {
+                            PlaylistListItem(
+                                playlist = Playlist(
+                                    playlist = PlaylistEntity(
+                                        id = "RDPN",
+                                        name = stringResource(R.string.new_episodes),
+                                        browseId = "RDPN",
+                                        isEditable = false,
+                                        thumbnailUrl = rdpnPlaylist?.thumbnail,
+                                    ),
+                                    songCount = 0,
+                                    songThumbnails = emptyList(),
                                 ),
-                                songCount = 0,
-                                songThumbnails = emptyList(),
-                            ),
-                            autoPlaylist = true,
-                            placeholderIcon = R.drawable.queue_music,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { navController.navigate("online_playlist/RDPN") },
-                        )
+                                autoPlaylist = true,
+                                placeholderIcon = R.drawable.queue_music,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { navController.navigate("online_playlist/RDPN") },
+                            )
+                        }
                     }
 
                     item(key = "liked_episodes", contentType = CONTENT_TYPE_HEADER) {

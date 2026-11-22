@@ -1037,4 +1037,22 @@
     <string name="navigation_bar_tabs_desc">Перетаскивайте вкладки для изменения порядка или скрывайте ненужные (оставьте хотя бы две)</string>
     <string name="podcast_asr_manage_models">Управление моделями распознавания субтитров</string>
     <string name="podcast_asr_manage_models_desc">Скачивание, переключение и удаление локальных моделей распознавания субтитров</string>
+    <!-- Content filtering -->
+    <string name="content_filters_filtering">Фильтрация</string>
+    <string name="hide_explicit_desc">Скрывает нецензурные песни при просмотре, поиске и воспроизведении</string>
+    <string name="explicit_only">Только нецензурные песни</string>
+    <string name="explicit_only_desc">Скрывает песни, не помеченные как нецензурные</string>
+    <string name="block_ai_slop_artists">Блокировать известных AI-исполнителей</string>
+    <string name="block_ai_slop_artists_desc">Скрывает каналы из списка Override92/AiSList. Список под лицензией CC BY-NC 4.0 обновляется ежедневно и доступен офлайн.</string>
+    <string name="hide_video_songs_desc">Скрыть видеоверсии песен в поиске и плейлистах</string>
+    <string name="hide_non_musical_videos">Скрыть немузыкальные видео</string>
+    <string name="hide_non_musical_videos_desc">Оставляет официальные клипы и скрывает другие видео, например влоги и трейлеры</string>
+    <string name="hide_short_songs">Скрыть короткие песни</string>
+    <string name="hide_short_songs_desc">Скрывает превью, аудио Shorts и другие треки короче заданного порога</string>
+    <string name="minimum_song_duration">Мин. длительность песни</string>
+    <string name="minimum_song_duration_desc">Скрывает песни короче %1$d секунд</string>
+    <string name="hide_podcasts">Скрыть подкасты YouTube</string>
+    <string name="hide_podcasts_desc">Скрывает подкасты и выпуски YouTube из обзора, поиска и воспроизведения (не влияет на открытые RSS-подкасты)</string>
+    <string name="settings_seconds_value">%1$d секунд</string>
+    <string name="settings_requires_enabled">Включите %1$s, чтобы изменить эту настройку</string>
 </resources>

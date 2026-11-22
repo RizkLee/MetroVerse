@@ -10,13 +10,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.metrolist.innertube.YouTube
-import com.metrolist.innertube.models.filterYoutubeShorts
 import com.metrolist.innertube.pages.BrowseResult
-import com.metrolist.music.constants.HideExplicitKey
-import com.metrolist.music.constants.HideVideoSongsKey
-import com.metrolist.music.constants.HideYoutubeShortsKey
-import com.metrolist.music.utils.dataStore
-import com.metrolist.music.utils.get
+import com.metrolist.music.utils.ContentFilter
 import com.metrolist.music.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -38,16 +33,11 @@ constructor(
 
     init {
         viewModelScope.launch {
-            val hideExplicit = context.dataStore.get(HideExplicitKey, false)
-            val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
-            val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, false)
+            val contentFilter = ContentFilter.current(context)
             YouTube
                 .browse(browseId, params)
                 .onSuccess {
-                    result.value = it
-                        .filterExplicit(hideExplicit)
-                        .filterVideoSongs(hideVideoSongs)
-                        .filterYoutubeShorts(hideYoutubeShorts)
+                    result.value = contentFilter.filterBrowseResult(it)
                 }.onFailure {
                     reportException(it)
                 }

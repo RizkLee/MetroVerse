@@ -962,4 +962,22 @@
     <string name="navigation_bar_tabs_desc">拖曳調整導覽列分頁按鈕順序，或隱藏不需要的分頁按鈕（至少保留兩個）</string>
     <string name="podcast_asr_manage_models">管理字幕辨識模型</string>
     <string name="podcast_asr_manage_models_desc">下載、切換或刪除裝置端字幕辨識模型</string>
+    <!-- Content filtering -->
+    <string name="content_filters_filtering">內容過濾</string>
+    <string name="hide_explicit_desc">瀏覽、搜尋與播放時隱藏兒童不宜歌曲</string>
+    <string name="explicit_only">只顯示兒童不宜歌曲</string>
+    <string name="explicit_only_desc">隱藏沒有兒童不宜標記的歌曲</string>
+    <string name="block_ai_slop_artists">封鎖已知 AI 生成藝人</string>
+    <string name="block_ai_slop_artists_desc">隱藏 Override92/AiSList 名單中的頻道。此 CC BY-NC 4.0 清單每日更新並支援離線使用。</string>
+    <string name="hide_video_songs_desc">在搜尋與播放清單中隱藏帶影片版本的歌曲</string>
+    <string name="hide_non_musical_videos">隱藏非音樂影片</string>
+    <string name="hide_non_musical_videos_desc">保留官方音樂錄影帶並隱藏 Vlog 與預告片等其他影片內容</string>
+    <string name="hide_short_songs">隱藏短篇歌曲</string>
+    <string name="hide_short_songs_desc">隱藏預覽、Shorts 音訊及其他短於設定時長的曲目</string>
+    <string name="minimum_song_duration">最短歌曲時長</string>
+    <string name="minimum_song_duration_desc">隱藏短於 %1$d 秒的歌曲</string>
+    <string name="hide_podcasts">隱藏 YouTube Podcast</string>
+    <string name="hide_podcasts_desc">在瀏覽、搜尋與播放中隱藏 YouTube Podcast 與單集（不影響開放 RSS Podcast）</string>
+    <string name="settings_seconds_value">%1$d 秒</string>
+    <string name="settings_requires_enabled">請啟用 %1$s 以變更這個設定</string>
 </resources>
