@@ -71,6 +71,7 @@ import com.metrolist.innertube.pages.SearchResult
 import com.metrolist.innertube.pages.SearchSuggestionPage
 import com.metrolist.innertube.pages.SearchSummary
 import com.metrolist.innertube.pages.SearchSummaryPage
+import com.metrolist.innertube.pages.SongwritersExtractor
 import io.ktor.client.call.body
 import io.ktor.client.statement.bodyAsText
 import kotlinx.coroutines.async
@@ -79,6 +80,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
@@ -3675,4 +3677,14 @@ object YouTube {
             }.awaitAll().filterNotNull().toMap()
         }
     }
+
+    /**
+     * Fetches songwriter credits for a YouTube track using the `MPTC<videoId>` song-credits
+     * endpoint without mutating or persisting Room database rows.
+     */
+    suspend fun songwriters(videoId: String): Result<List<String>> =
+        runCatching {
+            val response = innerTube.browse(WEB_REMIX, browseId = "MPTC$videoId").body<JsonObject>()
+            SongwritersExtractor.extractSongwriters(response)
+        }
 }

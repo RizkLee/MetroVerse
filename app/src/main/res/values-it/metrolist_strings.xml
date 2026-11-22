@@ -1041,4 +1041,13 @@
     <string name="hide_podcasts_desc">Nascondi podcast ed episodi YouTube durante l\'esplorazione, la ricerca e la riproduzione (non influisce sui podcast Open RSS)</string>
     <string name="settings_seconds_value">%1$d secondi</string>
     <string name="settings_requires_enabled">Attiva %1$s per modificare questa impostazione</string>
+    <string name="lyrics_animation_metroverse">MetroVerse</string>
+    <string name="lyrics_animation_apple_music">Apple Music</string>
+    <string name="lyrics_progressive_blur">Sfocatura progressiva del testo</string>
+    <string name="lyrics_progressive_blur_desc">Sfoca gradualmente le righe circostanti mantenendo nitidi la riga attiva e i crediti finali</string>
+    <string name="lyrics_written_by">Scritto da %1$s</string>
+    <string name="lyrics_display_section">Visualizzazione</string>
+    <string name="lyrics_alignment_section">Allineamento</string>
+    <string name="lyrics_behavior_section">Comportamento</string>
+    <string name="lyrics_preview">Anteprima</string>
 </resources>

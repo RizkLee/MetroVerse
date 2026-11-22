@@ -1055,4 +1055,13 @@
     <string name="hide_podcasts_desc">Скрывает подкасты и выпуски YouTube из обзора, поиска и воспроизведения (не влияет на открытые RSS-подкасты)</string>
     <string name="settings_seconds_value">%1$d секунд</string>
     <string name="settings_requires_enabled">Включите %1$s, чтобы изменить эту настройку</string>
+    <string name="lyrics_animation_metroverse">MetroVerse</string>
+    <string name="lyrics_animation_apple_music">Apple Music</string>
+    <string name="lyrics_progressive_blur">Прогрессивное размытие текста</string>
+    <string name="lyrics_progressive_blur_desc">Плавно размывает соседние строки, сохраняя чёткость активной строки и сведений об авторах внизу</string>
+    <string name="lyrics_written_by">Автор: %1$s</string>
+    <string name="lyrics_display_section">Отображение</string>
+    <string name="lyrics_alignment_section">Выравнивание</string>
+    <string name="lyrics_behavior_section">Поведение</string>
+    <string name="lyrics_preview">Предпросмотр</string>
 </resources>

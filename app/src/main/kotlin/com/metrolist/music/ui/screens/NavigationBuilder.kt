@@ -55,6 +55,7 @@ import com.metrolist.music.ui.screens.settings.AppearanceSettings
 import com.metrolist.music.ui.screens.settings.BackupAndRestore
 import com.metrolist.music.ui.screens.settings.ContentSettings
 import com.metrolist.music.ui.screens.settings.DarkMode
+import com.metrolist.music.ui.screens.settings.LyricsAppearanceSettings
 import com.metrolist.music.ui.screens.settings.PlayerSettings
 import com.metrolist.music.ui.screens.settings.PodcastAsrModelsSettings
 import com.metrolist.music.ui.screens.settings.PrivacySettings
@@ -436,6 +437,10 @@ fun NavGraphBuilder.navigationBuilder(
 
     composable("settings/appearance/theme") {
         ThemeScreen(navController)
+    }
+
+    composable("settings/appearance/lyrics") {
+        LyricsAppearanceSettings(navController)
     }
 
     composable("settings/content") {

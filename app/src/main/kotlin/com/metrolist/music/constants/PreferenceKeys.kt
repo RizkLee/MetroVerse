@@ -508,25 +508,35 @@ CRITICAL RULES:
 4. Preserve empty lines as empty strings ""
 5. Return EXACTLY {lineCount} items in the array
 6. If uncertain, provide best approximation but maintain line count"""
-val LyricsGlowEffectKey = booleanPreferencesKey("lyricsGlowEffect")
-
 val LyricsRomanizeList = stringPreferencesKey("lyricsRomanizeList")
 val LyricsAnimationStyleKey = stringPreferencesKey("lyricsAnimationStyle")
 
 enum class LyricsAnimationStyle {
-    NONE,
-    FADE,
-    GLOW,
-    SLIDE,
-    KARAOKE,
+    METROVERSE,
     APPLE,
+    NONE,
+    ;
+
+    companion object {
+        fun fromStoredValue(value: String?): LyricsAnimationStyle =
+            when (value?.uppercase()) {
+                "APPLE" -> APPLE
+                "NONE" -> NONE
+                else -> METROVERSE
+            }
+    }
 }
+
+const val DEFAULT_LYRICS_TEXT_SIZE = 36f
+val LYRICS_TEXT_SIZE_RANGE = 14f..48f
+const val DEFAULT_LYRICS_LINE_SPACING = 1.3f
+val LYRICS_LINE_SPACING_RANGE = 1.0f..2.5f
 
 val LyricsTextSizeKey = floatPreferencesKey("lyricsTextSize")
 val LyricsLineSpacingKey = floatPreferencesKey("lyricsLineSpacing")
+val LyricsProgressiveBlurKey = booleanPreferencesKey("lyricsProgressiveBlur")
 val RespectAgentPositioningKey = booleanPreferencesKey("respectAgentPositioning")
 val ShowIntervalIndicatorKey = booleanPreferencesKey("showIntervalIndicator")
-val ExperimentalLyricsKey = booleanPreferencesKey("experimentalLyrics")
 
 // Podcast subtitles (podcast:transcript display, AI translation, on-device recognition)
 val ShowPodcastSubtitlesKey = booleanPreferencesKey("showPodcastSubtitles")

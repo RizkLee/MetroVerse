@@ -1123,4 +1123,13 @@
     <string name="hide_podcasts_desc">在浏览、搜索和播放中隐藏 YouTube 播客与单集（不影响开放 RSS 播客）</string>
     <string name="settings_seconds_value">%1$d 秒</string>
     <string name="settings_requires_enabled">请启用 %1$s 以更改此设置</string>
+    <string name="lyrics_animation_metroverse">MetroVerse</string>
+    <string name="lyrics_animation_apple_music">Apple Music</string>
+    <string name="lyrics_progressive_blur">歌词渐进模糊</string>
+    <string name="lyrics_progressive_blur_desc">逐渐模糊远离当前行的歌词，同时保持正在演唱的行与末尾归属信息清晰</string>
+    <string name="lyrics_written_by">作词：%1$s</string>
+    <string name="lyrics_display_section">显示</string>
+    <string name="lyrics_alignment_section">对齐</string>
+    <string name="lyrics_behavior_section">行为</string>
+    <string name="lyrics_preview">预览</string>
 </resources>

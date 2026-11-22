@@ -10,6 +10,9 @@ import androidx.lifecycle.viewModelScope
 import com.metrolist.music.db.entities.LyricsEntity.Companion.LYRICS_NOT_FOUND
 import com.metrolist.music.lyrics.LyricsEntry
 import com.metrolist.music.lyrics.LyricsUtils
+import com.metrolist.music.lyrics.SongwritersRepository
+import com.metrolist.music.lyrics.shouldFetchSongwriters
+import com.metrolist.music.models.MediaMetadata
 import com.metrolist.music.ui.component.LyricsListItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -31,7 +34,9 @@ internal fun processedLyricsBelongToCurrentMedia(
         processedSourceLyrics == currentLyrics
 
 @HiltViewModel
-class LyricsViewModel @Inject constructor() : ViewModel() {
+class LyricsViewModel @Inject constructor(
+    private val songwritersRepository: SongwritersRepository,
+) : ViewModel() {
     data class ProcessedLyricsState(
         val sourceLyrics: String? = null,
         val lines: List<LyricsEntry> = emptyList(),
@@ -43,6 +48,7 @@ class LyricsViewModel @Inject constructor() : ViewModel() {
     }
 
     private var processJob: kotlinx.coroutines.Job? = null
+    private var songwritersJob: kotlinx.coroutines.Job? = null
 
     private val _lines = MutableStateFlow<List<LyricsEntry>>(emptyList())
     val lines: StateFlow<List<LyricsEntry>> = _lines.asStateFlow()
@@ -52,6 +58,23 @@ class LyricsViewModel @Inject constructor() : ViewModel() {
 
     private val _processedLyricsState = MutableStateFlow(ProcessedLyricsState())
     val processedLyricsState: StateFlow<ProcessedLyricsState> = _processedLyricsState.asStateFlow()
+
+    private val _songwriters = MutableStateFlow<Pair<String?, List<String>>>(null to emptyList())
+    val songwriters: StateFlow<Pair<String?, List<String>>> = _songwriters.asStateFlow()
+
+    fun loadSongwriters(mediaMetadata: MediaMetadata?) {
+        songwritersJob?.cancel()
+        val mediaId = mediaMetadata?.id
+        if (!shouldFetchSongwriters(mediaMetadata) || mediaId == null) {
+            _songwriters.value = mediaId to emptyList()
+            return
+        }
+        _songwriters.value = mediaId to emptyList()
+        songwritersJob = viewModelScope.launch {
+            val writers = songwritersRepository.getSongwriters(mediaId)
+            _songwriters.value = mediaId to writers
+        }
+    }
 
     fun processLyrics(
         lyrics: String?,

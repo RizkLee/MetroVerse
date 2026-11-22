@@ -980,4 +980,13 @@
     <string name="hide_podcasts_desc">在瀏覽、搜尋與播放中隱藏 YouTube Podcast 與單集（不影響開放 RSS Podcast）</string>
     <string name="settings_seconds_value">%1$d 秒</string>
     <string name="settings_requires_enabled">請啟用 %1$s 以變更這個設定</string>
+    <string name="lyrics_animation_metroverse">MetroVerse</string>
+    <string name="lyrics_animation_apple_music">Apple Music</string>
+    <string name="lyrics_progressive_blur">歌詞漸進模糊</string>
+    <string name="lyrics_progressive_blur_desc">逐漸模糊周圍的歌詞行，同時保持目前演唱行與末尾出處資訊清晰</string>
+    <string name="lyrics_written_by">作詞：%1$s</string>
+    <string name="lyrics_display_section">顯示</string>
+    <string name="lyrics_alignment_section">對齊</string>
+    <string name="lyrics_behavior_section">行為</string>
+    <string name="lyrics_preview">預覽</string>
 </resources>

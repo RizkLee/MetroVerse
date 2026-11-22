@@ -62,6 +62,7 @@ internal fun resolveLyricsListAnchorIndex(items: List<LyricsListItem>, lyricInde
         when (item) {
             is LyricsListItem.Line -> item.index == lyricIndex
             is LyricsListItem.Indicator -> item.afterLineIndex == lyricIndex
+            is LyricsListItem.Provider -> false
         }
     }
     if (exact >= 0) return exact
@@ -69,6 +70,7 @@ internal fun resolveLyricsListAnchorIndex(items: List<LyricsListItem>, lyricInde
         when (item) {
             is LyricsListItem.Line -> item.index < lyricIndex
             is LyricsListItem.Indicator -> item.afterLineIndex < lyricIndex
+            is LyricsListItem.Provider -> false
         }
     }.coerceAtLeast(0)
 }

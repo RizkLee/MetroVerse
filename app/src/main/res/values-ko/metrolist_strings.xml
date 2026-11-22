@@ -940,4 +940,13 @@
     <string name="hide_podcasts_desc">탐색, 검색 및 재생에서 YouTube 팟캐스트와 에피소드를 숨깁니다 (Open RSS 팟캐스트에는 영향을 주지 않음)</string>
     <string name="settings_seconds_value">%1$d초</string>
     <string name="settings_requires_enabled">이 설정을 변경하려면 %1$s을(를) 켜세요</string>
+    <string name="lyrics_animation_metroverse">MetroVerse</string>
+    <string name="lyrics_animation_apple_music">Apple Music</string>
+    <string name="lyrics_progressive_blur">가사 점진적 흐림 효과</string>
+    <string name="lyrics_progressive_blur_desc">재생 중인 줄과 하단 출처 정보는 선명하게 유지하고 주변 줄을 부드럽게 흐리게 표시합니다</string>
+    <string name="lyrics_written_by">작사: %1$s</string>
+    <string name="lyrics_display_section">표시</string>
+    <string name="lyrics_alignment_section">정렬</string>
+    <string name="lyrics_behavior_section">동작</string>
+    <string name="lyrics_preview">미리보기</string>
 </resources>

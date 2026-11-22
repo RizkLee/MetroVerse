@@ -1252,4 +1252,13 @@
     <string name="hide_podcasts_desc">Hide YouTube podcasts and episodes from browsing, search, and playback (does not affect Open RSS podcasts)</string>
     <string name="settings_seconds_value">%1$d seconds</string>
     <string name="settings_requires_enabled">Enable %1$s to change this setting</string>
+    <string name="lyrics_animation_metroverse">MetroVerse</string>
+    <string name="lyrics_animation_apple_music">Apple Music</string>
+    <string name="lyrics_progressive_blur">Progressive lyrics blur</string>
+    <string name="lyrics_progressive_blur_desc">Gradually blur surrounding lines while keeping the active line and bottom credits clear</string>
+    <string name="lyrics_written_by">Written by %1$s</string>
+    <string name="lyrics_display_section">Display</string>
+    <string name="lyrics_alignment_section">Alignment</string>
+    <string name="lyrics_behavior_section">Behavior</string>
+    <string name="lyrics_preview">Preview</string>
 </resources>

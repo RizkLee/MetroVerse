@@ -37,6 +37,10 @@ sealed class LyricsListItem {
         val gapEndMs: Long,
         val nextAgent: String?
     ) : LyricsListItem()
+    data class Provider(
+        val provider: String?,
+        val songwriters: List<String> = emptyList(),
+    ) : LyricsListItem()
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -44,7 +48,7 @@ sealed class LyricsListItem {
 internal fun IntervalIndicator(
     gapStartMs: Long,
     gapEndMs: Long,
-    currentPositionMs: Long,
+    currentPositionProvider: () -> Long,
     visible: Boolean,
     color: Color,
     modifier: Modifier = Modifier
@@ -62,15 +66,14 @@ internal fun IntervalIndicator(
         }
     }
 
-    val density = LocalDensity.current
     val targetHeightDp = 72.dp
 
-    val progress = if (gapEndMs > gapStartMs) {
-        ((currentPositionMs - gapStartMs).toFloat() / (gapEndMs - gapStartMs).toFloat()).coerceIn(0f, 1f)
-    } else 0f
-
     val animatedProgress by animateFloatAsState(
-        targetValue = progress,
+        targetValue = if (gapEndMs > gapStartMs) {
+            ((currentPositionProvider() - gapStartMs).toFloat() / (gapEndMs - gapStartMs).toFloat()).coerceIn(0f, 1f)
+        } else {
+            0f
+        },
         animationSpec = tween(durationMillis = 100, easing = LinearEasing),
         label = "intervalProgress"
     )

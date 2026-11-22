@@ -1041,4 +1041,13 @@
     <string name="hide_podcasts_desc">YouTube-Podcasts und -Episoden beim Durchsuchen, Suchen und bei der Wiedergabe ausblenden (betrifft keine Open-RSS-Podcasts)</string>
     <string name="settings_seconds_value">%1$d Sekunden</string>
     <string name="settings_requires_enabled">Aktiviere %1$s, um diese Einstellung zu ändern</string>
+    <string name="lyrics_animation_metroverse">MetroVerse</string>
+    <string name="lyrics_animation_apple_music">Apple Music</string>
+    <string name="lyrics_progressive_blur">Progressive Lyrics-Unschärfe</string>
+    <string name="lyrics_progressive_blur_desc">Umgebende Zeilen sanft weichzeichnen, während die aktive Zeile und Quellenangaben am Ende klar bleiben</string>
+    <string name="lyrics_written_by">Geschrieben von %1$s</string>
+    <string name="lyrics_display_section">Anzeige</string>
+    <string name="lyrics_alignment_section">Ausrichtung</string>
+    <string name="lyrics_behavior_section">Verhalten</string>
+    <string name="lyrics_preview">Vorschau</string>
 </resources>

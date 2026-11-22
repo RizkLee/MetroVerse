@@ -1008,4 +1008,13 @@
     <string name="hide_podcasts_desc">閲覧、検索、再生から YouTube ポッドキャストとエピソードを非表示にします（Open RSS ポッドキャストには影響しません）</string>
     <string name="settings_seconds_value">%1$d 秒</string>
     <string name="settings_requires_enabled">この設定を変更するには %1$s を有効にしてください</string>
+    <string name="lyrics_animation_metroverse">MetroVerse</string>
+    <string name="lyrics_animation_apple_music">Apple Music</string>
+    <string name="lyrics_progressive_blur">段階的な歌詞のぼかし</string>
+    <string name="lyrics_progressive_blur_desc">再生中の行と末尾のクレジットを鮮明に保ったまま周囲の行を段階的にぼかします</string>
+    <string name="lyrics_written_by">作詞: %1$s</string>
+    <string name="lyrics_display_section">表示</string>
+    <string name="lyrics_alignment_section">配置</string>
+    <string name="lyrics_behavior_section">動作</string>
+    <string name="lyrics_preview">プレビュー</string>
 </resources>
