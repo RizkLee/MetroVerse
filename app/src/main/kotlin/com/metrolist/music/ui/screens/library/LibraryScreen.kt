@@ -17,6 +17,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
 import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,11 +30,15 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.metrolist.music.LocalNavController
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
+import com.metrolist.music.constants.AppUsageMode
+import com.metrolist.music.constants.AppUsageModeKey
 import com.metrolist.music.constants.ChipSortTypeKey
 import com.metrolist.music.constants.LibraryFilter
+import com.metrolist.music.constants.resolveAppUsageMode
 import com.metrolist.music.ui.component.ChipsRow
 import com.metrolist.music.utils.FullSyncResult
 import com.metrolist.music.utils.rememberEnumPreference
+import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.viewmodels.LibraryMixViewModel
 import com.metrolist.music.viewmodels.LibraryPodcastsViewModel
 import kotlinx.coroutines.CancellationException
@@ -48,7 +53,18 @@ fun LibraryScreen(
     podcastsViewModel: LibraryPodcastsViewModel = hiltViewModel(),
 ) {
     val navController = LocalNavController.current
-    var filterType by rememberEnumPreference(ChipSortTypeKey, LibraryFilter.LIBRARY)
+    val (appUsageModeRaw) = rememberPreference(AppUsageModeKey, AppUsageMode.MUSIC_AND_PODCASTS.name)
+    val usageMode = remember(appUsageModeRaw) { resolveAppUsageMode(appUsageModeRaw) }
+    val isPodcastsOnly = usageMode == AppUsageMode.PODCASTS_ONLY
+    var filterType by rememberEnumPreference(
+        ChipSortTypeKey,
+        if (isPodcastsOnly) LibraryFilter.PODCASTS else LibraryFilter.LIBRARY,
+    )
+    LaunchedEffect(isPodcastsOnly, filterType) {
+        if (isPodcastsOnly && filterType != LibraryFilter.PODCASTS) {
+            filterType = LibraryFilter.PODCASTS
+        }
+    }
     var isRefreshing by remember { mutableStateOf(false) }
     val refreshState = rememberPullToRefreshState()
     val scope = rememberCoroutineScope()
@@ -134,7 +150,12 @@ fun LibraryScreen(
             )
             LibraryFilter.PODCASTS -> LibraryPodcastsScreen(
                 navController = navController,
-                onDeselect = { filterType = LibraryFilter.LIBRARY },
+                onDeselect = {
+                    if (!isPodcastsOnly) {
+                        filterType = LibraryFilter.LIBRARY
+                    }
+                },
+                showCloseChip = !isPodcastsOnly,
                 viewModel = podcastsViewModel,
             )
         }

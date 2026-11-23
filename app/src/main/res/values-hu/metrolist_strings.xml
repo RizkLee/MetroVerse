@@ -47,7 +47,6 @@
     <string name="player_background_style">Lejátszó háttér stílus</string>
     <string name="follow_theme">Téma követése</string>
     <string name="gradient">Átmenet</string>
-    <string name="new_player_design">Új lejátszó design</string>
     <string name="player_background_blur">Homályosítás</string>
     <string name="player_buttons_style">Lejátszó gomb színek</string>
     <string name="default_style">Alapbeállítás</string>
@@ -119,7 +118,6 @@
     <string name="seek_forward_dynamic">+%1$d másodperccel előre</string>
     <string name="seek_seconds_addup">Progresszív keresés</string>
     <string name="seek_seconds_addup_description">Bekapcsolása esetén minden tekerésnél 5 mp-el előrébb teker</string>
-    <string name="new_mini_player_design">Új mini-lejátszó dizájn</string>
     <string name="disable_load_more_when_repeat_all">Automata betöltés letiltása az összes ismétlésekor</string>
     <string name="disable_load_more_when_repeat_all_desc">Ne töltsön be automatikusan több dalt és hasonló tartalmat, amikor a minden ismétlése be van kapcsolva</string>
     <string name="settings_section_privacy">Titoktartás &amp; Biztonság</string>
@@ -312,7 +310,6 @@
     <string name="hide_youtube_shorts">YouTube Short-ok elrejtése</string>
     <string name="equalizer_desc">Hangszínszabályzó megnyitása</string>
     <string name="mini_player">Mini-lejátszó</string>
-    <string name="pure_black_mini_player">OLED fekete mini-lejátszó</string>
     <string name="cache_size_warning_title">Várjon!</string>
     <string name="cache_size_warning_message">A kiválasztott %1$s határérték, kisebb mint amit a lejátszó jelenleg használ. Ha folytatja akkor a %2$s cache-lt adat törlésre kerülhet. Biztosan folytatja?</string>
     <string name="cache_size_warning_confirm">Tovább</string>
@@ -741,7 +738,6 @@
     <string name="alarm_exact_permission_desc">Az ébresztő megfelelő működéséhez engedélyezze, a háttérben való futás javítja a megbízhatóságot</string>
     <string name="alarm_battery_optimization_title">Akkumulátor optimalizálás</string>
     <string name="alarm_battery_optimization_desc">A stabilabb ébresztő működés érdekében kapcsolja ki az akkumulátor optimalizálást</string>
-    <string name="mini_player_background_not_available">Nem elérhető a kikapcsolt új mini-lejátszó stílus esetén</string>
     <string name="mini_player_background_style">Mini-lejátszó háttérstílusa</string>
     <string name="transparent">Átlátszó</string>
     <string name="your_daily_discover">A napi felfedezőtúra</string>

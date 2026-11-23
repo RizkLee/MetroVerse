@@ -106,7 +106,15 @@ object SongwritersExtractor {
             lower.contains("provid") ||
             lower.contains("dibawakan") ||
             lower.contains("diproduksi") ||
-            lower.contains("interpret")
+            lower.contains("interpret") ||
+            lower.contains("表演") ||
+            lower.contains("演出") ||
+            lower.contains("演唱") ||
+            lower.contains("制作") ||
+            lower.contains("製作") ||
+            lower.contains("提供") ||
+            lower.contains("来源") ||
+            lower.contains("來源")
         ) {
             return false
         }
@@ -131,10 +139,16 @@ object SongwritersExtractor {
             lower.contains("композитор") ||
             lower.contains("автор") ||
             lower.contains("تأليف") ||
+            lower.contains("词曲") ||
+            lower.contains("詞曲") ||
+            lower.contains("创作者") ||
+            lower.contains("創作者") ||
             lower.contains("作詞") ||
             lower.contains("作词") ||
             lower.contains("作曲") ||
+            lower.contains("作者") ||
             lower.contains("작사") ||
+            lower.contains("작곡") ||
             lower.contains("composer")
     }
 }

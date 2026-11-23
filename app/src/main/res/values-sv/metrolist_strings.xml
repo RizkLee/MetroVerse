@@ -101,8 +101,6 @@
     <string name="clear_downloads_dialog">Är du säker på att du vill rensa alla nedladdningar?</string>
     <string name="not_logged_in_youtube">Inte inloggad på YouTube</string>
     <string name="release_notes">Versionsinformation</string>
-    <string name="new_player_design">Ny spelardesign</string>
-    <string name="new_mini_player_design">Ny minispelardesign</string>
     <string name="uploaded_playlist">Uppladdade</string>
     <string name="filter_uploaded">Uppladdade</string>
     <string name="about_artist">Om artisten</string>

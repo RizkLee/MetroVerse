@@ -73,8 +73,6 @@
     <string name="player_background_style">รูปแบบพื้นหลังเครื่องเล่น</string>
     <string name="follow_theme">ตามธีมระบบ</string>
     <string name="gradient">ไล่ระดับสี</string>
-    <string name="new_player_design">ดีไซน์เครื่องเล่นใหม่</string>
-    <string name="new_mini_player_design">ดีไซน์มินิเพลเยอร์ใหม่</string>
     <string name="player_background_blur">เบลอพื้นหลัง</string>
     <string name="player_buttons_style">สีปุ่มเครื่องเล่น</string>
     <string name="default_style">ค่าเริ่มต้น</string>
@@ -240,7 +238,6 @@
     <string name="advanced_desc">ปรับความเร็วและคีย์เสียงของเพลง</string>
     <string name="equalizer_desc">เปิดอีควอไลเซอร์เสียง</string>
     <string name="mini_player">มินิเพลเยอร์</string>
-    <string name="pure_black_mini_player">มินิเพลเยอร์สีดำสนิท</string>
     <string name="cache_size_warning_title">เดี๋ยวก่อน!</string>
     <string name="cache_size_warning_message">คุณได้เลือกขีดจำกัดแคชที่น้อยกว่าที่แอปกำลังใช้อยู่ในขณะนี้ (%1$s) หากดำเนินการต่อ แอปอาจลบ %2$s บางส่วนที่ถูกแคชไว้เพื่อให้ตรงกับขีดจำกัดใหม่ ต้องการดำเนินการต่อหรือไม่?</string>
     <string name="cache_size_warning_confirm">ดำเนินการต่อ</string>
@@ -760,7 +757,6 @@
     <string name="varispeed_description">เชื่อมระดับเสียง (Pitch) กับความเร็วในการเล่น ทำให้เกิดเอฟเฟกต์เร่งหรือชะลอความเร็วแบบเทป</string>
     <string name="mini_player_background_style">รูปแบบพื้นหลังมินิเพลเยอร์</string>
     <string name="transparent">โปร่งใส</string>
-    <string name="mini_player_background_not_available">ไม่สามารถใช้งานได้เมื่อปิดดีไซน์มินิเพลเยอร์แบบใหม่</string>
     <string name="lyrics_animation_style_title">รูปแบบแอนิเมชันแบบคำต่อคำ</string>
     <string name="system_equalizer_desc">เปิดอีควอไลเซอร์ของระบบ Android</string>
     <string name="eq_wizard">ตัวช่วยตั้งค่า AutoEQ</string>

@@ -96,8 +96,6 @@
     <string name="likes">点赞</string>
     <string name="dislikes">倒赞</string>
     <string name="now_playing">正在播放</string>
-    <string name="new_player_design">新播放器设计</string>
-    <string name="new_mini_player_design">新迷你播放器设计</string>
     <string name="lyrics_auto_scroll">自动滚动歌词</string>
     <string name="lyrics_romanize_japanese">使用日文（罗马音）</string>
     <string name="lyrics_romanize_korean">使用韩文（罗马音）</string>
@@ -210,7 +208,6 @@
     <string name="advanced_desc">调整歌曲的节奏和音高</string>
     <string name="equalizer_desc">打开音频均衡器</string>
     <string name="mini_player">迷你播放器</string>
-    <string name="pure_black_mini_player">纯黑迷你播放器</string>
     <string name="cache_size_warning_title">且慢！</string>
     <string name="cache_size_warning_message">您选择的限制（%1$s）小于应用当前使用的限制。继续可能会导致部分已缓存的 %2$s 被移除。仍要继续？</string>
     <string name="cache_size_warning_confirm">继续</string>
@@ -860,7 +857,6 @@
     <string name="added_to_playlist">已添加到播放列表</string>
     <string name="mini_player_background_style">迷你播放器背景样式</string>
     <string name="transparent">透明</string>
-    <string name="mini_player_background_not_available">当新迷你播放器设计被禁用时不可用</string>
     <string name="your_daily_discover">您的每日发现</string>
     <string name="lyrics_animation_none">无</string>
     <string name="lyrics_from_provider">来自 %s 的歌词</string>
@@ -1126,7 +1122,6 @@
     <string name="lyrics_animation_metroverse">MetroVerse</string>
     <string name="lyrics_animation_apple_music">Apple Music</string>
     <string name="lyrics_progressive_blur">歌词渐进模糊</string>
-    <string name="lyrics_progressive_blur_desc">逐渐模糊远离当前行的歌词，同时保持正在演唱的行与末尾归属信息清晰</string>
     <string name="lyrics_written_by">作词：%1$s</string>
     <string name="lyrics_display_section">显示</string>
     <string name="lyrics_alignment_section">对齐</string>
@@ -1139,7 +1134,6 @@
     <string name="disable_animated_artwork_on_mobile_data">在移动数据下停用动态封面</string>
     <string name="disable_animated_artwork_on_mobile_data_desc">使用移动数据时始终显示静态封面，即使动态效果已缓存</string>
     <string name="animated_cover_resolution">动态封面质量</string>
-    <string name="animated_cover_resolution_desc">仅提供一种分辨率的视频片段会使用其原始分辨率</string>
     <string name="animated_cover_resolution_low">低 (360p)</string>
     <string name="animated_cover_resolution_medium">中等 (720p)</string>
     <string name="animated_cover_resolution_high">高 (1080p)</string>
@@ -1150,9 +1144,20 @@
     <string name="apple_music_artist_videos_title">Apple Music 艺人个人资料视频</string>
     <string name="apple_music_artist_videos_description">有可用内容时，在艺人页面播放 Apple Music 动态个人资料视频</string>
     <string name="apple_music_artist_video_quality_title">艺人个人资料视频画质</string>
-    <string name="apple_music_artist_video_quality_description">选择动态艺人个人资料视频的最高分辨率</string>
     <string name="animated_artwork_cache">动态图像缓存</string>
     <string name="max_animated_artwork_cache_size">动态图像缓存上限</string>
     <string name="clear_animated_artwork_cache">清除动态图像缓存</string>
     <string name="clear_animated_artwork_cache_dialog">清除所有已缓存的动态封面视频与艺人图像元数据吗？联网后需要重新加载。</string>
+    <string name="app_usage_mode">使用模式</string>
+    <string name="usage_mode_onboarding_title">选择 MetroVerse 的使用方式</string>
+    <string name="usage_mode_onboarding_subtitle">根据你的收听习惯选择界面模式。</string>
+    <string name="usage_mode_music_and_podcasts">音乐 + 播客</string>
+    <string name="usage_mode_music_and_podcasts_desc">收听来自 YouTube Music 的音乐，以及 YouTube 与 RSS 播客。</string>
+    <string name="usage_mode_podcasts_only">仅听播客</string>
+    <string name="usage_mode_podcasts_only_desc">自动隐藏底部导航栏中的“首页”按钮，并将曲库与搜索默认设为播客。</string>
+    <string name="usage_mode_youtube_music_region_note">提示：音乐音源来自 YouTube Music，在部分国家或地区可能无法访问。</string>
+    <string name="usage_mode_restore_in_settings_hint">如需收听音乐，你随时可以在“设置”中恢复“音乐 + 播客”模式。</string>
+    <string name="usage_mode_podcasts_only_enabled_notice">已启用“仅听播客”模式，你随时可在“设置”中恢复为“音乐 + 播客”。</string>
+    <string name="usage_mode_continue">继续</string>
+    <string name="lastfm_api_keys_missing">当前构建未配置 Last.fm API 密钥，暂无法登录。</string>
 </resources>

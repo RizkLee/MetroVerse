@@ -76,8 +76,6 @@
     <string name="player_background_solid">מלא</string>
     <string name="follow_theme">עפ\"י ערכת הנושא</string>
     <string name="gradient">הדרגה</string>
-    <string name="new_player_design">עיצוב נגן חדש</string>
-    <string name="new_mini_player_design">עיצוב נגן זעיר חדש</string>
     <string name="player_background_blur">טשטוש</string>
     <string name="player_buttons_style">צבעי פקדי הנגן</string>
     <string name="auto_scroll">סנכרון מחדש</string>
@@ -332,7 +330,6 @@
     <string name="advanced_desc">שינוי הקצב והגובה של השיר</string>
     <string name="equalizer_desc">כוונון אקולייזר השמע</string>
     <string name="mini_player">מיני נגן</string>
-    <string name="pure_black_mini_player">מיני-נגן שחור טהור</string>
     <string name="cache_size_warning_title">אחיזה!</string>
     <string name="cache_size_warning_message">בחרת מגבלת גודל מטמון קטנה יותר מזו שהאפליקציה משתמשת בה כעת (%1$s). אם תמשיך, האפליקציה עשויה להסיר חלק מה-%2$s המאוחסנים במטמון כדי להתאים למגבלה החדשה. להמשיך בכל זאת?</string>
     <string name="cache_size_warning_confirm">להמשיך</string>
@@ -536,7 +533,6 @@
     <string name="ai_provider">ספק</string>
     <string name="alarm_disabled">מושבת</string>
     <string name="transparent">שקוף</string>
-    <string name="mini_player_background_not_available">לא זמין כאשר מיני נגן חדש מושבת</string>
     <string name="wrapped_close">סגור עטיפה</string>
     <string name="import_profile">ייבוא פרופיל</string>
     <string name="your_daily_discover">הסקירה היומית שלך</string>

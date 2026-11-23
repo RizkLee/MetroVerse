@@ -62,8 +62,11 @@ class SongwritersExtractorTest {
     @Test
     fun `supports popup fallback structure and localized writer titles`() {
         val localizedHeadings = listOf(
+            "词曲作者" to "Fang Wenshan",
+            "詞曲作者" to "Jay Chou",
             "作词" to "Lin Xi",
             "作詞" to "Yonezu Kenshi",
+            "작곡" to "IU",
             "Geschrieben von" to "Hans Zimmer",
             "Écrit par" to "Clara Luciani",
             "Авторы" to "Viktor Tsoi",

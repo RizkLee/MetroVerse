@@ -23,6 +23,7 @@ enum class PresenceStatus(val wire: String) {
 data class ActivityPayload(
     val name: String = "",
     val type: Int,
+    val applicationId: String? = null,
     val details: String? = null,
     val state: String? = null,
     val url: String? = null,
@@ -36,10 +37,16 @@ data class ActivityPayload(
 )
 
 object DiscordPresence {
+    private const val MAX_ACTIVITY_TEXT_CODE_UNITS = 128
+    private const val MAX_ACTIVITY_URL_CODE_UNITS = 512
+    private const val MAX_ASSET_IMAGE_CODE_UNITS = 313
+    private const val MAX_BUTTON_LABEL_CODE_UNITS = 32
+    private const val MAX_ACTIVITY_BUTTONS = 2
 
     fun buildActivity(
         name: String = "",
         type: ActivityType,
+        applicationId: String? = null,
         details: String? = null,
         state: String? = null,
         url: String? = null,
@@ -53,6 +60,7 @@ object DiscordPresence {
     ): ActivityPayload = ActivityPayload(
         name = name,
         type = type.code,
+        applicationId = applicationId,
         details = details,
         state = state,
         url = url,
@@ -93,11 +101,13 @@ object DiscordPresence {
 
     private fun activityToJson(activity: ActivityPayload): JSONObject {
         val obj = JSONObject()
-        obj.put("name", activity.name)
+        obj.put("name", activity.name.truncateDiscordField(MAX_ACTIVITY_TEXT_CODE_UNITS))
         obj.put("type", activity.type)
-        activity.details?.let { obj.put("details", it) }
-        activity.state?.let { obj.put("state", it) }
-        activity.url?.let { obj.put("url", it) }
+        activity.applicationId?.let { obj.put("application_id", it) }
+        obj.put("created_at", System.currentTimeMillis())
+        activity.details?.let { obj.put("details", it.truncateDiscordField(MAX_ACTIVITY_TEXT_CODE_UNITS)) }
+        activity.state?.let { obj.put("state", it.truncateDiscordField(MAX_ACTIVITY_TEXT_CODE_UNITS)) }
+        activity.url.takeIfWithinDiscordFieldLimit(MAX_ACTIVITY_URL_CODE_UNITS)?.let { obj.put("url", it) }
 
         if (activity.startMs != null || activity.endMs != null) {
             val timestamps = JSONObject()
@@ -109,21 +119,31 @@ object DiscordPresence {
         // Include assets block when image paths are available.
         // These should be resolved via POST /api/v9/applications/{id}/external-assets
         // to get mp:external/<hash> references that Discord's Gateway accepts.
-        if (activity.largeImage != null || activity.smallImage != null) {
+        val largeImage = activity.largeImage.takeIfWithinDiscordFieldLimit(MAX_ASSET_IMAGE_CODE_UNITS)
+        val smallImage = activity.smallImage.takeIfWithinDiscordFieldLimit(MAX_ASSET_IMAGE_CODE_UNITS)
+        if (largeImage != null || smallImage != null) {
             val assets = JSONObject()
-            activity.largeImage?.let { assets.put("large_image", it) }
-            activity.largeText?.let { assets.put("large_text", it) }
-            activity.smallImage?.let { assets.put("small_image", it) }
-            activity.smallText?.let { assets.put("small_text", it) }
+            largeImage?.let { assets.put("large_image", it) }
+            activity.largeText?.let { assets.put("large_text", it.truncateDiscordField(MAX_ACTIVITY_TEXT_CODE_UNITS)) }
+            smallImage?.let { assets.put("small_image", it) }
+            activity.smallText?.let { assets.put("small_text", it.truncateDiscordField(MAX_ACTIVITY_TEXT_CODE_UNITS)) }
             obj.put("assets", assets)
         }
 
         // In Gateway op 3 PRESENCE_UPDATE, buttons is string[] (labels only).
         // URLs are sent in metadata.button_urls so buttons are clickable.
-        if (activity.buttons.isNotEmpty()) {
+        val validButtons =
+            activity.buttons
+                .take(MAX_ACTIVITY_BUTTONS)
+                .mapNotNull { (label, url) ->
+                    url.takeIfWithinDiscordFieldLimit(MAX_ACTIVITY_URL_CODE_UNITS)?.let { safeUrl ->
+                        label.truncateDiscordField(MAX_BUTTON_LABEL_CODE_UNITS) to safeUrl
+                    }
+                }
+        if (validButtons.isNotEmpty()) {
             val arr = JSONArray()
             val urlArr = JSONArray()
-            activity.buttons.forEach { (label, url) ->
+            validButtons.forEach { (label, url) ->
                 arr.put(label)
                 if (url.isNotEmpty()) urlArr.put(url)
             }
@@ -136,6 +156,16 @@ object DiscordPresence {
         }
 
         return obj
+    }
+
+    private fun String?.takeIfWithinDiscordFieldLimit(maxCodeUnits: Int): String? =
+        this?.takeIf { it.length <= maxCodeUnits }
+
+    private fun String.truncateDiscordField(maxCodeUnits: Int): String {
+        if (length <= maxCodeUnits) return this
+        // Discord validates lengths by UTF-16 code units; avoid splitting a surrogate pair.
+        val end = if (this[maxCodeUnits - 1] in '\uD800'..'\uDBFF') maxCodeUnits - 1 else maxCodeUnits
+        return substring(0, end)
     }
 
     private const val TAG = "DiscordSvc"

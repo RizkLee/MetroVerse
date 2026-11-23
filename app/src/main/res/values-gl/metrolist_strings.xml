@@ -75,8 +75,6 @@
     <string name="player_background_solid">Sólido</string>
     <string name="follow_theme">Seguir tema</string>
     <string name="gradient">Gradación</string>
-    <string name="new_player_design">Novo deseño do reprodutor</string>
-    <string name="new_mini_player_design">Novo deseño do minirreprodutor</string>
     <string name="player_buttons_style">Cores dos botóns do reprodutor</string>
     <string name="default_style">Predeterminado</string>
     <string name="primary_color_style">Cor primaria</string>
@@ -222,10 +220,8 @@
     <string name="advanced_desc">Axustar o tempo e o ton desta canción</string>
     <string name="equalizer_desc">Abrir o ecualizador de audio</string>
     <string name="mini_player">Minirreprodutor</string>
-    <string name="pure_black_mini_player">Minirreprodutor negro puro</string>
     <string name="mini_player_background_style">Estilo do fondo do minirreprodutor</string>
     <string name="transparent">Transparente</string>
-    <string name="mini_player_background_not_available">Non dispoñible cando o novo deseño do minirreprodutor está desactivado</string>
     <string name="cache_size_warning_title">Agarde!</string>
     <string name="cache_size_warning_message">O límite que escolliches (%1$s) é menor que o que está a usar actualmente a aplicación. Se continúas pode que se eliminen %2$s almacenados na caché. Queres continuar igualmente?</string>
     <string name="cache_size_warning_confirm">Continuar</string>

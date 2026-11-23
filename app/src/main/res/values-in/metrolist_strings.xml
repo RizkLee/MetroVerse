@@ -68,7 +68,6 @@
     <string name="dislike_all">Tidak sukai semua</string>
     <string name="follow_theme">Ikuti tema</string>
     <string name="gradient">Gradien</string>
-    <string name="new_player_design">Desain pemutar musik baru</string>
     <string name="player_background_blur">Buram</string>
     <string name="player_buttons_style">Warna tombol pemutar musik</string>
     <string name="default_style">Default</string>
@@ -110,7 +109,6 @@
     <plurals name="seconds">
         <item quantity="other">%d detik</item>
     </plurals>
-    <string name="new_mini_player_design">Desain mini-player baru</string>
     <string name="close">Tutup</string>
     <string name="seek_forward_dynamic">+%1$d detik</string>
     <string name="seek_backward_dynamic">-%1$d detik</string>
@@ -189,7 +187,6 @@
     <string name="advanced_desc">Sesuaikan tempo dan nada lagu</string>
     <string name="equalizer_desc">Buka ekualiser audio</string>
     <string name="mini_player">Pemutar mini</string>
-    <string name="pure_black_mini_player">Pemutar mini berwarna hitam murni</string>
     <string name="cache_size_warning_title">Tunggu dulu!</string>
     <string name="cache_size_warning_message">Batas yang Anda pilih (%1$s) lebih kecil dari yang sedang digunakan aplikasi. Melanjutkan dapat menyebabkan beberapa %2$s yang tersimpan dihapus. Lanjutkan saja?</string>
     <string name="cache_size_warning_confirm">Lanjutkan</string>
@@ -769,7 +766,6 @@
     <string name="respect_agent_positioning_desc">Sejajarkan lirik berdasarkan peran agen (mis. vokal latar)</string>
     <string name="mini_player_background_style">Gaya latar belakang mini-player</string>
     <string name="transparent">Transparan</string>
-    <string name="mini_player_background_not_available">Tidak tersedia saat desain mini-player baru dinonaktifkan</string>
     <string name="lyrics_animation_style_title">Gaya animasi kata per kata</string>
     <string name="your_daily_discover">Temuan harian Anda</string>
     <string name="ai_system_prompt_placeholder">Gunakan {lineCount} sebagai placeholder untuk jumlah baris yang akan diterjemahkan</string>

@@ -60,7 +60,6 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -103,7 +102,6 @@ import com.metrolist.music.R
 import com.metrolist.music.constants.ListItemHeight
 import com.metrolist.music.constants.PlayerBackgroundStyle
 import com.metrolist.music.constants.QueueEditLockKey
-import com.metrolist.music.constants.UseNewPlayerDesignKey
 import com.metrolist.music.extensions.metadata
 import com.metrolist.music.extensions.move
 import com.metrolist.music.extensions.toggleRepeatMode
@@ -221,12 +219,6 @@ fun Queue(
 
     var locked by rememberPreference(QueueEditLockKey, defaultValue = true)
 
-    val (useNewPlayerDesign, onUseNewPlayerDesignChange) =
-        rememberPreference(
-            UseNewPlayerDesignKey,
-            defaultValue = true,
-        )
-
     val snackbarHostState = remember { SnackbarHostState() }
     var dismissJob: Job? by remember { mutableStateOf(null) }
 
@@ -253,297 +245,180 @@ fun Queue(
             Box(Modifier.fillMaxSize().background(Color.Unspecified))
         },
         collapsedContent = {
-            if (useNewPlayerDesign) {
-                // New design
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 30.dp, vertical = 12.dp)
-                            .windowInsetsPadding(
-                                WindowInsets.systemBars.only(
-                                    WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal,
-                                ),
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 30.dp, vertical = 12.dp)
+                        .windowInsetsPadding(
+                            WindowInsets.systemBars.only(
+                                WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal,
                             ),
-                ) {
-                    val buttonSize = 42.dp
-                    val iconSize = 24.dp
-                    val queueShape =
-                        RoundedCornerShape(
-                            topStart = 50.dp,
-                            bottomStart = 50.dp,
-                            topEnd = 3.dp,
-                            bottomEnd = 3.dp,
-                        )
-                    val middleShape = RoundedCornerShape(3.dp)
-                    val repeatShape =
-                        RoundedCornerShape(
-                            topStart = 3.dp,
-                            bottomStart = 3.dp,
-                            topEnd = 50.dp,
-                            bottomEnd = 50.dp,
-                        )
-
-                    PlayerQueueButton(
-                        icon = R.drawable.queue_music,
-                        onClick = { state.expandSoft() },
-                        isActive = false,
-                        shape = queueShape,
-                        modifier = Modifier.size(buttonSize),
-                        textButtonColor = textButtonColor,
-                        iconButtonColor = iconButtonColor,
-                        iconSize = iconSize,
-                        textBackgroundColor = TextBackgroundColor,
-                        playerBackground = playerBackground,
+                        ),
+            ) {
+                val buttonSize = 42.dp
+                val iconSize = 24.dp
+                val queueShape =
+                    RoundedCornerShape(
+                        topStart = 50.dp,
+                        bottomStart = 50.dp,
+                        topEnd = 3.dp,
+                        bottomEnd = 3.dp,
+                    )
+                val middleShape = RoundedCornerShape(3.dp)
+                val repeatShape =
+                    RoundedCornerShape(
+                        topStart = 3.dp,
+                        bottomStart = 3.dp,
+                        topEnd = 50.dp,
+                        bottomEnd = 50.dp,
                     )
 
-                    PlayerQueueButton(
-                        icon = queueModeIcon,
-                        onClick = ::cycleQueuePlaybackMode,
-                        contentDescription = queueModeLabel,
-                        isActive = queuePlaybackMode != QueuePlaybackMode.SEQUENTIAL,
-                        enabled = !isListenTogetherGuest,
-                        shape = middleShape,
-                        modifier = Modifier.size(buttonSize),
-                        textButtonColor = textButtonColor,
-                        iconButtonColor = iconButtonColor,
-                        iconSize = iconSize,
-                        textBackgroundColor = TextBackgroundColor,
-                        playerBackground = playerBackground,
-                    )
+                PlayerQueueButton(
+                    icon = R.drawable.queue_music,
+                    onClick = { state.expandSoft() },
+                    isActive = false,
+                    shape = queueShape,
+                    modifier = Modifier.size(buttonSize),
+                    textButtonColor = textButtonColor,
+                    iconButtonColor = iconButtonColor,
+                    iconSize = iconSize,
+                    textBackgroundColor = TextBackgroundColor,
+                    playerBackground = playerBackground,
+                )
 
-                    if (lyricsEnabled) {
-                        PlayerQueueButton(
-                            icon =
-                                when (repeatMode) {
-                                    Player.REPEAT_MODE_ALL -> R.drawable.repeat
-                                    Player.REPEAT_MODE_ONE -> R.drawable.repeat_one
-                                    else -> R.drawable.repeat
-                                },
-                            onClick = {
-                                playerConnection.player.toggleRepeatMode()
+                PlayerQueueButton(
+                    icon = queueModeIcon,
+                    onClick = ::cycleQueuePlaybackMode,
+                    contentDescription = queueModeLabel,
+                    isActive = queuePlaybackMode != QueuePlaybackMode.SEQUENTIAL,
+                    enabled = !isListenTogetherGuest,
+                    shape = middleShape,
+                    modifier = Modifier.size(buttonSize),
+                    textButtonColor = textButtonColor,
+                    iconButtonColor = iconButtonColor,
+                    iconSize = iconSize,
+                    textBackgroundColor = TextBackgroundColor,
+                    playerBackground = playerBackground,
+                )
+
+                if (lyricsEnabled) {
+                    PlayerQueueButton(
+                        icon =
+                            when (repeatMode) {
+                                Player.REPEAT_MODE_ALL -> R.drawable.repeat
+                                Player.REPEAT_MODE_ONE -> R.drawable.repeat_one
+                                else -> R.drawable.repeat
                             },
-                            isActive = repeatMode != Player.REPEAT_MODE_OFF,
-                            enabled = !isListenTogetherGuest,
-                            shape = middleShape,
-                            modifier = Modifier.size(buttonSize),
-                            textButtonColor = textButtonColor,
-                            iconButtonColor = iconButtonColor,
-                            iconSize = iconSize,
-                            textBackgroundColor = TextBackgroundColor,
-                            playerBackground = playerBackground,
-                        )
-                    } else {
-                        // Podcast episodes: use speed in place of repeat.
-                        PlayerQueueButton(
-                            icon = R.drawable.speed,
-                            onClick = { showPlaybackSpeedSheet = true },
-                            isActive = playerConnection.player.playbackParameters.speed != 1f,
-                            shape = middleShape,
-                            modifier = Modifier.size(buttonSize),
-                            textButtonColor = textButtonColor,
-                            iconButtonColor = iconButtonColor,
-                            iconSize = iconSize,
-                            textBackgroundColor = TextBackgroundColor,
-                            playerBackground = playerBackground,
-                        )
-                    }
-
-                    PlayerQueueButton(
-                        icon = R.drawable.bedtime,
-                        onClick = { showSleepTimerDialog = true },
-                        isActive = sleepTimerEnabled,
+                        onClick = {
+                            playerConnection.player.toggleRepeatMode()
+                        },
+                        isActive = repeatMode != Player.REPEAT_MODE_OFF,
                         enabled = !isListenTogetherGuest,
                         shape = middleShape,
                         modifier = Modifier.size(buttonSize),
                         textButtonColor = textButtonColor,
                         iconButtonColor = iconButtonColor,
-                        text = if (sleepTimerEnabled) makeTimeString(sleepTimerTimeLeft) else null,
                         iconSize = iconSize,
                         textBackgroundColor = TextBackgroundColor,
                         playerBackground = playerBackground,
                     )
-
-                    if (lyricsEnabled) {
-                        PlayerQueueButton(
-                            icon = R.drawable.lyrics,
-                            onClick = { onToggleLyrics() },
-                            isActive = showInlineLyrics,
-                            iconOffsetX = (-2).dp,
-                            shape = repeatShape,
-                            modifier = Modifier.size(buttonSize),
-                            textButtonColor = textButtonColor,
-                            iconButtonColor = iconButtonColor,
-                            iconSize = iconSize,
-                            textBackgroundColor = TextBackgroundColor,
-                            playerBackground = playerBackground,
-                        )
-                    } else {
-                        // Podcast episodes: the lyrics slot becomes the subtitle toggle.
-                        PlayerQueueButton(
-                            icon = R.drawable.subtitles,
-                            onClick = onTogglePodcastSubtitles,
-                            isActive = podcastSubtitlesActive,
-                            iconOffsetX = (-2).dp,
-                            shape = repeatShape,
-                            modifier = Modifier.size(buttonSize),
-                            textButtonColor = textButtonColor,
-                            iconButtonColor = iconButtonColor,
-                            iconSize = iconSize,
-                            textBackgroundColor = TextBackgroundColor,
-                            playerBackground = playerBackground,
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    Box(
-                        modifier =
-                            Modifier
-                                .size(buttonSize)
-                                .clip(CircleShape)
-                                .background(textButtonColor)
-                                .clickable {
-                                    menuState.show {
-                                        PlayerMenu(
-                                            mediaMetadata = mediaMetadata,
-                                            playerBottomSheetState = playerBottomSheetState,
-                                            onShowDetailsDialog = {
-                                                mediaMetadata?.id?.let {
-                                                    bottomSheetPageState.show {
-                                                        ShowMediaInfo(it)
-                                                    }
-                                                }
-                                            },
-                                            onDismiss = menuState::dismiss,
-                                        )
-                                    }
-                                },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.more_vert),
-                            contentDescription = null,
-                            modifier = Modifier.size(iconSize),
-                            tint = iconButtonColor,
-                        )
-                    }
+                } else {
+                    // Podcast episodes: use speed in place of repeat.
+                    PlayerQueueButton(
+                        icon = R.drawable.speed,
+                        onClick = { showPlaybackSpeedSheet = true },
+                        isActive = playerConnection.player.playbackParameters.speed != 1f,
+                        shape = middleShape,
+                        modifier = Modifier.size(buttonSize),
+                        textButtonColor = textButtonColor,
+                        iconButtonColor = iconButtonColor,
+                        iconSize = iconSize,
+                        textBackgroundColor = TextBackgroundColor,
+                        playerBackground = playerBackground,
+                    )
                 }
-            } else {
-                // Old design
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+
+                PlayerQueueButton(
+                    icon = R.drawable.bedtime,
+                    onClick = { showSleepTimerDialog = true },
+                    isActive = sleepTimerEnabled,
+                    enabled = !isListenTogetherGuest,
+                    shape = middleShape,
+                    modifier = Modifier.size(buttonSize),
+                    textButtonColor = textButtonColor,
+                    iconButtonColor = iconButtonColor,
+                    text = if (sleepTimerEnabled) makeTimeString(sleepTimerTimeLeft) else null,
+                    iconSize = iconSize,
+                    textBackgroundColor = TextBackgroundColor,
+                    playerBackground = playerBackground,
+                )
+
+                if (lyricsEnabled) {
+                    PlayerQueueButton(
+                        icon = R.drawable.lyrics,
+                        onClick = { onToggleLyrics() },
+                        isActive = showInlineLyrics,
+                        iconOffsetX = (-2).dp,
+                        shape = repeatShape,
+                        modifier = Modifier.size(buttonSize),
+                        textButtonColor = textButtonColor,
+                        iconButtonColor = iconButtonColor,
+                        iconSize = iconSize,
+                        textBackgroundColor = TextBackgroundColor,
+                        playerBackground = playerBackground,
+                    )
+                } else {
+                    // Podcast episodes: the lyrics slot becomes the subtitle toggle.
+                    PlayerQueueButton(
+                        icon = R.drawable.subtitles,
+                        onClick = onTogglePodcastSubtitles,
+                        isActive = podcastSubtitlesActive,
+                        iconOffsetX = (-2).dp,
+                        shape = repeatShape,
+                        modifier = Modifier.size(buttonSize),
+                        textButtonColor = textButtonColor,
+                        iconButtonColor = iconButtonColor,
+                        iconSize = iconSize,
+                        textBackgroundColor = TextBackgroundColor,
+                        playerBackground = playerBackground,
+                    )
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                Box(
                     modifier =
                         Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 30.dp, vertical = 12.dp)
-                            .windowInsetsPadding(
-                                WindowInsets.systemBars
-                                    .only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal),
-                            ),
-                ) {
-                    TextButton(
-                        onClick = { state.expandSoft() },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.queue_music),
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = TextBackgroundColor,
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = stringResource(id = R.string.queue),
-                                color = TextBackgroundColor,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.basicMarquee(),
-                            )
-                        }
-                    }
-
-                    TextButton(
-                        enabled = !isListenTogetherGuest,
-                        onClick = {
-                            if (!isListenTogetherGuest) showSleepTimerDialog = true
-                        },
-                        modifier = Modifier.weight(1.2f),
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.bedtime),
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = TextBackgroundColor,
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            AnimatedContent(
-                                label = "sleepTimer",
-                                targetState = sleepTimerEnabled,
-                            ) { enabled ->
-                                if (enabled) {
-                                    Text(
-                                        text = makeTimeString(sleepTimerTimeLeft),
-                                        color = TextBackgroundColor,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        textAlign = TextAlign.Center,
-                                        modifier = Modifier.basicMarquee(),
-                                    )
-                                } else {
-                                    Text(
-                                        text = stringResource(id = R.string.sleep_timer),
-                                        color = TextBackgroundColor,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        textAlign = TextAlign.Center,
-                                        modifier = Modifier.basicMarquee(),
+                            .size(buttonSize)
+                            .clip(CircleShape)
+                            .background(textButtonColor)
+                            .clickable {
+                                menuState.show {
+                                    PlayerMenu(
+                                        mediaMetadata = mediaMetadata,
+                                        playerBottomSheetState = playerBottomSheetState,
+                                        onShowDetailsDialog = {
+                                            mediaMetadata?.id?.let {
+                                                bottomSheetPageState.show {
+                                                    ShowMediaInfo(it)
+                                                }
+                                            }
+                                        },
+                                        onDismiss = menuState::dismiss,
                                     )
                                 }
-                            }
-                        }
-                    }
-
-                    TextButton(
-                        onClick = if (lyricsEnabled) onToggleLyrics else onTogglePodcastSubtitles,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Icon(
-                                painter = painterResource(id = if (lyricsEnabled) R.drawable.lyrics else R.drawable.subtitles),
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = TextBackgroundColor,
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = stringResource(if (lyricsEnabled) R.string.lyrics else R.string.podcast_subtitles),
-                                color = TextBackgroundColor,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.basicMarquee(),
-                            )
-                        }
-                    }
+                            },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.more_vert),
+                        contentDescription = null,
+                        modifier = Modifier.size(iconSize),
+                        tint = iconButtonColor,
+                    )
                 }
             }
 

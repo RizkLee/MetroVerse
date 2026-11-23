@@ -3186,9 +3186,8 @@ object YouTube {
                     ?.text
             val items =
                 playlistPanelRenderer.contents.mapNotNull { content ->
-                    content.playlistPanelVideoRenderer
-                        ?.let(NextPage::fromPlaylistPanelVideoRenderer)
-                        ?.let { it to content.playlistPanelVideoRenderer.selected }
+                    val renderer = content.resolvedVideoRenderer() ?: return@mapNotNull null
+                    NextPage.fromPlaylistPanelVideoRenderer(renderer)?.let { it to renderer.selected }
                 }
             val songs = items.map { it.first }
             val currentIndex = items.indexOfFirst { it.second }.takeIf { it != -1 }
@@ -3337,7 +3336,7 @@ object YouTube {
                 .body<GetQueueResponse>()
                 .queueDatas
                 .mapNotNull {
-                    it.content.playlistPanelVideoRenderer?.let { renderer ->
+                    it.content.resolvedVideoRenderer()?.let { renderer ->
                         NextPage.fromPlaylistPanelVideoRenderer(renderer)
                     }
                 }

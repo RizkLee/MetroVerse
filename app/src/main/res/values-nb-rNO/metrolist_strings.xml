@@ -96,8 +96,6 @@
     <string name="seek_backward_dynamic">-%1$d sekunder bakover</string>
     <string name="seek_seconds_addup">Progressiv spoling</string>
     <string name="seek_seconds_addup_description">Dersom aktivert legges 5 ekstra sekunder til inkrementalt for hvert hopp</string>
-    <string name="new_player_design">Nytt spillerdesign</string>
-    <string name="new_mini_player_design">Ny minispillerdesign</string>
     <string name="primary_color_style">Primær farge</string>
     <string name="tertiary_color_style">Tertiær farge</string>
     <string name="wavy">Bølgete</string>

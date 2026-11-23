@@ -87,7 +87,6 @@
     <string name="enable_swipe_thumbnail">Разреши плъзгането за смяна на песента</string>
     <string name="swipe_song_to_add">Плъзнете песента наляво, за да я добавите към опашката, или надясно, за да я пуснете следваща</string>
     <string name="slim">Тесен</string>
-    <string name="new_player_design">Нов дизайн на плеъра</string>
     <string name="enable_similar_content">Показвай подобно съдържание</string>
     <string name="similar_content_desc">Автоматично добавяне на подобни песни при достигане на края на опашката</string>
     <string name="import_online">Импортиране на M3U плейлисти</string>
@@ -111,7 +110,6 @@
     <string name="history_duration">Продължителност на историята</string>
     <string name="subscribe">Абонирай се</string>
     <string name="subscribed">Абониран</string>
-    <string name="new_mini_player_design">Нов дизайн на мини плеъра</string>
     <string name="now_playing">Сега слушате</string>
     <string name="close">Затвори</string>
     <string name="hide_player_thumbnail_desc">Заменете корицата на албума с логото на приложението в плеъра</string>
@@ -350,10 +348,8 @@
     <string name="add_to_queue_desc">Добави в края на опашката</string>
     <string name="add_to_playlist_desc">Добави в плейлист</string>
     <string name="mini_player">Мини-плейър</string>
-    <string name="pure_black_mini_player">Чисто черен мини-плейър</string>
     <string name="mini_player_background_style">Стила на фона на мини-плейъра</string>
     <string name="transparent">Прозрачен</string>
-    <string name="mini_player_background_not_available">Не работи когато новият дизайн ма мини-плейърът е изключен</string>
     <string name="cache_size_warning_title">Внимание!</string>
     <string name="cache_size_warning_message">Лимитът, който сте избрали (%1$s), е по-малък от използвания в момента от приложението. Продължаването може да доведе до премахването на някои кеширани %2$s. Продължаване?</string>
     <string name="cache_size_warning_confirm">Продължаване</string>

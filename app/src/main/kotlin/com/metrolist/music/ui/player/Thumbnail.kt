@@ -6,6 +6,12 @@
 package com.metrolist.music.ui.player
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.BoundsTransform
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -81,6 +87,7 @@ import com.metrolist.music.artwork.isAnimatedArtworkAllowedOnNetwork
 import com.metrolist.music.artwork.isEligibleForAnimatedCover
 import com.metrolist.music.constants.AnimatedCoverResolution
 import com.metrolist.music.constants.AnimatedCoverResolutionKey
+import com.metrolist.music.constants.AppLanguageKey
 import com.metrolist.music.constants.ContentCountryKey
 import com.metrolist.music.constants.ContentLanguageKey
 import com.metrolist.music.constants.CropAlbumArtKey
@@ -208,7 +215,7 @@ private fun getTextColor(playerBackground: PlayerBackgroundStyle): Color {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun Thumbnail(
     sliderPositionProvider: () -> Long?,
@@ -216,6 +223,8 @@ fun Thumbnail(
     isPlayerExpanded: () -> Boolean = { true },
     isLandscape: Boolean = false,
     isListenTogetherGuest: Boolean = false,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val context = LocalContext.current
@@ -244,9 +253,10 @@ fun Thumbnail(
     )
     val contentCountry by rememberPreference(ContentCountryKey, SYSTEM_DEFAULT)
     val contentLanguage by rememberPreference(ContentLanguageKey, SYSTEM_DEFAULT)
+    val appLanguage by rememberPreference(AppLanguageKey, SYSTEM_DEFAULT)
     val isCellularState = networkConnectivityObserver?.isCellular?.collectAsStateWithLifecycle()
     val isCellular = isCellularState?.value == true
-    val isExpanded by remember { derivedStateOf { isPlayerExpanded() } }
+    val isExpanded by remember(isPlayerExpanded) { derivedStateOf { isPlayerExpanded() } }
     val animatedCoverAllowed =
         enableAnimatedCovers &&
             !hidePlayerThumbnail &&
@@ -266,6 +276,7 @@ fun Thumbnail(
         animatedCoverResolution,
         contentCountry,
         contentLanguage,
+        appLanguage,
         animatedArtworkService,
     ) {
         animatedCoverUrl = null
@@ -368,8 +379,11 @@ fun Thumbnail(
     Box(
         modifier = modifier
             .graphicsLayer {
-                // Use hardware layer for entire Thumbnail to ensure smooth 120Hz animations
-                compositingStrategy = CompositingStrategy.Offscreen
+                // Use hardware layer for entire Thumbnail to ensure smooth 120Hz animations;
+                // disable Offscreen compositing when shared element transition is active so it can cross layers.
+                if (sharedTransitionScope == null) {
+                    compositingStrategy = CompositingStrategy.Offscreen
+                }
             }
     ) {
         // Error view
@@ -481,6 +495,8 @@ fun Thumbnail(
                                 isAnimatedCoverActive = isExpanded && !hidePlayerThumbnail && animatedCoverAllowed,
                                 isAnimatedCoverPlaying = isExpanded && !isCarouselScrolling,
                                 onAnimatedCoverError = { failedAnimatedCoverUrl = it },
+                                sharedTransitionScope = sharedTransitionScope,
+                                animatedVisibilityScope = animatedVisibilityScope,
                             )
                         }
                     }
@@ -582,11 +598,23 @@ private fun ThumbnailItem(
     isAnimatedCoverActive: Boolean = false,
     isAnimatedCoverPlaying: Boolean = false,
     onAnimatedCoverError: (String) -> Unit = {},
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null,
     modifier: Modifier = Modifier,
 ) {
     val incrementalSeekSkipEnabled by rememberPreference(SeekExtraSeconds, defaultValue = false)
     var skipMultiplier by remember { mutableIntStateOf(1) }
     var lastTapTime by remember { mutableLongStateOf(0L) }
+    val artworkShape = RoundedCornerShape(dimensions.cornerRadius)
+    val albumArtBoundsTransform =
+        remember {
+            BoundsTransform { _, _ ->
+                spring(
+                    stiffness = Spring.StiffnessMediumLow,
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                )
+            }
+        }
 
     Box(
         modifier = modifier
@@ -601,8 +629,11 @@ private fun ThumbnailItem(
             )
             .padding(horizontal = PlayerHorizontalPadding)
             .graphicsLayer {
-                // Render entire thumbnail item on separate hardware layer for smooth animations
-                compositingStrategy = CompositingStrategy.Offscreen
+                // Render entire thumbnail item on separate hardware layer for smooth animations;
+                // disable Offscreen compositing when shared element transition is active so it can cross layers.
+                if (sharedTransitionScope == null) {
+                    compositingStrategy = CompositingStrategy.Offscreen
+                }
             }
             .pointerInput(Unit) {
                 detectTapGestures(
@@ -637,41 +668,60 @@ private fun ThumbnailItem(
             },
         contentAlignment = Alignment.Center
     ) {
-        Box(
-            modifier = Modifier
-                .size(dimensions.thumbnailSize)
-                .clip(RoundedCornerShape(dimensions.cornerRadius))
-        ) {
-            if (hidePlayerThumbnail) {
-                HiddenThumbnailPlaceholder(textBackgroundColor = textBackgroundColor)
-            } else {
-                val artworkUriToUse = if (item.mediaId == currentMediaId && !currentMediaThumbnail.isNullOrBlank()) {
-                    currentMediaThumbnail
-                } else {
-                    item.mediaMetadata.artworkUri?.toString()
-                }
-
-                ThumbnailImage(
-                    artworkUri = artworkUriToUse,
-                    cropArtwork = cropAlbumArt
-                )
-
-                val activeCoverVideoUrl =
-                    if (item.mediaId == currentMediaId && isAnimatedCoverActive) animatedCoverUrl else null
-                if (activeCoverVideoUrl != null) {
-                    AnimatedCoverVideo(
-                        url = activeCoverVideoUrl,
-                        priority = ArtworkVideoPriority.PLAYER,
-                        active = true,
-                        playing = isAnimatedCoverPlaying,
-                        contentScaleCrop = true,
-                        onError = { onAnimatedCoverError(activeCoverVideoUrl) },
-                        modifier = Modifier.fillMaxSize(),
+        val artworkSharedModifier =
+            if (item.mediaId == currentMediaId &&
+                sharedTransitionScope != null &&
+                animatedVisibilityScope != null
+            ) {
+                with(sharedTransitionScope) {
+                    Modifier.sharedElement(
+                        sharedContentState = rememberSharedContentState("player_album_art"),
+                        animatedVisibilityScope = animatedVisibilityScope,
+                        boundsTransform = albumArtBoundsTransform,
+                        clipInOverlayDuringTransition = OverlayClip(artworkShape),
                     )
                 }
+            } else {
+                Modifier
             }
-            
-            // Cast button at top-right corner of thumbnail
+        Box(modifier = Modifier.size(dimensions.thumbnailSize)) {
+            Box(
+                modifier = Modifier
+                    .then(artworkSharedModifier)
+                    .size(dimensions.thumbnailSize)
+                    .clip(artworkShape)
+            ) {
+                if (hidePlayerThumbnail) {
+                    HiddenThumbnailPlaceholder(textBackgroundColor = textBackgroundColor)
+                } else {
+                    val artworkUriToUse = if (item.mediaId == currentMediaId && !currentMediaThumbnail.isNullOrBlank()) {
+                        currentMediaThumbnail
+                    } else {
+                        item.mediaMetadata.artworkUri?.toString()
+                    }
+
+                    ThumbnailImage(
+                        artworkUri = artworkUriToUse,
+                        cropArtwork = cropAlbumArt
+                    )
+
+                    val activeCoverVideoUrl =
+                        if (item.mediaId == currentMediaId && isAnimatedCoverActive) animatedCoverUrl else null
+                    if (activeCoverVideoUrl != null) {
+                        AnimatedCoverVideo(
+                            url = activeCoverVideoUrl,
+                            priority = ArtworkVideoPriority.PLAYER,
+                            active = true,
+                            playing = isAnimatedCoverPlaying,
+                            contentScaleCrop = true,
+                            onError = { onAnimatedCoverError(activeCoverVideoUrl) },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                }
+            }
+
+            // Cast button outside sharedElement so it fades cleanly instead of scaling
             CastButton(
                 modifier = Modifier
                     .align(Alignment.TopEnd)

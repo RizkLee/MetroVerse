@@ -30,7 +30,7 @@ object DiscordReconnectStrategy {
             4005 -> ReconnectAction.ReIdentify
             4007 -> ReconnectAction.ReIdentify
             4009 -> ReconnectAction.ReIdentify
-            4014 -> ReconnectAction.SurfaceFatal
+            4010, 4011, 4012, 4013, 4014 -> ReconnectAction.SurfaceFatal
             else -> ReconnectAction.ReIdentify
         }
         Timber.tag(TAG).d(

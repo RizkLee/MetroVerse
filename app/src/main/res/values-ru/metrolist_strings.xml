@@ -72,7 +72,6 @@
         <item quantity="many">%d раз</item>
         <item quantity="other">%d раз</item>
     </plurals>
-    <string name="new_player_design">Новый дизайн плеера</string>
     <string name="default_style">По умолчанию</string>
     <string name="lyrics_click_change">Менять текст песни по касанию</string>
     <string name="lyrics_auto_scroll">Автопрокрутка текста</string>
@@ -116,7 +115,6 @@
     <string name="subscribed">Вы подписаны</string>
     <string name="clear_image_cache_dialog">Вы уверены, что хотите очистить все закэшированные изображения?</string>
     <string name="swipe_sensitivity">Чувствительность свайпа мини-плеера</string>
-    <string name="new_mini_player_design">Новый дизайн мини‑плеера</string>
     <string name="now_playing">Сейчас играет</string>
     <string name="close">Закрыть</string>
     <string name="hide_player_thumbnail">Скрыть миниатюру плеера</string>
@@ -201,7 +199,6 @@
     <string name="advanced_desc">Настроить темп и высоту тона трека</string>
     <string name="equalizer_desc">Открыть эквалайзер</string>
     <string name="mini_player">Мини-плеер</string>
-    <string name="pure_black_mini_player">Чисто чёрный мини-плеер</string>
     <string name="cache_size_warning_title">Внимание!</string>
     <string name="cache_size_warning_message">Выбранный вами лимит (%1$s) меньше текущего объёма используемого кэша. При продолжении часть %2$s может быть удалена. Продолжить?</string>
     <string name="cache_size_warning_confirm">Продолжить</string>
@@ -792,7 +789,6 @@
     <string name="android_auto_target_playlist_not_set">Плейлист не выбран. Выберите его в настройках Android Auto</string>
     <string name="mini_player_background_style">Стиль фона мини‑плеера</string>
     <string name="transparent">Прозрачный</string>
-    <string name="mini_player_background_not_available">Недоступно, если отключен новый дизайн мини‑плеера</string>
     <string name="your_daily_discover">Ваши открытия дня</string>
     <string name="lyrics_from_provider">Текст песни из %s</string>
     <string name="hide_status_bar_fullscreen">Скрывать строку состояния в полноэкранном режиме</string>
@@ -1058,7 +1054,6 @@
     <string name="lyrics_animation_metroverse">MetroVerse</string>
     <string name="lyrics_animation_apple_music">Apple Music</string>
     <string name="lyrics_progressive_blur">Прогрессивное размытие текста</string>
-    <string name="lyrics_progressive_blur_desc">Плавно размывает соседние строки, сохраняя чёткость активной строки и сведений об авторах внизу</string>
     <string name="lyrics_written_by">Автор: %1$s</string>
     <string name="lyrics_display_section">Отображение</string>
     <string name="lyrics_alignment_section">Выравнивание</string>
@@ -1071,7 +1066,6 @@
     <string name="disable_animated_artwork_on_mobile_data">Отключить анимированные обложки при использовании мобильных данных</string>
     <string name="disable_animated_artwork_on_mobile_data_desc">Показывать статичные обложки при использовании мобильных данных, даже когда анимации кэшированы</string>
     <string name="animated_cover_resolution">Качество анимированных обложек</string>
-    <string name="animated_cover_resolution_desc">Клипы одного разрешения используют исходное разрешение</string>
     <string name="animated_cover_resolution_low">Низкое (360p)</string>
     <string name="animated_cover_resolution_medium">Среднее (720p)</string>
     <string name="animated_cover_resolution_high">Высокое (1080p)</string>
@@ -1082,9 +1076,20 @@
     <string name="apple_music_artist_videos_title">Видео профиля исполнителя Apple Music</string>
     <string name="apple_music_artist_videos_description">Проигрывать анимированные видео профиля Apple Music на страницах исполнителей, если они доступны</string>
     <string name="apple_music_artist_video_quality_title">Качество видео профиля исполнителя</string>
-    <string name="apple_music_artist_video_quality_description">Выберите максимальное разрешение для анимированных видео профиля исполнителя</string>
     <string name="animated_artwork_cache">Кэш анимированных изображений</string>
     <string name="max_animated_artwork_cache_size">Максимальный размер кэша анимированных изображений</string>
     <string name="clear_animated_artwork_cache">Очистить кэш анимированных изображений</string>
     <string name="clear_animated_artwork_cache_dialog">Удалить все кэшированные анимированные обложки и метаданные оформления исполнителей? Их потребуется загрузить заново при подключении к сети.</string>
+    <string name="app_usage_mode">Режим использования</string>
+    <string name="usage_mode_onboarding_title">Выберите режим работы MetroVerse</string>
+    <string name="usage_mode_onboarding_subtitle">Настройте интерфейс под свои предпочтения прослушивания.</string>
+    <string name="usage_mode_music_and_podcasts">Музыка и подкасты</string>
+    <string name="usage_mode_music_and_podcasts_desc">Музыка из YouTube Music, а также подкасты YouTube и RSS.</string>
+    <string name="usage_mode_podcasts_only">Только подкасты</string>
+    <string name="usage_mode_podcasts_only_desc">Скрывает вкладку «Главная» и открывает «Библиотеку» и «Поиск» сразу на подкастах.</string>
+    <string name="usage_mode_youtube_music_region_note">Примечание: источник музыки — YouTube Music, который может быть недоступен в некоторых странах или регионах.</string>
+    <string name="usage_mode_restore_in_settings_hint">Вы всегда можете вернуть режим «Музыка и подкасты» в настройках.</string>
+    <string name="usage_mode_podcasts_only_enabled_notice">Включён режим «Только подкасты». Вернуть «Музыку и подкасты» можно в настройках.</string>
+    <string name="usage_mode_continue">Продолжить</string>
+    <string name="lastfm_api_keys_missing">Интеграция Last.fm недоступна в этой сборке, так как не настроены учётные данные API.</string>
 </resources>

@@ -48,8 +48,6 @@
     <string name="player_background_style">Estilo do fundo do reprodutor</string>
     <string name="follow_theme">Seguir o tema</string>
     <string name="gradient">Gradiente</string>
-    <string name="new_player_design">Novo desenho do reprodutor</string>
-    <string name="new_mini_player_design">Novo design do mini reprodutor</string>
     <string name="player_background_blur">Desfocado</string>
     <string name="player_buttons_style">Cores dos botões do reprodutor</string>
     <string name="default_style">Predefinição</string>
@@ -249,7 +247,6 @@
     <string name="advanced_desc">Alterar o tempo e o tom da música</string>
     <string name="equalizer_desc">Ajustar o equalizador de áudio</string>
     <string name="mini_player">Mini-reprodutor</string>
-    <string name="pure_black_mini_player">Mini-reprodutor preto puro</string>
     <string name="cache_size_warning_title">Aguarde!</string>
     <string name="cache_size_warning_message">Escolheu um limite de tamanho de cache menor do que o que a aplicação está a utilizar atualmente (%1$s). Se continuar, a aplicação poderá remover alguns %2$s armazenados em cache para corresponder ao novo limite. Deseja continuar mesmo assim?</string>
     <string name="cache_size_warning_confirm">Continuar</string>

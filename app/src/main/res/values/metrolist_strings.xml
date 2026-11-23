@@ -95,8 +95,6 @@
     <string name="player_background_solid">Solid</string>
     <string name="follow_theme">Follow theme</string>
     <string name="gradient">Gradient</string>
-    <string name="new_player_design">New player design</string>
-    <string name="new_mini_player_design">New mini-player design</string>
     <string name="player_background_blur">Blur</string>
     <string name="player_buttons_style">Player button colors</string>
     <string name="default_style">Default</string>
@@ -460,10 +458,8 @@
     <string name="advanced_desc">Adjust the song\'s tempo and pitch</string>
     <string name="equalizer_desc">Open the audio equalizer</string>
     <string name="mini_player">Mini-player</string>
-    <string name="pure_black_mini_player">Pure black mini-player</string>
     <string name="mini_player_background_style">Mini-player background style</string>
     <string name="transparent">Transparent</string>
-    <string name="mini_player_background_not_available">Unavailable when the new mini-player design is disabled</string>
     <string name="cache_size_warning_title">Hold on!</string>
     <string name="cache_size_warning_message">The limit you\'ve chosen (%1$s) is smaller than what the app is currently using. Continuing may cause some cached %2$s to be removed. Proceed anyway?</string>
     <string name="cache_size_warning_confirm">Continue</string>
@@ -1255,7 +1251,6 @@
     <string name="lyrics_animation_metroverse">MetroVerse</string>
     <string name="lyrics_animation_apple_music">Apple Music</string>
     <string name="lyrics_progressive_blur">Progressive lyrics blur</string>
-    <string name="lyrics_progressive_blur_desc">Gradually blur surrounding lines while keeping the active line and bottom credits clear</string>
     <string name="lyrics_written_by">Written by %1$s</string>
     <string name="lyrics_display_section">Display</string>
     <string name="lyrics_alignment_section">Alignment</string>
@@ -1268,7 +1263,6 @@
     <string name="disable_animated_artwork_on_mobile_data">Disable animated artwork on mobile data</string>
     <string name="disable_animated_artwork_on_mobile_data_desc">Show static artwork on mobile data, even when animations are cached</string>
     <string name="animated_cover_resolution">Animated cover quality</string>
-    <string name="animated_cover_resolution_desc">Single-resolution clips use their original resolution</string>
     <string name="animated_cover_resolution_low">Low (360p)</string>
     <string name="animated_cover_resolution_medium">Medium (720p)</string>
     <string name="animated_cover_resolution_high">High (1080p)</string>
@@ -1279,9 +1273,20 @@
     <string name="apple_music_artist_videos_title">Apple Music artist profile videos</string>
     <string name="apple_music_artist_videos_description">Play animated Apple Music profile videos on artist pages when available</string>
     <string name="apple_music_artist_video_quality_title">Artist profile video quality</string>
-    <string name="apple_music_artist_video_quality_description">Choose the maximum resolution for animated artist profile videos</string>
     <string name="animated_artwork_cache">Animated artwork cache</string>
     <string name="max_animated_artwork_cache_size">Maximum animated artwork cache size</string>
     <string name="clear_animated_artwork_cache">Clear animated artwork cache</string>
     <string name="clear_animated_artwork_cache_dialog">Clear all cached animated covers and artist artwork metadata? They will need to load again when you are online.</string>
+    <string name="app_usage_mode">Usage mode</string>
+    <string name="usage_mode_onboarding_title">Choose how you want to use MetroVerse</string>
+    <string name="usage_mode_onboarding_subtitle">Pick the experience that fits how you listen.</string>
+    <string name="usage_mode_music_and_podcasts">Music &amp; Podcasts</string>
+    <string name="usage_mode_music_and_podcasts_desc">Stream music from YouTube Music along with YouTube and RSS podcasts.</string>
+    <string name="usage_mode_podcasts_only">Podcasts only</string>
+    <string name="usage_mode_podcasts_only_desc">Hide the Home tab and default Library and Search to podcasts.</string>
+    <string name="usage_mode_youtube_music_region_note">Note: Music audio comes from YouTube Music and may be unavailable in some countries or regions.</string>
+    <string name="usage_mode_restore_in_settings_hint">You can restore Music &amp; Podcasts anytime in Settings.</string>
+    <string name="usage_mode_podcasts_only_enabled_notice">Podcasts-only mode enabled. You can switch back to Music &amp; Podcasts in Settings.</string>
+    <string name="usage_mode_continue">Continue</string>
+    <string name="lastfm_api_keys_missing">Last.fm integration is unavailable in this build because API credentials were not configured.</string>
 </resources>

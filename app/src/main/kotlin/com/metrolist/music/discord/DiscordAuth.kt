@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.util.Base64
+import androidx.browser.customtabs.CustomTabsClient
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.net.toUri
 import com.metrolist.music.BuildConfig
@@ -39,6 +40,7 @@ data class PkcePair(val verifier: String, val challenge: String)
 
 sealed class DiscordAuthException(message: String, cause: Throwable? = null) : Exception(message, cause) {
     class UserCancelled(message: String = "User cancelled authorization") : DiscordAuthException(message)
+    class TimedOut(message: String = "Authorization timed out") : DiscordAuthException(message)
     class NetworkFailure(cause: Throwable) : DiscordAuthException("Network failure: ${cause.message}", cause)
     class InvalidGrant(message: String = "Invalid or expired grant") : DiscordAuthException(message)
     class StateMismatch : DiscordAuthException("OAuth state mismatch")
@@ -52,6 +54,8 @@ class DiscordAuth(
     suspend fun authorize(activity: Activity): DiscordAuthResult {
         val pkce = generatePkcePair()
         val state = generateState()
+        DiscordTokenStore.init(activity.applicationContext)
+        DiscordTokenStore.storePendingAuth(pkce.verifier, state)
         DiscordOAuthActivity.newDeferred()
 
         try {
@@ -64,22 +68,13 @@ class DiscordAuth(
 
             Timber.tag(TAG).i("authorize: launching URL (clientId prefix=%s)", BuildConfig.DISCORD_APP_ID.toString().take(8))
 
-            val intent = CustomTabsIntent.Builder().build().intent
-            intent.data = authUrl.toUri()
-            intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-
-            try {
-                activity.startActivity(intent)
-            } catch (e: ActivityNotFoundException) {
-                Timber.tag(TAG).w(e, "authorize: no browser available to launch URL")
-                throw DiscordAuthException.NoBrowser()
-            }
+            launchDiscordAuthorize(activity, authUrl)
 
             val callback = try {
                 DiscordOAuthActivity.awaitCode(timeoutMs = 120_000L)
             } catch (e: TimeoutCancellationException) {
-                throw DiscordAuthException.UserCancelled()
+                Timber.tag(TAG).w("authorize: timed out")
+                throw DiscordAuthException.TimedOut()
             } catch (e: CancellationException) {
                 Timber.tag(TAG).i("authorize: cancelled")
                 throw DiscordAuthException.UserCancelled()
@@ -100,11 +95,70 @@ class DiscordAuth(
                 redirectUri = REDIRECT_URI,
             )
         } finally {
-            // no cleanup needed — no local server
+            DiscordTokenStore.clearPendingAuth()
         }
     }
 
+    private fun launchDiscordAuthorize(activity: Activity, authUrl: String) {
+        // Try native Discord app deep link first, then Custom Tabs, then generic browser.
+        val discordAppUri = authUrl.replace("https://discord.com", "discord://action").toUri()
+        try {
+            val appIntent = Intent(Intent.ACTION_VIEW, discordAppUri).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            activity.startActivity(appIntent)
+            return
+        } catch (_: ActivityNotFoundException) {
+            Timber.tag(TAG).d("authorize: Discord native app unavailable, falling back to browser")
+        }
+
+        val customTabsPackage = runCatching { CustomTabsClient.getPackageName(activity, null) }.getOrNull()
+        if (customTabsPackage != null) {
+            val customTabIntent = CustomTabsIntent.Builder().build().intent.apply {
+                data = authUrl.toUri()
+                setPackage(customTabsPackage)
+                addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            try {
+                activity.startActivity(customTabIntent)
+                return
+            } catch (_: ActivityNotFoundException) {
+                Timber.tag(TAG).d("authorize: Custom Tabs failed, falling back to ACTION_VIEW")
+            }
+        }
+
+        try {
+            val browserIntent = Intent(Intent.ACTION_VIEW, authUrl.toUri()).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            activity.startActivity(browserIntent)
+        } catch (e: ActivityNotFoundException) {
+            Timber.tag(TAG).w(e, "authorize: no browser available to launch URL")
+            throw DiscordAuthException.NoBrowser()
+        }
+    }
+
+    suspend fun exchangeCode(
+        code: String,
+        verifier: String,
+        state: String,
+        expectedState: String,
+    ): DiscordAuthResult {
+        if (state != expectedState) {
+            throw DiscordAuthException.StateMismatch()
+        }
+        return exchangeAuthorizationCode(
+            code = code,
+            verifier = verifier,
+            redirectUri = REDIRECT_URI,
+        )
+    }
+
     fun cancel() {
+        DiscordTokenStore.clearPendingAuth()
         DiscordOAuthActivity.cancelPending()
     }
 
@@ -211,7 +265,7 @@ class DiscordAuth(
 
     companion object {
         private const val TAG = "DiscordSvc"
-        const val REDIRECT_URI = "metrolistdiscord://oauth2/callback"
+        const val REDIRECT_URI = "metrolist-auth://discord/callback"
 
         private fun defaultClient(): HttpClient = HttpClient(CIO) {
             install(HttpTimeout) {

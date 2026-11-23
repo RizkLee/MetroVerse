@@ -49,7 +49,6 @@
     <string name="player_background_style">Slog ozadja predvajalnika</string>
     <string name="follow_theme">Sledi temi</string>
     <string name="gradient">Gradient</string>
-    <string name="new_player_design">Nova oblika predvajalnika</string>
     <string name="player_background_blur">Zameglitev</string>
     <string name="player_buttons_style">Barve gumbov predvajalnika</string>
     <string name="default_style">Privzeto</string>
@@ -116,7 +115,6 @@
         <item quantity="few">%d sekunde</item>
         <item quantity="other">%d sekund</item>
     </plurals>
-    <string name="new_mini_player_design">Nova oblika mini predvajalnika</string>
     <string name="now_playing">Igra zdaj</string>
     <string name="close">Zapri</string>
     <string name="hide_player_thumbnail">Skrij predogled predvajalnika</string>
@@ -228,7 +226,6 @@
     <string name="advanced_desc">Spremeni tempo in višino tona skladbe</string>
     <string name="equalizer_desc">Prilagodi izenačevalnik zvoka</string>
     <string name="mini_player">Mini predvajalnik</string>
-    <string name="pure_black_mini_player">Popolnoma črn mini predvajalnik</string>
     <string name="cache_size_warning_title">Pozor!</string>
     <string name="cache_size_warning_message">Izbrali ste omejitev velikosti predpomnilnika, ki je manjša od tega, kar aplikacija trenutno uporablja (%1$s). Če nadaljujete, lahko aplikacija odstrani nekaj predpomnjenih %2$s, da bo ustrezala novi omejitvi. Želite vseeno nadaljevati?</string>
     <string name="cache_size_warning_confirm">Nadaljuj</string>

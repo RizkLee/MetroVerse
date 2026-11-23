@@ -84,10 +84,11 @@ fun LastFMSettings(
 
     var lastfmUsername by rememberPreference(LastFMUsernameKey, "")
     var lastfmSession by rememberSecurePreference(LastFMSessionKey, "")
+    val isLastFmConfigured = remember { LastFM.isInitialized() }
 
     val isLoggedIn =
         remember(lastfmSession) {
-            lastfmSession != ""
+            lastfmSession.isNotBlank()
         }
 
     val (useNowPlaying, onUseNowPlayingChange) = rememberPreference(
@@ -290,6 +291,24 @@ fun LastFMSettings(
             )
         )
 
+        if (!isLastFmConfigured) {
+            androidx.compose.material3.Card(
+                colors = androidx.compose.material3.CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.lastfm_api_keys_missing),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.padding(16.dp),
+                )
+            }
+        }
+
         // Options section (card-based)
         Material3SettingsGroup(
             title = stringResource(R.string.account),
@@ -306,11 +325,18 @@ fun LastFMSettings(
                             OutlinedButton(onClick = {
                                 lastfmSession = ""
                                 lastfmUsername = ""
+                                LastFM.sessionKey = null
+                                onlastfmScrobblingChange(false)
+                                onUseNowPlayingChange(false)
+                                onUseSendLikes(false)
                             }) {
                                 Text(stringResource(R.string.action_logout))
                             }
                         } else {
-                            OutlinedButton(onClick = { showLoginDialog = true }) {
+                            OutlinedButton(
+                                onClick = { showLoginDialog = true },
+                                enabled = isLastFmConfigured,
+                            ) {
                                 Text(stringResource(R.string.action_login))
                             }
                         }
@@ -369,7 +395,7 @@ fun LastFMSettings(
                 ),
                 Material3SettingsItem(
                     title = { Text(stringResource(R.string.last_fm_send_likes)) },
-                    description = { stringResource(R.string.last_fm_send_likes_description) },
+                    description = { Text(stringResource(R.string.last_fm_send_likes_description)) },
                     trailingContent = {
                         Switch(
                             checked = useSendLikes,

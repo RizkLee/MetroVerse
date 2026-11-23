@@ -15,7 +15,32 @@ data class PlaylistPanelRenderer(
 ) {
     @Serializable
     data class Content(
-        val playlistPanelVideoRenderer: PlaylistPanelVideoRenderer?,
-        val automixPreviewVideoRenderer: AutomixPreviewVideoRenderer?,
+        val playlistPanelVideoRenderer: PlaylistPanelVideoRenderer? = null,
+        val playlistPanelVideoWrapperRenderer: PlaylistPanelVideoWrapperRenderer? = null,
+        val automixPreviewVideoRenderer: AutomixPreviewVideoRenderer? = null,
+    ) {
+        fun resolvedVideoRenderer(): PlaylistPanelVideoRenderer? =
+            playlistPanelVideoRenderer
+                ?: playlistPanelVideoWrapperRenderer?.primaryRenderer?.playlistPanelVideoRenderer
+                ?: playlistPanelVideoWrapperRenderer?.counterpart
+                    ?.firstOrNull()
+                    ?.counterpartRenderer
+                    ?.playlistPanelVideoRenderer
+    }
+}
+
+@Serializable
+data class PlaylistPanelVideoWrapperRenderer(
+    val primaryRenderer: PrimaryRenderer? = null,
+    val counterpart: List<Counterpart>? = null,
+) {
+    @Serializable
+    data class PrimaryRenderer(
+        val playlistPanelVideoRenderer: PlaylistPanelVideoRenderer? = null,
+    )
+
+    @Serializable
+    data class Counterpart(
+        val counterpartRenderer: PrimaryRenderer? = null,
     )
 }

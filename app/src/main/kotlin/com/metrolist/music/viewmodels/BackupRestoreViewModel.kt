@@ -35,6 +35,8 @@ import com.metrolist.music.db.validateBackupDatabaseFile
 import com.metrolist.music.db.entities.ArtistEntity
 import com.metrolist.music.db.entities.Song
 import com.metrolist.music.db.entities.SongEntity
+import com.metrolist.music.discord.DiscordRpcManager
+import com.metrolist.music.discord.DiscordTokenStore
 import com.metrolist.music.extensions.div
 import com.metrolist.music.extensions.tryOrNull
 import com.metrolist.music.extensions.zipInputStream
@@ -353,6 +355,9 @@ class BackupRestoreViewModel @Inject constructor(
                         runBlocking {
                             SecureCredentialStore.clearAll(context)
                         }
+                        DiscordRpcManager.logout()
+                        DiscordTokenStore.init(context)
+                        DiscordTokenStore.clear()
                     }
 
                     context.filesDir.resolve(PERSISTENT_QUEUE_FILE).delete()

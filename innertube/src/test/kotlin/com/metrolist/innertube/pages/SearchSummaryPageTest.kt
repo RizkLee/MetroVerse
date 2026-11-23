@@ -34,14 +34,40 @@ class SearchSummaryPageTest {
         assertEquals(184, song.duration)
     }
 
+    @Test
+    fun `search result items preserve multi-run titles`() {
+        val multiRunRenderer = songRenderer(
+            titleRuns = listOf(
+                Run("●", null),
+                Run(" The Weeknd - Blinding Lights", null),
+            ),
+            metadata = listOf(
+                Run("Aura Serenity", null),
+                Run(" • ", null),
+                Run("3:20", null),
+            ),
+        )
+
+        val searchSong = SearchPage.toYTItem(multiRunRenderer) as SongItem
+        val summarySong = SearchSummaryPage.fromMusicResponsiveListItemRenderer(multiRunRenderer) as SongItem
+
+        assertEquals("● The Weeknd - Blinding Lights", searchSong.title)
+        assertEquals("● The Weeknd - Blinding Lights", summarySong.title)
+    }
+
     private fun songRenderer(
         title: String,
+        metadata: List<Run>,
+    ) = songRenderer(listOf(Run(title, null)), metadata)
+
+    private fun songRenderer(
+        titleRuns: List<Run>,
         metadata: List<Run>,
     ) = MusicResponsiveListItemRenderer(
         badges = null,
         fixedColumns = null,
         flexColumns = listOf(
-            flexColumn(listOf(Run(title, null))),
+            flexColumn(titleRuns),
             flexColumn(metadata),
         ),
         thumbnail = ThumbnailRenderer(

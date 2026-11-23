@@ -54,9 +54,6 @@ internal object ArtworkNetworkClient {
                                     }
                                 }
                             }
-                        } else {
-                            // Apply public-address DNS guard only on direct connections; remote proxies resolve DNS remotely.
-                            dns(PublicArtworkDns)
                         }
                     }
                     .build()

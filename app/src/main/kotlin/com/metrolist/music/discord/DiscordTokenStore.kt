@@ -9,18 +9,32 @@ import androidx.core.content.edit
 import kotlinx.coroutines.CompletableDeferred
 import timber.log.Timber
 import java.nio.charset.StandardCharsets
+import java.security.GeneralSecurityException
+import java.security.InvalidKeyException
 import java.security.KeyStore
+import java.security.UnrecoverableKeyException
 import java.util.UUID
+import javax.crypto.AEADBadTagException
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
+
+data class PendingDiscordAuth(
+    val verifier: String,
+    val state: String,
+    val createdAtMs: Long,
+)
 
 object DiscordTokenStore {
     private const val PREFS_NAME = "discord_token"
     private const val TOKEN_KEY = "access_token"
     private const val REFRESH_TOKEN_KEY = "refresh_token"
     private const val EXPIRES_AT_KEY = "expires_at"
+    private const val PENDING_VERIFIER_KEY = "pending_oauth_verifier"
+    private const val PENDING_STATE_KEY = "pending_oauth_state"
+    private const val PENDING_CREATED_AT_KEY = "pending_oauth_created_at"
+    private const val PENDING_AUTH_TTL_MS = 10 * 60 * 1000L
     private const val DEVICE_VENDOR_ID_KEY = "device_vendor_id"
     private const val CLIENT_UUID_KEY = "client_uuid"
     private const val TAG = "DiscordSvc"
@@ -28,28 +42,64 @@ object DiscordTokenStore {
     @Volatile
     private var prefs: SharedPreferences? = null
 
-    private val initDeferred = CompletableDeferred<Unit>()
+    @Volatile
+    private var initDeferred = CompletableDeferred<Unit>()
 
     fun init(context: Context) {
         if (prefs != null) return
         synchronized(this) {
             if (prefs != null) return
+            val sharedPrefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             try {
                 AesKeystore.getOrCreateKey()
-                prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                prefs = sharedPrefs
                 initDeferred.complete(Unit)
             } catch (e: Exception) {
-                Timber.e(e, "DiscordTokenStore init failed")
-                initDeferred.completeExceptionally(e)
+                Timber.tag(TAG).w(e, "DiscordTokenStore init failed, attempting keystore recovery")
+                runCatching {
+                    AesKeystore.deleteKey()
+                    clearEncryptedEntries(sharedPrefs)
+                    AesKeystore.getOrCreateKey()
+                    prefs = sharedPrefs
+                    initDeferred.complete(Unit)
+                }.onFailure { recoveryError ->
+                    Timber.tag(TAG).e(recoveryError, "DiscordTokenStore keystore recovery failed")
+                    initDeferred.completeExceptionally(recoveryError)
+                }
             }
         }
     }
+
+    private fun clearEncryptedEntries(sharedPrefs: SharedPreferences) {
+        sharedPrefs.edit {
+            remove(TOKEN_KEY)
+            remove(REFRESH_TOKEN_KEY)
+            remove(EXPIRES_AT_KEY)
+            remove(PENDING_VERIFIER_KEY)
+            remove(PENDING_STATE_KEY)
+            remove(PENDING_CREATED_AT_KEY)
+        }
+    }
+
+    private fun isKeyInvalidation(e: Throwable): Boolean =
+        e is InvalidKeyException ||
+            e is UnrecoverableKeyException ||
+            e is AEADBadTagException ||
+            e is GeneralSecurityException
 
     private fun encrypt(value: String?): String? {
         if (value == null) return null
         return try {
             AesKeystore.encrypt(value)
         } catch (e: Exception) {
+            if (isKeyInvalidation(e)) {
+                Timber.tag(TAG).w(e, "DiscordTokenStore: keystore invalidated during encrypt, regenerating key")
+                AesKeystore.deleteKey()
+                prefs?.let(::clearEncryptedEntries)
+                return runCatching { AesKeystore.encrypt(value) }
+                    .onFailure { Timber.tag(TAG).e(it, "DiscordTokenStore: encrypt retry failed") }
+                    .getOrNull()
+            }
             Timber.e(e, "DiscordTokenStore: encrypt failed")
             null
         }
@@ -60,7 +110,13 @@ object DiscordTokenStore {
         return try {
             AesKeystore.decrypt(value)
         } catch (e: Exception) {
-            Timber.e(e, "DiscordTokenStore: decrypt failed")
+            if (isKeyInvalidation(e)) {
+                Timber.tag(TAG).w(e, "DiscordTokenStore: keystore invalidated during decrypt, wiping stale ciphertexts")
+                AesKeystore.deleteKey()
+                prefs?.let(::clearEncryptedEntries)
+            } else {
+                Timber.e(e, "DiscordTokenStore: decrypt failed")
+            }
             null
         }
     }
@@ -156,10 +212,53 @@ object DiscordTokenStore {
             remove(TOKEN_KEY)
             remove(REFRESH_TOKEN_KEY)
             remove(EXPIRES_AT_KEY)
+            remove(PENDING_VERIFIER_KEY)
+            remove(PENDING_STATE_KEY)
+            remove(PENDING_CREATED_AT_KEY)
             remove(DEVICE_VENDOR_ID_KEY)
             remove(CLIENT_UUID_KEY)
         }
         Timber.tag(TAG).d("tokenStore: cleared")
+    }
+
+    fun storePendingAuth(
+        verifier: String,
+        state: String,
+        createdAtMs: Long = System.currentTimeMillis(),
+    ) {
+        val encVerifier = encrypt(verifier) ?: return
+        val encState = encrypt(state) ?: return
+        prefs?.edit {
+            putString(PENDING_VERIFIER_KEY, encVerifier)
+            putString(PENDING_STATE_KEY, encState)
+            putLong(PENDING_CREATED_AT_KEY, createdAtMs)
+        }
+    }
+
+    fun consumePendingAuth(nowMs: Long = System.currentTimeMillis()): PendingDiscordAuth? {
+        val p = prefs ?: return null
+        val encVerifier = p.getString(PENDING_VERIFIER_KEY, null)
+        val encState = p.getString(PENDING_STATE_KEY, null)
+        val createdAtMs = p.getLong(PENDING_CREATED_AT_KEY, 0L)
+        clearPendingAuth()
+        if (encVerifier.isNullOrBlank() || encState.isNullOrBlank() || createdAtMs <= 0L) {
+            return null
+        }
+        if ((nowMs - createdAtMs) > PENDING_AUTH_TTL_MS) {
+            Timber.tag(TAG).w("tokenStore: pending auth expired")
+            return null
+        }
+        val verifier = decrypt(encVerifier) ?: return null
+        val state = decrypt(encState) ?: return null
+        return PendingDiscordAuth(verifier = verifier, state = state, createdAtMs = createdAtMs)
+    }
+
+    fun clearPendingAuth() {
+        prefs?.edit {
+            remove(PENDING_VERIFIER_KEY)
+            remove(PENDING_STATE_KEY)
+            remove(PENDING_CREATED_AT_KEY)
+        }
     }
 
     internal object AesKeystore {
@@ -184,6 +283,16 @@ object DiscordTokenStore {
 
         fun setTestKey(key: SecretKey?) {
             testKey = key
+        }
+
+        fun deleteKey() {
+            if (testKey != null) return
+            runCatching {
+                val ks = getKeyStore()
+                if (ks.containsAlias(KEY_ALIAS)) {
+                    ks.deleteEntry(KEY_ALIAS)
+                }
+            }
         }
 
         fun getOrCreateKey(): SecretKey {

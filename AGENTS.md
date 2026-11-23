@@ -35,7 +35,7 @@ MetroVerse is an independently maintained Android music and podcast app based on
 9. Do not bump the app version unless a human explicitly authorizes a release and specifies or approves the target version. Version changes must be completed as part of the release checklist below.
 10. Treat every feature addition or modification conservatively: many App behaviors are tightly coupled. Before editing, assess affected callers, shared state, persistence, playback, queue, downloads, background work, synchronization, and both variants as applicable. Explicitly weigh implementation difficulty against the potential for disruption, data loss, and regressions; choose whether to make a bounded change, narrow its scope, or abandon it based on that assessment. Prefer the smallest localized change and avoid broad changes or refactoring core mechanisms. If assessment shows that a request is difficult to implement safely, requires invasive core changes, or has regression risks that cannot be adequately bounded and verified, do not implement it. Explain the difficulty, affected behavior, and any lower-risk alternative to the human contributor, and wait for an explicit decision before proceeding. A feature request is not permission to force a risky implementation.
 11. For feature work, commit coherent progress checkpoints locally as implementation and validation advance. Do not push those commits to GitHub until the requested changes are complete, tested, and manually verified without known issues, unless a human explicitly directs otherwise.
-12. After producing a requested Debug APK, deliver it through the current phone-accessible handoff channel so a human can test it on a physical Android device. Do not use a Windows-hosted AVD for manual validation unless a human explicitly requests emulator testing.
+12. After code modifications, unit tests, and Debug APK builds complete, add and run a mandatory AVD emulator verification step covering all basic/core App features AND every modified/related feature from the current round before delivering any APK to the developer (once the first AVD pass confirms core features and unchanged paths work cleanly, subsequent fix-and-rebuild passes may run targeted AVD verification scoped to the newly modified/affected flows). Prefer delegating AVD UI and log verification to subagents (using multiple subagents in parallel where appropriate, with clear instructions). Only after AVD testing passes with zero unresolved issues may the Debug APK be delivered through the current phone-accessible handoff channel (OneDrive) for physical-device testing.
 
 ## Building and testing your changes
 
@@ -46,7 +46,7 @@ MetroVerse is an independently maintained Android music and podcast app based on
 ```
 
 2. If the build is not successful, review the error messages, fix the issues in your code, and try building again.
-3. Once the build is successful, you can test your changes on an emulator or a physical device. Install the generated APK located at `app/build/outputs/apk/foss/debug/app-foss-debug.apk` and ask a human for help testing the specific features you worked on.
+3. Once the build is successful, install `app/build/outputs/apk/foss/debug/app-foss-debug.apk` on an Android Virtual Device (AVD) and complete thorough verification of all basic/core functions plus all modified/related features (or targeted verification of newly modified/affected flows on follow-up fix rounds after an initial full pass succeeds), using subagents with clear test instructions where available, before delivering the Debug APK to the developer for physical-device testing.
 
 ## MetroVerse feature-to-release workflow
 
@@ -87,7 +87,8 @@ Follow this workflow for MetroVerse changes. Do not skip release metadata becaus
 4. Build GMS Debug locally when Cast, flavor-specific resources, manifests, or shared playback code are affected.
 5. Run lint or other relevant checks when the change touches shared UI, resources, manifests, networking, security, or release infrastructure. Record inherited baseline findings separately from new findings.
 6. Inspect the generated APK with Android SDK tools. Confirm application ID, version name/code, min/target SDK, expected flavor metadata, signature scheme, and SHA-256.
-7. Use a read-only reviewer for substantial playback, synchronization, updater, security, or release changes. Resolve blocking findings before committing.
+7. Run comprehensive AVD emulator verification across all core/basic App functions and every modified/related feature (or targeted AVD verification of newly modified/affected paths on follow-up fix iterations after an initial full pass succeeds), preferring subagents—including parallel subagents where appropriate—with clear instructions. Resolve any failures before delivering any Debug APK to the developer.
+8. Use a read-only reviewer for substantial playback, synchronization, updater, security, or release changes. Resolve blocking findings before committing.
 
 ### 4. Complete every release metadata surface
 

@@ -195,8 +195,10 @@ import com.metrolist.music.playback.alarm.MusicAlarmStore
 import com.metrolist.music.playback.audio.SilenceDetectorAudioProcessor
 import com.metrolist.music.playback.queues.EmptyQueue
 import com.metrolist.music.playback.queues.ListQueue
+import com.metrolist.music.playback.queues.PreloadedQueueMergeResult
 import com.metrolist.music.playback.queues.Queue
 import com.metrolist.music.playback.queues.YouTubeQueue
+import com.metrolist.music.playback.queues.mergePreloadedQueueItems
 import com.metrolist.music.podcast.PODCAST_USER_AGENT
 import com.metrolist.music.playback.queues.YouTubePlaylistQueue
 import com.metrolist.music.constants.LoudnessLevel
@@ -545,6 +547,7 @@ class MusicService :
     private val failureTokenCounter = AtomicLong(0L)
     private val persistQueueMutex = Mutex()
     private var retryJob: Job? = null
+    private var playQueueJob: Job? = null
     private var retryCount = 0
     private var initialBufferRecoveryJob: Job? = null
     private var initialBufferRecoveryAttemptedMediaId: String? = null
@@ -1105,9 +1108,10 @@ class MusicService :
                 Timber.tag("MusicService").i("Player recreated with AudioTrackPlaybackParams: $useAudioTrackParams")
             }
 
-        // Initialize Discord RPC manager (rehydrates token, reconnects gateway)
+        // Initialize Discord RPC manager without auto-connecting; the EnableDiscordRPCKey collector
+        // below owns gateway connection so startup never triggers duplicate reconnects.
         if (!DiscordRpcManager.isInitialized()) {
-            DiscordRpcManager.init(this@MusicService)
+            DiscordRpcManager.init(this@MusicService, autoConnect = false)
         }
 
         dataStore.data
@@ -1123,20 +1127,21 @@ class MusicService :
                     if (DiscordRpcManager.isReady()) {
                         Timber.tag("DiscordSvc").i("RPC toggle: already ready, syncing RPC")
                         syncDiscordState()
-                    } else if (DiscordRpcManager.getAccessToken() != null) {
-                        Timber.tag("DiscordSvc").i("RPC toggle: not ready but has token, reconnecting")
-                        scope.launch(Dispatchers.IO) {
-                            if (!DiscordRpcManager.isInitialized()) {
-                                Timber.tag("DiscordSvc").i("RPC toggle: initializing")
-                                DiscordRpcManager.init(this@MusicService)
-                            }
-                            DiscordRpcManager.reconnectWithToken(DiscordRpcManager.getAccessToken()!!)
-                        }
                     } else {
-                        Timber.tag("DiscordSvc").w("RPC toggle: enabled but no token and not ready")
+                        val token = DiscordRpcManager.getAccessToken()
+                        if (token != null && DiscordRpcManager.connectionStatus.value == DiscordRpcManager.Status.Disconnected) {
+                            Timber.tag("DiscordSvc").i("RPC toggle: not ready but has token, reconnecting")
+                            scope.launch(Dispatchers.IO) {
+                                if (!DiscordRpcManager.isInitialized()) {
+                                    DiscordRpcManager.init(this@MusicService, autoConnect = false)
+                                }
+                                DiscordRpcManager.reconnectWithToken(token)
+                            }
+                        }
                     }
-                } else if (DiscordRpcManager.isReady()) {
+                } else {
                     Timber.tag("DiscordSvc").i("RPC toggle: disabled, disconnecting")
+                    discordIntentionalDisconnect = true
                     scope.launch(Dispatchers.IO) {
                         DiscordRpcManager.disconnect()
                     }
@@ -1147,8 +1152,7 @@ class MusicService :
                 Timber.tag("DiscordSvc").i("Token change: hasToken=%s, initialized=%s, authorized=%s, enabled=%s",
                     token != null, DiscordRpcManager.isInitialized(), DiscordRpcManager.isAuthorized(), discordRpcEnabled)
                 if (token == null) {
-                    if (DiscordRpcManager.isReady()) {
-                        Timber.tag("DiscordSvc").i("Token change: empty token, disconnecting")
+                    if (DiscordRpcManager.isInitialized()) {
                         DiscordRpcManager.disconnect()
                     }
                     return@collectLatest
@@ -1159,13 +1163,15 @@ class MusicService :
                 }
                 if (!DiscordRpcManager.isInitialized()) {
                     Timber.tag("DiscordSvc").i("Token change: initializing")
-                    DiscordRpcManager.init(this@MusicService)
+                    DiscordRpcManager.init(this@MusicService, autoConnect = false)
                 }
-                if (!DiscordRpcManager.isAuthorized()) {
+                if (!DiscordRpcManager.isAuthorized() &&
+                    DiscordRpcManager.connectionStatus.value == DiscordRpcManager.Status.Disconnected
+                ) {
                     Timber.tag("DiscordSvc").i("Token change: reconnecting with token")
                     DiscordRpcManager.reconnectWithToken(token)
                 } else {
-                    Timber.tag("DiscordSvc").i("Token change: already authorized, skipping reconnect")
+                    Timber.tag("DiscordSvc").i("Token change: already authorized or connecting, skipping reconnect")
                 }
             }
 
@@ -1207,6 +1213,16 @@ class MusicService :
                             scrobbleDelaySeconds = delaySeconds,
                         )
                     scrobbleManager?.useNowPlaying = dataStore.get(LastFMUseNowPlaying, false)
+                    val (playingNow, currentMeta, currentDur) = withContext(Dispatchers.Main.immediate) {
+                        Triple(
+                            player.isPlaying,
+                            player.currentMetadata,
+                            player.duration.takeIf { it > 0L && it != C.TIME_UNSET },
+                        )
+                    }
+                    if (playingNow && currentMeta != null && !currentMeta.isEpisode) {
+                        scrobbleManager?.onPlayerStateChanged(true, currentMeta, duration = currentDur)
+                    }
                 } else if (!enabled && scrobbleManager != null) {
                     scrobbleManager?.destroy()
                     scrobbleManager = null
@@ -1984,6 +2000,7 @@ class MusicService :
         }
 
         setQueueStopAfterEach(false)
+        playQueueJob?.cancel()
         currentQueue = queue
         queueTitle = null
         val persistShuffleAcrossQueues = dataStore.get(PersistentShuffleAcrossQueuesKey, false)
@@ -1991,38 +2008,35 @@ class MusicService :
             player.shuffleModeEnabled = false
         }
         originalQueueSize = 0
-        if (queue.preloadItem != null) {
-            player.setMediaItem(queue.preloadItem!!.toMediaItem())
+        val preloadItem = queue.preloadItem
+        if (preloadItem != null) {
+            player.setMediaItem(preloadItem.toMediaItem())
             player.prepare()
             player.playWhenReady = playWhenReady
         }
-        scope.launch(SilentHandler) {
+        playQueueJob = scope.launch(SilentHandler) {
             val initialStatus =
                 withContext(Dispatchers.IO) {
                     ContentFilter
                         .current(this@MusicService)
                         .filterQueueStatus(queue.getInitialStatus())
                 }
-            if (queue.preloadItem != null && player.playbackState == STATE_IDLE) return@launch
+            if (currentQueue !== queue) return@launch
+            if (preloadItem != null && player.playbackState == STATE_IDLE) return@launch
             if (initialStatus.title != null) {
                 queueTitle = initialStatus.title
             }
             if (initialStatus.items.isEmpty()) return@launch
             // Track original queue size for shuffle playlist first feature
             originalQueueSize = initialStatus.items.size
-            if (queue.preloadItem != null &&
-                initialStatus.items.getOrNull(initialStatus.mediaItemIndex)?.mediaId == queue.preloadItem?.id
-            ) {
-                player.addMediaItems(
-                    0,
-                    initialStatus.items.subList(0, initialStatus.mediaItemIndex),
-                )
-                player.addMediaItems(
-                    initialStatus.items.subList(
-                        initialStatus.mediaItemIndex + 1,
-                        initialStatus.items.size,
-                    ),
-                )
+            if (preloadItem != null) {
+                val merge = mergePreloadedQueueItems(preloadItem.id, initialStatus)
+                if (merge.beforeItems.isNotEmpty()) {
+                    player.addMediaItems(0, merge.beforeItems)
+                }
+                if (merge.afterItems.isNotEmpty()) {
+                    player.addMediaItems(merge.afterItems)
+                }
             } else {
                 player.setMediaItems(
                     initialStatus.items,
@@ -2906,8 +2920,11 @@ class MusicService :
         setupAudioNormalization()
 
         scrobbleManager?.onSongStop()
-        if (newMetadata?.isEpisode != true && player.playWhenReady && player.playbackState == Player.STATE_READY) {
-            scrobbleManager?.onSongStart(player.currentMetadata, duration = player.duration)
+        if (newMetadata != null && !newMetadata.isEpisode && player.playWhenReady && player.playbackState == Player.STATE_READY) {
+            scrobbleManager?.onSongStart(
+                newMetadata,
+                duration = player.duration.takeIf { it > 0L && it != C.TIME_UNSET },
+            )
         }
 
         // Skip if this change was triggered by Cast sync (to prevent loops)
@@ -3178,13 +3195,29 @@ class MusicService :
         if (events.containsAny(
                 Player.EVENT_MEDIA_ITEM_TRANSITION,
                 Player.EVENT_IS_PLAYING_CHANGED,
+                Player.EVENT_POSITION_DISCONTINUITY,
+                Player.EVENT_PLAYBACK_PARAMETERS_CHANGED,
             )
         ) {
-            syncDiscordState()
+            val forceSeekOrSpeedSync =
+                events.containsAny(
+                    Player.EVENT_POSITION_DISCONTINUITY,
+                    Player.EVENT_PLAYBACK_PARAMETERS_CHANGED,
+                )
+            syncDiscordState(forceUpdate = forceSeekOrSpeedSync)
         }
 
         if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED)) {
-            scrobbleManager?.onPlayerStateChanged(player.isPlaying, player.currentMetadata, duration = player.duration)
+            val metadata = player.currentMetadata
+            if (metadata == null || metadata.isEpisode) {
+                scrobbleManager?.onSongStop()
+            } else {
+                scrobbleManager?.onPlayerStateChanged(
+                    player.isPlaying,
+                    metadata,
+                    duration = player.duration.takeIf { it > 0L && it != C.TIME_UNSET },
+                )
+            }
         }
     }
 
@@ -4053,17 +4086,24 @@ class MusicService :
         }
     }
 
-    private fun syncDiscordState() {
+    private fun syncDiscordState(forceUpdate: Boolean = false) {
         if (!discordRpcEnabled) return
 
-        val songId = player.currentMetadata?.id
-        if (songId == null) {
-            Timber.tag("DiscordSvc").d("syncDiscordState: no song, clearing presence")
+        val metadata = player.currentMetadata
+        if (metadata == null || metadata.isEpisode) {
+            Timber.tag("DiscordSvc").d("syncDiscordState: no song or episode playing, clearing presence")
             DiscordRpcManager.clear()
             return
         }
 
-            if (!DiscordRpcManager.isReady()) {
+        val isPlaying = player.isPlaying
+        if (!isPlaying) {
+            Timber.tag("DiscordSvc").d("syncDiscordState: playback paused, clearing presence")
+            DiscordRpcManager.clear()
+            return
+        }
+
+        if (!DiscordRpcManager.isReady()) {
             if (discordIntentionalDisconnect) {
                 Timber.tag("DiscordSvc").d("syncDiscordState: not ready, skipping (intentional disconnect)")
                 return
@@ -4075,7 +4115,7 @@ class MusicService :
                 Timber.tag("DiscordSvc").i("syncDiscordState: not ready, attempting reconnect")
                 scope.launch(Dispatchers.IO) {
                     if (!DiscordRpcManager.isInitialized()) {
-                        DiscordRpcManager.init(this@MusicService)
+                        DiscordRpcManager.init(this@MusicService, autoConnect = false)
                     }
                     DiscordRpcManager.reconnectWithToken(token)
                 }
@@ -4083,22 +4123,31 @@ class MusicService :
             return
         }
 
-        val isPlaying = player.isPlaying
-        if (DiscordRpcManager.isShowingSong(songId, isPlaying)) {
+        val songId = metadata.id
+        if (!forceUpdate && DiscordRpcManager.isShowingSong(songId, isPlaying)) {
             Timber.tag("DiscordSvc").d("syncDiscordState: dedup, already showing songId=%s isPlaying=%s", songId, isPlaying)
             return
         }
 
         scope.launch(Dispatchers.IO) {
             val (freshSongId, freshIsPlaying) = withContext(Dispatchers.Main.immediate) {
-                player.currentMetadata?.id to player.isPlaying
+                val freshMeta = player.currentMetadata
+                (freshMeta?.takeIf { !it.isEpisode }?.id) to player.isPlaying
+            }
+            if (freshSongId == null || !freshIsPlaying) {
+                DiscordRpcManager.clear()
+                return@launch
             }
             val song = database.song(freshSongId).first() ?: return@launch
-            updateDiscordRPC(song, freshIsPlaying)
+            updateDiscordRPC(song, freshIsPlaying, forceUpdate = forceUpdate)
         }
     }
 
-    private suspend fun updateDiscordRPC(song: Song, isPlaying: Boolean) {
+    private suspend fun updateDiscordRPC(
+        song: Song,
+        isPlaying: Boolean,
+        forceUpdate: Boolean = false,
+    ) {
         if (!DiscordRpcManager.isReady()) {
             Timber.tag("DiscordSvc").w("updateDiscordRPC: skipping — not ready")
             return
@@ -4184,25 +4233,34 @@ class MusicService :
             songId = song.song.id,
             isPlaying = isPlaying,
             status = presenceStatus,
+            forceUpdate = forceUpdate,
         )
 
         val fetched = fetchArtistThumbnail(song)
         if (fetched != null && DiscordRpcManager.isReady() && discordRpcEnabled) {
+            val (songState, timingState) = withContext(Dispatchers.Main.immediate) {
+                val meta = player.currentMetadata
+                val currentId = meta?.takeIf { !it.isEpisode }?.id
+                (currentId to player.isPlaying) to (player.currentPosition to player.playbackParameters.speed)
+            }
+            val (freshSongId, freshIsPlaying) = songState
+            val (posMs, spd) = timingState
+            if (freshSongId != song.song.id || !freshIsPlaying) {
+                Timber.tag("DiscordSvc").d("updateDiscordRPC: track changed/paused during thumbnail fetch, skipping update")
+                return
+            }
             Timber.tag("DiscordSvc").i("updateDiscordRPC: updating with fetched thumbnail")
             val fetchedArtistName = fetched.artists.joinToString { it.name }.ifEmpty { DiscordDefaults.UNKNOWN_ARTIST }
             val fetchedAlbumName = fetched.album?.title
             val fetchedArtistThumbnail = fetched.artists.firstOrNull()?.thumbnailUrl
 
-            val (freshPosition, freshSpeed, freshIsPlaying) = withContext(Dispatchers.Main.immediate) {
-                Triple(player.currentPosition, player.playbackParameters.speed, player.isPlaying)
-            }
-            val freshAdjustedTime = (freshPosition / freshSpeed).toLong()
+            val freshAdjustedTime = (posMs / spd).toLong()
             val freshNow = System.currentTimeMillis()
-            val freshStartTime = if (freshIsPlaying) freshNow - freshAdjustedTime else 0L
+            val freshStartTime = freshNow - freshAdjustedTime
             val freshDurationMs = fetched.song.duration.takeIf { it > 0 }?.times(1000L)
-            val freshRemainingMs = freshDurationMs?.minus(freshPosition)?.coerceAtLeast(0L)
-            val freshAdjustedRemainingMs = freshRemainingMs?.let { (it / freshSpeed).toLong() }
-            val freshEndTime = if (freshIsPlaying && freshAdjustedRemainingMs != null) freshNow + freshAdjustedRemainingMs else null
+            val freshRemainingMs = freshDurationMs?.minus(posMs)?.coerceAtLeast(0L)
+            val freshAdjustedRemainingMs = freshRemainingMs?.let { (it / spd).toLong() }
+            val freshEndTime = if (freshAdjustedRemainingMs != null) freshNow + freshAdjustedRemainingMs else null
 
             val fetchedActivity = DiscordActivityBuilder.build(
                 song = fetched,
@@ -4657,8 +4715,8 @@ class MusicService :
                 ObjectOutputStream(fos).use { oos ->
                     oos.writeObject(value)
                     oos.flush()
+                    fos.fd.sync()
                 }
-                fos.fd.sync()
             }
             Files.move(tempFile.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
             Timber.tag(TAG).d("Saved $label atomically")

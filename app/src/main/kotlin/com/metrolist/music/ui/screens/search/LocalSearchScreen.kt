@@ -36,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,10 +54,13 @@ import com.metrolist.music.LocalNavController
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
+import com.metrolist.music.constants.AppUsageMode
+import com.metrolist.music.constants.AppUsageModeKey
 import com.metrolist.music.constants.CONTENT_TYPE_LIST
 import com.metrolist.music.constants.ListItemHeight
 import com.metrolist.music.constants.ListThumbnailSize
 import com.metrolist.music.constants.ThumbnailCornerRadius
+import com.metrolist.music.constants.resolveAppUsageMode
 import com.metrolist.music.db.entities.Album
 import com.metrolist.music.db.entities.Artist
 import com.metrolist.music.db.entities.Playlist
@@ -73,6 +77,7 @@ import com.metrolist.music.ui.component.LocalMenuState
 import com.metrolist.music.ui.component.PlaylistListItem
 import com.metrolist.music.ui.component.SongListItem
 import com.metrolist.music.ui.menu.SongMenu
+import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.viewmodels.LocalFilter
 import com.metrolist.music.viewmodels.LocalSearchViewModel
 import kotlinx.coroutines.flow.drop
@@ -95,8 +100,18 @@ fun LocalSearchScreen(
     val isPlaying by playerConnection.isEffectivelyPlaying.collectAsStateWithLifecycle()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsStateWithLifecycle()
 
+    val (appUsageModeRaw) = rememberPreference(AppUsageModeKey, AppUsageMode.MUSIC_AND_PODCASTS.name)
+    val isPodcastsOnly = remember(appUsageModeRaw) {
+        resolveAppUsageMode(appUsageModeRaw) == AppUsageMode.PODCASTS_ONLY
+    }
     val searchFilter by viewModel.filter.collectAsStateWithLifecycle()
     val result by viewModel.result.collectAsStateWithLifecycle()
+
+    LaunchedEffect(isPodcastsOnly, searchFilter) {
+        if (isPodcastsOnly && searchFilter != LocalFilter.PODCAST) {
+            viewModel.filter.value = LocalFilter.PODCAST
+        }
+    }
 
     val lazyListState = rememberLazyListState()
 
@@ -130,19 +145,21 @@ fun LocalSearchScreen(
                     }
                 },
     ) {
-        ChipsRow(
-            chips =
-                listOf(
-                    LocalFilter.ALL to stringResource(R.string.filter_all),
-                    LocalFilter.SONG to stringResource(R.string.filter_songs),
-                    LocalFilter.ALBUM to stringResource(R.string.filter_albums),
-                    LocalFilter.ARTIST to stringResource(R.string.filter_artists),
-                    LocalFilter.PLAYLIST to stringResource(R.string.filter_playlists),
-                    LocalFilter.PODCAST to stringResource(R.string.filter_podcasts),
-                ),
-            currentValue = searchFilter,
-            onValueUpdate = { viewModel.filter.value = it },
-        )
+        if (!isPodcastsOnly) {
+            ChipsRow(
+                chips =
+                    listOf(
+                        LocalFilter.ALL to stringResource(R.string.filter_all),
+                        LocalFilter.SONG to stringResource(R.string.filter_songs),
+                        LocalFilter.ALBUM to stringResource(R.string.filter_albums),
+                        LocalFilter.ARTIST to stringResource(R.string.filter_artists),
+                        LocalFilter.PLAYLIST to stringResource(R.string.filter_playlists),
+                        LocalFilter.PODCAST to stringResource(R.string.filter_podcasts),
+                    ),
+                currentValue = searchFilter,
+                onValueUpdate = { viewModel.filter.value = it },
+            )
+        }
 
         LazyColumn(
             state = lazyListState,

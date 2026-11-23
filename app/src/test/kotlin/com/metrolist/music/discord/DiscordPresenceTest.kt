@@ -154,4 +154,46 @@ class DiscordPresenceTest {
         val first = JSONObject(json).getJSONObject("d").getJSONArray("activities").getJSONObject(0)
         assertEquals("https://example.com/stream", first.getString("url"))
     }
+
+    @Test
+    fun buildPresenceUpdate_emitsApplicationIdAndCreatedAt() {
+        val activity = DiscordPresence.buildActivity(
+            name = "MetroVerse",
+            type = ActivityType.Listening,
+            applicationId = "1447278780795064401",
+            details = "Track",
+            state = "Artist",
+        )
+        val json = DiscordPresence.buildPresenceUpdate(
+            status = PresenceStatus.Online,
+            activities = listOf(activity),
+        )
+        val first = JSONObject(json).getJSONObject("d").getJSONArray("activities").getJSONObject(0)
+        assertEquals("1447278780795064401", first.getString("application_id"))
+        assertFalse(first.optLong("created_at", 0L) <= 0L)
+    }
+
+    @Test
+    fun buildPresenceUpdate_truncatesFieldsWithoutSplittingSurrogates() {
+        val detailsWithBoundaryEmoji = "a".repeat(127) + "\uD83C\uDFB5"
+        val activity = DiscordPresence.buildActivity(
+            name = "MetroVerse",
+            type = ActivityType.Listening,
+            details = detailsWithBoundaryEmoji,
+            buttons = listOf(
+                ("b".repeat(40) to "https://example.com/1"),
+                ("c" to "https://example.com/2"),
+                ("d" to "https://example.com/3"),
+            ),
+        )
+        val json = DiscordPresence.buildPresenceUpdate(
+            status = PresenceStatus.Online,
+            activities = listOf(activity),
+        )
+        val first = JSONObject(json).getJSONObject("d").getJSONArray("activities").getJSONObject(0)
+        assertEquals(127, first.getString("details").length)
+        val buttons = first.getJSONArray("buttons")
+        assertEquals(2, buttons.length())
+        assertEquals(32, buttons.getString(0).length)
+    }
 }

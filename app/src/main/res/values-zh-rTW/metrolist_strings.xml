@@ -99,7 +99,6 @@
     <string name="likes">喜歡</string>
     <string name="information">資訊</string>
     <string name="dislikes">不喜歡</string>
-    <string name="new_player_design">新播放器設計</string>
     <string name="lyrics_romanize_japanese">羅馬化日文歌詞</string>
     <string name="lyrics_romanize_korean">羅馬化韓文歌詞</string>
     <string name="yt_sync">自動與帳號同步</string>
@@ -119,7 +118,6 @@
     <string name="seek_backward_dynamic">後退%1$d秒</string>
     <string name="seek_seconds_addup">漸進式時間跳躍</string>
     <string name="seek_seconds_addup_description">啟用此選項後，每次快進轉或倒轉時將遞增 5 秒的跳轉長度</string>
-    <string name="new_mini_player_design">使用全新迷你播放器設計</string>
     <string name="edit_playlist_cover">更改播放清單圖片</string>
     <string name="edit_playlist_cover_note">注意：你的帳戶必須連結到電話號碼並在 YouTube Music 上進行驗證才能更改播放清單封面</string>
     <string name="edit_playlist_cover_note_wait">選擇圖片後，請等待片刻，新的封面就會出現在你的播放清單中</string>
@@ -519,7 +517,6 @@
     <string name="share_desc">分享此歌曲鏈接</string>
     <string name="advanced_desc">調整歌曲的節奏和音調</string>
     <string name="mini_player">迷你播放器</string>
-    <string name="pure_black_mini_player">純黑色迷你播放器</string>
     <string name="cache_size_warning_title">請稍等！</string>
     <string name="cache_size_warning_message">您選擇的限制 (%1$s) 小於應用程式目前使用的限制。繼續可能會造成部分快取的 %2$s 被刪除。是否仍然要繼續嗎？</string>
     <string name="lyrics_animation_style">歌詞動畫風格</string>
@@ -707,7 +704,6 @@
     <string name="alarm_battery_optimization_desc">停用電池優化功能，以提高鬧鐘在背景執行的穩定性</string>
     <string name="mini_player_background_style">迷你播放器背景樣式</string>
     <string name="transparent">透明的</string>
-    <string name="mini_player_background_not_available">停用新迷你播放器後，此功能無法使用</string>
     <string name="your_daily_discover">你的每天新發現</string>
     <string name="together">一起聆聽</string>
     <string name="listen_together_sync_volume">同步主持人音量</string>
@@ -983,7 +979,6 @@
     <string name="lyrics_animation_metroverse">MetroVerse</string>
     <string name="lyrics_animation_apple_music">Apple Music</string>
     <string name="lyrics_progressive_blur">歌詞漸進模糊</string>
-    <string name="lyrics_progressive_blur_desc">逐漸模糊周圍的歌詞行，同時保持目前演唱行與末尾出處資訊清晰</string>
     <string name="lyrics_written_by">作詞：%1$s</string>
     <string name="lyrics_display_section">顯示</string>
     <string name="lyrics_alignment_section">對齊</string>
@@ -996,7 +991,6 @@
     <string name="disable_animated_artwork_on_mobile_data">使用行動數據時停用動態圖像</string>
     <string name="disable_animated_artwork_on_mobile_data_desc">使用行動數據時顯示靜態封面，即使動態已快取亦然</string>
     <string name="animated_cover_resolution">動態封面品質</string>
-    <string name="animated_cover_resolution_desc">只有一種解析度的片段會使用其原始解析度</string>
     <string name="animated_cover_resolution_low">低等（360p）</string>
     <string name="animated_cover_resolution_medium">中等（720p）</string>
     <string name="animated_cover_resolution_high">高等（1080p）</string>
@@ -1007,9 +1001,20 @@
     <string name="apple_music_artist_videos_title">Apple Music 藝人個人資料影片</string>
     <string name="apple_music_artist_videos_description">有可用內容時，在藝人頁面播放 Apple Music 動態個人資料影片</string>
     <string name="apple_music_artist_video_quality_title">藝人個人資料影片畫質</string>
-    <string name="apple_music_artist_video_quality_description">選擇動態藝人個人資料影片的最高解析度</string>
     <string name="animated_artwork_cache">動態圖片快取</string>
     <string name="max_animated_artwork_cache_size">動態圖片快取上限</string>
     <string name="clear_animated_artwork_cache">清除動態圖片快取</string>
     <string name="clear_animated_artwork_cache_dialog">要清除所有已快取的動態封面與藝人圖像中繼資料嗎？連線後需重新載入。</string>
+    <string name="app_usage_mode">使用模式</string>
+    <string name="usage_mode_onboarding_title">選擇 MetroVerse 的使用方式</string>
+    <string name="usage_mode_onboarding_subtitle">依據你的收聽習慣選擇介面模式。</string>
+    <string name="usage_mode_music_and_podcasts">音樂 + 播客</string>
+    <string name="usage_mode_music_and_podcasts_desc">收聽來自 YouTube Music 的音樂，以及 YouTube 與 RSS 播客。</string>
+    <string name="usage_mode_podcasts_only">僅聽播客</string>
+    <string name="usage_mode_podcasts_only_desc">自動隱藏底部導覽列中的「首頁」按鈕，並將媒體庫與搜尋預設為播客。</string>
+    <string name="usage_mode_youtube_music_region_note">提示：音樂音源來自 YouTube Music，在部分國家或地區可能無法存取。</string>
+    <string name="usage_mode_restore_in_settings_hint">如需收聽音樂，你隨時可以在「設定」中恢復「音樂 + 播客」模式。</string>
+    <string name="usage_mode_podcasts_only_enabled_notice">已啟用「僅聽播客」模式，你隨時可在「設定」中恢復為「音樂 + 播客」。</string>
+    <string name="usage_mode_continue">繼續</string>
+    <string name="lastfm_api_keys_missing">目前組建未設定 Last.fm API 金鑰，暫時無法登入。</string>
 </resources>

@@ -111,10 +111,8 @@
     <string name="more_content">Więcej zawartości</string>
     <string name="swipe_sensitivity">Czułość przesunięcia</string>
     <string name="clear_image_cache_dialog">Czy na pewno chcesz wyczyścić wszystkie obrazy z pamięci podręcznej?</string>
-    <string name="new_player_design">Nowy wygląd odtwarzacza</string>
     <string name="sensitivity_percentage">%1$d%%</string>
     <string name="disable">Wyłączyć</string>
-    <string name="new_mini_player_design">Nowy wygląd małego odwarzacza</string>
     <string name="subscribe">Subskrybuj</string>
     <string name="subscribed">Zasubskrybowano</string>
     <string name="now_playing">Teraz odtwarzane</string>
@@ -220,7 +218,6 @@
     <string name="scrobble_min_track_duration">Scrobbluj utwory dłuższe niż</string>
     <string name="scrobble_delay_percent">Procent opóźnienia scrobblowania</string>
     <string name="scrobble_delay_minutes">Opóźnienie scrobblowania w minutach</string>
-    <string name="pure_black_mini_player">Miniodtwarzacz w czystej czerni</string>
     <string name="lyrics_animation_style">Styl animacji synchronizowanych tekstów</string>
     <string name="none">Brak</string>
     <string name="fade">Zanik</string>
@@ -757,7 +754,6 @@
     <string name="alarm_battery_optimization_desc">Wyłącz optymalizację baterii dla lepszej niezawodności w tle</string>
     <string name="mini_player_background_style">Styl tła miniodtwarzacza</string>
     <string name="transparent">Przezroczystość</string>
-    <string name="mini_player_background_not_available">Niedostępne gdy nowy miniodtwarzacz jest wyłączony</string>
     <string name="your_daily_discover">Twoje Codzienne Odkrycia</string>
     <string name="copy_all_lyrics">Kopiuj cały tekst</string>
     <string name="change">Zmień</string>

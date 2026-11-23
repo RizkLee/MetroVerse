@@ -774,27 +774,27 @@ class SyncUtils @Inject constructor(
     }
 
     private suspend fun executeLikeSong(s: SongEntity) = withContext(Dispatchers.IO) {
-        if (!isLoggedIn()) {
-            Timber.w("Skipping likeSong - user not logged in")
-            return@withContext
+        if (isLoggedIn()) {
+            withRetry {
+                YouTube.likeVideo(s.id, s.liked)
+            }.onFailure { e ->
+                Timber.e(e, "Failed to like song on YouTube: ${s.id}")
+            }
+        } else {
+            Timber.d("Skipping YouTube likeVideo - user not logged in")
         }
 
-        withRetry {
-            YouTube.likeVideo(s.id, s.liked)
-        }.onFailure { e ->
-            Timber.e(e, "Failed to like song on YouTube: ${s.id}")
-        }
-
-        if (lastfmSendLikes) {
-            try {
-                val dbSong = database.song(s.id).firstOrNull()
+        if (lastfmSendLikes && !s.isEpisode && LastFM.isInitialized() && !LastFM.sessionKey.isNullOrBlank()) {
+            val dbSong = database.song(s.id).firstOrNull()
+            val artistName = dbSong?.artists?.joinToString { a -> a.name }.orEmpty()
+            if (artistName.isNotBlank()) {
                 LastFM.setLoveStatus(
-                    artist = dbSong?.artists?.joinToString { a -> a.name } ?: "",
+                    artist = artistName,
                     track = s.title,
-                    love = s.liked
-                )
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to update LastFM love status")
+                    love = s.liked,
+                ).onFailure { e ->
+                    Timber.e(e, "Failed to update LastFM love status")
+                }
             }
         }
     }

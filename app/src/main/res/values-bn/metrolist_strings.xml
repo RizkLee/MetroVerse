@@ -65,8 +65,6 @@
     <string name="already_in_playlist">ইতিমধ্যে প্লেলিস্টে আছে:</string>
     <string name="follow_theme">থিম অনুসরণ করুন</string>
     <string name="gradient">গ্রেডিয়েন্ট</string>
-    <string name="new_player_design">নতুন প্লেয়ার ডিজাইন</string>
-    <string name="new_mini_player_design">নতুন মিনি-প্লেয়ার ডিজাইন</string>
     <string name="player_background_blur">ঝাপসা</string>
     <string name="default_style">ডিফল্ট</string>
     <string name="primary_color_style">প্রাথমিক রং</string>
@@ -654,10 +652,8 @@
     <string name="scrobble_delay_minutes">Scrobble বিলম্ব (মিনিট)</string>
     <string name="equalizer_desc">অডিও equalizer খুলুন</string>
     <string name="mini_player">মিনি-প্লেয়ার</string>
-    <string name="pure_black_mini_player">বিশুদ্ধ কালো মিনি-প্লেয়ার</string>
     <string name="mini_player_background_style">মিনি-প্লেয়ার ব্যাকগ্রাউন্ড স্টাইল</string>
     <string name="transparent">স্বচ্ছ</string>
-    <string name="mini_player_background_not_available">নতুন মিনি-প্লেয়ার ডিজাইন নিষ্ক্রিয় করা থাকলে অনুপলব্ধ</string>
     <string name="cache_size_warning_title">একটু দাঁড়ান!</string>
     <string name="cache_size_warning_message">আপনার নির্বাচিত সীমা (%1$s) অ্যাপটি বর্তমানে যা ব্যবহার করছে তার চেয়ে কম। চালিয়ে গেলে কিছু ক্যাশ করা %2$s মুছে যেতে পারে। তবুও কি এগিয়ে যাবেন?</string>
     <string name="cache_size_warning_confirm">এগিয়ে যান</string>

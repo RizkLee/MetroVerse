@@ -107,14 +107,12 @@
     <string name="lyrics_romanize_korean">Romaniser les paroles coréennes</string>
     <string name="yt_sync">Synchronisation automatique avec le compte</string>
     <string name="more_content">Plus de contenu</string>
-    <string name="new_player_design">Nouveau design du lecteur</string>
     <string name="swipe_sensitivity">Sensibilité du balayage du mini-lecteur</string>
     <string name="clear_image_cache_dialog">Êtes-vous sûr de vouloir effacer toutes les images mises en cache ?</string>
     <string name="disable">Désactiver</string>
     <string name="sensitivity_percentage">%1$d%%</string>
     <string name="subscribe">S\'abonner</string>
     <string name="subscribed">Abonné</string>
-    <string name="new_mini_player_design">Nouveau design du mini-lecteur</string>
     <string name="now_playing">En cours de lecture</string>
     <string name="seek_forward_dynamic">+%1$d secondes en avant</string>
     <string name="seek_backward_dynamic">-%1$d secondes en arrière</string>
@@ -199,7 +197,6 @@
     <string name="advanced_desc">Régler le tempo et la hauteur tonale du morceau</string>
     <string name="equalizer_desc">Ouvrez l\'égaliseur audio</string>
     <string name="mini_player">Mini-lecteur</string>
-    <string name="pure_black_mini_player">Mini-lecteur noir pur</string>
     <string name="cache_size_warning_title">Attendez !</string>
     <string name="cache_size_warning_message">La limite que vous avez choisie (%1$s) est inférieure à celle actuellement utilisée par l\'application. Si vous continuez, certains %2$s mis en cache risquent d\'être supprimés. Voulez-vous quand même continuer ?</string>
     <string name="cache_size_warning_confirm">Continuer</string>
@@ -785,7 +782,6 @@
     <string name="android_auto_target_playlist_not_set">Aucune playlist n\'est sélectionnée. Choisissez-en une dans les paramètres d\'Android Auto</string>
     <string name="mini_player_background_style">Style d\'arrière-plan du mini-lecteur</string>
     <string name="transparent">Transparent</string>
-    <string name="mini_player_background_not_available">Indisponible lorsque le nouveau design du mini-lecteur est désactivé</string>
     <string name="your_daily_discover">Votre découverte du jour</string>
     <string name="lyrics_from_provider">Paroles de %s</string>
     <string name="hide_status_bar_fullscreen">Masquer la barre d\'état en mode plein écran</string>
@@ -1051,7 +1047,6 @@
     <string name="lyrics_animation_metroverse">MetroVerse</string>
     <string name="lyrics_animation_apple_music">Apple Music</string>
     <string name="lyrics_progressive_blur">Flou progressif des paroles</string>
-    <string name="lyrics_progressive_blur_desc">Floute progressivement les lignes environnantes tout en gardant nets la ligne active et les crédits en fin de paroles</string>
     <string name="lyrics_written_by">Écrit par %1$s</string>
     <string name="lyrics_display_section">Affichage</string>
     <string name="lyrics_alignment_section">Alignement</string>
@@ -1064,7 +1059,6 @@
     <string name="disable_animated_artwork_on_mobile_data">Désactiver les pochettes animées sur les données mobiles</string>
     <string name="disable_animated_artwork_on_mobile_data_desc">Affiche les pochettes statiques avec les données mobiles, même si les animations sont en cache</string>
     <string name="animated_cover_resolution">Qualité des pochettes animées</string>
-    <string name="animated_cover_resolution_desc">Les clips disponibles dans une seule résolution utilisent leur résolution d\'origine</string>
     <string name="animated_cover_resolution_low">Faible (360p)</string>
     <string name="animated_cover_resolution_medium">Moyenne (720p)</string>
     <string name="animated_cover_resolution_high">Élevée (1080p)</string>
@@ -1075,9 +1069,20 @@
     <string name="apple_music_artist_videos_title">Vidéos de profil d\'artiste Apple Music</string>
     <string name="apple_music_artist_videos_description">Lit les vidéos de profil animées Apple Music sur les pages d\'artistes lorsqu\'elles sont disponibles</string>
     <string name="apple_music_artist_video_quality_title">Qualité des vidéos de profil d\'artiste</string>
-    <string name="apple_music_artist_video_quality_description">Sélectionnez la résolution maximale pour les vidéos de profil animées</string>
     <string name="animated_artwork_cache">Cache des pochettes animées</string>
     <string name="max_animated_artwork_cache_size">Taille maximale du cache des pochettes animées</string>
     <string name="clear_animated_artwork_cache">Vider le cache des pochettes animées</string>
     <string name="clear_animated_artwork_cache_dialog">Supprimer toutes les pochettes animées et métadonnées en cache ? Elles devront être téléchargées à nouveau en ligne.</string>
+    <string name="app_usage_mode">Mode d\'utilisation</string>
+    <string name="usage_mode_onboarding_title">Choisissez comment utiliser MetroVerse</string>
+    <string name="usage_mode_onboarding_subtitle">Sélectionnez l\'interface adaptée à votre écoute.</string>
+    <string name="usage_mode_music_and_podcasts">Musique et podcasts</string>
+    <string name="usage_mode_music_and_podcasts_desc">Écoutez la musique de YouTube Music ainsi que des podcasts YouTube et RSS.</string>
+    <string name="usage_mode_podcasts_only">Podcasts uniquement</string>
+    <string name="usage_mode_podcasts_only_desc">Masque l\'onglet Accueil et sélectionne Podcasts par défaut dans Bibliothèque et Recherche.</string>
+    <string name="usage_mode_youtube_music_region_note">Remarque : La musique provient de YouTube Music et peut être inaccessible dans certains pays ou régions.</string>
+    <string name="usage_mode_restore_in_settings_hint">Vous pouvez réactiver Musique et podcasts à tout moment dans les Paramètres.</string>
+    <string name="usage_mode_podcasts_only_enabled_notice">Mode Podcasts uniquement activé. Vous pouvez réactiver Musique et podcasts dans les Paramètres.</string>
+    <string name="usage_mode_continue">Continuer</string>
+    <string name="lastfm_api_keys_missing">L\'intégration Last.fm n\'est pas disponible dans cette version car les identifiants API ne sont pas configurés.</string>
 </resources>

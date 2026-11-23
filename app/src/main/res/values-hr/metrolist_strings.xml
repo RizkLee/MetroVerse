@@ -48,8 +48,6 @@
     <string name="player_background_style">Stil pozadine reproduktora</string>
     <string name="follow_theme">Pratite temu</string>
     <string name="gradient">Gradijent</string>
-    <string name="new_player_design">Ogavan izgled reproduktora</string>
-    <string name="new_mini_player_design">Novi izgled minijaturnog reproduktora</string>
     <string name="player_background_blur">Zamućenje</string>
     <string name="player_buttons_style">Boje dugmeta reproduktora</string>
     <string name="default_style">Zadana vrijednost</string>

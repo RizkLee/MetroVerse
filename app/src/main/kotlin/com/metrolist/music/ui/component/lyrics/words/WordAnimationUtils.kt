@@ -870,7 +870,6 @@ internal fun rememberWiperPosition(
     LaunchedEffect(isActiveLine, reachedLineEnd, lineEndX) {
         if (isActiveLine) {
             activeGen[0] += 1
-            animState.isFirstRun = false
             return@LaunchedEffect
         }
         if (animState.isFirstRun) {

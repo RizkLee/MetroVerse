@@ -26,6 +26,10 @@
         <intent>
             <action android:name="android.media.action.DISPLAY_AUDIO_EFFECT_CONTROL_PANEL" />
         </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="discord" />
+        </intent>
         <package android:name="com.google.android.projection.gearhead" />
     </queries>
     <application
@@ -207,8 +211,8 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <data android:scheme="metrolistdiscord" />
-                <data android:host="oauth2" />
+                <data android:scheme="metrolist-auth" />
+                <data android:host="discord" />
                 <data android:pathPrefix="/callback" />
             </intent-filter>
         </activity>

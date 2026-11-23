@@ -99,6 +99,7 @@ import kotlinx.coroutines.launch
 fun LibraryPodcastsScreen(
     navController: NavController,
     onDeselect: () -> Unit,
+    showCloseChip: Boolean = true,
     viewModel: LibraryPodcastsViewModel = hiltViewModel(),
 ) {
     val downloadedEpisodesStr = stringResource(R.string.downloaded_episodes)
@@ -162,24 +163,26 @@ fun LibraryPodcastsScreen(
         // Chip row header — same pattern as LibrarySongsScreen
         val chipsHeader = @Composable {
             Row {
-                Spacer(Modifier.width(12.dp))
-                FilterChip(
-                    label = { Text(stringResource(R.string.filter_podcasts)) },
-                    selected = true,
-                    colors =
-                        FilterChipDefaults.filterChipColors(
-                            containerColor = MaterialTheme.colorScheme.surface,
-                        ),
-                    onClick = onDeselect,
-                    shape = RoundedCornerShape(16.dp),
-                    border = null,
-                    leadingIcon = {
-                        Icon(
-                            painter = painterResource(R.drawable.close),
-                            contentDescription = stringResource(R.string.close_chip),
-                        )
-                    },
-                )
+                if (showCloseChip) {
+                    Spacer(Modifier.width(12.dp))
+                    FilterChip(
+                        label = { Text(stringResource(R.string.filter_podcasts)) },
+                        selected = true,
+                        colors =
+                            FilterChipDefaults.filterChipColors(
+                                containerColor = MaterialTheme.colorScheme.surface,
+                            ),
+                        onClick = onDeselect,
+                        shape = RoundedCornerShape(16.dp),
+                        border = null,
+                        leadingIcon = {
+                            Icon(
+                                painter = painterResource(R.drawable.close),
+                                contentDescription = stringResource(R.string.close_chip),
+                            )
+                        },
+                    )
+                }
                 ChipsRow(
                     chips =
                         buildList {

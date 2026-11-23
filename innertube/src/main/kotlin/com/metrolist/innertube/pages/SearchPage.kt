@@ -77,14 +77,7 @@ object SearchPage {
                             ?.text?.runs?.firstOrNull()
                             ?.navigationEndpoint?.watchEndpoint?.videoId
                         ?: return null,
-                    title =
-                        renderer.flexColumns
-                            .firstOrNull()
-                            ?.musicResponsiveListItemFlexColumnRenderer
-                            ?.text
-                            ?.runs
-                            ?.firstOrNull()
-                            ?.text ?: return null,
+                    title = PageHelper.extractPrimaryTitle(renderer.flexColumns) ?: return null,
                     author = null,
                     podcast = podcast,
                     duration =
@@ -130,14 +123,7 @@ object SearchPage {
                             ?.text?.runs?.firstOrNull()
                             ?.navigationEndpoint?.watchEndpoint?.videoId
                         ?: return null,
-                    title =
-                        renderer.flexColumns
-                            .firstOrNull()
-                            ?.musicResponsiveListItemFlexColumnRenderer
-                            ?.text
-                            ?.runs
-                            ?.firstOrNull()
-                            ?.text ?: return null,
+                    title = PageHelper.extractPrimaryTitle(renderer.flexColumns) ?: return null,
                     artists = artists.ifEmpty { return null },
                     album =
                         secondaryLine.getOrNull(1)?.firstOrNull()?.takeIf { it.navigationEndpoint?.browseEndpoint != null }?.let {
@@ -161,15 +147,7 @@ object SearchPage {
             renderer.isArtist -> {
                 ArtistItem(
                     id = renderer.navigationEndpoint?.browseEndpoint?.browseId ?: return null,
-                    title =
-                        renderer.flexColumns
-                            .firstOrNull()
-                            ?.musicResponsiveListItemFlexColumnRenderer
-                            ?.text
-                            ?.runs
-                            ?.firstOrNull()
-                            ?.text
-                            ?: return null,
+                    title = PageHelper.extractPrimaryTitle(renderer.flexColumns) ?: return null,
                     thumbnail = renderer.thumbnail?.getThumbnailUrl() ?: return null,
                     shuffleEndpoint =
                         renderer.menu
@@ -190,15 +168,7 @@ object SearchPage {
             renderer.isUserChannel -> {
                 ArtistItem(
                     id = renderer.navigationEndpoint?.browseEndpoint?.browseId ?: return null,
-                    title =
-                        renderer.flexColumns
-                            .firstOrNull()
-                            ?.musicResponsiveListItemFlexColumnRenderer
-                            ?.text
-                            ?.runs
-                            ?.firstOrNull()
-                            ?.text
-                            ?: return null,
+                    title = PageHelper.extractPrimaryTitle(renderer.flexColumns) ?: return null,
                     thumbnail = renderer.thumbnail?.getThumbnailUrl() ?: return null,
                     shuffleEndpoint = renderer.menu
                         ?.menuRenderer
@@ -229,14 +199,7 @@ object SearchPage {
                             ?.anyWatchEndpoint
                             ?.playlistId
                             ?: return null,
-                    title =
-                        renderer.flexColumns
-                            .firstOrNull()
-                            ?.musicResponsiveListItemFlexColumnRenderer
-                            ?.text
-                            ?.runs
-                            ?.firstOrNull()
-                            ?.text ?: return null,
+                    title = PageHelper.extractPrimaryTitle(renderer.flexColumns) ?: return null,
                     artists =
                         secondaryLine.getOrNull(1)?.oddElements()?.map {
                             Artist(
@@ -264,14 +227,7 @@ object SearchPage {
                             ?.browseEndpoint
                             ?.browseId
                             ?.removePrefix("VL") ?: return null,
-                    title =
-                        renderer.flexColumns
-                            .firstOrNull()
-                            ?.musicResponsiveListItemFlexColumnRenderer
-                            ?.text
-                            ?.runs
-                            ?.firstOrNull()
-                            ?.text ?: return null,
+                    title = PageHelper.extractPrimaryTitle(renderer.flexColumns) ?: return null,
                     author =
                         secondaryLine.firstOrNull()?.firstOrNull()?.let {
                             Artist(
@@ -318,14 +274,7 @@ object SearchPage {
                             ?.browseEndpoint
                             ?.browseId
                             ?: return null,
-                    title =
-                        renderer.flexColumns
-                            .firstOrNull()
-                            ?.musicResponsiveListItemFlexColumnRenderer
-                            ?.text
-                            ?.runs
-                            ?.firstOrNull()
-                            ?.text ?: return null,
+                    title = PageHelper.extractPrimaryTitle(renderer.flexColumns) ?: return null,
                     author =
                         secondaryLine.firstOrNull()?.firstOrNull()?.let {
                             Artist(

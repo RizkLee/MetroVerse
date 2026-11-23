@@ -23,5 +23,11 @@ object BetterLyricsProvider : LyricsProvider {
         artist: String,
         duration: Int,
         album: String?,
-    ): Result<String> = BetterLyrics.getLyrics(title, artist, duration, album)
+    ): Result<String> =
+        BetterLyrics.getLyricsWithMetadata(title, artist, duration, album).map { result ->
+            if (result.songwriters.isNotEmpty()) {
+                ProviderSongwritersCache.put(context, id, result.songwriters)
+            }
+            result.lrc
+        }
 }

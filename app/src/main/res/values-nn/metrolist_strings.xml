@@ -58,8 +58,6 @@
     <string name="player_background_style">Bakgrunnsstil for avspelar</string>
     <string name="follow_theme">Fylg tema</string>
     <string name="gradient">Letovergang</string>
-    <string name="new_player_design">Ny spelardesign</string>
-    <string name="new_mini_player_design">Ny minispelardesign</string>
     <string name="player_background_blur">Uskarpleik</string>
     <string name="player_buttons_style">Let på avspelarknappar</string>
     <string name="default_style">Standard</string>
@@ -227,7 +225,6 @@
     <string name="advanced_desc">Brigd snøggleiken og tonehøgd på songen</string>
     <string name="equalizer_desc">Juster audioutjamnaren</string>
     <string name="mini_player">Minispelar</string>
-    <string name="pure_black_mini_player">Reinsvart minispelar</string>
     <string name="cache_size_warning_title">Vent no då!</string>
     <string name="cache_size_warning_message">Du har valt ei snarlagringsstorleiksgrense mindre en storleiken på snarlagringa nett no (%1$s). Dersom du held fram, kan appen taka bort somme snarlagra %2$s for å høva til den nye grensa. Hald fram likevel?</string>
     <string name="cache_size_warning_confirm">Hald fram</string>

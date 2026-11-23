@@ -96,4 +96,58 @@ class PageHelperTest {
             ),
         )
     }
+
+    @Test
+    fun `comma runs between linked artists do not emit separator artists`() {
+        val runs = listOf(
+            Run("The Weeknd", NavigationEndpoint(browseEndpoint = BrowseEndpoint(browseId = "UC0WP5P-ufpRfjbN6OWwLB4A"))),
+            Run(", ", null),
+            Run("JENNIE", NavigationEndpoint(browseEndpoint = BrowseEndpoint(browseId = "UC123456"))),
+            Run(" & ", null),
+            Run("Lily Rose Depp", NavigationEndpoint(browseEndpoint = BrowseEndpoint(browseId = "UC789012"))),
+        )
+
+        assertEquals(
+            listOf(
+                Artist("The Weeknd", "UC0WP5P-ufpRfjbN6OWwLB4A"),
+                Artist("JENNIE", "UC123456"),
+                Artist("Lily Rose Depp", "UC789012"),
+            ),
+            PageHelper.extractArtists(runs),
+        )
+    }
+
+    @Test
+    fun `joinTitleText joins multi-run titles and strips zero-width whitespace`() {
+        assertEquals(
+            "● The Weeknd - Blinding Lights",
+            PageHelper.joinTitleText(
+                listOf(
+                    Run("●", null),
+                    Run(" The Weeknd - Blinding Lights", null),
+                ),
+            ),
+        )
+        assertEquals(
+            null,
+            PageHelper.joinTitleText(listOf(Run("\u200B \uFEFF", null))),
+        )
+    }
+
+    @Test
+    fun `unlinked fallback filters separators and zero-width noise`() {
+        val runs = listOf(
+            Run("The Weeknd", null),
+            Run(" & ", null),
+            Run(", ", null),
+            Run("●", null),
+            Run("\u200B", null),
+            Run("JENNIE", null),
+        )
+
+        assertEquals(
+            listOf(Artist("The Weeknd", null), Artist("JENNIE", null)),
+            PageHelper.extractArtists(runs),
+        )
+    }
 }

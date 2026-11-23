@@ -74,12 +74,17 @@ object BetterLyrics {
         null
     }
 
-    suspend fun getLyrics(
+    data class BetterLyricsResult(
+        val lrc: String,
+        val songwriters: List<String> = emptyList(),
+    )
+
+    suspend fun getLyricsWithMetadata(
         title: String,
         artist: String,
         duration: Int,
         album: String? = null,
-    ) = runCatching {
+    ): Result<BetterLyricsResult> = runCatching {
         // Use exact title and artist - no normalization to ensure correct sync
         // Normalizing can return wrong lyrics (e.g., radio edit vs original)
         val ttml =
@@ -90,7 +95,27 @@ object BetterLyrics {
         if (parsedLines.isEmpty()) {
             throw IllegalStateException("Failed to parse lyrics")
         }
-        
-        TTMLParser.toLRC(parsedLines)
+
+        BetterLyricsResult(
+            lrc = TTMLParser.toLRC(parsedLines),
+            songwriters = TTMLParser.parseSongwriters(ttml),
+        )
     }
+
+    suspend fun fetchSongwriters(
+        title: String,
+        artist: String,
+        duration: Int = -1,
+        album: String? = null,
+    ): List<String> =
+        fetchTTML(artist, title, duration, album)
+            ?.let(TTMLParser::parseSongwriters)
+            .orEmpty()
+
+    suspend fun getLyrics(
+        title: String,
+        artist: String,
+        duration: Int,
+        album: String? = null,
+    ) = getLyricsWithMetadata(title, artist, duration, album).map { it.lrc }
 }

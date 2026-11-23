@@ -107,14 +107,12 @@
     <string name="lyrics_romanize_korean">Romanizar letras em Coreano</string>
     <string name="yt_sync">Sincronizar automaticamente com a conta</string>
     <string name="more_content">Mais conteúdo</string>
-    <string name="new_player_design">Novo design do tocador</string>
     <string name="swipe_sensitivity">Sensibilidade ao deslizar no mini tocador</string>
     <string name="clear_image_cache_dialog">Tem certeza que quer apagar todas as imagens no cache?</string>
     <string name="disable">Desativar</string>
     <string name="sensitivity_percentage">%1$d%%</string>
     <string name="subscribe">Inscrever-se</string>
     <string name="subscribed">Inscrito</string>
-    <string name="new_mini_player_design">Novo design do mini-reprodutor</string>
     <string name="now_playing">Tocando agora</string>
     <string name="close">Fechar</string>
     <string name="hide_player_thumbnail">Ocultar miniatura do reprodutor</string>
@@ -201,7 +199,6 @@
     <string name="advanced_desc">Ajustar o ritmo e tom da música</string>
     <string name="equalizer_desc">Abrir o equalizador de áudio</string>
     <string name="mini_player">Mini-reprodutor</string>
-    <string name="pure_black_mini_player">Mini-tocador preto puro</string>
     <string name="cache_size_warning_title">Espere!</string>
     <string name="cache_size_warning_message">O limite que você escolheu (%1$s) é menor do que o que o aplicativo está usando atualmente. Continuar pode fazer com que algum cache %2$s seja removido. Prosseguir de qualquer maneira?</string>
     <string name="cache_size_warning_confirm">Continuar</string>
@@ -785,7 +782,6 @@
     <string name="song_dropdown_more_results">Continue digitando para reduzir os resultados (%d mais)</string>
     <string name="mini_player_background_style">Estilo do plano de fundo do mini reprodutor</string>
     <string name="transparent">Transparente</string>
-    <string name="mini_player_background_not_available">Indisponível quando o novo design do mini reprodutor está desativado</string>
     <string name="your_daily_discover">Sua descoberta diária</string>
     <string name="lyrics_from_provider">Letras de %s</string>
     <string name="hide_status_bar_fullscreen">Ocultar barra de status em tela cheia</string>
@@ -1043,7 +1039,6 @@
     <string name="lyrics_animation_metroverse">MetroVerse</string>
     <string name="lyrics_animation_apple_music">Apple Music</string>
     <string name="lyrics_progressive_blur">Desfoque progressivo da letra</string>
-    <string name="lyrics_progressive_blur_desc">Desfoca gradualmente as linhas ao redor mantendo nítidos a linha ativa e os créditos finais</string>
     <string name="lyrics_written_by">Escrito por %1$s</string>
     <string name="lyrics_display_section">Exibição</string>
     <string name="lyrics_alignment_section">Alinhamento</string>
@@ -1056,7 +1051,6 @@
     <string name="disable_animated_artwork_on_mobile_data">Desativar artes animadas nos dados móveis</string>
     <string name="disable_animated_artwork_on_mobile_data_desc">Mostra arte estática nos dados móveis, mesmo quando as animações estiverem no cache</string>
     <string name="animated_cover_resolution">Qualidade de capa animada</string>
-    <string name="animated_cover_resolution_desc">Clipes com uma única resolução usam sua resolução original</string>
     <string name="animated_cover_resolution_low">Baixo (360p)</string>
     <string name="animated_cover_resolution_medium">Médio (720p)</string>
     <string name="animated_cover_resolution_high">Alto (1080p)</string>
@@ -1067,9 +1061,20 @@
     <string name="apple_music_artist_videos_title">Vídeos de perfil de artistas no Apple Music</string>
     <string name="apple_music_artist_videos_description">Reproduz vídeos animados de perfil do Apple Music nas páginas dos artistas quando disponíveis</string>
     <string name="apple_music_artist_video_quality_title">Qualidade de vídeo de perfil de artistas</string>
-    <string name="apple_music_artist_video_quality_description">Escolhe a resolução máxima para vídeos animados de perfil de artistas</string>
     <string name="animated_artwork_cache">Cache de imagens animadas</string>
     <string name="max_animated_artwork_cache_size">Tamanho máximo do cache de imagens animadas</string>
     <string name="clear_animated_artwork_cache">Limpar cache de imagens animadas</string>
     <string name="clear_animated_artwork_cache_dialog">Limpar todas as capas animadas em cache e metadados de arte de artistas? Eles precisarão ser carregados novamente quando você estiver online.</string>
+    <string name="app_usage_mode">Modo de uso</string>
+    <string name="usage_mode_onboarding_title">Escolha como deseja usar o MetroVerse</string>
+    <string name="usage_mode_onboarding_subtitle">Selecione a experiência ideal para o que você ouve.</string>
+    <string name="usage_mode_music_and_podcasts">Música e podcasts</string>
+    <string name="usage_mode_music_and_podcasts_desc">Ouça músicas do YouTube Music junto com podcasts do YouTube e RSS.</string>
+    <string name="usage_mode_podcasts_only">Somente podcasts</string>
+    <string name="usage_mode_podcasts_only_desc">Oculta a guia Início e define Podcasts como padrão na Biblioteca e na Busca.</string>
+    <string name="usage_mode_youtube_music_region_note">Observação: O áudio das músicas vem do YouTube Music e pode não estar disponível em alguns países ou regiões.</string>
+    <string name="usage_mode_restore_in_settings_hint">Você pode restaurar Música e podcasts a qualquer momento nas Configurações.</string>
+    <string name="usage_mode_podcasts_only_enabled_notice">Modo Somente podcasts ativado. Você pode voltar para Música e podcasts nas Configurações.</string>
+    <string name="usage_mode_continue">Continuar</string>
+    <string name="lastfm_api_keys_missing">A integração com o Last.fm está indisponível nesta compilação porque as credenciais da API não foram configuradas.</string>
 </resources>

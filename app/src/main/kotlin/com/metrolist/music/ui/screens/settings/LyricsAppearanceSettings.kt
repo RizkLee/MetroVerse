@@ -38,6 +38,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateMapOf
@@ -116,22 +117,29 @@ private fun buildPreviewLyricsSample(): List<LyricsEntry> =
         ),
         LyricsEntry(
             time = 2_600L,
-            text = "Let the music shine",
+            text = "Let the music shine across the midnight sky",
             words = listOf(
                 WordTimestamp("Let", 2.6, 2.95),
-                WordTimestamp("the", 2.95, 3.3),
-                WordTimestamp("music", 3.3, 4.05),
-                WordTimestamp("shine", 4.05, 5.65, hasTrailingSpace = false),
+                WordTimestamp("the", 2.95, 3.25),
+                WordTimestamp("music", 3.25, 3.7),
+                WordTimestamp("shine", 3.7, 4.15),
+                WordTimestamp("across", 4.15, 4.55),
+                WordTimestamp("the", 4.55, 4.85),
+                WordTimestamp("midnight", 4.85, 5.25),
+                WordTimestamp("sky", 5.25, 5.65, hasTrailingSpace = false),
             ),
         ),
         LyricsEntry(
             time = 5_800L,
-            text = "Feel every single beat",
+            text = "Every single beat glows inside the rhythm",
             words = listOf(
-                WordTimestamp("Feel", 5.8, 6.3),
-                WordTimestamp("every", 6.3, 6.95),
-                WordTimestamp("single", 6.95, 7.6),
-                WordTimestamp("beat", 7.6, 8.3, hasTrailingSpace = false),
+                WordTimestamp("Every", 5.8, 6.15),
+                WordTimestamp("single", 6.15, 6.5),
+                WordTimestamp("beat", 6.5, 6.9),
+                WordTimestamp("glows", 6.9, 7.25),
+                WordTimestamp("inside", 7.25, 7.6),
+                WordTimestamp("the", 7.6, 7.9),
+                WordTimestamp("rhythm", 7.9, 8.3, hasTrailingSpace = false),
             ),
         ),
         LyricsEntry(
@@ -362,7 +370,6 @@ fun LyricsAppearanceSettings(navController: NavController) {
                             Material3SettingsItem(
                                 icon = painterResource(R.drawable.gradient),
                                 title = { Text(stringResource(R.string.lyrics_progressive_blur)) },
-                                description = { Text(stringResource(R.string.lyrics_progressive_blur_desc)) },
                                 trailingContent = {
                                     Switch(
                                         checked = lyricsProgressiveBlur,
@@ -570,12 +577,15 @@ private fun LyricsAppearancePreviewCard(
         }
     }
 
-    val previewTextSize = remember(lyricsTextSize) { (lyricsTextSize * 0.68f).coerceIn(12f, 32f) }
-    val previewHeights = remember { mutableStateMapOf<Int, Int>() }
+    val previewHeights =
+        remember(lyricsTextSize, lyricsLineSpacing, animationStyle, lyricsPosition) {
+            mutableStateMapOf<Int, Int>()
+        }
     val density = LocalDensity.current
-    val scrollShiftPx = remember(activeIndex, previewHeights.toMap()) {
-        val above = (0 until activeIndex).sumOf { previewHeights[it] ?: 0 }.toFloat()
-        val halfViewport = with(density) { 82.dp.toPx() }
+    val gapPx = with(density) { 16.dp.toPx() }
+    val scrollShiftPx = remember(activeIndex, previewHeights.toMap(), gapPx) {
+        val above = (0 until activeIndex).sumOf { previewHeights[it] ?: 0 }.toFloat() + activeIndex * gapPx
+        val halfViewport = with(density) { 104.dp.toPx() }
         val activeH = (previewHeights[activeIndex] ?: 0) / 2f
         (halfViewport - above - activeH).coerceAtMost(0f)
     }
@@ -613,63 +623,67 @@ private fun LyricsAppearancePreviewCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(220.dp)
+                    .height(260.dp)
                     .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
                     .clipToBounds()
                     .fadingEdge(top = 24.dp, bottom = 32.dp),
             ) {
                 Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier
                         .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
                         .graphicsLayer { translationY = animatedScrollY },
                 ) {
                     sampleLines.forEachIndexed { idx, entry ->
-                        val distance = abs(idx - activeIndex)
-                        val blurDp = computeProgressiveLyricsBlurDp(
-                            distance = distance,
-                            enabled = progressiveBlurEnabled,
-                            isSynced = true,
-                            isAutoScrollEnabled = true,
-                            isManualScrolling = false,
-                            isSelectionMode = false,
-                            isAttributionItem = false,
-                        )
-                        val endMs = entry.words?.lastOrNull()?.let { (it.endTime * 1000).toLong() }
-                        LyricsLine(
-                            index = idx,
-                            item = entry,
-                            isSynced = true,
-                            isActiveLine = idx == activeIndex,
-                            bgVisible = false,
-                            isSelected = false,
-                            isSelectionModeActive = false,
-                            positionProvider = stablePositionProvider,
-                            adjustedEndTimeMs = endMs,
-                            isPlaying = lifecycleState == Lifecycle.State.RESUMED,
-                            playbackSpeed = 1f,
-                            lyricsTextSize = previewTextSize,
-                            lyricsLineSpacing = lyricsLineSpacing,
-                            animationStyle = animationStyle,
-                            progressiveBlurDp = blurDp,
-                            distance = distance,
-                            expressiveAccent = accentColor,
-                            textMeasurer = previewMeasurer,
-                            lyricsTextPosition = lyricsPosition,
-                            respectAgentPositioning = false,
-                            isAutoScrollEnabled = true,
-                            displayedCurrentLineIndex = activeIndex,
-                            romanizeAsMain = false,
-                            enabledLanguages = emptyList(),
-                            romanizeLyrics = false,
-                            onSizeChanged = { previewHeights[idx] = it },
-                            onClick = {
-                                baseOffsetMs = entry.time
-                                clockStartWallMs = System.currentTimeMillis()
-                                positionState.longValue = entry.time
-                                activeIndex = idx
-                            },
-                            onLongClick = {},
-                        )
+                        key(idx, animationStyle) {
+                            val distance = abs(idx - activeIndex)
+                            val blurDp = computeProgressiveLyricsBlurDp(
+                                distance = distance,
+                                enabled = progressiveBlurEnabled,
+                                isSynced = true,
+                                isAutoScrollEnabled = true,
+                                isManualScrolling = false,
+                                isSelectionMode = false,
+                                isAttributionItem = false,
+                            )
+                            val endMs = entry.words?.lastOrNull()?.let { (it.endTime * 1000).toLong() }
+                            LyricsLine(
+                                index = idx,
+                                item = entry,
+                                isSynced = true,
+                                isActiveLine = idx == activeIndex,
+                                bgVisible = false,
+                                isSelected = false,
+                                isSelectionModeActive = false,
+                                positionProvider = stablePositionProvider,
+                                adjustedEndTimeMs = endMs,
+                                isPlaying = lifecycleState == Lifecycle.State.RESUMED,
+                                playbackSpeed = 1f,
+                                lyricsTextSize = lyricsTextSize,
+                                lyricsLineSpacing = lyricsLineSpacing,
+                                animationStyle = animationStyle,
+                                progressiveBlurDp = blurDp,
+                                distance = distance,
+                                expressiveAccent = accentColor,
+                                textMeasurer = previewMeasurer,
+                                lyricsTextPosition = lyricsPosition,
+                                respectAgentPositioning = false,
+                                isAutoScrollEnabled = true,
+                                displayedCurrentLineIndex = activeIndex,
+                                romanizeAsMain = false,
+                                enabledLanguages = emptyList(),
+                                romanizeLyrics = false,
+                                onSizeChanged = { previewHeights[idx] = it },
+                                onClick = {
+                                    baseOffsetMs = entry.time
+                                    clockStartWallMs = System.currentTimeMillis()
+                                    positionState.longValue = entry.time
+                                    activeIndex = idx
+                                },
+                                onLongClick = {},
+                            )
+                        }
                     }
 
                     // Bottom attribution stays sharp even with progressive blur enabled.

@@ -114,6 +114,44 @@ object TTMLParser {
         return lines
     }
 
+    fun parseSongwriters(ttml: String): List<String> {
+        return try {
+            val factory = DocumentBuilderFactory.newInstance()
+            factory.isNamespaceAware = true
+            try { factory.setFeature("http://xml.org/sax/features/external-general-entities", false) } catch (_: Exception) {}
+            try { factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false) } catch (_: Exception) {}
+            try { factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false) } catch (_: Exception) {}
+            try { factory.setXIncludeAware(false) } catch (_: Exception) {}
+            try { factory.isExpandEntityReferences = false } catch (_: Exception) {}
+
+            val builder = factory.newDocumentBuilder()
+            val doc = builder.parse(ttml.byteInputStream())
+            val root = doc.documentElement ?: return emptyList()
+            val head = findChild(root, "head") ?: return emptyList()
+            val meta = findChild(head, "metadata") ?: return emptyList()
+            val iTunesMeta = findChild(meta, "iTunesMetadata") ?: return emptyList()
+            val songwritersEl = findChild(iTunesMeta, "songwriters") ?: return emptyList()
+            val result = mutableListOf<String>()
+            var child = songwritersEl.firstChild
+            while (child != null) {
+                if (child is Element) {
+                    val name = child.localName ?: child.nodeName.substringAfterLast(':')
+                    if (name == "songwriter") {
+                        val text = child.textContent?.trim().orEmpty()
+                        if (text.isNotEmpty()) {
+                            result.add(text)
+                        }
+                    }
+                }
+                child = child.nextSibling
+            }
+            result.distinct()
+        } catch (e: Exception) {
+            Timber.e(e, "TTMLParser.parseSongwriters: Failed to parse TTML songwriters")
+            emptyList()
+        }
+    }
+
     private fun findChild(parent: Element, localName: String): Element? {
         var child = parent.firstChild
         while (child != null) {

@@ -87,7 +87,11 @@ class DiscordGateway(
         val myId = webSocketIdCounter.incrementAndGet()
         activeWebSocketId = myId
         val openDeferred = CompletableDeferred<Unit>()
-        val request = Request.Builder().url(gatewayUrl).build()
+        val request =
+            Request.Builder()
+                .url(gatewayUrl)
+                .header("User-Agent", DiscordSuperProperties.USER_AGENT)
+                .build()
         val listener = createListener(openDeferred, myId)
         val ws = httpClient.newWebSocket(request, listener)
         webSocket = ws
@@ -156,6 +160,13 @@ class DiscordGateway(
     fun setGatewayUrl(url: String) {
         gatewayUrl = url
         Timber.tag(TAG).i("setGatewayUrl: %s", url)
+    }
+
+    fun resetForFreshIdentify() {
+        gatewayUrl = DEFAULT_GATEWAY_URL
+        _sessionId = null
+        _currentSeq = 0
+        reconnectAttempts = 0
     }
 
     fun closeHttp() {
@@ -285,7 +296,7 @@ class DiscordGateway(
                 val resumable = (json.opt("d") as? Boolean) ?: false
                 Timber.tag(TAG).w("INVALID_SESSION: resumable=%s", resumable)
                 if (!resumable) {
-                    _sessionId = null
+                    resetForFreshIdentify()
                 }
                 _events.emit(GatewayEvent.InvalidSession(resumable))
                 webSocket?.close(4000, "invalid session")
@@ -339,8 +350,7 @@ class DiscordGateway(
         when (action) {
             is ReconnectAction.SurfaceFatal -> {
                 Timber.tag(TAG).w("SurfaceFatal for closeCode=%d, giving up", code)
-                _sessionId = null
-                _currentSeq = 0
+                resetForFreshIdentify()
             }
             is ReconnectAction.RefreshAndReIdentify -> {
                 Timber.tag(TAG).w("RefreshAndReIdentify for closeCode=%d, delegating to manager", code)
@@ -429,9 +439,9 @@ class DiscordGateway(
         d.put("token", token)
         d.put("intents", 0)
         val props = JSONObject()
-        props.put("os", "android")
+        props.put("os", "Android")
         props.put("browser", "Discord Android")
-        props.put("device", appId)
+        props.put("device", android.os.Build.DEVICE ?: appId)
         d.put("properties", props)
         d.put("compress", false)
         return wrapOp(IDENTIFY, d)

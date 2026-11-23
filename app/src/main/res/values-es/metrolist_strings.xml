@@ -103,7 +103,6 @@
     <string name="import_csv">Importar una lista de reproducción CSV</string>
     <string name="import_online">Importar una lista de reproducción M3U</string>
     <string name="playlist_add_local_to_synced_note">Nota: No es posible añadir canciones locales a listas de reproducción sincronizadas o remotas. Cualquier otra combinación es válida</string>
-    <string name="new_player_design">Nuevo diseño del reproductor</string>
     <string name="lyrics_romanize_japanese">Romanizar letras japonesas</string>
     <string name="lyrics_romanize_korean">Romanizar letras coreanas</string>
     <string name="yt_sync">Sincronización automática con la cuenta</string>
@@ -113,7 +112,6 @@
     <string name="disable">Deshabilitar</string>
     <string name="subscribe">Suscribirme</string>
     <string name="subscribed">Suscrito</string>
-    <string name="new_mini_player_design">Nuevo diseño del mini reproductor</string>
     <string name="sensitivity_percentage">%1$d%%</string>
     <string name="now_playing">Reproduciendo</string>
     <string name="seek_forward_dynamic">+%1$d segundos hacia adelante</string>
@@ -199,7 +197,6 @@
     <string name="advanced_desc">Ajustar el tempo y el tono de la canción</string>
     <string name="equalizer_desc">Abrir el ecualizador de audio</string>
     <string name="mini_player">Minirreproductor</string>
-    <string name="pure_black_mini_player">Minirreproductor negro puro</string>
     <string name="cache_size_warning_title">¡Espera!</string>
     <string name="cache_size_warning_message">El límite que has elegido (%1$s) es menor que el que la aplicación usa actualmente. Si continúas, podrían eliminarse algunos %2$s almacenados en caché. ¿Quieres continuar de todos modos?</string>
     <string name="cache_size_warning_confirm">Continuar</string>
@@ -784,7 +781,6 @@
     <string name="varispeed_description">Vincular el tono con la velocidad de reproducción para lograr efectos tipo cinta al acelerar o ralentizar</string>
     <string name="mini_player_background_style">Estilo de fondo del mini reproductor</string>
     <string name="transparent">Transparente</string>
-    <string name="mini_player_background_not_available">No disponible cuando el mini reproductor está deshabilitado</string>
     <string name="lyrics_animation_style_title">Estilo de animación letra por letra</string>
     <string name="system_equalizer_desc">Abrir el ecualizador por defecto de android</string>
     <string name="eq_wizard">Asistente de AutoEQ</string>
@@ -1047,7 +1043,6 @@
     <string name="lyrics_animation_metroverse">MetroVerse</string>
     <string name="lyrics_animation_apple_music">Apple Music</string>
     <string name="lyrics_progressive_blur">Desenfoque progresivo de letras</string>
-    <string name="lyrics_progressive_blur_desc">Desenfoca gradualmente las líneas cercanas manteniendo nítida la línea activa y los créditos finales</string>
     <string name="lyrics_written_by">Letra escrita por %1$s</string>
     <string name="lyrics_display_section">Visualización</string>
     <string name="lyrics_alignment_section">Alineación</string>
@@ -1060,7 +1055,6 @@
     <string name="disable_animated_artwork_on_mobile_data">Desactivar las ilustraciones animadas con datos móviles</string>
     <string name="disable_animated_artwork_on_mobile_data_desc">Mostrar imágenes estáticas con datos móviles, incluso cuando las animaciones están almacenadas en caché</string>
     <string name="animated_cover_resolution">Calidad de las portadas animadas</string>
-    <string name="animated_cover_resolution_desc">Los clips de una sola resolución utilizan su resolución original</string>
     <string name="animated_cover_resolution_low">Baja (360p)</string>
     <string name="animated_cover_resolution_medium">Media (720p)</string>
     <string name="animated_cover_resolution_high">Alta (1080p)</string>
@@ -1071,9 +1065,20 @@
     <string name="apple_music_artist_videos_title">Vídeos de perfil de artista de Apple Music</string>
     <string name="apple_music_artist_videos_description">Reproducir vídeos de perfil animados de Apple Music en las páginas de artistas cuando estén disponibles</string>
     <string name="apple_music_artist_video_quality_title">Calidad del vídeo del perfil de artista</string>
-    <string name="apple_music_artist_video_quality_description">Selecciona la resolución máxima para los vídeos de perfil animados del artista</string>
     <string name="animated_artwork_cache">Caché de imágenes animadas</string>
     <string name="max_animated_artwork_cache_size">Tamaño máximo de la caché de imágenes animadas</string>
     <string name="clear_animated_artwork_cache">Borrar caché de imágenes animadas</string>
     <string name="clear_animated_artwork_cache_dialog">¿Borrar todas las portadas animadas en caché y los metadatos de imágenes de artistas? Tendrán que cargarse de nuevo cuando tengas conexión.</string>
+    <string name="app_usage_mode">Modo de uso</string>
+    <string name="usage_mode_onboarding_title">Elige cómo quieres usar MetroVerse</string>
+    <string name="usage_mode_onboarding_subtitle">Selecciona la experiencia que mejor se adapte a lo que escuchas.</string>
+    <string name="usage_mode_music_and_podcasts">Música y pódcasts</string>
+    <string name="usage_mode_music_and_podcasts_desc">Escucha música de YouTube Music junto con pódcasts de YouTube y RSS.</string>
+    <string name="usage_mode_podcasts_only">Solo pódcasts</string>
+    <string name="usage_mode_podcasts_only_desc">Oculta la pestaña Inicio y establece Pódcasts de forma predeterminada en Biblioteca y Búsqueda.</string>
+    <string name="usage_mode_youtube_music_region_note">Nota: El audio de música proviene de YouTube Music y puede no estar disponible en algunos países o regiones.</string>
+    <string name="usage_mode_restore_in_settings_hint">Puedes restaurar Música y pódcasts en cualquier momento desde Ajustes.</string>
+    <string name="usage_mode_podcasts_only_enabled_notice">Modo Solo pódcasts activado. Puedes volver a Música y pódcasts en Ajustes.</string>
+    <string name="usage_mode_continue">Continuar</string>
+    <string name="lastfm_api_keys_missing">La integración de Last.fm no está disponible en esta compilación porque no se configuraron las credenciales de API.</string>
 </resources>

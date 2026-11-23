@@ -86,7 +86,7 @@ internal fun formatWrittenByAnnotated(
 ): AnnotatedString {
     val cleanWriters = writers.map(String::trim).filter(String::isNotEmpty).distinct()
     val writersText = cleanWriters.joinToString(", ")
-    val colonIndex = template.indexOf(':')
+    val colonIndex = template.indexOfAny(charArrayOf(':', '：'))
     val splitIndex =
         when {
             colonIndex >= 0 && colonIndex + 1 <= template.length -> colonIndex + 1

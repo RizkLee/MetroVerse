@@ -62,6 +62,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -119,10 +120,12 @@ import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.createGraph
 import coil3.compose.AsyncImage
 import coil3.imageLoader
 import coil3.request.CachePolicy
@@ -135,6 +138,8 @@ import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.models.WatchEndpoint
 import com.metrolist.music.constants.AppBarHeight
 import com.metrolist.music.constants.AppLanguageKey
+import com.metrolist.music.constants.AppUsageMode
+import com.metrolist.music.constants.AppUsageModeKey
 import com.metrolist.music.constants.DarkModeKey
 import com.metrolist.music.constants.DefaultOpenTabKey
 import com.metrolist.music.constants.DisableScreenshotKey
@@ -160,7 +165,9 @@ import com.metrolist.music.constants.SimpMusicMigrationDoneKey
 import com.metrolist.music.constants.SlimNavBarHeight
 import com.metrolist.music.constants.SlimNavBarKey
 import com.metrolist.music.constants.StopMusicOnTaskClearKey
-import com.metrolist.music.constants.UseNewMiniPlayerDesignKey
+import com.metrolist.music.constants.UsageModeOnboardingCompletedKey
+import com.metrolist.music.constants.applyAppUsageMode
+import com.metrolist.music.constants.resolveAppUsageMode
 import com.metrolist.music.db.MusicDatabase
 import com.metrolist.music.db.entities.SearchHistory
 import com.metrolist.music.extensions.toEnum
@@ -180,6 +187,7 @@ import com.metrolist.music.ui.component.BottomSheetMenu
 import com.metrolist.music.ui.component.BottomSheetPage
 import com.metrolist.music.ui.component.LocalBottomSheetPageState
 import com.metrolist.music.ui.component.LocalMenuState
+import com.metrolist.music.ui.component.UsageModeOnboardingDialog
 import com.metrolist.music.ui.component.rememberBottomSheetState
 import com.metrolist.music.ui.component.shimmer.ShimmerTheme
 import com.metrolist.music.ui.menu.YouTubeSongMenu
@@ -216,6 +224,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.util.Locale
@@ -454,16 +463,16 @@ class MainActivity : ComponentActivity() {
                         settings[PreferredLyricsProviderKey] = PreferredLyricsProvider.LRCLIB.name
                     }
                     settings[SimpMusicMigrationDoneKey] = true
-                    settings[LastSeenVersionKey] = currentVersion
                 }
             }
         }
 
-        lifecycleScope.launch(Dispatchers.IO) {
-            safeDataStoreEdit { settings ->
-                settings[LastSeenVersionKey] = BuildConfig.VERSION_NAME
-            }
-        }
+        val initialPrefs = runBlocking(Dispatchers.IO) { dataStore.data.first() }
+        val initialUsageModeRaw = initialPrefs[AppUsageModeKey]
+        val initialNavigationBarTabsRaw = initialPrefs[NavigationBarTabsKey] ?: ""
+        val initialDefaultOpenTab = initialPrefs[DefaultOpenTabKey] ?: NavigationTab.HOME.name
+        val initialUsageModeOnboardingCompleted = initialPrefs[UsageModeOnboardingCompletedKey] == true
+        val initialLastSeenVersion = initialPrefs[LastSeenVersionKey] ?: ""
 
         setContent {
             MetrolistApp(
@@ -472,7 +481,44 @@ class MainActivity : ComponentActivity() {
                 database = database,
                 downloadUtil = downloadUtil,
                 syncUtils = syncUtils,
+                initialUsageModeRaw = initialUsageModeRaw,
+                initialNavigationBarTabsRaw = initialNavigationBarTabsRaw,
+                initialDefaultOpenTab = initialDefaultOpenTab,
+                initialUsageModeOnboardingCompleted = initialUsageModeOnboardingCompleted,
+                initialLastSeenVersion = initialLastSeenVersion,
             )
+        }
+    }
+
+    private fun navigateToTopLevelTab(
+        navController: NavHostController,
+        screen: Screens,
+    ) {
+        val backStackRoutes =
+            navController.currentBackStack.value
+                .mapNotNull { it.destination.route }
+                .filter { it != navController.graph.route }
+        val startRoute = navController.graph.findStartDestination().route
+        val isSearchChildOnStartTab =
+            screen.route == startRoute &&
+                backStackRoutes.size >= 2 &&
+                backStackRoutes.lastOrNull()?.let { it == Screens.Search.route || it.startsWith("search") } == true &&
+                backStackRoutes.drop(1).all { it == Screens.Search.route || it.startsWith("search") }
+        val shouldPopExistingTab =
+            (screen.route != startRoute && screen.route in backStackRoutes) || isSearchChildOnStartTab
+        if (shouldPopExistingTab && navController.popBackStack(screen.route, inclusive = false)) {
+            return
+        }
+        val popUpRoute = startRoute?.takeIf { it in backStackRoutes } ?: backStackRoutes.firstOrNull()
+        navController.navigate(screen.route) {
+            if (popUpRoute != null) {
+                popUpTo(popUpRoute) {
+                    saveState = true
+                    inclusive = popUpRoute != startRoute && screen.route == startRoute
+                }
+            }
+            launchSingleTop = true
+            restoreState = true
         }
     }
 
@@ -485,6 +531,11 @@ class MainActivity : ComponentActivity() {
         database: MusicDatabase,
         downloadUtil: DownloadUtil,
         syncUtils: SyncUtils,
+        initialUsageModeRaw: String?,
+        initialNavigationBarTabsRaw: String,
+        initialDefaultOpenTab: String,
+        initialUsageModeOnboardingCompleted: Boolean,
+        initialLastSeenVersion: String,
     ) {
         val enableDynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
         val enableHighRefreshRate by rememberPreference(EnableHighRefreshRateKey, defaultValue = false)
@@ -539,6 +590,9 @@ class MainActivity : ComponentActivity() {
         val selectedThemeColor = Color(selectedThemeColorInt)
 
         val showChangelog = rememberSaveable { mutableStateOf(false) }
+        var showUsageModeOnboarding by rememberSaveable {
+            mutableStateOf(!initialUsageModeOnboardingCompleted)
+        }
 
         var themeColor by rememberSaveable(stateSaver = ColorSaver) {
             mutableStateOf(selectedThemeColor)
@@ -648,10 +702,16 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
 
                 LaunchedEffect(Unit) {
-                    val lastSeenVersion = dataStore.data.first()[LastSeenVersionKey] ?: ""
                     val currentVersion = BuildConfig.VERSION_NAME
-                    if (lastSeenVersion != currentVersion) {
-                        showChangelog.value = true
+                    if (initialLastSeenVersion != currentVersion) {
+                        withContext(Dispatchers.IO) {
+                            safeDataStoreEdit { settings ->
+                                settings[LastSeenVersionKey] = currentVersion
+                            }
+                        }
+                        if (initialUsageModeOnboardingCompleted && initialLastSeenVersion.isNotEmpty()) {
+                            showChangelog.value = true
+                        }
                     }
                 }
 
@@ -660,7 +720,11 @@ class MainActivity : ComponentActivity() {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val (previousTab, setPreviousTab) = rememberSaveable { mutableStateOf("home") }
 
-                val (navigationBarTabsRaw) = rememberPreference(NavigationBarTabsKey, defaultValue = "")
+                val (navigationBarTabsRaw) =
+                    rememberPreference(
+                        NavigationBarTabsKey,
+                        defaultValue = initialNavigationBarTabsRaw,
+                    )
                 val navigationItems =
                     remember(navigationBarTabsRaw) {
                         visibleNavigationScreens(navigationBarTabsRaw)
@@ -669,8 +733,11 @@ class MainActivity : ComponentActivity() {
                     navigationItems.mapIndexed { i, s -> s.route to i }.toMap()
                 }
                 val (slimNav) = rememberPreference(SlimNavBarKey, defaultValue = false)
-                val (useNewMiniPlayerDesign) = rememberPreference(UseNewMiniPlayerDesignKey, defaultValue = true)
-                val (defaultOpenTabInt) = rememberPreference(DefaultOpenTabKey, defaultValue = NavigationTab.HOME.name)
+                val (defaultOpenTabInt) =
+                    rememberPreference(
+                        DefaultOpenTabKey,
+                        defaultValue = initialDefaultOpenTab,
+                    )
                 val defaultOpenTab = remember(defaultOpenTabInt) {
                     try {
                         NavigationTab.valueOf(defaultOpenTabInt)
@@ -686,6 +753,38 @@ class MainActivity : ComponentActivity() {
                             else -> null
                         }
                     }
+                val startNavigationScreen =
+                    remember(navigationBarTabsRaw, defaultOpenTab, tabOpenedFromShortcut) {
+                        resolveStartNavigationScreen(
+                            raw = navigationBarTabsRaw,
+                            defaultOpenTab = defaultOpenTab,
+                            shortcutTab = tabOpenedFromShortcut,
+                        )
+                    }
+                // Keep NavHost's initial startDestination stable and construct its graph once per controller.
+                val initialStartDestinationRoute = remember { startNavigationScreen.route }
+                val activeRoute = navBackStackEntry?.destination?.route
+                val isHomeVisible = Screens.Home in navigationItems
+                LaunchedEffect(startNavigationScreen.route) {
+                    val graph = runCatching { navController.graph }.getOrNull() ?: return@LaunchedEffect
+                    if (graph.startDestinationRoute != startNavigationScreen.route) {
+                        graph.setStartDestination(startNavigationScreen.route)
+                    }
+                }
+                LaunchedEffect(activeRoute, isHomeVisible, startNavigationScreen.route, showUsageModeOnboarding) {
+                    if (showUsageModeOnboarding) return@LaunchedEffect
+                    if (activeRoute == Screens.Home.route && !isHomeVisible) {
+                        val fallback =
+                            startNavigationScreen.takeUnless { it == Screens.Home }
+                                ?: navigationItems.firstOrNull()
+                        if (fallback != null) {
+                            navController.navigate(fallback.route) {
+                                popUpTo(Screens.Home.route) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    }
+                }
 
                 val topLevelScreens =
                     remember {
@@ -767,7 +866,7 @@ class MainActivity : ComponentActivity() {
                         collapsedBound =
                             bottomInset +
                                 (if (!showRail && shouldShowNavigationBar) navPadding else 0.dp) +
-                                (if (useNewMiniPlayerDesign) MiniPlayerBottomSpacing else 0.dp) +
+                                MiniPlayerBottomSpacing +
                                 MiniPlayerHeight,
                         expandedBound = maxHeight,
                     )
@@ -784,27 +883,18 @@ class MainActivity : ComponentActivity() {
                         shouldShowNavigationBar,
                         playerBottomSheetState.isDismissed,
                         showRail,
-                        useNewMiniPlayerDesign,
                     ) {
                         var bottom = bottomInset
                         if (shouldShowNavigationBar && !showRail) {
                             bottom += NavigationBarHeight
                         }
                         if (!playerBottomSheetState.isDismissed) {
-                            bottom += MiniPlayerHeight
-                            if (useNewMiniPlayerDesign) bottom += MiniPlayerBottomSpacing
+                            bottom += MiniPlayerHeight + MiniPlayerBottomSpacing
                         }
                         windowsInsets
                             .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
                             .add(WindowInsets(top = AppBarHeight, bottom = bottom))
                     }
-                appBarScrollBehavior(
-                    canScroll = {
-                        !inSearchScreen &&
-                            (playerBottomSheetState.isCollapsed || playerBottomSheetState.isDismissed)
-                    },
-                )
-
                 val topAppBarScrollBehavior =
                     appBarScrollBehavior(
                         canScroll = {
@@ -971,12 +1061,54 @@ class MainActivity : ComponentActivity() {
                     LocalAnimatedArtworkVideoCache provides animatedArtworkVideoCache,
                     LocalNetworkConnectivityObserver provides networkConnectivityObserver,
                 ) {
-                    if (showChangelog.value) {
+                    val podcastsOnlyRestoreNotice = stringResource(R.string.usage_mode_podcasts_only_enabled_notice)
+                    if (showUsageModeOnboarding) {
+                        val suggestedInitialMode =
+                            remember(initialUsageModeRaw, initialNavigationBarTabsRaw) {
+                                if (!initialUsageModeRaw.isNullOrBlank()) {
+                                    resolveAppUsageMode(initialUsageModeRaw)
+                                } else if (Screens.Home !in visibleNavigationScreens(initialNavigationBarTabsRaw)) {
+                                    AppUsageMode.PODCASTS_ONLY
+                                } else {
+                                    AppUsageMode.MUSIC_AND_PODCASTS
+                                }
+                            }
+                        UsageModeOnboardingDialog(
+                            isOnboarding = true,
+                            initialMode = suggestedInitialMode,
+                            onConfirm = { selectedMode ->
+                                showUsageModeOnboarding = false
+                                coroutineScope.launch {
+                                    safeDataStoreEdit { settings ->
+                                        applyAppUsageMode(settings, selectedMode)
+                                    }
+                                    if (selectedMode == AppUsageMode.PODCASTS_ONLY) {
+                                        val graph = runCatching { navController.graph }.getOrNull()
+                                        if (graph != null && graph.startDestinationRoute != Screens.Podcast.route) {
+                                            graph.setStartDestination(Screens.Podcast.route)
+                                        }
+                                        if (navController.currentDestination?.route != Screens.Podcast.route) {
+                                            navController.navigate(Screens.Podcast.route) {
+                                                popUpTo(Screens.Home.route) {
+                                                    inclusive = true
+                                                }
+                                                launchSingleTop = true
+                                            }
+                                        }
+                                        snackbarHostState.showSnackbar(
+                                            message = podcastsOnlyRestoreNotice,
+                                            duration = SnackbarDuration.Long,
+                                        )
+                                    }
+                                }
+                            },
+                            onDismiss = {},
+                        )
+                    } else if (showChangelog.value) {
                         ChangelogScreen(onDismiss = { showChangelog.value = false })
                     }
 
                     Scaffold(
-                        snackbarHost = { SnackbarHost(snackbarHostState) },
                         topBar = {
                             AnimatedVisibility(
                                 visible = shouldShowTopBar,
@@ -1101,13 +1233,7 @@ class MainActivity : ComponentActivity() {
                                                 topAppBarScrollBehavior.state.resetHeightOffset()
                                             }
                                         } else {
-                                            navController.navigate(screen.route) {
-                                                popUpTo(navController.graph.startDestinationId) {
-                                                    saveState = true
-                                                }
-                                                launchSingleTop = true
-                                                restoreState = true
-                                            }
+                                            navigateToTopLevelTab(navController, screen)
                                         }
                                     }
                                 }
@@ -1174,14 +1300,7 @@ class MainActivity : ComponentActivity() {
                                                 // Use graphicsLayer for background color changes
                                                 .graphicsLayer {
                                                     val progress = playerBottomSheetState.progress
-                                                    alpha =
-                                                        if (progress > 0f ||
-                                                            (useNewMiniPlayerDesign && !shouldShowNavigationBar)
-                                                        ) {
-                                                            0f
-                                                        } else {
-                                                            1f
-                                                        }
+                                                    alpha = if (progress > 0f || !shouldShowNavigationBar) 0f else 1f
                                                 }.background(baseBg),
                                     )
                                 }
@@ -1205,8 +1324,7 @@ class MainActivity : ComponentActivity() {
                                             // Use graphicsLayer for background color changes
                                             .graphicsLayer {
                                                 val progress = playerBottomSheetState.progress
-                                                alpha =
-                                                    if (progress > 0f || (useNewMiniPlayerDesign && !shouldShowNavigationBar)) 0f else 1f
+                                                alpha = if (progress > 0f || !shouldShowNavigationBar) 0f else 1f
                                             }.background(baseBg),
                                 )
                             }
@@ -1230,13 +1348,7 @@ class MainActivity : ComponentActivity() {
                                                 topAppBarScrollBehavior.state.resetHeightOffset()
                                             }
                                         } else {
-                                            navController.navigate(screen.route) {
-                                                popUpTo(navController.graph.startDestinationId) {
-                                                    saveState = true
-                                                }
-                                                launchSingleTop = true
-                                                restoreState = true
-                                            }
+                                            navigateToTopLevelTab(navController, screen)
                                         }
                                     }
                                 }
@@ -1260,15 +1372,22 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                             Box(Modifier.weight(1f)) {
+                                val navGraph =
+                                    remember(navController) {
+                                        navController.createGraph(startDestination = initialStartDestinationRoute) {
+                                            navigationBuilder(
+                                                navController = navController,
+                                                scrollBehavior = topAppBarScrollBehavior,
+                                                latestVersionName = latestVersionName,
+                                                activity = this@MainActivity,
+                                                snackbarHostState = snackbarHostState,
+                                            )
+                                        }
+                                    }
                                 // NavHost with animations (Material 3 Expressive style)
                                 NavHost(
                                     navController = navController,
-                                    startDestination =
-                                        resolveStartNavigationScreen(
-                                            raw = navigationBarTabsRaw,
-                                            defaultOpenTab = defaultOpenTab,
-                                            shortcutTab = tabOpenedFromShortcut,
-                                        ).route,
+                                    graph = navGraph,
                                     enterTransition = {
                                         val currentRouteIndex = routeIndexMap[targetState.destination.route] ?: -1
                                         val previousRouteIndex = routeIndexMap[initialState.destination.route] ?: -1
@@ -1310,18 +1429,18 @@ class MainActivity : ComponentActivity() {
                                         }
                                     },
                                     modifier = Modifier.nestedScroll(topAppBarScrollBehavior.nestedScrollConnection),
-                                ) {
-                                    navigationBuilder(
-                                        navController = navController,
-                                        scrollBehavior = topAppBarScrollBehavior,
-                                        latestVersionName = latestVersionName,
-                                        activity = this@MainActivity,
-                                        snackbarHostState = snackbarHostState,
-                                    )
-                                }
+                                )
                             }
                         }
                     }
+
+                    SnackbarHost(
+                        hostState = snackbarHostState,
+                        modifier =
+                            Modifier
+                                .align(Alignment.BottomCenter)
+                                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current),
+                    )
 
                     BottomSheetMenu(
                         state = LocalMenuState.current,

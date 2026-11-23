@@ -20,8 +20,10 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.structuralEqualityPolicy
 import androidx.compose.ui.Modifier
@@ -495,8 +497,12 @@ internal fun AppleWordAnimation(
                 }
             }
             val elevAnim = remember(sIdx, alignedSyllables) { animState.elevationFor(packElevationKey(false, sIdx.toLong())) }
+            var isFirstMount by remember(sIdx, alignedSyllables) { mutableStateOf(true) }
             LaunchedEffect(targetElev) {
-                if (elevAnim.targetValue != targetElev || elevAnim.isRunning) {
+                if (isFirstMount) {
+                    isFirstMount = false
+                    elevAnim.snapTo(targetElev)
+                } else if (elevAnim.targetValue != targetElev || elevAnim.isRunning) {
                     withContext(FixedMotionDurationScale) {
                         elevAnim.animateTo(targetElev, tween(durationMillis = 1000, easing = FastOutSlowInEasing))
                     }

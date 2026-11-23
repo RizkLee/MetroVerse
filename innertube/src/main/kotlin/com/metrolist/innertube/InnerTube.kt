@@ -167,17 +167,22 @@ class InnerTube {
             url(YouTubeClient.API_URL_YOUTUBE_MUSIC)
             // Add common headers for better compatibility
             header("Accept", "application/json")
-            header("Accept-Language", "en-US,en;q=0.9")
             header("Cache-Control", "no-cache")
         }
     }
 
     private fun HttpRequestBuilder.ytClient(client: YouTubeClient, setLogin: Boolean = false) {
         contentType(ContentType.Application.Json)
+        val acceptLang =
+            locale.hl.takeIf { it.isNotBlank() }?.let { hl ->
+                if (hl.startsWith("en", ignoreCase = true)) "$hl,en;q=0.9" else "$hl,en-US;q=0.9,en;q=0.8"
+            } ?: "en-US,en;q=0.9"
         headers {
+            append("Accept-Language", acceptLang)
             append("X-Goog-Api-Format-Version", "1")
             append("X-YouTube-Client-Name", client.clientId /* Not a typo. The Client-Name header does contain the client id. */)
             append("X-YouTube-Client-Version", client.clientVersion)
+            append("Origin", YouTubeClient.ORIGIN_YOUTUBE_MUSIC)
             append("X-Origin", YouTubeClient.ORIGIN_YOUTUBE_MUSIC)
             append("Referer", YouTubeClient.REFERER_YOUTUBE_MUSIC)
             visitorData?.let { append("X-Goog-Visitor-Id", it) }
@@ -222,13 +227,13 @@ class InnerTube {
         continuation: String? = null,
     ) = withRetry {
         httpClient.post("search") {
-            ytClient(client, setLogin = false)
+            ytClient(client, setLogin = useLoginForBrowse)
             setBody(
                 SearchBody(
                     context = client.toContext(
                         locale,
                         visitorData,
-                        null
+                        if (useLoginForBrowse) dataSyncId else null
                     ),
                     query = query,
                     params = params

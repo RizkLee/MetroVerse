@@ -21,6 +21,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -30,12 +36,19 @@ import androidx.core.net.toUri
 import androidx.navigation.NavController
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
+import com.metrolist.music.constants.AppUsageMode
+import com.metrolist.music.constants.AppUsageModeKey
+import com.metrolist.music.constants.applyAppUsageMode
+import com.metrolist.music.constants.resolveAppUsageMode
 import com.metrolist.music.ui.component.BuyMeACoffeeButton
 import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.component.Material3SettingsGroup
 import com.metrolist.music.ui.component.Material3SettingsItem
+import com.metrolist.music.ui.component.UsageModeOnboardingDialog
 import com.metrolist.music.ui.utils.backToMain
-import androidx.compose.runtime.remember
+import com.metrolist.music.utils.rememberPreference
+import com.metrolist.music.utils.safeDataStoreEdit
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,7 +57,34 @@ fun SettingsScreen(
     _latestVersionName: String,
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val isAndroid12OrLater = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    val (appUsageModeRaw) = rememberPreference(AppUsageModeKey, AppUsageMode.MUSIC_AND_PODCASTS.name)
+    val usageMode = remember(appUsageModeRaw) { resolveAppUsageMode(appUsageModeRaw) }
+    var showUsageModeDialog by rememberSaveable { mutableStateOf(false) }
+
+    if (showUsageModeDialog) {
+        UsageModeOnboardingDialog(
+            isOnboarding = false,
+            initialMode = usageMode,
+            onConfirm = { mode ->
+                showUsageModeDialog = false
+                coroutineScope.launch {
+                    context.safeDataStoreEdit { settings ->
+                        applyAppUsageMode(settings, mode)
+                    }
+                    if (mode == AppUsageMode.PODCASTS_ONLY) {
+                        Toast.makeText(
+                            context,
+                            R.string.usage_mode_podcasts_only_enabled_notice,
+                            Toast.LENGTH_LONG,
+                        ).show()
+                    }
+                }
+            },
+            onDismiss = { showUsageModeDialog = false },
+        )
+    }
     val hasAndroidAuto = remember {
         try {
             context.packageManager.getPackageInfo(
@@ -78,7 +118,25 @@ fun SettingsScreen(
                     icon = painterResource(R.drawable.palette),
                     title = { Text(stringResource(R.string.appearance)) },
                     onClick = { navController.navigate("settings/appearance") }
-                )
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(
+                        if (usageMode == AppUsageMode.PODCASTS_ONLY) R.drawable.podcast else R.drawable.music_note,
+                    ),
+                    title = { Text(stringResource(R.string.app_usage_mode)) },
+                    description = {
+                        Text(
+                            stringResource(
+                                if (usageMode == AppUsageMode.PODCASTS_ONLY) {
+                                    R.string.usage_mode_podcasts_only
+                                } else {
+                                    R.string.usage_mode_music_and_podcasts
+                                },
+                            ),
+                        )
+                    },
+                    onClick = { showUsageModeDialog = true },
+                ),
             )
         )
 

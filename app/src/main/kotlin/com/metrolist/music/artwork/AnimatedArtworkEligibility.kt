@@ -5,11 +5,48 @@
 
 package com.metrolist.music.artwork
 
+import android.os.Build
 import com.metrolist.innertube.models.MUSIC_VIDEO_TYPE_PODCAST_EPISODE
 import com.metrolist.music.constants.AnimatedCoverResolution
 import com.metrolist.music.models.MediaMetadata
 import com.metrolist.music.utils.isOpenRssEpisode
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+
+private val traditionalToSimplifiedTransliterator: Any? by lazy {
+    runCatching {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            android.icu.text.Transliterator.getInstance("Traditional-Simplified")
+        } else {
+            null
+        }
+    }.getOrNull()
+}
+
+internal fun normalizeCjkScript(text: String): String {
+    if (text.isBlank()) return text
+    val transliterator = traditionalToSimplifiedTransliterator ?: return text
+    return runCatching {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            (transliterator as android.icu.text.Transliterator).transliterate(text)
+        } else {
+            text
+        }
+    }.getOrDefault(text)
+}
+
+internal fun formatAppleLocaleParam(
+    language: String?,
+    country: String,
+): String? {
+    val cleanLanguage = language?.trim()?.lowercase()?.replace('_', '-')?.takeIf(String::isNotBlank) ?: return null
+    val cleanCountry = country.trim().lowercase().ifBlank { "us" }
+    return when {
+        cleanLanguage == "zh-cn" || cleanLanguage == "zh-hans" -> "zh-hans-$cleanCountry"
+        cleanLanguage == "zh-tw" || cleanLanguage == "zh-hk" || cleanLanguage == "zh-hant" -> "zh-hant-$cleanCountry"
+        cleanLanguage.contains('-') -> cleanLanguage
+        else -> "$cleanLanguage-$cleanCountry"
+    }
+}
 
 internal fun isEligibleForAnimatedCover(metadata: MediaMetadata?): Boolean {
     if (metadata == null) return false
@@ -189,7 +226,7 @@ internal fun matchesAppleMusicExplicitness(
 }
 
 internal fun normalizeTitleText(title: String): String =
-    title
+    normalizeCjkScript(title)
         .trim()
         .replace(smartQuotePattern, "'")
         .replace(whitespacePattern, " ")
@@ -212,14 +249,14 @@ internal fun cleanTitleText(title: String): String {
 }
 
 internal fun normalizeArtistProfileName(artistName: String): String =
-    artistName
+    normalizeCjkScript(artistName)
         .trim()
         .lowercase()
         .replace(smartQuotePattern, "'")
         .replace(whitespacePattern, " ")
 
 internal fun normalizeArtist(artistName: String): String =
-    artistName
+    normalizeCjkScript(artistName)
         .trim()
         .lowercase()
         .replace(" & ", ", ")
@@ -233,7 +270,7 @@ internal fun normalizeArtist(artistName: String): String =
         .split(",")
         .firstOrNull()
         ?.trim()
-        ?: artistName.trim().lowercase()
+        ?: normalizeCjkScript(artistName).trim().lowercase()
 
 internal fun normalizeAlbum(name: String): String =
     normalizeTitleText(name)

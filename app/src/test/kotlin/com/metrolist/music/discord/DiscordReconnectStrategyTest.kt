@@ -72,13 +72,15 @@ class DiscordReconnectStrategyTest {
     }
 
     @Test
-    fun surfaceFatal_for4014() {
-        val action = DiscordReconnectStrategy.decide(
-            closeCode = 4014,
-            hadSession = true,
-            seq = 1,
-            sessionId = "session",
-        )
-        assertEquals(ReconnectAction.SurfaceFatal, action)
+    fun surfaceFatal_for4010Through4014() {
+        listOf(4010, 4011, 4012, 4013, 4014).forEach { code ->
+            val action = DiscordReconnectStrategy.decide(
+                closeCode = code,
+                hadSession = true,
+                seq = 1,
+                sessionId = "session",
+            )
+            assertEquals("code $code", ReconnectAction.SurfaceFatal, action)
+        }
     }
 }

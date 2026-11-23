@@ -52,6 +52,8 @@ object DiscordRpcManager {
 
     @Volatile private var currentSongId: String? = null
     @Volatile private var currentIsPlaying: Boolean = false
+    @Volatile private var lastRawLargeImage: String? = null
+    @Volatile private var lastRawSmallImage: String? = null
     private val currentActivityId = AtomicLong(0L)
     @Volatile private var imageResolutionJob: Job? = null
     @Volatile private var currentActivityHadImages: Boolean = false
@@ -132,7 +134,7 @@ object DiscordRpcManager {
         }
     }
 
-    fun init(context: Context) {
+    fun init(context: Context, autoConnect: Boolean = true) {
         DiscordTokenStore.init(context.applicationContext)
         if (initialized && scope.isActive) {
             Timber.tag(TAG).i("init: already initialized and active, skipping")
@@ -146,13 +148,17 @@ object DiscordRpcManager {
         initialized = true
         _connectionStatus.value = Status.Disconnected
         startEventCollection()
-        Timber.tag(TAG).i("init: token store initialized, scheduling auto-rehydrate")
+        Timber.tag(TAG).i("init: token store initialized (autoConnect=%s)", autoConnect)
 
         scope.launch {
             val saved = DiscordTokenStore.retrieveSuspend()
             if (!saved.isNullOrEmpty()) {
-                Timber.tag(TAG).i("init: found persisted token, reconnecting")
-                reconnectWithToken(saved)
+                accessToken = saved
+                _accessTokenFlow.value = saved
+                if (autoConnect) {
+                    Timber.tag(TAG).i("init: found persisted token, reconnecting")
+                    reconnectWithToken(saved)
+                }
             } else {
                 Timber.tag(TAG).i("init: no persisted token, waiting for explicit authorize")
             }
@@ -203,6 +209,7 @@ object DiscordRpcManager {
                 try {
                     reconnectMutex.withLock {
                         runCatching { gateway.close(4000, "re-authorizing") }
+                        gateway.resetForFreshIdentify()
                         gateway.connect()
                         gateway.identify("Bearer ${result.accessToken}")
                     }
@@ -217,6 +224,11 @@ object DiscordRpcManager {
                 }
             } catch (e: DiscordAuthException.UserCancelled) {
                 Timber.tag(TAG).i("authorize: user cancelled")
+                _lastError.value = null
+                _connectionStatus.value = Status.Disconnected
+                completeWith(false)
+            } catch (e: DiscordAuthException.TimedOut) {
+                Timber.tag(TAG).w("authorize: timed out waiting for callback")
                 _lastError.value = "discord_error_loopback_timeout"
                 _connectionStatus.value = Status.Disconnected
                 completeWith(false)
@@ -253,7 +265,71 @@ object DiscordRpcManager {
 
     fun cancelAuthorize() {
         Timber.tag(TAG).i("cancelAuthorize: cancelling active authorization")
+        authorizeInProgress = false
+        _connectionStatus.value = Status.Disconnected
         auth.cancel()
+    }
+
+    fun completePendingAuthorization(
+        context: Context,
+        code: String,
+        state: String,
+    ) {
+        val appCtx = context.applicationContext
+        DiscordTokenStore.init(appCtx)
+        if (!initialized) {
+            init(appCtx, autoConnect = false)
+        }
+        val pending = DiscordTokenStore.consumePendingAuth()
+        if (pending == null) {
+            Timber.tag(TAG).w("completePendingAuthorization: no pending OAuth session found")
+            _lastError.value = "discord_error_loopback_timeout"
+            _connectionStatus.value = Status.Disconnected
+            return
+        }
+        authorizeInProgress = true
+        _connectionStatus.value = Status.Authorizing
+        _lastError.value = null
+        scope.launch {
+            try {
+                val result = auth.exchangeCode(
+                    code = code,
+                    verifier = pending.verifier,
+                    state = state,
+                    expectedState = pending.state,
+                )
+                DiscordTokenStore.storeFull(
+                    result.accessToken,
+                    result.refreshToken,
+                    result.expiresInSec,
+                )
+                accessToken = result.accessToken
+                _accessTokenFlow.value = result.accessToken
+                _authorized = true
+                reconnectMutex.withLock {
+                    runCatching { gateway.close(4000, "re-authorizing") }
+                    gateway.resetForFreshIdentify()
+                    gateway.connect()
+                    gateway.identify("Bearer ${result.accessToken}")
+                }
+            } catch (e: DiscordAuthException.StateMismatch) {
+                Timber.tag(TAG).w(e, "completePendingAuthorization: state mismatch")
+                _lastError.value = "discord_error_invalid_scope"
+                _connectionStatus.value = Status.Disconnected
+            } catch (e: DiscordAuthException.InvalidGrant) {
+                Timber.tag(TAG).w(e, "completePendingAuthorization: invalid grant")
+                _lastError.value = "discord_error_token_refresh_failed"
+                _connectionStatus.value = Status.Disconnected
+            } catch (e: Throwable) {
+                Timber.tag(TAG).e(e, "completePendingAuthorization: failed")
+                _lastError.value = "discord_error_loopback_timeout"
+                _connectionStatus.value = Status.Disconnected
+                _ready = false
+                _authorized = false
+            } finally {
+                authorizeInProgress = false
+            }
+        }
     }
 
     fun fetchCurrentUser(token: String): DiscordUser? {
@@ -282,8 +358,11 @@ object DiscordRpcManager {
             val json = JSONObject(responseBody)
             val id = json.getString("id")
             val username = json.getString("username")
-            val name = json.optString("global_name", username)
-            val avatarHash = json.optString("avatar")
+            val name =
+                json.optString("global_name")
+                    .takeIf { !json.isNull("global_name") && it.isNotBlank() }
+                    ?: username
+            val avatarHash = json.optString("avatar").takeIf { !json.isNull("avatar") } ?: ""
             val avatar = if (avatarHash.isNotEmpty() && avatarHash != "null") {
                 "https://cdn.discordapp.com/avatars/$id/$avatarHash.png"
             } else null
@@ -300,15 +379,16 @@ object DiscordRpcManager {
         songId: String? = null,
         isPlaying: Boolean = true,
         status: PresenceStatus = PresenceStatus.Online,
+        forceUpdate: Boolean = false,
     ) {
         if (!_ready) {
             Timber.tag(TAG).w("setActivity: skipping — not ready (name=%s)", activity.name)
             return
         }
 
-        val stateChanged = songId != currentSongId || isPlaying != currentIsPlaying ||
-            (activity.largeImage != null && activity.largeImage != lastActivity?.largeImage) ||
-            (activity.smallImage != null && activity.smallImage != lastActivity?.smallImage)
+        val stateChanged = forceUpdate || songId != currentSongId || isPlaying != currentIsPlaying ||
+            activity.largeImage != lastRawLargeImage ||
+            activity.smallImage != lastRawSmallImage
 
         val now = System.currentTimeMillis()
         if (!stateChanged &&
@@ -321,6 +401,8 @@ object DiscordRpcManager {
 
         currentSongId = songId
         currentIsPlaying = isPlaying
+        lastRawLargeImage = activity.largeImage
+        lastRawSmallImage = activity.smallImage
         currentActivityId.incrementAndGet()
         currentActivityHadImages = !activity.largeImage.isNullOrEmpty() || !activity.smallImage.isNullOrEmpty()
 
@@ -335,6 +417,7 @@ object DiscordRpcManager {
         val payloadNoImages = DiscordPresence.buildActivity(
             name = activity.name.orEmpty(),
             type = activityTypeToEnum(activity.activityType),
+            applicationId = appId,
             details = activity.details,
             state = activity.state,
             startMs = activity.startTimestamp.takeIf { it > 0L },
@@ -399,6 +482,7 @@ object DiscordRpcManager {
             val payloadWithImages = DiscordPresence.buildActivity(
                 name = activity.name.orEmpty(),
                 type = activityTypeToEnum(activity.activityType),
+                applicationId = appId,
                 details = activity.details,
                 state = activity.state,
                 largeImage = largeResolved,
@@ -491,7 +575,7 @@ object DiscordRpcManager {
                         } catch (e: DiscordAuthException.InvalidGrant) {
                             Timber.tag(TAG).w(e, "reconnectWithToken: refresh invalid_grant, logging out")
                             _lastError.value = "discord_error_token_refresh_failed"
-                            logout()
+                            logout(clearError = false)
                             return@withLock
                         } catch (e: Throwable) {
                             Timber.tag(TAG).w(e, "reconnectWithToken: refresh failed, continuing with old token")
@@ -514,6 +598,7 @@ object DiscordRpcManager {
                     }
 
                     runCatching { gateway.close(4000, "reconnecting") }
+                    gateway.resetForFreshIdentify()
                     gateway.connect()
                     gateway.identify("Bearer ${accessToken ?: token}")
                 } catch (e: Throwable) {
@@ -530,7 +615,7 @@ object DiscordRpcManager {
         if (refreshToken.isNullOrEmpty()) {
             Timber.tag(TAG).w("refreshAndReconnect: no refresh token available, logging out")
             _lastError.value = "discord_error_token_refresh_failed"
-            logout()
+            logout(clearError = false)
             return
         }
 
@@ -539,7 +624,7 @@ object DiscordRpcManager {
         } catch (e: DiscordAuthException.InvalidGrant) {
             Timber.tag(TAG).w(e, "refreshAndReconnect: refresh token rejected, logging out")
             _lastError.value = "discord_error_token_refresh_failed"
-            logout()
+            logout(clearError = false)
             return
         } catch (e: Throwable) {
             Timber.tag(TAG).e(e, "refreshAndReconnect: token refresh failed")
@@ -565,11 +650,14 @@ object DiscordRpcManager {
         currentActivityId.incrementAndGet()
         imageResolutionJob?.cancel()
         runCatching { gateway.close(1000, "user disconnect") }
+        gateway.resetForFreshIdentify()
         _connectionStatus.value = Status.Disconnected
         _ready = false
         _authorized = false
         currentSongId = null
         currentIsPlaying = false
+        lastRawLargeImage = null
+        lastRawSmallImage = null
         currentActivityHadImages = false
     }
 
@@ -587,10 +675,12 @@ object DiscordRpcManager {
         lastActivity = null
         currentSongId = null
         currentIsPlaying = false
+        lastRawLargeImage = null
+        lastRawSmallImage = null
         currentActivityHadImages = false
     }
 
-    fun logout() {
+    fun logout(clearError: Boolean = true) {
         Timber.tag(TAG).i("logout: clearing tokens and disconnecting")
         disconnect()
         accessToken = null
@@ -598,8 +688,12 @@ object DiscordRpcManager {
         _currentUser.value = null
         DiscordTokenStore.clear()
         DiscordSuperProperties.reset()
-        _lastError.value = null
+        if (clearError) {
+            _lastError.value = null
+        }
         lastActivity = null
+        lastRawLargeImage = null
+        lastRawSmallImage = null
         currentActivityHadImages = false
     }
 

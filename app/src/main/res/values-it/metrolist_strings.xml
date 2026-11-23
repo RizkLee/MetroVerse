@@ -107,14 +107,12 @@
     <string name="lyrics_romanize_japanese">Romanizza testo in giapponese</string>
     <string name="lyrics_romanize_korean">Romanizza testo in coreano</string>
     <string name="yt_sync">Sincronizza automaticamente con l\'account</string>
-    <string name="new_player_design">Nuovo design del lettore</string>
     <string name="disable">Disabilita</string>
     <string name="clear_image_cache_dialog">Sei sicuro di voler cancellare tutte le immagini in cache?</string>
     <string name="swipe_sensitivity">Sensibilità del gesto per cambiare brano nel mini lettore</string>
     <string name="sensitivity_percentage">%1$d%%</string>
     <string name="subscribe">Iscriviti</string>
     <string name="subscribed">Iscritto</string>
-    <string name="new_mini_player_design">Nuovo design del mini lettore</string>
     <string name="now_playing">In riproduzione</string>
     <string name="seek_forward_dynamic">%1$d secondi avanti</string>
     <string name="seek_backward_dynamic">%1$d secondi indietro</string>
@@ -199,7 +197,6 @@
     <string name="advanced_desc">Regola il tempo e l\'intonazione della canzone</string>
     <string name="equalizer_desc">Apri l\'equalizzatore audio</string>
     <string name="mini_player">Mini lettore</string>
-    <string name="pure_black_mini_player">Mini lettore nero puro</string>
     <string name="cache_size_warning_title">Aspetta!</string>
     <string name="cache_size_warning_message">Il limite che hai scelto (%1$s) è inferiore a quello utilizzato attualmente dall\'app. Se si continua, è possibile che alcuni %2$s memorizzati nella cache vengano rimossi. Procedere comunque?</string>
     <string name="cache_size_warning_confirm">Continua</string>
@@ -784,7 +781,6 @@
     <string name="time_transfer_title">Tempo di trasferimento</string>
     <string name="mini_player_background_style">Stile dello sfondo del mini lettore</string>
     <string name="transparent">Trasparente</string>
-    <string name="mini_player_background_not_available">Non disponibile quando il nuovo mini lettore è disabilitato</string>
     <string name="your_daily_discover">La scoperta di oggi</string>
     <string name="time_transfer_warning">ATTENZIONE: non è possibile annullare questa azione una volta completata. Crea un file di backup prima di procedere. Puoi scegliere come destinazione solo brani con almeno una riproduzione</string>
     <string name="lyrics_from_provider">Testi da %s</string>
@@ -1044,7 +1040,6 @@
     <string name="lyrics_animation_metroverse">MetroVerse</string>
     <string name="lyrics_animation_apple_music">Apple Music</string>
     <string name="lyrics_progressive_blur">Sfocatura progressiva del testo</string>
-    <string name="lyrics_progressive_blur_desc">Sfoca gradualmente le righe circostanti mantenendo nitidi la riga attiva e i crediti finali</string>
     <string name="lyrics_written_by">Scritto da %1$s</string>
     <string name="lyrics_display_section">Visualizzazione</string>
     <string name="lyrics_alignment_section">Allineamento</string>
@@ -1057,7 +1052,6 @@
     <string name="disable_animated_artwork_on_mobile_data">Disattiva copertine animate su dati mobili</string>
     <string name="disable_animated_artwork_on_mobile_data_desc">Mostra le copertine statiche su dati mobili, anche quando le animazioni sono nella cache</string>
     <string name="animated_cover_resolution">Qualità copertine animate</string>
-    <string name="animated_cover_resolution_desc">Le clip a risoluzione singola usano la risoluzione originale</string>
     <string name="animated_cover_resolution_low">Bassa (360p)</string>
     <string name="animated_cover_resolution_medium">Media (720p)</string>
     <string name="animated_cover_resolution_high">Alta (1080p)</string>
@@ -1068,9 +1062,20 @@
     <string name="apple_music_artist_videos_title">Video profilo artista Apple Music</string>
     <string name="apple_music_artist_videos_description">Riproduci i video profilo animati di Apple Music nelle pagine degli artisti quando disponibili</string>
     <string name="apple_music_artist_video_quality_title">Qualità video profilo artista</string>
-    <string name="apple_music_artist_video_quality_description">Scegli la risoluzione massima per i video animati del profilo artista</string>
     <string name="animated_artwork_cache">Cache copertine animate</string>
     <string name="max_animated_artwork_cache_size">Dimensione massima cache copertine animate</string>
     <string name="clear_animated_artwork_cache">Svuota cache copertine animate</string>
     <string name="clear_animated_artwork_cache_dialog">Cancellare tutte le copertine animate nella cache e i metadati delle immagini artista? Dovranno essere ricaricati quando sei online.</string>
+    <string name="app_usage_mode">Modalità d\'uso</string>
+    <string name="usage_mode_onboarding_title">Scegli come usare MetroVerse</string>
+    <string name="usage_mode_onboarding_subtitle">Seleziona l\'esperienza adatta al tuo ascolto.</string>
+    <string name="usage_mode_music_and_podcasts">Musica e podcast</string>
+    <string name="usage_mode_music_and_podcasts_desc">Ascolta musica da YouTube Music insieme ai podcast YouTube e RSS.</string>
+    <string name="usage_mode_podcasts_only">Solo podcast</string>
+    <string name="usage_mode_podcasts_only_desc">Nasconde la scheda Home e imposta i podcast come predefiniti in Libreria e Ricerca.</string>
+    <string name="usage_mode_youtube_music_region_note">Nota: L\'audio musicale proviene da YouTube Music e potrebbe non essere disponibile in alcuni Paesi o aree geografiche.</string>
+    <string name="usage_mode_restore_in_settings_hint">Puoi ripristinare Musica e podcast in qualsiasi momento nelle Impostazioni.</string>
+    <string name="usage_mode_podcasts_only_enabled_notice">Modalità Solo podcast attivata. Puoi ripristinare Musica e podcast nelle Impostazioni.</string>
+    <string name="usage_mode_continue">Continua</string>
+    <string name="lastfm_api_keys_missing">L\'integrazione di Last.fm non è disponibile in questa build perché le credenziali API non sono configurate.</string>
 </resources>

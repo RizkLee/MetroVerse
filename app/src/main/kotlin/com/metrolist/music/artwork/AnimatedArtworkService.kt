@@ -90,7 +90,7 @@ class AnimatedArtworkService internal constructor(
     }
 
     private val coverCacheFile = File(cacheDir, "covers.json")
-    private val artistCacheFile = File(cacheDir, "artists.json")
+    private val artistCacheFile = File(cacheDir, "artists_v2.json")
     private val cache = mutableMapOf<String, CacheEntry>()
     private val artistCache = mutableMapOf<String, ArtistCacheEntry>()
     private val cacheMutex = Mutex()
@@ -156,22 +156,45 @@ class AnimatedArtworkService internal constructor(
 
         val result =
             try {
-                val artistId =
+                val candidateIds =
                     withContext(Dispatchers.IO) {
-                        resolveArtistId(
+                        resolveArtistCandidates(
                             artistName = artist,
                             preserveFullName = true,
                             country = country,
+                            language = language,
                             propagateFailures = true,
                         )
                     }
-                if (artistId == null) {
+                Timber.tag(TAG).d("Artist lookup '$artist' ($country) candidates=$candidateIds")
+                if (candidateIds.isEmpty()) {
                     null
                 } else {
                     val token = withContext(Dispatchers.IO) { getDevToken(country) } ?: return ArtistArtworkFetchResult.Unavailable
-                    withContext(Dispatchers.IO) {
-                        fetchArtistAssets(artistId, token, country, language, includeImage, includeVideo, videoResolution)
+                    var bestResult: ArtistArtworkResult? = null
+                    for (candidateId in candidateIds) {
+                        val candidateResult =
+                            withContext(Dispatchers.IO) {
+                                fetchArtistAssets(candidateId, token, country, language, includeImage, includeVideo, videoResolution)
+                            } ?: continue
+                        if (bestResult == null) {
+                            bestResult = candidateResult
+                        }
+                        val hasRequestedVideo = !includeVideo || candidateResult.videoUrl != null
+                        val hasRequestedImage = !includeImage || candidateResult.imageUrl != null
+                        if (hasRequestedVideo && hasRequestedImage) {
+                            bestResult = candidateResult
+                            break
+                        } else if (includeVideo && bestResult.videoUrl == null && candidateResult.videoUrl != null) {
+                            bestResult =
+                                ArtistArtworkResult(
+                                    imageUrl = candidateResult.imageUrl ?: bestResult.imageUrl,
+                                    videoUrl = candidateResult.videoUrl,
+                                )
+                            if (hasRequestedImage) break
+                        }
                     }
+                    bestResult
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -180,6 +203,7 @@ class AnimatedArtworkService internal constructor(
                 Timber.tag(TAG).w("Artist artwork fetch failed (${e::class.simpleName})")
                 return ArtistArtworkFetchResult.Unavailable
             }
+        Timber.tag(TAG).d("Artist lookup '$artist' result image=${result?.imageUrl != null} video=${result?.videoUrl != null}")
 
         val shouldSave =
             cacheMutex.withLock {
@@ -255,13 +279,17 @@ class AnimatedArtworkService internal constructor(
         ) = cacheAndSave(cacheKey, value, tallValue, generation)
 
         return try {
-            val collectionIds =
+            val collectionResolution =
                 withContext(Dispatchers.IO) {
                     resolveCollectionIds(title, artist, album, artworkExplicitness, country)
                 }
+            val collectionIds = collectionResolution.collectionIds
+            Timber.tag(TAG).d("Cover lookup '$title' by '$artist' (album=$album) collections=$collectionIds netErr=${collectionResolution.hadNetworkFailure}")
             if (collectionIds.isEmpty()) {
                 Timber.tag(TAG).d("No animated artwork collection ID for $title")
-                cacheResult(null)
+                if (!collectionResolution.hadNetworkFailure) {
+                    cacheResult(null)
+                }
                 null
             } else {
                 val token = withContext(Dispatchers.IO) { getDevToken(country) }
@@ -270,11 +298,14 @@ class AnimatedArtworkService internal constructor(
                     null
                 } else {
                     var resolved: AnimatedCoverResult? = null
+                    var candidateNetworkFailure = collectionResolution.hadNetworkFailure
                     for (collectionId in collectionIds) {
-                        val motionVideo =
+                        val motionFetch =
                             withContext(Dispatchers.IO) {
                                 fetchMotionVideo(collectionId, token, country, language)
-                            } ?: continue
+                            }
+                        if (motionFetch.hadNetworkFailure) candidateNetworkFailure = true
+                        val motionVideo = motionFetch.videos ?: continue
                         val variantUrl =
                             try {
                                 withContext(Dispatchers.IO) {
@@ -284,6 +315,7 @@ class AnimatedArtworkService internal constructor(
                                 throw e
                             } catch (e: Exception) {
                                 currentCoroutineContext().ensureActive()
+                                candidateNetworkFailure = true
                                 Timber.tag(TAG).w("Animated artwork candidate failed (${e::class.simpleName})")
                                 continue
                             }
@@ -302,7 +334,7 @@ class AnimatedArtworkService internal constructor(
                             break
                         }
                     }
-                    if (resolved == null) {
+                    if (resolved == null && !candidateNetworkFailure) {
                         cacheResult(null)
                     }
                     resolved
@@ -547,7 +579,7 @@ class AnimatedArtworkService internal constructor(
         album: String?,
         explicit: Boolean?,
         country: String,
-    ): List<Long> {
+    ): CollectionResolution {
         val cleanTitle = cleanTitleText(title)
         val cleanArtist = normalizeArtist(artist)
         val cleanAlbum = normalizeAlbumOrNull(album)
@@ -555,6 +587,7 @@ class AnimatedArtworkService internal constructor(
 
         val seen = mutableSetOf<Long>()
         val allResults = mutableListOf<Pair<AniTunesSearchResult, String>>()
+        var hadNetworkFailure = false
 
         fun matchingAlbums(): List<Long> {
             if (cleanAlbum != null) {
@@ -588,14 +621,18 @@ class AnimatedArtworkService internal constructor(
         }
 
         if (cleanAlbum != null) {
-            fetchSearchResults("$artist $cleanAlbum", country, seen).forEach { r ->
+            val albumSearch = fetchSearchResults("$artist $cleanAlbum", country, seen)
+            if (albumSearch.hadNetworkFailure) hadNetworkFailure = true
+            albumSearch.items.forEach { r ->
                 allResults.add(r to "album")
             }
         }
 
-        matchingAlbums().takeIf { it.isNotEmpty() }?.let { return it }
+        matchingAlbums().takeIf { it.isNotEmpty() }?.let { return CollectionResolution(it, hadNetworkFailure) }
 
-        fetchSearchResults("$artist $cleanTitle", country, seen).forEach { r ->
+        val titleSearch = fetchSearchResults("$artist $cleanTitle", country, seen)
+        if (titleSearch.hadNetworkFailure) hadNetworkFailure = true
+        titleSearch.items.forEach { r ->
             allResults.add(r to "title")
         }
 
@@ -607,9 +644,18 @@ class AnimatedArtworkService internal constructor(
                     (explicit == null || matchesExplicit(r, explicit, cleanAlbum != null))
             }
         if (!hasGoodMatch || allResults.size < 5) {
-            val artistId = resolveArtistId(cleanArtist, preserveFullName = false, country = country)
-            if (artistId != null) {
-                fetchArtistResults(artistId, country, seen).forEach { r ->
+            val artistIds =
+                resolveArtistCandidates(
+                    artistName = cleanArtist,
+                    preserveFullName = false,
+                    country = country,
+                    language = null,
+                    propagateFailures = false,
+                )
+            for (artistId in artistIds.take(1)) {
+                val artistLookup = fetchArtistResults(artistId, country, seen)
+                if (artistLookup.hadNetworkFailure) hadNetworkFailure = true
+                artistLookup.items.forEach { r ->
                     if (matchesArtist(r, cleanArtist)) {
                         allResults.add(r to "artist_lookup")
                     }
@@ -617,30 +663,41 @@ class AnimatedArtworkService internal constructor(
             }
         }
 
-        if (allResults.isEmpty()) return emptyList()
+        if (allResults.isEmpty()) return CollectionResolution(emptyList(), hadNetworkFailure)
 
         val artistMatches =
             allResults.filter { (r, _) ->
                 matchesArtist(r, cleanArtist) && (explicit == null || matchesExplicit(r, explicit, cleanAlbum != null))
             }
 
-        matchingAlbums().takeIf { it.isNotEmpty() }?.let { return it }
+        matchingAlbums().takeIf { it.isNotEmpty() }?.let { return CollectionResolution(it, hadNetworkFailure) }
 
         val titleMatches = artistMatches.filter { (r, _) -> matchesTitle(r, cleanTitle, title) }
         val selfTitledTitle = if (isVariant) normalizeTitleText(title) else cleanTitle
         val selfTitledMatches = titleMatches.filter { (r, _) -> isSelfTitledRelease(r.collectionName, selfTitledTitle) }
-        if (selfTitledMatches.isNotEmpty() && cleanAlbum == null) {
-            return selfTitledMatches.mapNotNull { it.first.collectionId }.distinct().take(MAX_COLLECTION_CANDIDATES)
+        if (cleanAlbum == null || !isVariant) {
+            if (cleanAlbum == null && selfTitledMatches.isNotEmpty()) {
+                return CollectionResolution(
+                    selfTitledMatches.mapNotNull { it.first.collectionId }.distinct().take(MAX_COLLECTION_CANDIDATES),
+                    hadNetworkFailure,
+                )
+            }
+            if (titleMatches.isNotEmpty()) {
+                return CollectionResolution(
+                    titleMatches.mapNotNull { it.first.collectionId }.distinct().take(MAX_COLLECTION_CANDIDATES),
+                    hadNetworkFailure,
+                )
+            }
         }
 
-        return emptyList()
+        return CollectionResolution(emptyList(), hadNetworkFailure)
     }
 
     private suspend fun fetchSearchResults(
         query: String,
         country: String,
         seen: MutableSet<Long>,
-    ): List<AniTunesSearchResult> {
+    ): SearchFetchResult {
         val url =
             "${endpoints.itunesBaseUrl}/search"
                 .toHttpUrlOrNull()
@@ -650,25 +707,27 @@ class AnimatedArtworkService internal constructor(
                 ?.addQueryParameter("limit", "50")
                 ?.addQueryParameter("country", country)
                 ?.build()
-                ?: return emptyList()
+                ?: return SearchFetchResult(emptyList(), false)
         return try {
             val request = Request.Builder().url(url).get().build()
             val response = withTimeout(8_000L) { httpClientProvider().executeTextLimited(request, MAX_JSON_RESPONSE_BYTES) }
             val body = response.body
             if (!response.isSuccessful || body.isNullOrBlank()) {
-                emptyList()
+                SearchFetchResult(emptyList(), !response.isSuccessful)
             } else {
                 val parsed = json.decodeFromString(AniTunesSearchResponse.serializer(), body)
-                parsed.results.filter { it.kind == "song" && it.trackId !in seen }.also { items ->
-                    items.forEach { seen.add(it.trackId) }
-                }
+                val items =
+                    parsed.results.filter { it.kind == "song" && it.trackId !in seen }.also { filtered ->
+                        filtered.forEach { seen.add(it.trackId) }
+                    }
+                SearchFetchResult(items, false)
             }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             currentCoroutineContext().ensureActive()
             Timber.tag(TAG).w("iTunes search failed (${e::class.simpleName})")
-            emptyList()
+            SearchFetchResult(emptyList(), true)
         }
     }
 
@@ -676,7 +735,7 @@ class AnimatedArtworkService internal constructor(
         artistId: Long,
         country: String,
         seen: MutableSet<Long>,
-    ): List<AniTunesSearchResult> {
+    ): SearchFetchResult {
         val url =
             "${endpoints.itunesBaseUrl}/lookup"
                 .toHttpUrlOrNull()
@@ -686,34 +745,37 @@ class AnimatedArtworkService internal constructor(
                 ?.addQueryParameter("limit", "200")
                 ?.addQueryParameter("country", country)
                 ?.build()
-                ?: return emptyList()
+                ?: return SearchFetchResult(emptyList(), false)
         return try {
             val request = Request.Builder().url(url).get().build()
             val response = withTimeout(10_000L) { httpClientProvider().executeTextLimited(request, MAX_JSON_RESPONSE_BYTES) }
             val body = response.body
             if (!response.isSuccessful || body.isNullOrBlank()) {
-                emptyList()
+                SearchFetchResult(emptyList(), !response.isSuccessful)
             } else {
                 val parsed = json.decodeFromString(AniTunesSearchResponse.serializer(), body)
-                parsed.results.filter { it.kind == "song" && it.trackId !in seen }.also { items ->
-                    items.forEach { seen.add(it.trackId) }
-                }
+                val items =
+                    parsed.results.filter { it.kind == "song" && it.trackId !in seen }.also { filtered ->
+                        filtered.forEach { seen.add(it.trackId) }
+                    }
+                SearchFetchResult(items, false)
             }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             currentCoroutineContext().ensureActive()
             Timber.tag(TAG).w("iTunes artist lookup failed (${e::class.simpleName})")
-            emptyList()
+            SearchFetchResult(emptyList(), true)
         }
     }
 
-    private suspend fun resolveArtistId(
+    private suspend fun resolveArtistCandidates(
         artistName: String,
         preserveFullName: Boolean = false,
         country: String,
+        language: String? = null,
         propagateFailures: Boolean = false,
-    ): Long? {
+    ): List<Long> {
         val url =
             "${endpoints.itunesBaseUrl}/search"
                 .toHttpUrlOrNull()
@@ -724,29 +786,30 @@ class AnimatedArtworkService internal constructor(
                 ?.addQueryParameter("limit", "200")
                 ?.addQueryParameter("country", country)
                 ?.build()
-                ?: return null
+                ?: return emptyList()
         return try {
             val request = Request.Builder().url(url).get().build()
             val response = withTimeout(8_000L) { httpClientProvider().executeTextLimited(request, MAX_JSON_RESPONSE_BYTES) }
             val body = response.body
             if (!response.isSuccessful || body.isNullOrBlank()) {
                 if (propagateFailures) throw ArtistArtworkFetchException("Artist ID lookup unavailable (${response.code})")
-                return null
+                return emptyList()
             }
             val parsed = json.decodeFromString(AniTunesArtistSearchResponse.serializer(), body)
-            val targetName = if (preserveFullName) normalizeArtistProfileName(artistName) else artistName
+            val targetName = if (preserveFullName) normalizeArtistProfileName(artistName) else normalizeArtist(artistName)
             val matches =
                 parsed.results
                     .filter { result ->
                         val resultName =
                             if (preserveFullName) normalizeArtistProfileName(result.artistName) else normalizeArtist(result.artistName)
                         resultName == targetName && result.artistId > 0L
-                    }.distinctBy { it.artistId }
-            if (matches.size > 1) {
-                Timber.tag(TAG).d("Artist ID lookup is ambiguous (${matches.size} exact matches)")
-                null
+                    }.map { it.artistId }
+                    .distinct()
+                    .take(2)
+            if (matches.isNotEmpty() || !preserveFullName) {
+                matches
             } else {
-                matches.firstOrNull()?.artistId
+                searchAmpArtistIds(artistName, targetName, country, language)
             }
         } catch (e: CancellationException) {
             throw e
@@ -754,8 +817,68 @@ class AnimatedArtworkService internal constructor(
             currentCoroutineContext().ensureActive()
             Timber.tag(TAG).w("Artist ID lookup failed (${e::class.simpleName})")
             if (propagateFailures) throw e
-            null
+            emptyList()
         }
+    }
+
+    private suspend fun searchAmpArtistIds(
+        artistName: String,
+        normalizedTarget: String,
+        country: String,
+        language: String?,
+    ): List<Long> {
+        val token = getDevToken(country) ?: return emptyList()
+        val isAsciiName = artistName.all { it.code < 128 }
+        val searchLocale =
+            if (isAsciiName) {
+                "en-$country"
+            } else {
+                formatAppleLocaleParam(language, country)
+            }
+        val url =
+            "${endpoints.ampApiBaseUrl}/v1/catalog/$country/search"
+                .toHttpUrlOrNull()
+                ?.newBuilder()
+                ?.addQueryParameter("types", "artists")
+                ?.addQueryParameter("limit", "10")
+                ?.addQueryParameter("term", artistName)
+                ?.apply {
+                    searchLocale?.let { addQueryParameter("l", it) }
+                }?.build()
+                ?: return emptyList()
+        val request =
+            Request.Builder()
+                .url(url)
+                .header("Authorization", "Bearer $token")
+                .header("Origin", "https://music.apple.com")
+                .header("Accept", "application/json")
+                .get()
+                .build()
+        val response = withTimeout(10_000L) { httpClientProvider().executeTextLimited(request, MAX_JSON_RESPONSE_BYTES) }
+        val body = response.body.takeIf { response.isSuccessful } ?: return emptyList()
+        val data =
+            runCatching {
+                json.parseToJsonElement(body)
+                    .jsonObject["results"]
+                    ?.jsonObject
+                    ?.get("artists")
+                    ?.jsonObject
+                    ?.get("data")
+                    ?.jsonArray
+            }.getOrNull() ?: return emptyList()
+        return data
+            .mapNotNull { elem ->
+                val obj = elem as? JsonObject ?: return@mapNotNull null
+                val id = (obj["id"] as? JsonPrimitive)?.content?.toLongOrNull()?.takeIf { it > 0L } ?: return@mapNotNull null
+                val name =
+                    (obj["attributes"] as? JsonObject)
+                        ?.get("name")
+                        ?.let { it as? JsonPrimitive }
+                        ?.content
+                        ?: return@mapNotNull null
+                if (normalizeArtistProfileName(name) == normalizedTarget) id else null
+            }.distinct()
+            .take(2)
     }
 
     private fun matchesArtist(
@@ -859,7 +982,7 @@ class AnimatedArtworkService internal constructor(
                 ?.apply {
                     if (includeVideo) addQueryParameter("extend", "editorialVideo")
                     addQueryParameter("format[resources]", "map")
-                    if (language.isNotBlank()) addQueryParameter("l", "$language-$country")
+                    formatAppleLocaleParam(language, country)?.let { addQueryParameter("l", it) }
                     addQueryParameter("platform", "web")
                 }
                 ?.build()
@@ -929,7 +1052,7 @@ class AnimatedArtworkService internal constructor(
         token: String,
         country: String,
         language: String?,
-    ): MotionVideos? {
+    ): MotionVideoFetchResult {
         val url =
             "${endpoints.ampApiBaseUrl}/v1/catalog/$country/albums/$collectionId"
                 .toHttpUrlOrNull()
@@ -945,7 +1068,7 @@ class AnimatedArtworkService internal constructor(
                 ?.addQueryParameter("include[playlists]", "curator")
                 ?.addQueryParameter("include[songs]", "artists,composers,albums")
                 ?.apply {
-                    if (!language.isNullOrBlank()) addQueryParameter("l", language)
+                    formatAppleLocaleParam(language, country)?.let { addQueryParameter("l", it) }
                 }
                 ?.addQueryParameter("meta[albums:tracks]", "popularity")
                 ?.addQueryParameter("platform", "web")
@@ -954,7 +1077,7 @@ class AnimatedArtworkService internal constructor(
                     "appears-on,audio-extras,more-by-artist,other-versions,related-videos,video-extras,you-might-also-like",
                 )
                 ?.build()
-                ?: return null
+                ?: return MotionVideoFetchResult(null, false)
 
         return try {
             val request =
@@ -972,9 +1095,9 @@ class AnimatedArtworkService internal constructor(
             }
             if (!response.isSuccessful) {
                 Timber.tag(TAG).w("AMP API returned ${response.code}")
-                return null
+                return MotionVideoFetchResult(null, response.code >= 500 || response.code == 429 || response.code == 401)
             }
-            val body = response.body ?: return null
+            val body = response.body ?: return MotionVideoFetchResult(null, false)
             val parsed = json.parseToJsonElement(body)
             val attributes =
                 parsed.jsonObject["resources"]
@@ -992,7 +1115,7 @@ class AnimatedArtworkService internal constructor(
                         ?.get("attributes")
                         ?.jsonObject
 
-            val ev = attributes?.get("editorialVideo")?.jsonObject ?: return null
+            val ev = attributes?.get("editorialVideo")?.jsonObject ?: return MotionVideoFetchResult(null, false)
 
             fun videoUrl(key: String): String? =
                 (ev[key] as? JsonObject)
@@ -1006,13 +1129,13 @@ class AnimatedArtworkService internal constructor(
                 listOf("motionSquareVideo1x1", "motionDetailSquare").firstNotNullOfOrNull(::videoUrl)
                     ?: tall
                     ?: ev.keys.firstNotNullOfOrNull(::videoUrl)
-            square?.let { MotionVideos(url = it, tallUrl = tall) }
+            MotionVideoFetchResult(square?.let { MotionVideos(url = it, tallUrl = tall) }, false)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             currentCoroutineContext().ensureActive()
             Timber.tag(TAG).w("AMP API error (${e::class.simpleName})")
-            null
+            MotionVideoFetchResult(null, true)
         }
     }
 
@@ -1111,6 +1234,21 @@ class AnimatedArtworkService internal constructor(
         val tallUrl: String?,
     )
 
+    private class MotionVideoFetchResult(
+        val videos: MotionVideos?,
+        val hadNetworkFailure: Boolean,
+    )
+
+    private class SearchFetchResult(
+        val items: List<AniTunesSearchResult>,
+        val hadNetworkFailure: Boolean,
+    )
+
+    private class CollectionResolution(
+        val collectionIds: List<Long>,
+        val hadNetworkFailure: Boolean,
+    )
+
     private class ArtistArtworkFetchException(
         message: String,
     ) : Exception(message)
@@ -1119,10 +1257,10 @@ class AnimatedArtworkService internal constructor(
         private const val TAG = "AnimatedArtwork"
         private const val CACHE_SUBDIR = "animated_artwork_meta"
         private const val UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
-        private const val CACHE_KEY_VERSION = "v11"
+        private const val CACHE_KEY_VERSION = "v12"
         private const val CACHE_MAX_AGE_SECONDS = 30L * 24 * 60 * 60
         private const val CACHE_MISS_MAX_AGE_SECONDS = 60L
-        private const val ARTIST_NEGATIVE_CACHE_MAX_AGE_SECONDS = 7L * 24 * 60 * 60
+        private const val ARTIST_NEGATIVE_CACHE_MAX_AGE_SECONDS = 6L * 60 * 60
         private const val MAX_COVER_CACHE_ENTRIES = 1_000
         private const val MAX_ARTIST_CACHE_ENTRIES = 500
         private const val MAX_COLLECTION_CANDIDATES = 8

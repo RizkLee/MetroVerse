@@ -19,11 +19,13 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import com.metrolist.music.extensions.toEnum
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlin.properties.ReadOnlyProperty
 import timber.log.Timber
 import java.io.File
@@ -101,20 +103,22 @@ fun <T> rememberPreference(
     val coroutineScope = rememberCoroutineScope()
 
     val state =
-        remember {
+        remember(context, key, defaultValue) {
             context.dataStore.data
                 .map { it[key] ?: defaultValue }
                 .distinctUntilChanged()
         }.collectAsStateWithLifecycle(defaultValue)
 
-    return remember {
+    return remember(context, key, defaultValue) {
         object : MutableState<T> {
             override var value: T
                 get() = state.value
                 set(value) {
                     coroutineScope.launch {
-                        context.safeDataStoreEdit {
-                            it[key] = value
+                        withContext(NonCancellable) {
+                            context.safeDataStoreEdit {
+                                it[key] = value
+                            }
                         }
                     }
                 }
@@ -135,20 +139,22 @@ inline fun <reified T : Enum<T>> rememberEnumPreference(
     val coroutineScope = rememberCoroutineScope()
 
     val state =
-        remember {
+        remember(context, key, defaultValue) {
             context.dataStore.data
                 .map { it[key].toEnum(defaultValue = defaultValue) }
                 .distinctUntilChanged()
         }.collectAsStateWithLifecycle(defaultValue)
 
-    return remember {
+    return remember(context, key, defaultValue) {
         object : MutableState<T> {
             override var value: T
                 get() = state.value
                 set(value) {
                     coroutineScope.launch {
-                        context.safeDataStoreEdit {
-                            it[key] = value.name
+                        withContext(NonCancellable) {
+                            context.safeDataStoreEdit {
+                                it[key] = value.name
+                            }
                         }
                     }
                 }

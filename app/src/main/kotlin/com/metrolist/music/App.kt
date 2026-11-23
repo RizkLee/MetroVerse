@@ -74,10 +74,19 @@ class App :
     @ApplicationScope
     lateinit var applicationScope: CoroutineScope
 
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(base)
+        // Secondary WebView processes must use an isolated data directory before any WebView or ContentProvider init.
+        if (currentProcessName(base).endsWith(":potoken") && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            android.webkit.WebView.setDataDirectorySuffix("potoken")
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
 
-        if (isPotokenProcess()) {
+        val processName = currentProcessName(this)
+        if (processName.endsWith(":potoken") || processName.endsWith(":crash")) {
             Timber.plant(Timber.DebugTree())
             return
         }
@@ -273,7 +282,7 @@ class App :
                 .distinctUntilChanged()
                 .collect { session ->
                     try {
-                        LastFM.sessionKey = session
+                        LastFM.sessionKey = session?.takeIf { it.isNotBlank() }
                     } catch (e: Exception) {
                         Timber.e("Error while loading last.fm session key. %s", e.message)
                     }
@@ -391,7 +400,7 @@ class App :
         }
     }
 
-    private fun isPotokenProcess(): Boolean {
+    private fun currentProcessName(context: Context = this): String {
         val processName = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             Application.getProcessName()
         } else {
@@ -399,7 +408,7 @@ class App :
                 File("/proc/self/cmdline").readText().substringBefore('\u0000').trim()
             }.getOrDefault("")
         }
-        return processName.endsWith(":potoken")
+        return processName.ifBlank { context.packageName }
     }
 
     companion object {

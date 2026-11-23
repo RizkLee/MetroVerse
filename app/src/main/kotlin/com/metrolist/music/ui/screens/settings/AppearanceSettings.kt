@@ -55,7 +55,11 @@ import androidx.core.content.edit
 import androidx.navigation.NavController
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
+import com.metrolist.music.constants.AppUsageMode
+import com.metrolist.music.constants.AppUsageModeKey
 import com.metrolist.music.constants.ChipSortTypeKey
+import com.metrolist.music.constants.applyAppUsageMode
+import com.metrolist.music.constants.resolveAppUsageMode
 import com.metrolist.music.constants.CropAlbumArtKey
 import com.metrolist.music.constants.DEFAULT_LYRICS_TEXT_SIZE
 import com.metrolist.music.constants.DefaultOpenTabKey
@@ -79,7 +83,6 @@ import com.metrolist.music.constants.PlayerBackgroundStyle
 import com.metrolist.music.constants.PlayerBackgroundStyleKey
 import com.metrolist.music.constants.PlayerButtonsStyle
 import com.metrolist.music.constants.PlayerButtonsStyleKey
-import com.metrolist.music.constants.PureBlackMiniPlayerKey
 import com.metrolist.music.constants.SelectedThemeColorKey
 import com.metrolist.music.constants.ShowCachedPlaylistKey
 import com.metrolist.music.constants.ShowDownloadedPlaylistKey
@@ -94,8 +97,6 @@ import com.metrolist.music.constants.SwipeSensitivityKey
 import com.metrolist.music.constants.SwipeThumbnailKey
 import com.metrolist.music.constants.SwipeToRemoveSongKey
 import com.metrolist.music.constants.SwipeToSongKey
-import com.metrolist.music.constants.UseNewMiniPlayerDesignKey
-import com.metrolist.music.constants.UseNewPlayerDesignKey
 import com.metrolist.music.ui.component.DefaultDialog
 import com.metrolist.music.ui.component.EnumDialog
 import com.metrolist.music.ui.component.IconButton
@@ -104,6 +105,7 @@ import com.metrolist.music.ui.component.Material3SettingsItem
 import com.metrolist.music.ui.component.NavigationBarTabsDialog
 import com.metrolist.music.ui.component.PlayerSliderTrack
 import com.metrolist.music.ui.component.SquigglySlider
+import com.metrolist.music.ui.component.UsageModeOnboardingDialog
 import com.metrolist.music.ui.component.WavySlider
 import com.metrolist.music.ui.component.label
 import com.metrolist.music.ui.theme.DefaultThemeColor
@@ -111,6 +113,8 @@ import com.metrolist.music.ui.theme.PlayerSliderColors
 import com.metrolist.music.ui.utils.backToMain
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
+import com.metrolist.music.utils.safeDataStoreEdit
+import androidx.compose.material3.SnackbarDuration
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -144,11 +148,6 @@ fun AppearanceSettings(
     // Check if user has selected a custom color (not the default/dynamic color)
     val isUsingCustomColor = selectedThemeColorInt != DefaultThemeColor.toArgb()
 
-    val (useNewPlayerDesign, onUseNewPlayerDesignChange) =
-        rememberPreference(
-            UseNewPlayerDesignKey,
-            defaultValue = true,
-        )
     val (miniPlayerBackground, onMiniPlayerBackgroundChange) =
         rememberEnumPreference(
             MiniPlayerBackgroundStyleKey,
@@ -162,11 +161,6 @@ fun AppearanceSettings(
 
     var showMiniPlayerBackgroundDialog by rememberSaveable { mutableStateOf(false) }
 
-    val (useNewMiniPlayerDesign, onUseNewMiniPlayerDesignChange) =
-        rememberPreference(
-            UseNewMiniPlayerDesignKey,
-            defaultValue = true,
-        )
     val (hidePlayerThumbnail, onHidePlayerThumbnailChange) =
         rememberPreference(
             HidePlayerThumbnailKey,
@@ -188,6 +182,13 @@ fun AppearanceSettings(
             DefaultOpenTabKey,
             defaultValue = NavigationTab.HOME,
         )
+    val (appUsageModeRaw) =
+        rememberPreference(
+            AppUsageModeKey,
+            defaultValue = AppUsageMode.MUSIC_AND_PODCASTS.name,
+        )
+    val usageMode = remember(appUsageModeRaw) { resolveAppUsageMode(appUsageModeRaw) }
+    var showUsageModeDialog by rememberSaveable { mutableStateOf(false) }
     val (navigationBarTabsRaw, onNavigationBarTabsChange) =
         rememberPreference(
             NavigationBarTabsKey,
@@ -392,6 +393,30 @@ fun AppearanceSettings(
 
     var showNavigationBarTabsDialog by rememberSaveable {
         mutableStateOf(false)
+    }
+
+    val appearanceScope = rememberCoroutineScope()
+    val podcastsOnlyNotice = stringResource(R.string.usage_mode_podcasts_only_enabled_notice)
+    if (showUsageModeDialog) {
+        UsageModeOnboardingDialog(
+            isOnboarding = false,
+            initialMode = usageMode,
+            onConfirm = { mode ->
+                showUsageModeDialog = false
+                appearanceScope.launch {
+                    context.safeDataStoreEdit { settings ->
+                        applyAppUsageMode(settings, mode)
+                    }
+                    if (mode == AppUsageMode.PODCASTS_ONLY) {
+                        snackbarHostState.showSnackbar(
+                            message = podcastsOnlyNotice,
+                            duration = SnackbarDuration.Long,
+                        )
+                    }
+                }
+            },
+            onDismiss = { showUsageModeDialog = false },
+        )
     }
 
     if (showNavigationBarTabsDialog) {
@@ -869,79 +894,27 @@ fun AppearanceSettings(
 
         Spacer(modifier = Modifier.height(27.dp))
 
-        val (pureBlackMiniPlayer, onPureBlackMiniPlayerChange) =
-            rememberPreference(
-                PureBlackMiniPlayerKey,
-                defaultValue = false,
-            )
-
         Material3SettingsGroup(
             title = stringResource(id = R.string.mini_player),
             items =
-                buildList {
-                    add(
-                        Material3SettingsItem(
-                            icon = painterResource(R.drawable.nav_bar),
-                            title = { Text(stringResource(R.string.new_mini_player_design)) },
-                            trailingContent = {
-                                Switch(
-                                    checked = useNewMiniPlayerDesign,
-                                    onCheckedChange = onUseNewMiniPlayerDesignChange,
-                                    thumbContent = {
-                                        Icon(
-                                            painter =
-                                                painterResource(
-                                                    id = if (useNewMiniPlayerDesign) R.drawable.check else R.drawable.close,
-                                                ),
-                                            contentDescription = null,
-                                            modifier = Modifier.size(SwitchDefaults.IconSize),
-                                        )
-                                    },
-                                )
-                            },
-                            onClick = { onUseNewMiniPlayerDesignChange(!useNewMiniPlayerDesign) },
-                        ),
-                    )
-                    add(
-                        Material3SettingsItem(
-                            icon = painterResource(R.drawable.gradient),
-                            title = {
-                                Text(
-                                    text = stringResource(R.string.mini_player_background_style),
-                                    color =
-                                        if (!useNewMiniPlayerDesign) {
-                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurface
-                                        },
-                                )
-                            },
-                            description = {
-                                Text(
-                                    text =
-                                        if (!useNewMiniPlayerDesign) {
-                                            stringResource(R.string.mini_player_background_not_available)
-                                        } else {
-                                            when (miniPlayerBackground) {
-                                                MiniPlayerBackgroundStyle.DEFAULT -> stringResource(R.string.follow_theme)
-                                                MiniPlayerBackgroundStyle.TRANSPARENT -> stringResource(R.string.transparent)
-                                                MiniPlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
-                                                MiniPlayerBackgroundStyle.GRADIENT -> stringResource(R.string.gradient)
-                                                MiniPlayerBackgroundStyle.PURE_BLACK -> stringResource(R.string.pure_black)
-                                            }
-                                        },
-                                    color =
-                                        if (!useNewMiniPlayerDesign) {
-                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurfaceVariant
-                                        },
-                                )
-                            },
-                            onClick = { if (useNewMiniPlayerDesign) showMiniPlayerBackgroundDialog = true },
-                        ),
-                    )
-                },
+                listOf(
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.gradient),
+                        title = { Text(stringResource(R.string.mini_player_background_style)) },
+                        description = {
+                            Text(
+                                when (miniPlayerBackground) {
+                                    MiniPlayerBackgroundStyle.DEFAULT -> stringResource(R.string.follow_theme)
+                                    MiniPlayerBackgroundStyle.TRANSPARENT -> stringResource(R.string.transparent)
+                                    MiniPlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
+                                    MiniPlayerBackgroundStyle.GRADIENT -> stringResource(R.string.gradient)
+                                    MiniPlayerBackgroundStyle.PURE_BLACK -> stringResource(R.string.pure_black)
+                                },
+                            )
+                        },
+                        onClick = { showMiniPlayerBackgroundDialog = true },
+                    ),
+                ),
         )
 
         Spacer(modifier = Modifier.height(27.dp))
@@ -952,27 +925,6 @@ fun AppearanceSettings(
             title = stringResource(R.string.player),
             items =
                 listOf(
-                    Material3SettingsItem(
-                        icon = painterResource(R.drawable.palette),
-                        title = { Text(stringResource(R.string.new_player_design)) },
-                        trailingContent = {
-                            Switch(
-                                checked = useNewPlayerDesign,
-                                onCheckedChange = onUseNewPlayerDesignChange,
-                                thumbContent = {
-                                    Icon(
-                                        painter =
-                                            painterResource(
-                                                id = if (useNewPlayerDesign) R.drawable.check else R.drawable.close,
-                                            ),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(SwitchDefaults.IconSize),
-                                    )
-                                },
-                            )
-                        },
-                        onClick = { onUseNewPlayerDesignChange(!useNewPlayerDesign) },
-                    ),
                     Material3SettingsItem(
                         icon = painterResource(R.drawable.gradient),
                         title = { Text(stringResource(R.string.player_background_style)) },
@@ -1223,6 +1175,24 @@ fun AppearanceSettings(
             title = stringResource(R.string.misc),
             items =
                 listOf(
+                    Material3SettingsItem(
+                        icon = painterResource(
+                            if (usageMode == AppUsageMode.PODCASTS_ONLY) R.drawable.podcast else R.drawable.music_note,
+                        ),
+                        title = { Text(stringResource(R.string.app_usage_mode)) },
+                        description = {
+                            Text(
+                                stringResource(
+                                    if (usageMode == AppUsageMode.PODCASTS_ONLY) {
+                                        R.string.usage_mode_podcasts_only
+                                    } else {
+                                        R.string.usage_mode_music_and_podcasts
+                                    },
+                                ),
+                            )
+                        },
+                        onClick = { showUsageModeDialog = true },
+                    ),
                     Material3SettingsItem(
                         icon = painterResource(R.drawable.nav_bar),
                         title = { Text(stringResource(R.string.navigation_bar_tabs)) },

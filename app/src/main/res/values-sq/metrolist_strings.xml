@@ -111,8 +111,6 @@
     <string name="player_background_style">Stil i sfondit së riprodhuesit</string>
     <string name="player_background_solid">E ngurtë</string>
     <string name="gradient">Gradient</string>
-    <string name="new_player_design">Dizajn i ri i riprodhuesit</string>
-    <string name="new_mini_player_design">Dizajn i ri i mini-riprodhuesit</string>
     <string name="player_background_blur">Mjegullim</string>
     <string name="player_buttons_style">Ngjyra e butoneve e riprodhuesit</string>
     <string name="primary_color_style">Ngjyra e parë</string>

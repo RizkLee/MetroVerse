@@ -156,7 +156,7 @@ internal fun LyricsLine(
     modifier: Modifier = Modifier,
 ) {
     val metroVerseBreathScale =
-        if (animationStyle != LyricsAnimationStyle.APPLE) {
+        if (animationStyle == LyricsAnimationStyle.METROVERSE) {
             rememberLyricsLineScale(isSynced, isActiveLine, item.isBackground)
         } else {
             null
@@ -375,7 +375,7 @@ internal fun LyricsLine(
                         !(romanizeAsMain && isRomanizedAvailable) &&
                         animationStyle != LyricsAnimationStyle.NONE &&
                         effectiveWords != null &&
-                        (isActiveLine || abs(index - displayedCurrentLineIndex) <= 3) &&
+                        (isActiveLine || abs(index - displayedCurrentLineIndex) <= 1) &&
                         safeMainText.isNotEmpty()
 
                 Box(

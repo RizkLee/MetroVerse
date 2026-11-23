@@ -41,7 +41,17 @@ class DiscordOAuthActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Timber.tag(TAG).i("OAuthActivity: onCreate with intent=%s", intent?.action)
+        handleIntent(intent)
+    }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        Timber.tag(TAG).i("OAuthActivity: onNewIntent with intent=%s", intent.action)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
         val uri = intent?.data ?: run {
             Timber.tag(TAG).w("OAuthActivity: no URI in intent")
             finish()
@@ -57,6 +67,8 @@ class DiscordOAuthActivity : Activity() {
             deferred?.completeExceptionally(
                 DiscordAuthException.UserCancelled("Authorization denied: $error")
             )
+            DiscordTokenStore.init(applicationContext)
+            DiscordTokenStore.clearPendingAuth()
             finish()
             return
         }
@@ -71,7 +83,16 @@ class DiscordOAuthActivity : Activity() {
         }
 
         Timber.tag(TAG).i("OAuthActivity: received code (length=%d)", code.length)
-        deferred?.complete(AuthCodeResult(code = code, state = state ?: ""))
+        val activeDeferred = deferred
+        if (activeDeferred != null && !activeDeferred.isCompleted) {
+            activeDeferred.complete(AuthCodeResult(code = code, state = state ?: ""))
+        } else {
+            DiscordRpcManager.completePendingAuthorization(
+                context = applicationContext,
+                code = code,
+                state = state ?: "",
+            )
+        }
         finish()
     }
 }

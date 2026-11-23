@@ -170,6 +170,28 @@ object PageHelper {
         }
     }
 
+    private val ARTIST_SEPARATOR_TOKENS = setOf(",", "&", "•", "●", "·", "-", "|")
+
+    private fun String.cleanArtistText(): String =
+        replace("\u200B", "").replace("\uFEFF", "").trim()
+
+    fun joinTitleText(runs: List<Run>?): String? =
+        runs
+            ?.joinToString(separator = "") { it.text }
+            ?.replace("\u200B", "")
+            ?.replace("\uFEFF", "")
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+
+    fun extractPrimaryTitle(columns: List<FlexColumn>): String? =
+        joinTitleText(
+            columns
+                .firstOrNull()
+                ?.musicResponsiveListItemFlexColumnRenderer
+                ?.text
+                ?.runs,
+        )
+
     fun extractArtists(runs: List<Run>?): List<Artist> {
         val sections = runs.orEmpty().splitBySeparator()
         val linkedArtists = sections.flatMap { section ->
@@ -178,10 +200,16 @@ object PageHelper {
             expandedRuns.mapNotNull { run ->
                 val browseEndpoint = run.navigationEndpoint?.browseEndpoint
                 val browseId = browseEndpoint?.browseId
+                val trimmed = run.text.cleanArtistText()
                 when {
                     browseId?.startsWith("UC") == true || browseEndpoint?.isArtistEndpoint == true ->
-                        Artist(run.text, browseId)
-                    browseId == null && !run.text.isMetadataText() -> Artist(run.text.trim(), null)
+                        trimmed.takeIf { it.isNotEmpty() && it !in ARTIST_SEPARATOR_TOKENS }?.let {
+                            Artist(it, browseId)
+                        }
+                    browseId == null &&
+                        trimmed.isNotEmpty() &&
+                        trimmed !in ARTIST_SEPARATOR_TOKENS &&
+                        !trimmed.isMetadataText() -> Artist(trimmed, null)
                     else -> null
                 }
             }
@@ -191,13 +219,17 @@ object PageHelper {
         return sections.firstNotNullOfOrNull { section ->
             section
                 .splitArtistsByConjunction()
-                .filter { run ->
-                    run.navigationEndpoint?.browseEndpoint == null &&
-                        run.text.isNotBlank() &&
-                        run.text.trim() != "," &&
-                        !run.text.isMetadataText()
+                .mapNotNull { run ->
+                    if (run.navigationEndpoint?.browseEndpoint != null) return@mapNotNull null
+                    val trimmed = run.text.cleanArtistText()
+                    trimmed
+                        .takeIf {
+                            it.isNotEmpty() &&
+                                it !in ARTIST_SEPARATOR_TOKENS &&
+                                !it.isMetadataText()
+                        }
+                        ?.let { Artist(it, null) }
                 }
-                .map { Artist(it.text.trim(), null) }
                 .takeIf { it.isNotEmpty() }
         }.orEmpty()
     }

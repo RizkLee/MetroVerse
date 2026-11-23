@@ -63,15 +63,22 @@ class LyricsViewModel @Inject constructor(
     val songwriters: StateFlow<Pair<String?, List<String>>> = _songwriters.asStateFlow()
 
     fun loadSongwriters(mediaMetadata: MediaMetadata?) {
-        songwritersJob?.cancel()
         val mediaId = mediaMetadata?.id
         if (!shouldFetchSongwriters(mediaMetadata) || mediaId == null) {
+            songwritersJob?.cancel()
             _songwriters.value = mediaId to emptyList()
             return
         }
-        _songwriters.value = mediaId to emptyList()
+        val current = _songwriters.value
+        if (current.first == mediaId && current.second.isNotEmpty()) {
+            return
+        }
+        songwritersJob?.cancel()
+        if (current.first != mediaId) {
+            _songwriters.value = mediaId to emptyList()
+        }
         songwritersJob = viewModelScope.launch {
-            val writers = songwritersRepository.getSongwriters(mediaId)
+            val writers = songwritersRepository.getSongwriters(mediaMetadata)
             _songwriters.value = mediaId to writers
         }
     }

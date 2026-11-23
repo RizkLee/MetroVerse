@@ -46,6 +46,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -195,7 +196,15 @@ fun DiscordSettings(
 
     LaunchedEffect(Unit) {
         if (!DiscordRpcManager.isInitialized()) {
-            DiscordRpcManager.init(context)
+            DiscordRpcManager.init(context, autoConnect = false)
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            if (isBusy || connectionStatus == DiscordRpcManager.Status.Authorizing) {
+                DiscordRpcManager.cancelAuthorize()
+            }
         }
     }
 
@@ -444,7 +453,7 @@ fun DiscordSettings(
                             .padding(start = 20.dp, end = 20.dp, bottom = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    if (!isBusy) {
+                    if (!isBusy && connectionStatus != DiscordRpcManager.Status.Authorizing) {
                         OutlinedButton(
                             onClick = {
                                 isBusy = true
@@ -475,6 +484,15 @@ fun DiscordSettings(
                             },
                         ) {
                             Text(stringResource(R.string.action_login))
+                        }
+                    } else {
+                        OutlinedButton(
+                            onClick = {
+                                isBusy = false
+                                DiscordRpcManager.cancelAuthorize()
+                            },
+                        ) {
+                            Text(stringResource(R.string.cancel))
                         }
                     }
                 }

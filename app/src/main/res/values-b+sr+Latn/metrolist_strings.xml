@@ -70,8 +70,6 @@
     <string name="sync_playlist_desc">Sinhronizuj plejlistu sa Youtube Music-om</string>
     <string name="close">Zatvori</string>
     <string name="seek_seconds_addup_description">Kada je aktivirano, dodaje 5 sekundi za svako preskakanje traženja</string>
-    <string name="new_player_design">Novi dizajn plejera</string>
-    <string name="new_mini_player_design">Novi dizajn mini-plejera</string>
     <string name="primary_color_style">Primarna boja</string>
     <string name="tertiary_color_style">Tercijalna boja</string>
     <string name="enable">Omogući</string>

@@ -46,7 +46,6 @@
     <string name="player_background_style">Stilul fundalului playerului</string>
     <string name="follow_theme">Urmează tema</string>
     <string name="gradient">Gradient</string>
-    <string name="new_player_design">Design nou al playerului</string>
     <string name="player_background_blur">Blur</string>
     <string name="player_buttons_style">Culoarea butoanelor playerului</string>
     <string name="default_style">Prestabilită</string>
@@ -114,7 +113,6 @@
     <string name="dislikes">Aprecieri negative</string>
     <string name="dislike_all">Apreciază negativ toate</string>
     <string name="default_lib_chips">Modifică secțiunea prestabilită a bibliotecii</string>
-    <string name="new_mini_player_design">Design nou al mini-playerului</string>
     <string name="now_playing">Acum se redă</string>
     <string name="close">Închide</string>
     <string name="hide_player_thumbnail">Ascunde miniatura din player</string>
@@ -201,7 +199,6 @@
     <string name="advanced_desc">Ajustează tempo-ul și înălțimea melodiei</string>
     <string name="equalizer_desc">Deschide egalizatorul audio</string>
     <string name="mini_player">Mini-player</string>
-    <string name="pure_black_mini_player">Mini-player complet negru</string>
     <string name="cache_size_warning_title">Stai!</string>
     <string name="cache_size_warning_message">Limita pe care ai ales-o (%1$s) este mai mică decât cea pe care aplicația o folosește în prezent. Dacă continui, aplicația ar putea elimina câțiva %2$s din cache. Continui oricum?</string>
     <string name="cache_size_warning_confirm">Continuă</string>
@@ -781,7 +778,6 @@
     <string name="android_auto_target_playlist_not_set">Niciun playlist selectat. Alege unul în setările Android Auto</string>
     <string name="mini_player_background_style">Stilul fundalului mini-playerului</string>
     <string name="transparent">Transparent</string>
-    <string name="mini_player_background_not_available">Indisponibil atunci când mini-playerul nou este dezactivat</string>
     <string name="your_daily_discover">Descoperirile tale zilnice</string>
     <string name="parsed_from_link">S-a analizat din link</string>
     <string name="lyrics_from_provider">Versuri de la %s</string>

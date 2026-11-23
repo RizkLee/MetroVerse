@@ -20,8 +20,6 @@
     <string name="link_copied">링크를 클립보드에 복사했습니다</string>
     <string name="seek_forward_dynamic">+%1$d초 앞으로</string>
     <string name="seek_backward_dynamic">-%1$d초 뒤로</string>
-    <string name="new_player_design">새로운 플레이어 디자인</string>
-    <string name="new_mini_player_design">새로운 미니 플레이어 디자인</string>
     <string name="app_language">앱 언어</string>
     <string name="not_logged_in_youtube">YouTube에 로그인되어 있지 않습니다</string>
     <string name="views">조회수</string>
@@ -376,7 +374,6 @@
     <string name="equalizer_desc">오디오 이퀄라이저 열기</string>
     <string name="mini_player_background_style">미니 플레이어 배경 스타일</string>
     <string name="transparent">투명</string>
-    <string name="mini_player_background_not_available">\'새로운 미니 플레이어 디자인\'이 활성화된 경우에만 사용할 수 있습니다</string>
     <string name="cache_size_warning_message">선택하신 제한 용량(%1$s)이 현재 앱에서 사용 중인 용량보다 작습니다. 계속하면 캐싱된 일부 %2$s 항목이 삭제될 수 있습니다. 그래도 진행하시겠습니까?</string>
     <string name="lyrics_animation_style_title">단어 단위 애니메이션 스타일</string>
     <string name="wrapped_no_data">표시할 데이터가 없습니다</string>
@@ -455,7 +452,6 @@
     <string name="cd_light_mode">라이트 모드</string>
     <string name="cd_dark_mode">다크 모드</string>
     <string name="cd_system_mode">시스템 설정 사용</string>
-    <string name="pure_black_mini_player">퓨어 블랙 미니 플레이어</string>
     <string name="cd_palette_item">%1$s 팔레트</string>
     <string name="play_all">전곡 재생</string>
     <string name="enable_high_refresh_rate">고주사율 활성화</string>
@@ -943,7 +939,6 @@
     <string name="lyrics_animation_metroverse">MetroVerse</string>
     <string name="lyrics_animation_apple_music">Apple Music</string>
     <string name="lyrics_progressive_blur">가사 점진적 흐림 효과</string>
-    <string name="lyrics_progressive_blur_desc">재생 중인 줄과 하단 출처 정보는 선명하게 유지하고 주변 줄을 부드럽게 흐리게 표시합니다</string>
     <string name="lyrics_written_by">작사: %1$s</string>
     <string name="lyrics_display_section">표시</string>
     <string name="lyrics_alignment_section">정렬</string>
@@ -956,7 +951,6 @@
     <string name="disable_animated_artwork_on_mobile_data">모바일 데이터에서 움직이는 아트워크 비활성화</string>
     <string name="disable_animated_artwork_on_mobile_data_desc">애니메이션이 캐시된 경우에도 모바일 데이터 연결 시 정적 아트워크를 표시합니다</string>
     <string name="animated_cover_resolution">애니메이션 커버 화질</string>
-    <string name="animated_cover_resolution_desc">단일 해상도 클립은 원본 해상도를 사용합니다</string>
     <string name="animated_cover_resolution_low">낮음 (360p)</string>
     <string name="animated_cover_resolution_medium">중간 (720p)</string>
     <string name="animated_cover_resolution_high">높음 (1080p)</string>
@@ -967,9 +961,20 @@
     <string name="apple_music_artist_videos_title">Apple Music 아티스트 프로필 동영상</string>
     <string name="apple_music_artist_videos_description">사용 가능한 경우 아티스트 페이지에서 애니메이션 Apple Music 프로필 동영상을 재생합니다</string>
     <string name="apple_music_artist_video_quality_title">아티스트 프로필 동영상 화질</string>
-    <string name="apple_music_artist_video_quality_description">애니메이션 아티스트 프로필 동영상의 최대 해상도를 선택합니다</string>
     <string name="animated_artwork_cache">움직이는 아트워크 캐시</string>
     <string name="max_animated_artwork_cache_size">움직이는 아트워크 캐시 최대 크기</string>
     <string name="clear_animated_artwork_cache">움직이는 아트워크 캐시 지우기</string>
     <string name="clear_animated_artwork_cache_dialog">캐시된 모든 애니메이션 커버와 아티스트 아트워크 메타데이터를 지우시겠습니까? 온라인 상태일 때 다시 불러와야 합니다.</string>
+    <string name="app_usage_mode">사용 모드</string>
+    <string name="usage_mode_onboarding_title">MetroVerse 사용 방식 선택</string>
+    <string name="usage_mode_onboarding_subtitle">청취 스타일에 맞는 화면 구성을 선택하세요.</string>
+    <string name="usage_mode_music_and_podcasts">음악 및 팟캐스트</string>
+    <string name="usage_mode_music_and_podcasts_desc">YouTube Music의 음악과 YouTube 및 RSS 팟캐스트를 함께 감상합니다.</string>
+    <string name="usage_mode_podcasts_only">팟캐스트 전용</string>
+    <string name="usage_mode_podcasts_only_desc">홈 탭을 숨기고 보관함과 검색의 기본 탭을 팟캐스트로 설정합니다.</string>
+    <string name="usage_mode_youtube_music_region_note">참고: 음악 음원은 YouTube Music에서 제공되며 일부 국가 또는 지역에서는 이용할 수 없을 수 있습니다.</string>
+    <string name="usage_mode_restore_in_settings_hint">설정에서 언제든지 음악 및 팟캐스트 모드로 복원할 수 있습니다.</string>
+    <string name="usage_mode_podcasts_only_enabled_notice">팟캐스트 전용 모드가 활성화되었습니다. 설정에서 음악 및 팟캐스트 모드를 복원할 수 있습니다.</string>
+    <string name="usage_mode_continue">계속</string>
+    <string name="lastfm_api_keys_missing">이 빌드에는 API 자격 증명이 구성되지 않아 Last.fm 연동을 사용할 수 없습니다.</string>
 </resources>

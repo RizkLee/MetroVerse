@@ -188,10 +188,7 @@ fun ArtworkAppearanceSettings(navController: NavController) {
                         },
                         description = {
                             Text(
-                                text =
-                                    "${animatedCoverResolutionLabel(animatedCoverResolution)} · ${
-                                        stringResource(R.string.animated_cover_resolution_desc)
-                                    }",
+                                text = animatedCoverResolutionLabel(animatedCoverResolution),
                                 color = disabledSummaryColor(enableAnimatedCovers),
                             )
                         },
@@ -261,10 +258,7 @@ fun ArtworkAppearanceSettings(navController: NavController) {
                         },
                         description = {
                             Text(
-                                text =
-                                    "${animatedCoverResolutionLabel(artistVideoResolution)} · ${
-                                        stringResource(R.string.apple_music_artist_video_quality_description)
-                                    }",
+                                text = animatedCoverResolutionLabel(artistVideoResolution),
                                 color = disabledSummaryColor(enableAppleMusicArtistVideos),
                             )
                         },

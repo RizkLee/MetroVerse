@@ -113,14 +113,12 @@
     <string name="lyrics_romanize_korean">كلمات الأغاني الكوريه الرومانيه</string>
     <string name="yt_sync">المزامنة التلقائية مع الحساب</string>
     <string name="more_content">المزيد من المحتوي</string>
-    <string name="new_player_design">تصميم المشغل الجديد</string>
     <string name="swipe_sensitivity">حساسية السحب الخاص بالمشغل الصغير</string>
     <string name="clear_image_cache_dialog">هل أنت متأكد أنك تريد مسح كافة الصور المخزنة مؤقتًا؟</string>
     <string name="disable">تعطيل</string>
     <string name="sensitivity_percentage">%1$d%%</string>
     <string name="subscribe">اشتراك</string>
     <string name="subscribed">مشترك</string>
-    <string name="new_mini_player_design">تصميم المشغل المصغر الجديد</string>
     <string name="now_playing">المُشغل الأن</string>
     <string name="seek_forward_dynamic">تقديم %1$d ثوانٍ</string>
     <string name="seek_backward_dynamic">تأخير %1$d ثوانٍ</string>
@@ -205,7 +203,6 @@
     <string name="advanced_desc">إضبط إيقاع الأغنية و درجة الجهير</string>
     <string name="equalizer_desc">إفتح معادل الصوت</string>
     <string name="mini_player">مشغل مصغر</string>
-    <string name="pure_black_mini_player">مشغل صغير أسود نقي</string>
     <string name="cache_size_warning_title">انتظر!</string>
     <string name="cache_size_warning_message">لقد اخترت حدًا لحجم ذاكرة التخزين المؤقت أصغر مما يستخدمه التطبيق حاليًا ( %1$s ). إذا تابعت، فقد يقوم التطبيق بإزالة بعض البيانات المخزنة مؤقتًا (%2$s) لتتوافق مع الحد الجديد. هل تريد المتابعة على أي حال؟</string>
     <string name="cache_size_warning_confirm">متابعة</string>
@@ -795,5 +792,4 @@
     <string name="varispeed">تفعيل خاصية تغيير السرعة</string>
     <string name="mini_player_background_style">نمط خلفية المشغل المصغر</string>
     <string name="transparent">شفاف</string>
-    <string name="mini_player_background_not_available">غير متاح عند تعطيل تصميم المشغل المصغر الجديد</string>
 </resources>

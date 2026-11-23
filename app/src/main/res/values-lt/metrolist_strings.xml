@@ -60,8 +60,6 @@
     <string name="player_background_style">Grotuvo fono išvaizda</string>
     <string name="follow_theme">Pritaikyti prie temos</string>
     <string name="gradient">Gradientas</string>
-    <string name="new_player_design">Nauja grotuvo išvaizda</string>
-    <string name="new_mini_player_design">Nauja mini grotuvo išvaizda</string>
     <string name="player_background_blur">Suliejimas</string>
     <string name="player_buttons_style">Grotuvo mygtukų spalvos</string>
     <string name="default_style">Numatytoji</string>
@@ -167,7 +165,6 @@
     <string name="advanced_desc">Pakeisti dainos tempą ir aukštį</string>
     <string name="equalizer_desc">Koreguoti garso ekvalaizerį</string>
     <string name="mini_player">Mini-grotuvas</string>
-    <string name="pure_black_mini_player">Juodas mini-grotuvas</string>
     <string name="cache_size_warning_title">Palaukite!</string>
     <string name="cache_size_warning_message">Jūs pasirinkote talpyklos dydžio limitą mažesnį nei programėlė dabar naudoja (%1$s). Jei tęsite, programėlė panaikins talpykloje saugojamų %2$s, kad susilygintų su nauju limitu. Tęsti vis tiek?</string>
     <string name="cache_size_warning_confirm">Tęsti</string>

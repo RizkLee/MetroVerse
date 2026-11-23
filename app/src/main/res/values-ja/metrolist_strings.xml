@@ -78,8 +78,6 @@
         <item quantity="other">%d回</item>
     </plurals>
     <string name="gradient">グラデーション</string>
-    <string name="new_player_design">新しいプレーヤーのデザイン</string>
-    <string name="new_mini_player_design">新しいミニプレーヤーのデザイン</string>
     <string name="swipe_song_to_add">曲を右にスワイプして次に再生、左にスワイプしてキューに追加</string>
     <string name="lyrics_auto_scroll">歌詞を自動でスクロール</string>
     <string name="lyrics_romanize_japanese">日本語の歌詞にローマ字を追加</string>
@@ -230,7 +228,6 @@
     <string name="delete_desc">このコンテンツを完全に削除します</string>
     <string name="advanced_desc">曲の再生速度と音程を調整します</string>
     <string name="equalizer_desc">オーディオイコライザーを調整します</string>
-    <string name="pure_black_mini_player">ピュアブラックのミニプレーヤー</string>
     <string name="listen_together">Listen Together</string>
     <string name="play_pause">再生/停止</string>
     <string name="wrapped_intro_title">METROLIST</string>
@@ -791,7 +788,6 @@
     <string name="experimental_lyrics_beta_message">新しい歌詞コンポーネントは現在開発中のため、不具合が含まれている場合があります。本当に使用しますか？</string>
     <string name="mini_player_background_style">ミニプレーヤーの背景</string>
     <string name="transparent">透明</string>
-    <string name="mini_player_background_not_available">新しいミニプレーヤーのデザインを使用していない場合は変更できません</string>
     <string name="lyrics_animation_style_title">単語ごとのアニメーションスタイル</string>
     <string name="your_daily_discover">今日のイチオシ</string>
     <string name="back">戻る</string>
@@ -1011,7 +1007,6 @@
     <string name="lyrics_animation_metroverse">MetroVerse</string>
     <string name="lyrics_animation_apple_music">Apple Music</string>
     <string name="lyrics_progressive_blur">段階的な歌詞のぼかし</string>
-    <string name="lyrics_progressive_blur_desc">再生中の行と末尾のクレジットを鮮明に保ったまま周囲の行を段階的にぼかします</string>
     <string name="lyrics_written_by">作詞: %1$s</string>
     <string name="lyrics_display_section">表示</string>
     <string name="lyrics_alignment_section">配置</string>
@@ -1024,7 +1019,6 @@
     <string name="disable_animated_artwork_on_mobile_data">モバイルデータ通信でアニメーションアートワークを無効にする</string>
     <string name="disable_animated_artwork_on_mobile_data_desc">アニメーションがキャッシュされている場合でも、モバイルデータ通信時は静止画を表示します</string>
     <string name="animated_cover_resolution">アニメーションカバーの画質</string>
-    <string name="animated_cover_resolution_desc">解像度が1種類のみのクリップは、元の解像度で再生されます</string>
     <string name="animated_cover_resolution_low">低 (360p)</string>
     <string name="animated_cover_resolution_medium">中 (720p)</string>
     <string name="animated_cover_resolution_high">高 (1080p)</string>
@@ -1035,9 +1029,20 @@
     <string name="apple_music_artist_videos_title">Apple Musicのアーティストプロフィール動画</string>
     <string name="apple_music_artist_videos_description">利用可能な場合、アーティストページでApple Musicのアニメーションプロフィール動画を再生します</string>
     <string name="apple_music_artist_video_quality_title">アーティストプロフィール動画の画質</string>
-    <string name="apple_music_artist_video_quality_description">アニメーションプロフィール動画の最大解像度を選択します</string>
     <string name="animated_artwork_cache">アニメーションアートワークのキャッシュ</string>
     <string name="max_animated_artwork_cache_size">アニメーションアートワークのキャッシュ上限</string>
     <string name="clear_animated_artwork_cache">アニメーションアートワークのキャッシュを削除</string>
     <string name="clear_animated_artwork_cache_dialog">キャッシュされたすべてのアニメーションカバーとアーティストアートワークのメタデータを削除しますか？オンライン時に再度読み込む必要があります。</string>
+    <string name="app_usage_mode">使用モード</string>
+    <string name="usage_mode_onboarding_title">MetroVerse の使い方を選択</string>
+    <string name="usage_mode_onboarding_subtitle">聴き方に合わせて表示モードを選択できます。</string>
+    <string name="usage_mode_music_and_podcasts">音楽とポッドキャスト</string>
+    <string name="usage_mode_music_and_podcasts_desc">YouTube Music の音楽と YouTube・RSS ポッドキャストの両方を楽しめます。</string>
+    <string name="usage_mode_podcasts_only">ポッドキャストのみ</string>
+    <string name="usage_mode_podcasts_only_desc">ホームタブを非表示にし、ライブラリと検索の初期タブをポッドキャストにします。</string>
+    <string name="usage_mode_youtube_music_region_note">注意：音楽の音源は YouTube Music から取得されるため、一部の国や地域では利用できない場合があります。</string>
+    <string name="usage_mode_restore_in_settings_hint">いつでも設定から「音楽とポッドキャスト」モードに戻すことができます。</string>
+    <string name="usage_mode_podcasts_only_enabled_notice">ポッドキャスト専用モードが有効になりました。設定からいつでも「音楽とポッドキャスト」に戻せます。</string>
+    <string name="usage_mode_continue">続ける</string>
+    <string name="lastfm_api_keys_missing">このビルドには API 認証情報が設定されていないため、Last.fm 連携は利用できません。</string>
 </resources>

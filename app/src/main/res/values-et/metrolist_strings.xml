@@ -51,7 +51,6 @@
     <string name="player_background_style">Meediaesitaja tausta stiil</string>
     <string name="follow_theme">Järgi kujundust</string>
     <string name="player_background_blur">Hägustatud taust</string>
-    <string name="new_player_design">Meediaesitaja uus kujundus</string>
     <string name="gradient">Gradient</string>
     <string name="player_buttons_style">Meediaesitaja nuppude värvid</string>
     <string name="enable_swipe_thumbnail">Kasuta loo vahetamisel viipamist</string>
@@ -95,7 +94,6 @@
     <string name="close">Sulge</string>
     <string name="seek_forward_dynamic">+%1$d sekundit edasi</string>
     <string name="seek_backward_dynamic">-%1$d sekundit tagasi</string>
-    <string name="new_mini_player_design">Meediaesitaja uus kompaktne kujundus</string>
     <string name="uploaded_playlist">Üleslaaditud</string>
     <string name="filter_uploaded">Üleslaaditud</string>
     <string name="general">Üldised</string>

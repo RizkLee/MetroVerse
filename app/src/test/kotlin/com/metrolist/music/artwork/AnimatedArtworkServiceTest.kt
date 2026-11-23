@@ -225,7 +225,7 @@ class AnimatedArtworkServiceTest {
         }
 
     @Test
-    fun `fetchArtistArtwork returns image and video and rejects ambiguous artist matches`() =
+    fun `fetchArtistArtwork returns image and video and resolves duplicate exact-name artists`() =
         runBlocking {
             val base = server.url("").toString().trimEnd('/')
             val now = 1_700_000_000L
@@ -297,6 +297,34 @@ class AnimatedArtworkServiceTest {
                                 )
                             }
 
+                            path == "/v1/catalog/us/artists/10" -> {
+                                MockResponse(code = 200, body = """{"resources":{"artists":{"10":{"attributes":{}}}}}""")
+                            }
+
+                            path == "/v1/catalog/us/artists/20" -> {
+                                MockResponse(
+                                    code = 200,
+                                    body =
+                                        """
+                                        {
+                                          "resources": {
+                                            "artists": {
+                                              "20": {
+                                                "attributes": {
+                                                  "artwork": {
+                                                    "url": "$base/images/{w}x{h}{c}.{f}",
+                                                    "width": 1200,
+                                                    "height": 1200
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                        """.trimIndent(),
+                                )
+                            }
+
                             path == "/hls/artist/master.m3u8" -> {
                                 MockResponse(
                                     code = 200,
@@ -327,14 +355,15 @@ class AnimatedArtworkServiceTest {
             assertEquals("$base/images/2400x2400bb.webp", artwork.imageUrl)
             assertEquals("$base/hls/artist/artist1080.m3u8", artwork.videoUrl)
 
-            val ambiguous =
+            val duplicateResolved =
                 service.fetchArtistArtwork(
                     artist = "Common Name",
                     includeImage = true,
                     includeVideo = false,
                     videoResolution = AnimatedCoverResolution.MEDIUM_720,
                 )
-            assertEquals(ArtistArtworkFetchResult.Missing, ambiguous)
+            assertTrue(duplicateResolved is ArtistArtworkFetchResult.Found)
+            assertEquals("$base/images/1200x1200bb.webp", (duplicateResolved as ArtistArtworkFetchResult.Found).artwork.imageUrl)
 
             val disabled =
                 service.fetchArtistArtwork(
@@ -345,6 +374,87 @@ class AnimatedArtworkServiceTest {
                 )
             assertEquals(ArtistArtworkFetchResult.Unavailable, disabled)
             assertNull(service.fetchAnimatedCover("", "M83"))
+            service.dispose()
+        }
+
+    @Test
+    fun `fetchAnimatedCover resolves track when album is missing and does not cache network errors`() =
+        runBlocking {
+            val base = server.url("").toString().trimEnd('/')
+            val now = 1_700_000_000L
+            val jwt = testJwt(now + 3600L)
+            val failSearch = java.util.concurrent.atomic.AtomicBoolean(true)
+
+            server.dispatcher =
+                object : Dispatcher() {
+                    override fun dispatch(request: RecordedRequest): MockResponse {
+                        val path = request.url.encodedPath
+                        return when {
+                            path == "/search" && failSearch.get() -> MockResponse(code = 500)
+                            path == "/search" -> {
+                                MockResponse(
+                                    code = 200,
+                                    body =
+                                        """
+                                        {
+                                          "resultCount": 1,
+                                          "results": [
+                                            {
+                                              "kind": "song",
+                                              "trackId": 2002,
+                                              "trackName": "Wait",
+                                              "artistName": "M83",
+                                              "collectionId": 555,
+                                              "collectionName": "Hurry Up, We're Dreaming"
+                                            }
+                                          ]
+                                        }
+                                        """.trimIndent(),
+                                )
+                            }
+
+                            path == "/us/browse" -> MockResponse(code = 200, body = """<script src="/assets/index-1.js"></script>""")
+                            path == "/assets/index-1.js" -> MockResponse(code = 200, body = """"$jwt"""")
+                            path == "/v1/catalog/us/albums/555" -> {
+                                MockResponse(
+                                    code = 200,
+                                    body =
+                                        """
+                                        {
+                                          "resources": {
+                                            "albums": {
+                                              "555": {
+                                                "attributes": {
+                                                  "editorialVideo": {
+                                                    "motionSquareVideo1x1": { "video": "$base/hls/sq/master.m3u8" }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                        """.trimIndent(),
+                                )
+                            }
+
+                            path == "/hls/sq/master.m3u8" -> {
+                                MockResponse(
+                                    code = 200,
+                                    body = "#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1200000,RESOLUTION=720x720\nsq720.m3u8",
+                                )
+                            }
+
+                            else -> MockResponse(code = 404)
+                        }
+                    }
+                }
+
+            val service = newService(now)
+            assertNull(service.fetchAnimatedCover(title = "Wait", artist = "M83", album = null))
+            failSearch.set(false)
+            val resolved = service.fetchAnimatedCover(title = "Wait", artist = "M83", album = null)
+            assertNotNull(resolved)
+            assertEquals("$base/hls/sq/sq720.m3u8", resolved?.url)
             service.dispose()
         }
 }

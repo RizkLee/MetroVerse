@@ -55,8 +55,6 @@
     <string name="player_background_style">వాయించే తెర నేపథ్య శైలి</string>
     <string name="follow_theme">రూపకల్పనను అనుసరించు</string>
     <string name="gradient">రంగుల సమ్మేళనం</string>
-    <string name="new_player_design">కొత్త వాయించే తెర రూపకల్పన</string>
-    <string name="new_mini_player_design">కొత్త చిన్న వాయించే తెర రూపకల్పన</string>
     <string name="player_background_blur">మసకబార్చు</string>
     <string name="player_buttons_style">వాయించే తెర మీటల రంగులు</string>
     <string name="default_style">డిఫాల్ట్</string>

@@ -60,9 +60,12 @@ import com.metrolist.music.LocalIsPlayerExpanded
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
+import com.metrolist.music.constants.AppUsageMode
+import com.metrolist.music.constants.AppUsageModeKey
 import com.metrolist.music.constants.PauseSearchHistoryKey
 import com.metrolist.music.constants.SearchSource
 import com.metrolist.music.constants.SearchSourceKey
+import com.metrolist.music.constants.resolveAppUsageMode
 import com.metrolist.music.db.entities.SearchHistory
 import com.metrolist.music.playback.queues.YouTubeQueue
 import com.metrolist.music.ui.component.ChipsRow
@@ -127,7 +130,19 @@ fun SearchScreen(
         }
     }
 
-    var searchSource by rememberEnumPreference(SearchSourceKey, SearchSource.ONLINE)
+    val (appUsageModeRaw) = rememberPreference(AppUsageModeKey, AppUsageMode.MUSIC_AND_PODCASTS.name)
+    val isPodcastsOnly = remember(appUsageModeRaw) {
+        resolveAppUsageMode(appUsageModeRaw) == AppUsageMode.PODCASTS_ONLY
+    }
+    var searchSource by rememberEnumPreference(
+        SearchSourceKey,
+        if (isPodcastsOnly) SearchSource.PODCAST else SearchSource.ONLINE,
+    )
+    LaunchedEffect(isPodcastsOnly, searchSource) {
+        if (isPodcastsOnly && searchSource == SearchSource.ONLINE) {
+            searchSource = SearchSource.PODCAST
+        }
+    }
     var query by rememberSaveable(stateSaver = TextFieldValue.Saver) {
         mutableStateOf(TextFieldValue())
     }
@@ -263,11 +278,19 @@ fun SearchScreen(
                     ),
                 )
                 ChipsRow(
-                    chips = listOf(
-                        SearchSource.ONLINE to stringResource(R.string.youtube_music),
-                        SearchSource.PODCAST to stringResource(R.string.filter_podcasts),
-                        SearchSource.LOCAL to stringResource(R.string.filter_library),
-                    ),
+                    chips =
+                        if (isPodcastsOnly) {
+                            listOf(
+                                SearchSource.PODCAST to stringResource(R.string.filter_podcasts),
+                                SearchSource.LOCAL to stringResource(R.string.filter_library),
+                            )
+                        } else {
+                            listOf(
+                                SearchSource.ONLINE to stringResource(R.string.youtube_music),
+                                SearchSource.PODCAST to stringResource(R.string.filter_podcasts),
+                                SearchSource.LOCAL to stringResource(R.string.filter_library),
+                            )
+                        },
                     currentValue = searchSource,
                     onValueUpdate = { searchSource = it },
                     containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,

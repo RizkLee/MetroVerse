@@ -118,6 +118,7 @@ private data class BinimumLyricsResult(
 private data class BinimumLyricsFetchResult(
     val lrc: String,
     val isWordSync: Boolean,
+    val songwriters: List<String> = emptyList(),
 )
 
 object LyricsPlusProvider : LyricsProvider {
@@ -282,6 +283,7 @@ object LyricsPlusProvider : LyricsProvider {
         return BinimumLyricsFetchResult(
             lrc = lrc,
             isWordSync = selectedResult.timing_type.equals("word", ignoreCase = true),
+            songwriters = TTMLParser.parseSongwriters(ttml),
         )
     }
 
@@ -414,11 +416,23 @@ object LyricsPlusProvider : LyricsProvider {
         album: String?,
     ): Result<String> = runCatching {
         val binimumResult = fetchBinimumLyricsApi(id, title, artist, duration, album)
+        if (binimumResult != null && binimumResult.songwriters.isNotEmpty()) {
+            ProviderSongwritersCache.put(context, id, binimumResult.songwriters)
+        }
         if (binimumResult?.isWordSync == true) {
             return@runCatching binimumResult.lrc
         }
 
         val response = fetchLyrics(title, artist, duration, album)
+        val metadataWriters =
+            response?.metadata?.songWriters
+                ?.map(String::trim)
+                ?.filter(String::isNotEmpty)
+                ?.distinct()
+                .orEmpty()
+        if (metadataWriters.isNotEmpty()) {
+            ProviderSongwritersCache.put(context, id, metadataWriters)
+        }
         val lyricsPlusLrc = convertToLrc(response)
         resolveLyricsWithFallback(binimumResult, response, lyricsPlusLrc)
             ?: throw IllegalStateException("Lyrics unavailable")

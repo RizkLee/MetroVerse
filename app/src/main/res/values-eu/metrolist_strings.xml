@@ -56,8 +56,6 @@
     <string name="player_background_style">Erreproduzitzaile atzeko estiloa</string>
     <string name="follow_theme">Jarraitu gaia</string>
     <string name="gradient">Gradientea</string>
-    <string name="new_player_design">Erreproduzitzaile diseinu berria</string>
-    <string name="new_mini_player_design">Mini-erreproduzitzaile diseinu berria</string>
     <string name="player_background_blur">Lauso-efektua</string>
     <string name="player_buttons_style">Erreproduzitzaile botoi kolorea</string>
     <string name="default_style">Lehenetsia</string>
@@ -396,10 +394,8 @@
     <string name="advanced_desc">Abestiaren tenpoa eta tonua aldatu</string>
     <string name="equalizer_desc">Audio-ekualizadorea ireki</string>
     <string name="mini_player">Minierreproduzitzailea</string>
-    <string name="pure_black_mini_player">Minierreproduzitzaile beltza purua</string>
     <string name="mini_player_background_style">Minierreproduzitzailearen hondoaren estiloa</string>
     <string name="transparent">Gardena</string>
-    <string name="mini_player_background_not_available">Ez dago erabilgarri minierreproduzitzailearen diseinu berria ezgaituta dagoenean</string>
     <string name="cache_size_warning_title">Itxaron!</string>
     <string name="cache_size_warning_message">Aukeratutako muga (%1$s) aplikazioa momentuan erabiltzen ari dena baino txikiagoa da. Jarraituz gero cache-an gordetako %2$s ezabatu daiteke. Jarraitu hala ere?</string>
     <string name="cache_size_warning_confirm">Jarraitu</string>

@@ -101,4 +101,17 @@ class DiscordTokenStoreTest {
         assertTrue("Encrypted value should not be plaintext", encrypted != plaintext)
         assertEquals(plaintext, DiscordTokenStore.AesKeystore.decrypt(encrypted))
     }
+
+    @Test
+    fun pendingAuth_persistsAndRespectsExpiration() {
+        DiscordTokenStore.storePendingAuth("verifier-123", "state-456", createdAtMs = 1_000L)
+        val valid = DiscordTokenStore.consumePendingAuth(nowMs = 5_000L)
+        assertNotNull(valid)
+        assertEquals("verifier-123", valid!!.verifier)
+        assertEquals("state-456", valid.state)
+        assertNull(DiscordTokenStore.consumePendingAuth(nowMs = 5_000L))
+
+        DiscordTokenStore.storePendingAuth("verifier-old", "state-old", createdAtMs = 1_000L)
+        assertNull(DiscordTokenStore.consumePendingAuth(nowMs = 1_000L + 11 * 60 * 1000L))
+    }
 }

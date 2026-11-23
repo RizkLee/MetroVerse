@@ -58,8 +58,6 @@
     <string name="player_background_style">Štýl pozadia prehrávača</string>
     <string name="follow_theme">Podľa témy</string>
     <string name="gradient">Prechod</string>
-    <string name="new_player_design">Nový dizajn prehrávača</string>
-    <string name="new_mini_player_design">Nový dizajn mini prehrávača</string>
     <string name="player_background_blur">Rozostrenie</string>
     <string name="player_buttons_style">Farby tlačidiel prehrávača</string>
     <string name="default_style">Predvolené</string>
@@ -215,7 +213,6 @@
     <string name="advanced_desc">Zmeňte tempo a výšku tónu skladby</string>
     <string name="equalizer_desc">Úprava zvukového ekvalizéra</string>
     <string name="mini_player">Mini-prehrávač</string>
-    <string name="pure_black_mini_player">Čisto čierny mini prehrávač</string>
     <string name="cache_size_warning_title">Počkajte!</string>
     <string name="cache_size_warning_message">Zvolili ste limit veľ\'kosti vyrovnávacej pamäte, ktorý je menší než ten ktorý aplikácia momentálne používa (%1$s). Ak budete pokračovať, aplikácia môže odstrániť niektoré uložené %2$s, aby sa prispôsobila novému limitu. Chcete napriek tomu pokračovať?</string>
     <string name="cache_size_warning_confirm">Pokračovať</string>

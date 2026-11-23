@@ -12,11 +12,8 @@ import com.metrolist.music.models.MediaMetadata
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.net.InetAddress
-import java.net.UnknownHostException
 
 class AnimatedArtworkEligibilityTest {
     private fun sampleMetadata(
@@ -159,25 +156,11 @@ class AnimatedArtworkEligibilityTest {
     }
 
     @Test
-    fun `PublicArtworkDns blocks private addresses for Apple hosts while allowing YouTube CDN hosts`() {
-        val publicAddr = InetAddress.getByAddress(byteArrayOf(17, 253.toByte(), 144.toByte(), 10))
-        val loopback = InetAddress.getByAddress(byteArrayOf(127, 0, 0, 1))
-        val rfc1918 = InetAddress.getByAddress(byteArrayOf(10, 0, 0, 5))
-        val cgnat = InetAddress.getByAddress(byteArrayOf(100, 64, 0, 1))
-        val linkLocal = InetAddress.getByAddress(byteArrayOf(169.toByte(), 254.toByte(), 1, 1))
-        val ipv6Ula = InetAddress.getByName("fd00::1")
-
-        assertTrue(publicAddr.isPublicArtworkAddress())
-        assertFalse(loopback.isPublicArtworkAddress())
-        assertFalse(rfc1918.isPublicArtworkAddress())
-        assertFalse(cgnat.isPublicArtworkAddress())
-        assertFalse(linkLocal.isPublicArtworkAddress())
-        assertFalse(ipv6Ula.isPublicArtworkAddress())
-
-        assertEquals(listOf(publicAddr), artworkAddresses("amp-api.music.apple.com", listOf(publicAddr)))
-        assertThrows(UnknownHostException::class.java) {
-            artworkAddresses("amp-api.music.apple.com", listOf(rfc1918))
-        }
-        assertEquals(listOf(rfc1918), artworkAddresses("lh3.googleusercontent.com", listOf(rfc1918)))
+    fun `formatAppleLocaleParam produces valid Apple storefront locale tags`() {
+        assertEquals("zh-hans-us", formatAppleLocaleParam("zh-CN", "US"))
+        assertEquals("zh-hant-tw", formatAppleLocaleParam("zh-TW", "TW"))
+        assertEquals("en-us", formatAppleLocaleParam("en", "US"))
+        assertEquals("en-gb", formatAppleLocaleParam("en-GB", "US"))
+        assertNull(formatAppleLocaleParam("", "US"))
     }
 }
