@@ -1092,4 +1092,7 @@
     <string name="usage_mode_podcasts_only_enabled_notice">Включён режим «Только подкасты». Вернуть «Музыку и подкасты» можно в настройках.</string>
     <string name="usage_mode_continue">Продолжить</string>
     <string name="lastfm_api_keys_missing">Интеграция Last.fm недоступна в этой сборке, так как не настроены учётные данные API.</string>
+    <string name="app_icon">Значок приложения</string>
+    <string name="app_icon_default">По умолчанию</string>
+    <string name="app_icon_piano_black">Чёрные клавиши</string>
 </resources>

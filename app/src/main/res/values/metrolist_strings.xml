@@ -1289,4 +1289,7 @@
     <string name="usage_mode_podcasts_only_enabled_notice">Podcasts-only mode enabled. You can switch back to Music &amp; Podcasts in Settings.</string>
     <string name="usage_mode_continue">Continue</string>
     <string name="lastfm_api_keys_missing">Last.fm integration is unavailable in this build because API credentials were not configured.</string>
+    <string name="app_icon">App icon</string>
+    <string name="app_icon_default">Default</string>
+    <string name="app_icon_piano_black">Piano Black</string>
 </resources>

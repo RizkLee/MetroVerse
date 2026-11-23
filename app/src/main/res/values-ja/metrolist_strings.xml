@@ -1045,4 +1045,7 @@
     <string name="usage_mode_podcasts_only_enabled_notice">ポッドキャスト専用モードが有効になりました。設定からいつでも「音楽とポッドキャスト」に戻せます。</string>
     <string name="usage_mode_continue">続ける</string>
     <string name="lastfm_api_keys_missing">このビルドには API 認証情報が設定されていないため、Last.fm 連携は利用できません。</string>
+    <string name="app_icon">アプリアイコン</string>
+    <string name="app_icon_default">デフォルト</string>
+    <string name="app_icon_piano_black">ピアノブラック</string>
 </resources>

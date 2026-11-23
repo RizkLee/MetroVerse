@@ -163,4 +163,34 @@ class AnimatedArtworkEligibilityTest {
         assertEquals("en-gb", formatAppleLocaleParam("en-GB", "US"))
         assertNull(formatAppleLocaleParam("", "US"))
     }
+
+    @Test
+    fun `selectBestHlsVariant prefers SDR variants over HDR variants when available`() {
+        val master = "https://mvod.itunes.apple.com/path/master.m3u8"
+        val mixedPlaylist =
+            """
+            #EXTM3U
+            #EXT-X-STREAM-INF:BANDWIDTH=6000000,RESOLUTION=1080x1080,VIDEO-RANGE=PQ
+            hdr_1080.m3u8
+            #EXT-X-STREAM-INF:BANDWIDTH=4200000,RESOLUTION=1080x1080,VIDEO-RANGE=SDR
+            sdr_1080.m3u8
+            """.trimIndent()
+        assertEquals(
+            "https://mvod.itunes.apple.com/path/sdr_1080.m3u8",
+            selectBestHlsVariant(master, mixedPlaylist, AnimatedCoverResolution.HIGH_1080),
+        )
+
+        val hdrOnlyPlaylist =
+            """
+            #EXTM3U
+            #EXT-X-STREAM-INF:BANDWIDTH=3000000,RESOLUTION=720x720,VIDEO-RANGE=PQ
+            hdr_720.m3u8
+            #EXT-X-STREAM-INF:BANDWIDTH=6000000,RESOLUTION=1080x1080,VIDEO-RANGE=HLG
+            hdr_1080.m3u8
+            """.trimIndent()
+        assertEquals(
+            "https://mvod.itunes.apple.com/path/hdr_1080.m3u8",
+            selectBestHlsVariant(master, hdrOnlyPlaylist, AnimatedCoverResolution.HIGH_1080),
+        )
+    }
 }

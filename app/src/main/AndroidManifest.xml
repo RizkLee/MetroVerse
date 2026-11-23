@@ -200,6 +200,20 @@
             </intent-filter>
         </activity-alias>
 
+        <activity-alias
+            android:name=".MainActivityPianoBlack"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_piano_black"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_piano_black_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
         <activity
             android:name=".discord.DiscordOAuthActivity"
             android:exported="true"

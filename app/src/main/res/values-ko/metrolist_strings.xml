@@ -977,4 +977,7 @@
     <string name="usage_mode_podcasts_only_enabled_notice">팟캐스트 전용 모드가 활성화되었습니다. 설정에서 음악 및 팟캐스트 모드를 복원할 수 있습니다.</string>
     <string name="usage_mode_continue">계속</string>
     <string name="lastfm_api_keys_missing">이 빌드에는 API 자격 증명이 구성되지 않아 Last.fm 연동을 사용할 수 없습니다.</string>
+    <string name="app_icon">앱 아이콘</string>
+    <string name="app_icon_default">기본값</string>
+    <string name="app_icon_piano_black">피아노 블랙</string>
 </resources>

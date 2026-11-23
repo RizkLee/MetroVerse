@@ -9,10 +9,13 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -46,15 +49,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.navigation.NavController
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
+import com.metrolist.music.constants.AppIconKey
 import com.metrolist.music.constants.AppUsageMode
 import com.metrolist.music.constants.AppUsageModeKey
 import com.metrolist.music.constants.ChipSortTypeKey
@@ -111,6 +118,8 @@ import com.metrolist.music.ui.component.label
 import com.metrolist.music.ui.theme.DefaultThemeColor
 import com.metrolist.music.ui.theme.PlayerSliderColors
 import com.metrolist.music.ui.utils.backToMain
+import com.metrolist.music.utils.AppIcon
+import com.metrolist.music.utils.IconUtils
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.utils.safeDataStoreEdit
@@ -208,7 +217,7 @@ fun AppearanceSettings(
     val (rawLyricsAnimationStyle) =
         rememberPreference(
             LyricsAnimationStyleKey,
-            defaultValue = LyricsAnimationStyle.METROVERSE.name,
+            defaultValue = LyricsAnimationStyle.APPLE.name,
         )
     val lyricsAnimationStyle =
         remember(rawLyricsAnimationStyle) {
@@ -247,6 +256,14 @@ fun AppearanceSettings(
             SlimNavBarKey,
             defaultValue = false,
         )
+
+    val (rawAppIcon, onAppIconChange) =
+        rememberPreference(
+            AppIconKey,
+            defaultValue = AppIcon.DEFAULT.name,
+        )
+    val currentAppIcon = remember(rawAppIcon) { AppIcon.fromStoredValue(rawAppIcon) }
+    var showAppIconDialog by rememberSaveable { mutableStateOf(false) }
 
     // Density scale preferences
     val context = activity as Context
@@ -511,6 +528,82 @@ fun AppearanceSettings(
                 }
             },
         )
+    }
+
+    if (showAppIconDialog) {
+        DefaultDialog(
+            onDismiss = { showAppIconDialog = false },
+            buttons = {
+                TextButton(
+                    onClick = { showAppIconDialog = false },
+                ) {
+                    Text(text = stringResource(android.R.string.cancel))
+                }
+            },
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.app_icon),
+                    style = MaterialTheme.typography.titleLarge,
+                )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    AppIcon.entries.forEach { icon ->
+                        val selected = icon == currentAppIcon
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(
+                                        if (selected) {
+                                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                                        } else {
+                                            MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.45f)
+                                        },
+                                    )
+                                    .border(
+                                        width = if (selected) 1.5.dp else 1.dp,
+                                        color =
+                                            if (selected) {
+                                                MaterialTheme.colorScheme.primary
+                                            } else {
+                                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                            },
+                                        shape = RoundedCornerShape(16.dp),
+                                    )
+                                    .clickable {
+                                        onAppIconChange(icon.name)
+                                        IconUtils.setIcon(context, icon)
+                                        showAppIconDialog = false
+                                    }
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                        ) {
+                            AppIconPreviewBox(icon = icon, size = 48.dp)
+                            Text(
+                                text = stringResource(icon.labelRes),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                                modifier = Modifier.weight(1f),
+                            )
+                            if (selected) {
+                                Icon(
+                                    painter = painterResource(R.drawable.check),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     if (showRestartDialog) {
@@ -887,6 +980,15 @@ fun AppearanceSettings(
                             title = { Text(stringResource(R.string.theme)) },
                             description = { Text(stringResource(R.string.theme_desc)) },
                             onClick = { navController.navigate("settings/appearance/theme") },
+                        ),
+                    )
+                    add(
+                        Material3SettingsItem(
+                            icon = painterResource(R.drawable.palette),
+                            title = { Text(stringResource(R.string.app_icon)) },
+                            description = { Text(stringResource(currentAppIcon.labelRes)) },
+                            trailingContent = { AppIconPreviewBox(icon = currentAppIcon, size = 36.dp) },
+                            onClick = { showAppIconDialog = true },
                         ),
                     )
                 },
@@ -1453,6 +1555,42 @@ fun AppearanceSettings(
             }
         },
     )
+}
+
+@Composable
+private fun AppIconPreviewBox(
+    icon: AppIcon,
+    size: Dp,
+) {
+    val shape = RoundedCornerShape(size * 0.26f)
+    Box(
+        modifier =
+            Modifier
+                .size(size)
+                .clip(shape)
+                .border(
+                    width = 0.75.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
+                    shape = shape,
+                ),
+    ) {
+        Image(
+            painter = painterResource(icon.previewBackgroundRes),
+            contentDescription = null,
+            modifier = Modifier.matchParentSize(),
+        )
+        Image(
+            painter = painterResource(icon.previewForegroundRes),
+            contentDescription = null,
+            modifier =
+                Modifier
+                    .matchParentSize()
+                    .graphicsLayer {
+                        scaleX = 1.25f
+                        scaleY = 1.25f
+                    },
+        )
+    }
 }
 
 enum class DarkMode {

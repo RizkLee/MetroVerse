@@ -30,7 +30,7 @@ internal fun WordLevelLyrics(
     textMeasurer: TextMeasurer,
     isPlaying: Boolean = true,
     playbackSpeed: Float = 1f,
-    animationStyle: LyricsAnimationStyle = LyricsAnimationStyle.METROVERSE,
+    animationStyle: LyricsAnimationStyle = LyricsAnimationStyle.APPLE,
     prewarmMasks: Boolean = isActiveLine,
 ) {
     when (animationStyle) {

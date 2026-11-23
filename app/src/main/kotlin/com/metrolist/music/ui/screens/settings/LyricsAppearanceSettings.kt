@@ -6,12 +6,12 @@
 package com.metrolist.music.ui.screens.settings
 
 import android.os.Build
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -22,6 +22,9 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -41,7 +44,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -50,10 +52,8 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -63,9 +63,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.currentStateAsState
 import androidx.navigation.NavController
+import com.metrolist.innertube.models.MUSIC_VIDEO_TYPE_PODCAST_EPISODE
 import com.metrolist.music.LocalPlayerAwareWindowInsets
+import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
 import com.metrolist.music.constants.DEFAULT_LYRICS_LINE_SPACING
 import com.metrolist.music.constants.DEFAULT_LYRICS_TEXT_SIZE
@@ -82,8 +85,11 @@ import com.metrolist.music.constants.LyricsTextPositionKey
 import com.metrolist.music.constants.LyricsTextSizeKey
 import com.metrolist.music.constants.RespectAgentPositioningKey
 import com.metrolist.music.constants.ShowIntervalIndicatorKey
+import com.metrolist.music.db.entities.LyricsEntity.Companion.LYRICS_NOT_FOUND
 import com.metrolist.music.lyrics.LyricsEntry
+import com.metrolist.music.lyrics.LyricsUtils
 import com.metrolist.music.lyrics.WordTimestamp
+import com.metrolist.music.lyrics.lyricsTextLooksSynced
 import com.metrolist.music.ui.component.EnumDialog
 import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.component.LyricsAttributionFooter
@@ -93,6 +99,7 @@ import com.metrolist.music.ui.component.Material3SettingsItem
 import com.metrolist.music.ui.component.lyrics.computeProgressiveLyricsBlurDp
 import com.metrolist.music.ui.utils.backToMain
 import com.metrolist.music.ui.utils.fadingEdge
+import com.metrolist.music.utils.isOpenRssEpisode
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
 import kotlinx.coroutines.isActive
@@ -100,9 +107,18 @@ import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-private val PREVIEW_DURATION_MS = 10_800L
+private const val SAMPLE_PREVIEW_DURATION_MS = 22_000L
+private const val SAMPLE_PREVIEW_INITIAL_OFFSET_MS = 3_100L
+private const val PLAIN_LYRICS_LINE_STEP_MS = 2_600L
 
-private fun buildPreviewLyricsSample(): List<LyricsEntry> =
+internal data class LyricsPreviewSource(
+    val lines: List<LyricsEntry>,
+    val isLivePlayback: Boolean,
+    val isSynced: Boolean,
+    val provider: String?,
+)
+
+internal fun buildPreviewLyricsSample(): List<LyricsEntry> =
     listOf(
         LyricsEntry(
             time = 0L,
@@ -112,7 +128,7 @@ private fun buildPreviewLyricsSample(): List<LyricsEntry> =
                 WordTimestamp("on", 0.45, 0.8),
                 WordTimestamp("the", 0.8, 1.1),
                 WordTimestamp("lights", 1.1, 1.75),
-                WordTimestamp("tonight", 1.75, 2.5, hasTrailingSpace = false),
+                WordTimestamp("tonight", 1.75, 2.45, hasTrailingSpace = false),
             ),
         ),
         LyricsEntry(
@@ -143,16 +159,114 @@ private fun buildPreviewLyricsSample(): List<LyricsEntry> =
             ),
         ),
         LyricsEntry(
-            time = 8_400L,
-            text = "Until the morning light",
+            time = 8_500L,
+            text = "Singing by the joyful bayou till morning light",
             words = listOf(
-                WordTimestamp("Until", 8.4, 8.9),
-                WordTimestamp("the", 8.9, 9.25),
-                WordTimestamp("morning", 9.25, 9.9),
-                WordTimestamp("light", 9.9, 10.65, hasTrailingSpace = false),
+                WordTimestamp("Singing", 8.5, 8.95),
+                WordTimestamp("by", 8.95, 9.25),
+                WordTimestamp("the", 9.25, 9.55),
+                WordTimestamp("joyful", 9.55, 10.0),
+                WordTimestamp("bayou", 10.0, 10.45),
+                WordTimestamp("till", 10.45, 10.75),
+                WordTimestamp("morning", 10.75, 11.15),
+                WordTimestamp("light", 11.15, 11.55, hasTrailingSpace = false),
+            ),
+        ),
+        LyricsEntry(
+            time = 11_700L,
+            text = "Dancing on the waves underneath the stars",
+            words = listOf(
+                WordTimestamp("Dancing", 11.7, 12.15),
+                WordTimestamp("on", 12.15, 12.4),
+                WordTimestamp("the", 12.4, 12.65),
+                WordTimestamp("waves", 12.65, 13.1),
+                WordTimestamp("underneath", 13.1, 13.6),
+                WordTimestamp("the", 13.6, 13.85),
+                WordTimestamp("stars", 13.85, 14.3, hasTrailingSpace = false),
+            ),
+        ),
+        LyricsEntry(
+            time = 14_500L,
+            text = "Voices drifting gently past the quiet harbor",
+            words = listOf(
+                WordTimestamp("Voices", 14.5, 14.95),
+                WordTimestamp("drifting", 14.95, 15.4),
+                WordTimestamp("gently", 15.4, 15.85),
+                WordTimestamp("past", 15.85, 16.2),
+                WordTimestamp("the", 16.2, 16.45),
+                WordTimestamp("quiet", 16.45, 16.9),
+                WordTimestamp("harbor", 16.9, 17.35, hasTrailingSpace = false),
+            ),
+        ),
+        LyricsEntry(
+            time = 17_500L,
+            text = "Hold onto the melody until sunrise",
+            words = listOf(
+                WordTimestamp("Hold", 17.5, 17.9),
+                WordTimestamp("onto", 17.9, 18.25),
+                WordTimestamp("the", 18.25, 18.5),
+                WordTimestamp("melody", 18.5, 19.05),
+                WordTimestamp("until", 19.05, 19.4),
+                WordTimestamp("sunrise", 19.4, 19.95, hasTrailingSpace = false),
+            ),
+        ),
+        LyricsEntry(
+            time = 20_100L,
+            text = "Echoing softly into the open sky",
+            words = listOf(
+                WordTimestamp("Echoing", 20.1, 20.55),
+                WordTimestamp("softly", 20.55, 20.95),
+                WordTimestamp("into", 20.95, 21.2),
+                WordTimestamp("the", 21.2, 21.45),
+                WordTimestamp("open", 21.45, 21.7),
+                WordTimestamp("sky", 21.7, 21.95, hasTrailingSpace = false),
             ),
         ),
     )
+
+internal fun resolveLyricsPreviewSource(
+    isEffectivelyPlaying: Boolean,
+    isPodcastEpisode: Boolean,
+    rawLyrics: String?,
+    provider: String?,
+): LyricsPreviewSource {
+    val cleanRaw = rawLyrics?.trim()
+    if (isEffectivelyPlaying && !isPodcastEpisode && !cleanRaw.isNullOrBlank() && cleanRaw != LYRICS_NOT_FOUND) {
+        if (lyricsTextLooksSynced(cleanRaw)) {
+            val parsed = LyricsUtils.parseLyrics(cleanRaw).filter { it.text.isNotBlank() }
+            if (parsed.isNotEmpty()) {
+                return LyricsPreviewSource(
+                    lines = parsed,
+                    isLivePlayback = true,
+                    isSynced = true,
+                    provider = provider,
+                )
+            }
+        }
+        val plainLines =
+            cleanRaw
+                .lines()
+                .map(String::trim)
+                .filter(String::isNotBlank)
+                .mapIndexed { index, text ->
+                    LyricsEntry(time = index * PLAIN_LYRICS_LINE_STEP_MS, text = text)
+                }
+        if (plainLines.isNotEmpty()) {
+            return LyricsPreviewSource(
+                lines = plainLines,
+                isLivePlayback = false,
+                isSynced = false,
+                provider = provider,
+            )
+        }
+    }
+    return LyricsPreviewSource(
+        lines = buildPreviewLyricsSample(),
+        isLivePlayback = false,
+        isSynced = true,
+        provider = "MetroVerse",
+    )
+}
 
 @Composable
 internal fun lyricsAnimationStyleLabel(style: LyricsAnimationStyle): String =
@@ -167,7 +281,7 @@ internal fun lyricsAnimationStyleLabel(style: LyricsAnimationStyle): String =
 fun LyricsAppearanceSettings(navController: NavController) {
     val (rawAnimationStyle, setAnimationStyle) = rememberPreference(
         LyricsAnimationStyleKey,
-        LyricsAnimationStyle.METROVERSE.name,
+        LyricsAnimationStyle.APPLE.name,
     )
     val animationStyle = remember(rawAnimationStyle) {
         LyricsAnimationStyle.fromStoredValue(rawAnimationStyle)
@@ -554,59 +668,166 @@ private fun LyricsAppearancePreviewCard(
     lyricsPosition: LyricsPosition,
     progressiveBlurEnabled: Boolean,
 ) {
-    val sampleLines = remember { buildPreviewLyricsSample() }
+    val playerConnection = LocalPlayerConnection.current
+    val isEffectivelyPlaying by (
+        playerConnection?.isEffectivelyPlaying?.collectAsStateWithLifecycle()
+            ?: remember { mutableStateOf(false) }
+    )
+    val mediaMetadata by (
+        playerConnection?.mediaMetadata?.collectAsStateWithLifecycle()
+            ?: remember { mutableStateOf(null) }
+    )
+    val currentSong by (
+        playerConnection?.currentSong?.collectAsStateWithLifecycle(initialValue = null)
+            ?: remember { mutableStateOf(null) }
+    )
+    val currentLyrics by (
+        playerConnection?.currentLyrics?.collectAsStateWithLifecycle(initialValue = null)
+            ?: remember { mutableStateOf(null) }
+    )
+
+    val isPodcastEpisode = remember(mediaMetadata) {
+        val m = mediaMetadata
+        m != null && (m.isEpisode || m.isOpenRssEpisode() || m.musicVideoType == MUSIC_VIDEO_TYPE_PODCAST_EPISODE)
+    }
+    val previewSource = remember(
+        isEffectivelyPlaying,
+        isPodcastEpisode,
+        currentLyrics?.lyrics,
+        currentLyrics?.provider,
+    ) {
+        resolveLyricsPreviewSource(
+            isEffectivelyPlaying = isEffectivelyPlaying,
+            isPodcastEpisode = isPodcastEpisode,
+            rawLyrics = currentLyrics?.lyrics,
+            provider = currentLyrics?.provider,
+        )
+    }
+
     val previewMeasurer = rememberTextMeasurer(cacheSize = 64)
     val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
-    val positionState = remember { mutableLongStateOf(0L) }
-    val stablePositionProvider = remember { { positionState.longValue } }
-    var activeIndex by remember { mutableIntStateOf(0) }
-    var baseOffsetMs by remember { mutableLongStateOf(0L) }
-    var clockStartWallMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    val positionState = remember(previewSource) {
+        mutableLongStateOf(if (previewSource.isLivePlayback) 0L else SAMPLE_PREVIEW_INITIAL_OFFSET_MS)
+    }
+    val stablePositionProvider = remember(positionState) { { positionState.longValue } }
+    val initialActiveIndex = remember(previewSource) {
+        if (previewSource.isLivePlayback) {
+            0
+        } else {
+            previewSource.lines.indexOfLast { it.time <= SAMPLE_PREVIEW_INITIAL_OFFSET_MS }.coerceAtLeast(0)
+        }
+    }
+    var activeIndex by remember(previewSource) { mutableIntStateOf(initialActiveIndex) }
+    var baseOffsetMs by remember(previewSource) {
+        mutableLongStateOf(if (previewSource.isLivePlayback) 0L else SAMPLE_PREVIEW_INITIAL_OFFSET_MS)
+    }
+    var clockStartWallMs by remember(previewSource) { mutableLongStateOf(System.currentTimeMillis()) }
 
-    LaunchedEffect(lifecycleState, animationStyle) {
+    val loopDurationMs = remember(previewSource) {
+        if (previewSource.isLivePlayback) {
+            1L
+        } else if (previewSource.isSynced) {
+            maxOf(
+                SAMPLE_PREVIEW_DURATION_MS,
+                (previewSource.lines.lastOrNull()?.words?.lastOrNull()?.endTime?.times(1000L)?.toLong() ?: 0L) + 1_200L,
+            )
+        } else {
+            maxOf(1L, previewSource.lines.size * PLAIN_LYRICS_LINE_STEP_MS)
+        }
+    }
+
+    LaunchedEffect(lifecycleState, previewSource, animationStyle, currentSong?.song?.lyricsOffset) {
         if (lifecycleState != Lifecycle.State.RESUMED) return@LaunchedEffect
         clockStartWallMs = System.currentTimeMillis()
+        var lastPlayerPos = playerConnection?.player?.currentPosition?.coerceAtLeast(0L) ?: 0L
+        var lastPlayerSampleMs = System.currentTimeMillis()
         while (isActive) {
             withFrameNanos { }
-            val elapsed = (baseOffsetMs + (System.currentTimeMillis() - clockStartWallMs)) % PREVIEW_DURATION_MS
-            positionState.longValue = elapsed
-            val nextActive = sampleLines.indexOfLast { it.time <= elapsed }.coerceAtLeast(0)
-            if (nextActive != activeIndex) {
-                activeIndex = nextActive
+            if (previewSource.isLivePlayback && playerConnection != null) {
+                val now = System.currentTimeMillis()
+                val rawPos = playerConnection.player.currentPosition.coerceAtLeast(0L)
+                if (rawPos != lastPlayerPos) {
+                    lastPlayerPos = rawPos
+                    lastPlayerSampleMs = now
+                }
+                val speed = playerConnection.player.playbackParameters.speed.coerceAtLeast(0.1f)
+                val interpolated =
+                    if (playerConnection.player.isPlaying) {
+                        lastPlayerPos + ((now - lastPlayerSampleMs) * speed).toLong()
+                    } else {
+                        lastPlayerPos
+                    }
+                val lyricsOffset = currentSong?.song?.lyricsOffset ?: 0
+                val effectivePos = (interpolated + lyricsOffset).coerceAtLeast(0L)
+                positionState.longValue = effectivePos
+                val activeSet = LyricsUtils.findActiveLineIndices(previewSource.lines, effectivePos)
+                val nextActive =
+                    activeSet.lastOrNull { previewSource.lines.getOrNull(it)?.isBackground == false }
+                        ?: activeSet.lastOrNull()
+                        ?: previewSource.lines.indexOfLast { it.time <= effectivePos }.coerceAtLeast(0)
+                if (nextActive != activeIndex) {
+                    activeIndex = nextActive
+                }
+            } else {
+                val elapsed = (baseOffsetMs + (System.currentTimeMillis() - clockStartWallMs)) % loopDurationMs
+                positionState.longValue = elapsed
+                val nextActive = previewSource.lines.indexOfLast { it.time <= elapsed }.coerceAtLeast(0)
+                if (nextActive != activeIndex) {
+                    activeIndex = nextActive
+                }
             }
         }
     }
 
-    val previewHeights =
-        remember(lyricsTextSize, lyricsLineSpacing, animationStyle, lyricsPosition) {
-            mutableStateMapOf<Int, Int>()
-        }
+    val listState = rememberLazyListState(
+        initialFirstVisibleItemIndex = initialActiveIndex.coerceAtLeast(0),
+        initialFirstVisibleItemScrollOffset = 0,
+    )
     val density = LocalDensity.current
-    val gapPx = with(density) { 16.dp.toPx() }
-    val scrollShiftPx = remember(activeIndex, previewHeights.toMap(), gapPx) {
-        val above = (0 until activeIndex).sumOf { previewHeights[it] ?: 0 }.toFloat() + activeIndex * gapPx
-        val halfViewport = with(density) { 104.dp.toPx() }
-        val activeH = (previewHeights[activeIndex] ?: 0) / 2f
-        (halfViewport - above - activeH).coerceAtMost(0f)
-    }
-    val animatedScrollY by animateFloatAsState(
-        targetValue = scrollShiftPx,
-        animationSpec = tween(durationMillis = 450),
-        label = "previewLyricsScroll",
-    )
+    val previewHeightDp = 300.dp
+    val previewTopPaddingDp = 112.dp
+    val previewBottomPaddingDp = 112.dp
+    val previewTopPaddingPx = with(density) { previewTopPaddingDp.roundToPx() }
+    var hasAlignedInitialScroll by remember(previewSource) { mutableStateOf(false) }
 
-    val containerBg = Brush.verticalGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
-            MaterialTheme.colorScheme.surfaceContainerHighest,
-        ),
-    )
+    LaunchedEffect(activeIndex, previewSource, lyricsTextSize, lyricsLineSpacing) {
+        val targetIdx = activeIndex.coerceIn(0, (previewSource.lines.size - 1).coerceAtLeast(0))
+        val viewportHeight =
+            listState.layoutInfo.viewportSize.height.takeIf { it > 0 }
+                ?: with(density) { previewHeightDp.roundToPx() }
+        val estimatedItemHeight =
+            listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == targetIdx }?.size
+                ?: with(density) { (lyricsTextSize * lyricsLineSpacing * 1.6f + 24f).dp.roundToPx() }
+        val desiredTopFromViewport = ((viewportHeight - estimatedItemHeight) / 2).coerceAtLeast(0)
+        val centerOffset = previewTopPaddingPx - desiredTopFromViewport
+        if (!hasAlignedInitialScroll) {
+            listState.scrollToItem(index = targetIdx, scrollOffset = centerOffset)
+            hasAlignedInitialScroll = true
+        } else {
+            listState.animateScrollToItem(index = targetIdx, scrollOffset = centerOffset)
+        }
+    }
+
+    val containerBg = remember {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color(0xFF1F2B3A),
+                Color(0xFF121821),
+            ),
+        )
+    }
     val accentColor = Color.White
+    val footerAlign = when (lyricsPosition) {
+        LyricsPosition.LEFT -> TextAlign.Left
+        LyricsPosition.CENTER -> TextAlign.Center
+        LyricsPosition.RIGHT -> TextAlign.Right
+    }
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        color = Color(0xFF121821),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
     ) {
         Column(
             modifier = Modifier
@@ -616,50 +837,60 @@ private fun LyricsAppearancePreviewCard(
             Text(
                 text = stringResource(R.string.lyrics_preview),
                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
-                color = accentColor.copy(alpha = 0.8f),
+                color = accentColor.copy(alpha = 0.85f),
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
             )
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(260.dp)
+                    .height(previewHeightDp)
                     .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
-                    .clipToBounds()
-                    .fadingEdge(top = 24.dp, bottom = 32.dp),
+                    .fadingEdge(top = 28.dp, bottom = 36.dp),
             ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .graphicsLayer { translationY = animatedScrollY },
-                ) {
-                    sampleLines.forEachIndexed { idx, entry ->
-                        key(idx, animationStyle) {
+                key(animationStyle, previewSource) {
+                    LazyColumn(
+                        state = listState,
+                        userScrollEnabled = false,
+                        contentPadding = PaddingValues(top = previewTopPaddingDp, bottom = previewBottomPaddingDp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 12.dp),
+                    ) {
+                        itemsIndexed(
+                            items = previewSource.lines,
+                            key = { idx, entry -> "$idx-${entry.time}-${entry.text.hashCode()}" },
+                        ) { idx, entry ->
                             val distance = abs(idx - activeIndex)
                             val blurDp = computeProgressiveLyricsBlurDp(
                                 distance = distance,
                                 enabled = progressiveBlurEnabled,
-                                isSynced = true,
+                                isSynced = previewSource.isSynced,
                                 isAutoScrollEnabled = true,
                                 isManualScrolling = false,
                                 isSelectionMode = false,
                                 isAttributionItem = false,
                             )
-                            val endMs = entry.words?.lastOrNull()?.let { (it.endTime * 1000).toLong() }
+                            val endMs =
+                                entry.words?.lastOrNull()?.let { (it.endTime * 1000).toLong() }
+                                    ?: previewSource.lines.getOrNull(idx + 1)?.time
                             LyricsLine(
                                 index = idx,
                                 item = entry,
-                                isSynced = true,
-                                isActiveLine = idx == activeIndex,
-                                bgVisible = false,
+                                isSynced = previewSource.isSynced,
+                                isActiveLine = !previewSource.isSynced || idx == activeIndex,
+                                bgVisible = previewSource.isSynced && idx == activeIndex,
                                 isSelected = false,
                                 isSelectionModeActive = false,
                                 positionProvider = stablePositionProvider,
                                 adjustedEndTimeMs = endMs,
                                 isPlaying = lifecycleState == Lifecycle.State.RESUMED,
-                                playbackSpeed = 1f,
+                                playbackSpeed = if (previewSource.isLivePlayback && playerConnection != null) {
+                                    playerConnection.player.playbackParameters.speed.coerceAtLeast(0.1f)
+                                } else {
+                                    1f
+                                },
                                 lyricsTextSize = lyricsTextSize,
                                 lyricsLineSpacing = lyricsLineSpacing,
                                 animationStyle = animationStyle,
@@ -674,29 +905,28 @@ private fun LyricsAppearancePreviewCard(
                                 romanizeAsMain = false,
                                 enabledLanguages = emptyList(),
                                 romanizeLyrics = false,
-                                onSizeChanged = { previewHeights[idx] = it },
+                                onSizeChanged = {},
                                 onClick = {
-                                    baseOffsetMs = entry.time
-                                    clockStartWallMs = System.currentTimeMillis()
-                                    positionState.longValue = entry.time
-                                    activeIndex = idx
+                                    if (!previewSource.isLivePlayback) {
+                                        baseOffsetMs = entry.time
+                                        clockStartWallMs = System.currentTimeMillis()
+                                        positionState.longValue = entry.time
+                                        activeIndex = idx
+                                    }
                                 },
                                 onLongClick = {},
                             )
                         }
-                    }
 
-                    // Bottom attribution stays sharp even with progressive blur enabled.
-                    LyricsAttributionFooter(
-                        provider = "MetroVerse",
-                        songwriters = listOf("MetroVerse Studio"),
-                        textColor = accentColor,
-                        textAlign = when (lyricsPosition) {
-                            LyricsPosition.LEFT -> TextAlign.Left
-                            LyricsPosition.CENTER -> TextAlign.Center
-                            LyricsPosition.RIGHT -> TextAlign.Right
-                        },
-                    )
+                        item(key = "preview_attribution_footer") {
+                            LyricsAttributionFooter(
+                                provider = previewSource.provider ?: "MetroVerse",
+                                songwriters = if (previewSource.isLivePlayback) emptyList() else listOf("MetroVerse Studio"),
+                                textColor = accentColor,
+                                textAlign = footerAlign,
+                            )
+                        }
+                    }
                 }
             }
         }

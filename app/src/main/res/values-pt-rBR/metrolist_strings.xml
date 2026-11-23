@@ -1077,4 +1077,7 @@
     <string name="usage_mode_podcasts_only_enabled_notice">Modo Somente podcasts ativado. Você pode voltar para Música e podcasts nas Configurações.</string>
     <string name="usage_mode_continue">Continuar</string>
     <string name="lastfm_api_keys_missing">A integração com o Last.fm está indisponível nesta compilação porque as credenciais da API não foram configuradas.</string>
+    <string name="app_icon">Ícone do app</string>
+    <string name="app_icon_default">Padrão</string>
+    <string name="app_icon_piano_black">Preto piano</string>
 </resources>

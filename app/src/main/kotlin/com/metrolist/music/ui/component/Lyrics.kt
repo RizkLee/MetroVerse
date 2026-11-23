@@ -211,7 +211,7 @@ fun Lyrics(
 
     val rawAnimationStyle by rememberPreference(
         LyricsAnimationStyleKey,
-        LyricsAnimationStyle.METROVERSE.name,
+        LyricsAnimationStyle.APPLE.name,
     )
     val animationStyle = remember(rawAnimationStyle) {
         LyricsAnimationStyle.fromStoredValue(rawAnimationStyle)

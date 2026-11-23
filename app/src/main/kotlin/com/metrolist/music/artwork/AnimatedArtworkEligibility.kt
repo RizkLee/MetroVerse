@@ -110,6 +110,7 @@ private val smartQuotePattern = Regex("""[\u2018\u2019\u201C\u201D]""")
 private val whitespacePattern = Regex("""\s+""")
 private val streamInfoResolutionRegex = Regex("""RESOLUTION=(\d+)x(\d+)""")
 private val streamInfoBandwidthRegex = Regex("""(?:#EXT-X-STREAM-INF:|,)BANDWIDTH=(\d+)""")
+private val streamInfoVideoRangeRegex = Regex("""VIDEO-RANGE=([A-Za-z0-9_-]+)""")
 private val originRegex = Regex("^(https?://[^/]+)(/.*)?$")
 private val duplicateSlashRegex = Regex("(?<!:)//+")
 
@@ -322,9 +323,12 @@ internal fun selectBestHlsVariant(
 ): String? {
     val lines = playlistBody.lines()
     var currentInfo: String? = null
-    var bestVariant: String? = null
-    var bestPixels = 0L
-    var bestBandwidth = 0L
+    var bestSdrVariant: String? = null
+    var bestSdrPixels = 0L
+    var bestSdrBandwidth = 0L
+    var bestAnyVariant: String? = null
+    var bestAnyPixels = 0L
+    var bestAnyBandwidth = 0L
     var fallbackVariant: String? = null
     var fallbackPixels = Long.MAX_VALUE
     val maxDimension = resolution.maxDimension
@@ -355,19 +359,31 @@ internal fun selectBestHlsVariant(
                         ?.getOrNull(1)
                         ?.toLongOrNull()
                         ?: 0L
+                val videoRange =
+                    streamInfoVideoRangeRegex
+                        .find(currentInfo)
+                        ?.groupValues
+                        ?.getOrNull(1)
+                val isSdrCompatible = videoRange == null || videoRange.equals("SDR", ignoreCase = true)
 
-                if (
-                    minOf(width, height) <= maxDimension &&
-                    (pixels > bestPixels || (pixels == bestPixels && bandwidth > bestBandwidth))
-                ) {
-                    bestVariant = variantUrl
-                    bestPixels = pixels
-                    bestBandwidth = bandwidth
+                if (minOf(width, height) <= maxDimension) {
+                    if (isSdrCompatible &&
+                        (pixels > bestSdrPixels || (pixels == bestSdrPixels && bandwidth > bestSdrBandwidth))
+                    ) {
+                        bestSdrVariant = variantUrl
+                        bestSdrPixels = pixels
+                        bestSdrBandwidth = bandwidth
+                    }
+                    if (pixels > bestAnyPixels || (pixels == bestAnyPixels && bandwidth > bestAnyBandwidth)) {
+                        bestAnyVariant = variantUrl
+                        bestAnyPixels = pixels
+                        bestAnyBandwidth = bandwidth
+                    }
                 }
             }
             currentInfo = null
         }
     }
 
-    return bestVariant ?: fallbackVariant
+    return bestSdrVariant ?: bestAnyVariant ?: fallbackVariant
 }

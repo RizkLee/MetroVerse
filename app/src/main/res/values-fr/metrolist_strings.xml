@@ -1085,4 +1085,7 @@
     <string name="usage_mode_podcasts_only_enabled_notice">Mode Podcasts uniquement activé. Vous pouvez réactiver Musique et podcasts dans les Paramètres.</string>
     <string name="usage_mode_continue">Continuer</string>
     <string name="lastfm_api_keys_missing">L\'intégration Last.fm n\'est pas disponible dans cette version car les identifiants API ne sont pas configurés.</string>
+    <string name="app_icon">Icône de l\'application</string>
+    <string name="app_icon_default">Par défaut</string>
+    <string name="app_icon_piano_black">Noir piano</string>
 </resources>

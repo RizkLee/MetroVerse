@@ -5,6 +5,7 @@
 
 package com.metrolist.music.constants
 
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -210,6 +211,7 @@ val StreamSourceWebCreatorKey = booleanPreferencesKey("streamSourceWebCreator")
 val StreamSourceAndroidCreatorKey = booleanPreferencesKey("streamSourceAndroidCreator")
 
 val EnableDynamicIconKey = booleanPreferencesKey("enableDynamicIcon")
+val AppIconKey = stringPreferencesKey("appIcon")
 
 val EnableDiscordRPCKey = booleanPreferencesKey("discordRPCEnable")
 val DiscordInfoDismissedKey = booleanPreferencesKey("discordInfoDismissed")
@@ -532,6 +534,7 @@ CRITICAL RULES:
 6. If uncertain, provide best approximation but maintain line count"""
 val LyricsRomanizeList = stringPreferencesKey("lyricsRomanizeList")
 val LyricsAnimationStyleKey = stringPreferencesKey("lyricsAnimationStyle")
+val LyricsAnimationStyleDefaultMigratedKey = booleanPreferencesKey("lyricsAnimationStyleDefaultMigrated")
 
 enum class LyricsAnimationStyle {
     METROVERSE,
@@ -542,11 +545,34 @@ enum class LyricsAnimationStyle {
     companion object {
         fun fromStoredValue(value: String?): LyricsAnimationStyle =
             when (value?.uppercase()) {
-                "APPLE" -> APPLE
+                "METROVERSE", "FADE", "GLOW", "SLIDE", "KARAOKE" -> METROVERSE
                 "NONE" -> NONE
-                else -> METROVERSE
+                else -> APPLE
             }
     }
+}
+
+internal fun migrateLyricsAnimationStyleDefaultIfNeeded(settings: MutablePreferences) {
+    if (settings[LyricsAnimationStyleDefaultMigratedKey] == true) return
+    if (settings[LyricsAnimationStyleKey].isNullOrBlank()) {
+        val isExistingInstall =
+            !settings[LastSeenVersionKey].isNullOrBlank() ||
+                settings[SimpMusicMigrationDoneKey] == true ||
+                settings[UsageModeOnboardingCompletedKey] == true ||
+                settings[AppUsageModeKey] != null ||
+                settings[LyricsTextSizeKey] != null ||
+                settings[LyricsLineSpacingKey] != null ||
+                settings[LyricsProgressiveBlurKey] != null ||
+                settings[InnerTubeCookieKey] != null ||
+                settings[VisitorDataKey] != null
+        settings[LyricsAnimationStyleKey] =
+            if (isExistingInstall) {
+                LyricsAnimationStyle.METROVERSE.name
+            } else {
+                LyricsAnimationStyle.APPLE.name
+            }
+    }
+    settings[LyricsAnimationStyleDefaultMigratedKey] = true
 }
 
 const val DEFAULT_LYRICS_TEXT_SIZE = 36f

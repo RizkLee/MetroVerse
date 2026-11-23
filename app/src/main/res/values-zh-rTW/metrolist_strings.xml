@@ -1017,4 +1017,7 @@
     <string name="usage_mode_podcasts_only_enabled_notice">已啟用「僅聽播客」模式，你隨時可在「設定」中恢復為「音樂 + 播客」。</string>
     <string name="usage_mode_continue">繼續</string>
     <string name="lastfm_api_keys_missing">目前組建未設定 Last.fm API 金鑰，暫時無法登入。</string>
+    <string name="app_icon">應用程式圖示</string>
+    <string name="app_icon_default">預設</string>
+    <string name="app_icon_piano_black">鋼琴黑鍵</string>
 </resources>

@@ -1078,4 +1078,7 @@
     <string name="usage_mode_podcasts_only_enabled_notice">Modalità Solo podcast attivata. Puoi ripristinare Musica e podcast nelle Impostazioni.</string>
     <string name="usage_mode_continue">Continua</string>
     <string name="lastfm_api_keys_missing">L\'integrazione di Last.fm non è disponibile in questa build perché le credenziali API non sono configurate.</string>
+    <string name="app_icon">Icona dell\'app</string>
+    <string name="app_icon_default">Predefinita</string>
+    <string name="app_icon_piano_black">Nero pianoforte</string>
 </resources>

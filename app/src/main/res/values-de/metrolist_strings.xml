@@ -1078,4 +1078,7 @@
     <string name="usage_mode_podcasts_only_enabled_notice">Modus „Nur Podcasts“ aktiviert. Du kannst Musik &amp; Podcasts jederzeit in den Einstellungen wiederherstellen.</string>
     <string name="usage_mode_continue">Weiter</string>
     <string name="lastfm_api_keys_missing">Die Last.fm-Integration ist in diesem Build nicht verfügbar, da keine API-Zugangsdaten konfiguriert wurden.</string>
+    <string name="app_icon">App-Symbol</string>
+    <string name="app_icon_default">Standard</string>
+    <string name="app_icon_piano_black">Pianoschwarz</string>
 </resources>

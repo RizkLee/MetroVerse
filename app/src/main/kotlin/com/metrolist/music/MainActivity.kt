@@ -137,6 +137,7 @@ import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.models.WatchEndpoint
 import com.metrolist.music.constants.AppBarHeight
+import com.metrolist.music.constants.AppIconKey
 import com.metrolist.music.constants.AppLanguageKey
 import com.metrolist.music.constants.AppUsageMode
 import com.metrolist.music.constants.AppUsageModeKey
@@ -148,6 +149,7 @@ import com.metrolist.music.constants.EnableHighRefreshRateKey
 import com.metrolist.music.constants.EnableLandscapeScalingKey
 import com.metrolist.music.constants.LastSeenVersionKey
 import com.metrolist.music.constants.ListenTogetherUsernameKey
+import com.metrolist.music.constants.LyricsAnimationStyleDefaultMigratedKey
 import com.metrolist.music.constants.LyricsProviderOrderKey
 import com.metrolist.music.constants.MiniPlayerBottomSpacing
 import com.metrolist.music.constants.MiniPlayerHeight
@@ -167,6 +169,7 @@ import com.metrolist.music.constants.SlimNavBarKey
 import com.metrolist.music.constants.StopMusicOnTaskClearKey
 import com.metrolist.music.constants.UsageModeOnboardingCompletedKey
 import com.metrolist.music.constants.applyAppUsageMode
+import com.metrolist.music.constants.migrateLyricsAnimationStyleDefaultIfNeeded
 import com.metrolist.music.constants.resolveAppUsageMode
 import com.metrolist.music.db.MusicDatabase
 import com.metrolist.music.db.entities.SearchHistory
@@ -205,6 +208,7 @@ import com.metrolist.music.ui.theme.MetrolistTheme
 import com.metrolist.music.ui.theme.extractThemeColor
 import com.metrolist.music.ui.utils.appBarScrollBehavior
 import com.metrolist.music.ui.utils.resetHeightOffset
+import com.metrolist.music.utils.IconUtils
 import com.metrolist.music.utils.SearchRoutes
 import com.metrolist.music.utils.SyncUtils
 import com.metrolist.music.utils.dataStore
@@ -437,10 +441,29 @@ class MainActivity : ComponentActivity() {
                 }
         }
 
-        // Defer migration and version tracking to avoid blocking first frame
+        // Run the default lyrics animation migration synchronously before background migrations
+        // write any install-sentinel flags (so fresh installs receive Apple Music while upgrades keep MetroVerse).
+        val initialPrefs =
+            runBlocking(Dispatchers.IO) {
+                val current = dataStore.data.first()
+                if (current[LyricsAnimationStyleDefaultMigratedKey] != true) {
+                    safeDataStoreEdit { settings ->
+                        migrateLyricsAnimationStyleDefaultIfNeeded(settings)
+                    }
+                    dataStore.data.first()
+                } else {
+                    current
+                }
+            }
+        val initialUsageModeRaw = initialPrefs[AppUsageModeKey]
+        val initialNavigationBarTabsRaw = initialPrefs[NavigationBarTabsKey] ?: ""
+        val initialDefaultOpenTab = initialPrefs[DefaultOpenTabKey] ?: NavigationTab.HOME.name
+        val initialUsageModeOnboardingCompleted = initialPrefs[UsageModeOnboardingCompletedKey] == true
+        val initialLastSeenVersion = initialPrefs[LastSeenVersionKey] ?: ""
+
+        // Defer non-critical migration and launcher alias sync to avoid blocking first frame
         lifecycleScope.launch(Dispatchers.IO) {
             val preferences = dataStore.data.first()
-            val currentVersion = BuildConfig.VERSION_NAME
 
             // SimpMusic Removal Migration
             if (preferences[SimpMusicMigrationDoneKey] != true) {
@@ -465,14 +488,13 @@ class MainActivity : ComponentActivity() {
                     settings[SimpMusicMigrationDoneKey] = true
                 }
             }
-        }
 
-        val initialPrefs = runBlocking(Dispatchers.IO) { dataStore.data.first() }
-        val initialUsageModeRaw = initialPrefs[AppUsageModeKey]
-        val initialNavigationBarTabsRaw = initialPrefs[NavigationBarTabsKey] ?: ""
-        val initialDefaultOpenTab = initialPrefs[DefaultOpenTabKey] ?: NavigationTab.HOME.name
-        val initialUsageModeOnboardingCompleted = initialPrefs[UsageModeOnboardingCompletedKey] == true
-        val initialLastSeenVersion = initialPrefs[LastSeenVersionKey] ?: ""
+            runCatching {
+                IconUtils.syncWithPreference(this@MainActivity, initialPrefs[AppIconKey])
+            }.onFailure { error ->
+                Timber.e(error, "Failed to sync app icon alias on startup")
+            }
+        }
 
         setContent {
             MetrolistApp(

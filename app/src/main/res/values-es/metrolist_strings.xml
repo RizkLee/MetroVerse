@@ -1081,4 +1081,7 @@
     <string name="usage_mode_podcasts_only_enabled_notice">Modo Solo pódcasts activado. Puedes volver a Música y pódcasts en Ajustes.</string>
     <string name="usage_mode_continue">Continuar</string>
     <string name="lastfm_api_keys_missing">La integración de Last.fm no está disponible en esta compilación porque no se configuraron las credenciales de API.</string>
+    <string name="app_icon">Icono de la aplicación</string>
+    <string name="app_icon_default">Predeterminado</string>
+    <string name="app_icon_piano_black">Negro piano</string>
 </resources>
