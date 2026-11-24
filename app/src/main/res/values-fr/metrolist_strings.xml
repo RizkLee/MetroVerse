@@ -978,7 +978,7 @@
     <string name="podcast_asr_performance_notice">La taille du téléchargement ne représente pas la mémoire utilisée, qui varie selon le modèle et l’appareil.</string>
     <string name="metroverse_moonshine_attribution">Small / Tiny Streaming · English / Deutsch / Español / 日本語 / 普通话 / العربية / Tagalog / Tiếng Việt · Moonshine Voice 0.1.5 · MIT</string>
     <string name="metroverse_onnx_attribution">Moteur d’inférence sur cet appareil, version 1.23.2 · Licence MIT.</string>
-    <string name="metroverse_innertubex_attribution">Moteur d’extraction et de déchiffrement des flux YouTube Music, version 0.5.2 · GPL-3.0.</string>
+    <string name="metroverse_innertubex_attribution">Moteur d’extraction et de déchiffrement des flux YouTube Music, version 0.13.0 · GPL-3.0.</string>
     <string name="podcast_subtitle_asr_preparing">Préparation de la reconnaissance…</string>
     <string name="podcast_subtitle_offset">Synchronisation des sous-titres</string>
     <string name="podcast_subtitle_offset_value">%1$+d ms</string>

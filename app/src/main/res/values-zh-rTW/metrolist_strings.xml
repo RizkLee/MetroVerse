@@ -910,7 +910,7 @@
     <string name="podcast_asr_performance_notice">下載大小不代表執行時的記憶體需求，實際用量因模型和裝置而異。</string>
     <string name="metroverse_moonshine_attribution">Small / Tiny Streaming · English / Deutsch / Español / 日本語 / 普通话 / العربية / Tagalog / Tiếng Việt · Moonshine Voice 0.1.5 · MIT</string>
     <string name="metroverse_onnx_attribution">本機模型推論執行階段 1.23.2 · MIT 授權。</string>
-    <string name="metroverse_innertubex_attribution">YouTube Music 音訊串流擷取及解密引擎 0.5.2 · GPL-3.0 授權。</string>
+    <string name="metroverse_innertubex_attribution">YouTube Music 音訊串流擷取及解密引擎 0.13.0 · GPL-3.0 授權。</string>
     <string name="podcast_subtitle_asr_preparing">正在準備辨識…</string>
     <string name="podcast_subtitle_offset">字幕時間校準</string>
     <string name="podcast_subtitle_offset_value">%1$+d 毫秒</string>

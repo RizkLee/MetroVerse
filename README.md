@@ -71,7 +71,7 @@ MetroVerse is built from established GPL-3.0 work:
 
 - [Metrolist](https://github.com/MetrolistGroup/Metrolist) provides the music architecture, Jetpack Compose foundation, player, queue, downloads, database, and most inherited functionality.
 - [Podium](https://github.com/aimok04/podium) was studied as a GPL-3.0 reference for Apple Podcasts discovery, RSS parsing, subscriptions, and genre-based podcast browsing.
-- [InnerTubeX](https://github.com/MetrolistGroup/innertubex/tree/v0.5.2) provides YouTube playback extraction, stream fallback, and download resolution.
+- [InnerTubeX](https://github.com/MetrolistGroup/innertubex/tree/v0.13.0) provides YouTube playback extraction, stream fallback, and download resolution.
 - MetroVerse integrates those podcast implementation concepts into Metrolist's existing architecture.
 
 MetroVerse is not an official release of Metrolist or Podium and is not affiliated with Apple, Google, or YouTube. Original copyright notices, source headers, and contribution history remain preserved. See [NOTICE.md](NOTICE.md) and [LICENSE](LICENSE).
@@ -82,7 +82,7 @@ MetroVerse is not an official release of Metrolist or Podium and is not affiliat
 App name:        MetroVerse
 Application ID:  com.rizklee.metroverse
 Debug ID:        com.rizklee.metroverse.debug
-Version:         1.2.2
+Version:         1.3.0 (Pre-release)
 Minimum Android: Android 8.0 / API 26
 Target Android:  API 36
 Device ABI:      ARM64 (arm64-v8a)
@@ -116,10 +116,10 @@ Downloads are published on the [Releases page](https://github.com/RizkLee/MetroV
 
 | Variant  | Description                                | Download link                                                                                        |
 | -------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| FOSS APK | MetroVerse app without Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/v1.2.2/MetroVerse-v1.2.2-foss.apk) |
-| GMS APK  | The same app, but with Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/v1.2.2/MetroVerse-v1.2.2-gms.apk)  |
+| FOSS APK | MetroVerse app without Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/v1.3.0/MetroVerse-v1.3.0-foss.apk) |
+| GMS APK  | The same app, but with Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/v1.3.0/MetroVerse-v1.3.0-gms.apk)  |
 
-[Download the SHA-256 checksum file](https://github.com/RizkLee/MetroVerse/releases/download/v1.2.2/MetroVerse-v1.2.2-SHA256SUMS.txt).
+[Download the SHA-256 checksum file](https://github.com/RizkLee/MetroVerse/releases/download/v1.3.0/MetroVerse-v1.3.0-SHA256SUMS.txt).
 
 ### Contributing
 
@@ -165,7 +165,7 @@ MetroVerse 建立在以下 GPL-3.0 项目的工作之上：
 
 - [Metrolist](https://github.com/MetrolistGroup/Metrolist) 提供音乐架构、Jetpack Compose 界面基础、播放器、队列、下载、数据库及大部分继承功能。
 - [Podium](https://github.com/aimok04/podium) 是 Apple Podcasts 发现、RSS 解析、订阅和播客分类浏览的 GPL-3.0 参考实现。
-- [InnerTubeX](https://github.com/MetrolistGroup/innertubex/tree/v0.5.2) 提供 YouTube 播放解析、音源回退和下载解析。
+- [InnerTubeX](https://github.com/MetrolistGroup/innertubex/tree/v0.13.0) 提供 YouTube 播放解析、音源回退和下载解析。
 - MetroVerse 将这些播客功能的实现思路整合进 Metrolist 的既有架构。
 
 MetroVerse 不是 Metrolist 或 Podium 的官方版本，与 Apple、Google 或 YouTube 没有隶属关系。原项目版权、源码头和贡献历史均保留，详见 [NOTICE.md](NOTICE.md) 与 [LICENSE](LICENSE)。
@@ -176,7 +176,7 @@ MetroVerse 不是 Metrolist 或 Podium 的官方版本，与 Apple、Google 或 
 应用名称：      MetroVerse
 正式包名：      com.rizklee.metroverse
 调试包名：      com.rizklee.metroverse.debug
-当前版本：      1.2.2
+当前版本：      1.3.0（预发布版）
 最低系统：      Android 8.0 / API 26
 目标 API：      36
 设备架构：      ARM64（arm64-v8a）
@@ -207,10 +207,10 @@ APK 发布在 [Releases 页面](https://github.com/RizkLee/MetroVerse/releases)�
 
 | App 版本 | 适用场景                            | 下载链接                                                                                                    |
 | -------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| FOSS APK | 不包含 Google Cast 功能的 App | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v1.2.2/MetroVerse-v1.2.2-foss.apk) |
-| GMS APK  | 包含 Google Cast 功能的 App   | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v1.2.2/MetroVerse-v1.2.2-gms.apk)  |
+| FOSS APK | 不包含 Google Cast 功能的 App | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v1.3.0/MetroVerse-v1.3.0-foss.apk) |
+| GMS APK  | 包含 Google Cast 功能的 App   | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v1.3.0/MetroVerse-v1.3.0-gms.apk)  |
 
-[下载 SHA-256 校验文件](https://github.com/RizkLee/MetroVerse/releases/download/v1.2.2/MetroVerse-v1.2.2-SHA256SUMS.txt)。
+[下载 SHA-256 校验文件](https://github.com/RizkLee/MetroVerse/releases/download/v1.3.0/MetroVerse-v1.3.0-SHA256SUMS.txt)。
 
 ### 参与开发
 

@@ -48,7 +48,7 @@ import com.metrolist.music.ui.utils.backToMain
 private const val METROVERSE_REPOSITORY = "https://github.com/Rizklee/MetroVerse"
 private const val METROLIST_REPOSITORY = "https://github.com/MetrolistGroup/Metrolist"
 private const val PODIUM_REPOSITORY = "https://github.com/aimok04/podium"
-private const val INNERTUBEX_REPOSITORY = "https://github.com/MetrolistGroup/innertubex/tree/v0.5.2"
+private const val INNERTUBEX_REPOSITORY = "https://github.com/MetrolistGroup/innertubex/tree/v0.13.0"
 private const val APPLE_PODCASTS = "https://www.apple.com/apple-podcasts/"
 
 private const val MOONSHINE_REPOSITORY = "https://github.com/moonshine-ai/moonshine/tree/v0.1.5"

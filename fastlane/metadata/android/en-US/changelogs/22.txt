@@ -1,0 +1,5 @@
+- Upgraded InnerTube playback, anti-bot attestation, and encrypted credential storage.
+- Added first-launch Podcasts-only mode and content filters (explicit-only, AI artists, video/short tracks).
+- Added Apple Music animated covers, artist images, and artist profile videos.
+- Enabled Apple Music word-by-word lyrics by default, with live preview, progressive blur, cover zoom, and credits.
+- Restored dark icon, added Piano Black icon, and fixed sign-in, queue, Discord, and Last.fm.

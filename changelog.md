@@ -7,7 +7,7 @@ All notable MetroVerse-specific changes are recorded here. Upstream Metrolist hi
 ### Added
 
 - Add a first-launch usage mode prompt to choose between Music + Podcasts and Podcasts-only mode (which hides the Home tab and defaults Library and Search to Podcasts; changeable anytime in Settings → Appearance → Misc).
-- Add content filtering options for explicit-only tracks, AI artist blocklists, music videos, short songs, and hiding YouTube podcasts without affecting Open RSS podcasts.
+- Add content filtering options for explicit-only tracks, AI artist blocklists, video songs, non-musical videos, short songs, and hiding YouTube podcasts without affecting Open RSS podcasts.
 - Add Apple Music animated album covers, artist images, and artist profile videos, with resolution limits and a mobile-data toggle.
 - Add unified lyrics controls supporting Apple Music and MetroVerse word-by-word animation styles, text size and line spacing sliders with a live preview, progressive blur, and bottom provider and songwriter credits.
 - Add an App icon switcher in Settings → Appearance, including the restored dark-mode default icon and custom icon options.

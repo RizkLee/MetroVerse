@@ -1182,7 +1182,7 @@
     <string name="podcast_asr_performance_notice">Download size does not indicate runtime memory use, which varies by model and device.</string>
     <string name="metroverse_moonshine_attribution">Small / Tiny Streaming · English / Deutsch / Español / 日本語 / 普通话 / العربية / Tagalog / Tiếng Việt · Moonshine Voice 0.1.5 · MIT</string>
     <string name="metroverse_onnx_attribution">On-device inference runtime, version 1.23.2 · MIT license.</string>
-    <string name="metroverse_innertubex_attribution">YouTube Music stream extraction and cipher engine, version 0.5.2 · GPL-3.0.</string>
+    <string name="metroverse_innertubex_attribution">YouTube Music stream extraction and cipher engine, version 0.13.0 · GPL-3.0.</string>
     <string name="podcast_subtitle_asr_preparing">Preparing recognition…</string>
     <string name="podcast_subtitle_offset">Subtitle timing</string>
     <string name="podcast_subtitle_offset_value">%1$+d ms</string>
