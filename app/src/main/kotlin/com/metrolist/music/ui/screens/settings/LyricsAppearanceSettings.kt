@@ -101,9 +101,6 @@ import com.metrolist.music.lyrics.WordTimestamp
 import com.metrolist.music.lyrics.lyricsTextLooksSynced
 import com.metrolist.music.ui.component.EnumDialog
 import com.metrolist.music.ui.component.IconButton
-import com.metrolist.music.ui.component.LYRICS_SCROLL_ANIMATION_DURATION_MS
-import com.metrolist.music.ui.component.LYRICS_STAGGER_DELAY_MAX_MS
-import com.metrolist.music.ui.component.LYRICS_STAGGER_DELAY_PER_DISTANCE_MS
 import com.metrolist.music.ui.component.LyricsAttributionFooter
 import com.metrolist.music.ui.component.LyricsLine
 import com.metrolist.music.ui.component.Material3SettingsGroup
@@ -113,6 +110,7 @@ import com.metrolist.music.ui.component.computeLyricsItemPositions
 import com.metrolist.music.ui.component.computeLyricsScrollLookAheadMs
 import com.metrolist.music.ui.component.lyrics.computeProgressiveLyricsBlurDp
 import com.metrolist.music.ui.component.lyricsItemScreenOffset
+import com.metrolist.music.ui.component.lyricsScrollMotionSpec
 import com.metrolist.music.ui.utils.backToMain
 import com.metrolist.music.ui.utils.fadingEdge
 import com.metrolist.music.utils.isOpenRssEpisode
@@ -149,9 +147,16 @@ internal fun resolvePreviewScrollAnchorIndex(
     previousPositionMs: Long,
     hasWordTimings: Boolean,
     maxLookAheadPositionMs: Long? = null,
+    animationStyle: LyricsAnimationStyle = LyricsAnimationStyle.APPLE,
 ): Int {
     if (lines.isEmpty()) return 0
-    val lookAheadMs = computeLyricsScrollLookAheadMs(lines, currentHighlightIndex, hasWordTimings)
+    val lookAheadMs =
+        computeLyricsScrollLookAheadMs(
+            lines = lines,
+            currentAnchorIndex = currentHighlightIndex,
+            hasWordTimings = hasWordTimings,
+            animationStyle = animationStyle,
+        )
     val rawScrollPos = effectivePositionMs + lookAheadMs
     val scrollPos = maxLookAheadPositionMs?.let { rawScrollPos.coerceAtMost(it) } ?: rawScrollPos
     val activeSet = LyricsUtils.findActiveLineIndices(lines, scrollPos)
@@ -754,7 +759,7 @@ private fun LyricsAppearancePreviewCard(
             previewSource.lines.indexOfLast { it.time <= SAMPLE_PREVIEW_INITIAL_OFFSET_MS }.coerceAtLeast(0)
         }
     }
-    val initialScrollAnchorIndex = remember(previewSource, initialActiveIndex, hasWordTimings, loopDurationMs) {
+    val initialScrollAnchorIndex = remember(previewSource, initialActiveIndex, hasWordTimings, loopDurationMs, animationStyle) {
         if (previewSource.isLivePlayback) {
             0
         } else {
@@ -766,6 +771,7 @@ private fun LyricsAppearancePreviewCard(
                 previousPositionMs = SAMPLE_PREVIEW_INITIAL_OFFSET_MS,
                 hasWordTimings = hasWordTimings,
                 maxLookAheadPositionMs = loopDurationMs,
+                animationStyle = animationStyle,
             )
         }
     }
@@ -782,7 +788,7 @@ private fun LyricsAppearancePreviewCard(
         var lastPlayerPos = playerConnection?.player?.currentPosition?.coerceAtLeast(0L) ?: 0L
         var lastPlayerSampleMs = System.currentTimeMillis()
         var lastLiveEffectivePos = Long.MAX_VALUE
-        var lastSampleElapsed = baseOffsetMs
+        var lastSampleElapsed = Long.MAX_VALUE
         while (isActive) {
             withFrameNanos { }
             if (previewSource.isLivePlayback && playerConnection != null) {
@@ -818,6 +824,7 @@ private fun LyricsAppearancePreviewCard(
                         effectivePositionMs = effectivePos,
                         previousPositionMs = lastLiveEffectivePos,
                         hasWordTimings = hasWordTimings,
+                        animationStyle = animationStyle,
                     )
                 lastLiveEffectivePos = effectivePos
                 if (nextScrollAnchor != scrollAnchorIndex) {
@@ -839,6 +846,7 @@ private fun LyricsAppearancePreviewCard(
                         previousPositionMs = lastSampleElapsed,
                         hasWordTimings = hasWordTimings,
                         maxLookAheadPositionMs = loopDurationMs,
+                        animationStyle = animationStyle,
                     )
                 lastSampleElapsed = elapsed
                 if (nextScrollAnchor != scrollAnchorIndex) {
@@ -902,6 +910,7 @@ private fun LyricsAppearancePreviewCard(
                     val bottomPad = with(density) { 28.dp.toPx() }
                     val totalCount = previewSource.lines.size + 1
                     val activeListIndex = scrollAnchorIndex.coerceIn(0, (previewSource.lines.size - 1).coerceAtLeast(0))
+                    val scrollMotion = remember(animationStyle) { lyricsScrollMotionSpec(animationStyle) }
 
                     val itemHeights =
                         remember(previewSource, animationStyle, lyricsTextSize, lyricsLineSpacing, lyricsPosition) {
@@ -989,8 +998,8 @@ private fun LyricsAppearancePreviewCard(
                                     snap()
                                 } else {
                                     tween(
-                                        durationMillis = LYRICS_SCROLL_ANIMATION_DURATION_MS,
-                                        delayMillis = (distance * LYRICS_STAGGER_DELAY_PER_DISTANCE_MS).coerceAtMost(LYRICS_STAGGER_DELAY_MAX_MS),
+                                        durationMillis = scrollMotion.durationMs,
+                                        delayMillis = (distance * scrollMotion.staggerDelayPerDistanceMs).coerceAtMost(scrollMotion.staggerDelayMaxMs),
                                         easing = FastOutSlowInEasing,
                                     )
                                 },

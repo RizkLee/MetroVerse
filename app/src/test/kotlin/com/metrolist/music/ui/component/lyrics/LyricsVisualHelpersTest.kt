@@ -111,7 +111,8 @@ class LyricsVisualHelpersTest {
     }
 
     @Test
-    fun `computeAppleDistanceScale applies depth step-down only during active synced follow`() {
+    fun `computeAppleDistanceScale scales incoming focal line to full size at distance zero while stepping down others`() {
+        assertEquals(1.0f, computeAppleDistanceScale(distance = 0, isActive = false, isSynced = true, isAutoScrollEnabled = true, isSelectionMode = false), 0f)
         assertEquals(1.0f, computeAppleDistanceScale(distance = 4, isActive = true, isSynced = true, isAutoScrollEnabled = true, isSelectionMode = false), 0f)
         assertEquals(1.0f, computeAppleDistanceScale(distance = 4, isActive = false, isSynced = false, isAutoScrollEnabled = true, isSelectionMode = false), 0f)
         assertEquals(1.0f, computeAppleDistanceScale(distance = 4, isActive = false, isSynced = true, isAutoScrollEnabled = false, isSelectionMode = false), 0f)

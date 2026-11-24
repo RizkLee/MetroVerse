@@ -7,6 +7,7 @@ package com.metrolist.music.ui.component
 
 import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -161,6 +162,7 @@ internal fun LyricsLine(
         } else {
             null
         }
+    val appleScrollMotion = remember { lyricsScrollMotionSpec(LyricsAnimationStyle.APPLE) }
     val targetAppleScale =
         if (animationStyle == LyricsAnimationStyle.APPLE && !item.isBackground) {
             computeAppleDistanceScale(
@@ -173,9 +175,19 @@ internal fun LyricsLine(
         } else {
             1f
         }
+    val appleScaleDelayMs =
+        if (isAutoScrollEnabled && !isSelectionModeActive) {
+            (distance * appleScrollMotion.staggerDelayPerDistanceMs).coerceAtMost(appleScrollMotion.staggerDelayMaxMs)
+        } else {
+            0
+        }
     val appleDistanceScale by animateFloatAsState(
         targetValue = targetAppleScale,
-        animationSpec = tween(durationMillis = 350),
+        animationSpec = tween(
+            durationMillis = appleScrollMotion.durationMs,
+            delayMillis = appleScaleDelayMs,
+            easing = FastOutSlowInEasing,
+        ),
         label = "appleDistanceScale",
     )
     val animatedBlurDp by animateFloatAsState(

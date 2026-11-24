@@ -5,6 +5,7 @@
 
 package com.metrolist.music.ui.screens.settings
 
+import com.metrolist.music.constants.LyricsAnimationStyle
 import com.metrolist.music.db.entities.LyricsEntity.Companion.LYRICS_NOT_FOUND
 import com.metrolist.music.lyrics.LyricsEntry
 import com.metrolist.music.lyrics.WordTimestamp
@@ -181,5 +182,50 @@ class LyricsPreviewSupportTest {
                 hasWordTimings = true,
             )
         assertEquals(0, afterBackwardSeek)
+    }
+
+    @Test
+    fun `preview scroll anchor respects style-specific look-ahead between Apple Music and MetroVerse`() {
+        val sample = buildPreviewLyricsSample()
+        // Line 0 word ends at 2_050ms; line 1 starts at 2_200ms.
+        // At 1_800ms (400ms before line 1):
+        // - Apple Music uses 450ms look-ahead (1_800 + 450 = 2_250ms >= 2_200ms) -> scrolls early to line 1.
+        // - MetroVerse uses 0ms word look-ahead (1_800 + 0 = 1_800ms < 2_200ms) -> stays on line 0 until line 1 starts.
+        assertEquals(
+            1,
+            resolvePreviewScrollAnchorIndex(
+                lines = sample,
+                currentHighlightIndex = 0,
+                previousScrollAnchorIndex = 0,
+                effectivePositionMs = 1_800L,
+                previousPositionMs = 1_750L,
+                hasWordTimings = true,
+                animationStyle = LyricsAnimationStyle.APPLE,
+            ),
+        )
+        assertEquals(
+            0,
+            resolvePreviewScrollAnchorIndex(
+                lines = sample,
+                currentHighlightIndex = 0,
+                previousScrollAnchorIndex = 0,
+                effectivePositionMs = 1_800L,
+                previousPositionMs = 1_750L,
+                hasWordTimings = true,
+                animationStyle = LyricsAnimationStyle.METROVERSE,
+            ),
+        )
+        assertEquals(
+            1,
+            resolvePreviewScrollAnchorIndex(
+                lines = sample,
+                currentHighlightIndex = 1,
+                previousScrollAnchorIndex = 0,
+                effectivePositionMs = 2_200L,
+                previousPositionMs = 1_800L,
+                hasWordTimings = true,
+                animationStyle = LyricsAnimationStyle.METROVERSE,
+            ),
+        )
     }
 }

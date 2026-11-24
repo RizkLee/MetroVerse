@@ -5,6 +5,7 @@
 
 package com.metrolist.music.ui.component
 
+import com.metrolist.music.constants.LyricsAnimationStyle
 import com.metrolist.music.lyrics.LyricsEntry
 import com.metrolist.music.lyrics.LyricsUtils
 import com.metrolist.music.lyrics.WordTimestamp
@@ -158,7 +159,7 @@ class LyricsScrollTargetTest {
     }
 
     @Test
-    fun `word-timed lyrics use predictive scroll look-ahead while capping ultra-short lines`() {
+    fun `apple style word-timed lyrics use predictive scroll look-ahead while capping ultra-short lines`() {
         val sampleLines = listOf(
             LyricsEntry(0L, "Normal opening line", listOf(WordTimestamp("Normal", 0.0, 2.0))),
             LyricsEntry(2_400L, "Fast!", listOf(WordTimestamp("Fast!", 2.4, 2.85))),
@@ -167,29 +168,81 @@ class LyricsScrollTargetTest {
             LyricsEntry(5_400L, "Trailing line", listOf(WordTimestamp("Trailing", 5.4, 7.0))),
         )
         assertEquals(
-            LYRICS_SCROLL_LOOK_AHEAD_WORD_MS,
-            computeLyricsScrollLookAheadMs(sampleLines, currentAnchorIndex = 0, hasWordTimings = true),
+            LYRICS_SCROLL_LOOK_AHEAD_APPLE_WORD_MS,
+            computeLyricsScrollLookAheadMs(
+                sampleLines,
+                currentAnchorIndex = 0,
+                hasWordTimings = true,
+                animationStyle = LyricsAnimationStyle.APPLE,
+            ),
         )
         // Line 1 duration is 500ms (< 900ms) -> capped at half duration (250ms).
         assertEquals(
             250L,
-            computeLyricsScrollLookAheadMs(sampleLines, currentAnchorIndex = 1, hasWordTimings = true),
+            computeLyricsScrollLookAheadMs(
+                sampleLines,
+                currentAnchorIndex = 1,
+                hasWordTimings = true,
+                animationStyle = LyricsAnimationStyle.APPLE,
+            ),
         )
         // Line 3 duration is 200ms -> floored at 150ms.
         assertEquals(
             150L,
-            computeLyricsScrollLookAheadMs(sampleLines, currentAnchorIndex = 3, hasWordTimings = true),
+            computeLyricsScrollLookAheadMs(
+                sampleLines,
+                currentAnchorIndex = 3,
+                hasWordTimings = true,
+                animationStyle = LyricsAnimationStyle.APPLE,
+            ),
         )
-        // Out-of-bounds / unset anchor falls back to standard word look-ahead.
+        // Out-of-bounds / unset anchor falls back to standard Apple word look-ahead.
         assertEquals(
-            LYRICS_SCROLL_LOOK_AHEAD_WORD_MS,
-            computeLyricsScrollLookAheadMs(sampleLines, currentAnchorIndex = -1, hasWordTimings = true),
+            LYRICS_SCROLL_LOOK_AHEAD_APPLE_WORD_MS,
+            computeLyricsScrollLookAheadMs(
+                sampleLines,
+                currentAnchorIndex = -1,
+                hasWordTimings = true,
+                animationStyle = LyricsAnimationStyle.APPLE,
+            ),
         )
-        // Non-word-synced lyrics use the line-timed look-ahead.
+        // Non-word-synced Apple lyrics use the Apple line-timed look-ahead.
         assertEquals(
-            LYRICS_SCROLL_LOOK_AHEAD_LINE_MS,
-            computeLyricsScrollLookAheadMs(sampleLines, currentAnchorIndex = 0, hasWordTimings = false),
+            LYRICS_SCROLL_LOOK_AHEAD_APPLE_LINE_MS,
+            computeLyricsScrollLookAheadMs(
+                sampleLines,
+                currentAnchorIndex = 0,
+                hasWordTimings = false,
+                animationStyle = LyricsAnimationStyle.APPLE,
+            ),
         )
+    }
+
+    @Test
+    fun `metroverse and none styles preserve v1_2_2 scroll look-ahead and 750ms breathing motion sync`() {
+        val sampleLines = listOf(
+            LyricsEntry(0L, "Opening line", listOf(WordTimestamp("Opening", 0.0, 2.0))),
+            LyricsEntry(2_200L, "Next line", listOf(WordTimestamp("Next", 2.2, 4.2))),
+        )
+        for (style in listOf(LyricsAnimationStyle.METROVERSE, LyricsAnimationStyle.NONE)) {
+            assertEquals(
+                LYRICS_SCROLL_LOOK_AHEAD_LEGACY_WORD_MS,
+                computeLyricsScrollLookAheadMs(sampleLines, currentAnchorIndex = 0, hasWordTimings = true, animationStyle = style),
+            )
+            assertEquals(
+                LYRICS_SCROLL_LOOK_AHEAD_LEGACY_LINE_MS,
+                computeLyricsScrollLookAheadMs(sampleLines, currentAnchorIndex = 0, hasWordTimings = false, animationStyle = style),
+            )
+            val motion = lyricsScrollMotionSpec(style)
+            assertEquals(LYRICS_SCROLL_ANIMATION_DURATION_LEGACY_MS, motion.durationMs)
+            assertEquals(LYRICS_STAGGER_DELAY_PER_DISTANCE_MS, motion.staggerDelayPerDistanceMs)
+            assertEquals(LYRICS_STAGGER_DELAY_MAX_LEGACY_MS, motion.staggerDelayMaxMs)
+        }
+
+        val appleMotion = lyricsScrollMotionSpec(LyricsAnimationStyle.APPLE)
+        assertEquals(LYRICS_SCROLL_ANIMATION_DURATION_APPLE_MS, appleMotion.durationMs)
+        assertEquals(LYRICS_STAGGER_DELAY_PER_DISTANCE_MS, appleMotion.staggerDelayPerDistanceMs)
+        assertEquals(LYRICS_STAGGER_DELAY_MAX_APPLE_MS, appleMotion.staggerDelayMaxMs)
     }
 
     private fun line(start: Long, endSeconds: Int, background: Boolean = false) =

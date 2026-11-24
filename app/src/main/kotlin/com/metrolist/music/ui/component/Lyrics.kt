@@ -525,6 +525,7 @@ fun Lyrics(
     val latestSliderPositionProvider by rememberUpdatedState(sliderPositionProvider)
     val latestIsPlaying by rememberUpdatedState(isPlaying)
     val latestIsCasting by rememberUpdatedState(isCasting)
+    val latestAnimationStyle by rememberUpdatedState(animationStyle)
 
     LaunchedEffect(lyrics, lines, showLyrics) {
         if (!showLyrics || lyrics.isNullOrEmpty() || lines.isEmpty()) {
@@ -618,6 +619,7 @@ fun Lyrics(
                     lines = lines,
                     currentAnchorIndex = scrollTargetIndex,
                     hasWordTimings = hasWordTimings,
+                    animationStyle = latestAnimationStyle,
                 )
             val scrollActiveIndicesRaw = findActiveLineIndices(lines, effectivePosition + scrollLookAheadMs)
 
@@ -1037,6 +1039,7 @@ fun Lyrics(
             ) {
                 val lyricsOffsetVal = (currentSong?.song?.lyricsOffset ?: 0).toLong()
                 val playbackSpeed = playerConnection.player.playbackParameters.speed.coerceAtLeast(0.1f)
+                val scrollMotion = remember(animationStyle) { lyricsScrollMotionSpec(animationStyle) }
 
                 displayItems.forEachIndexed { listIndex, listItem ->
                     val stableKey = when (listItem) {
@@ -1057,8 +1060,8 @@ fun Lyrics(
                                 snap()
                             } else {
                                 tween(
-                                    LYRICS_SCROLL_ANIMATION_DURATION_MS,
-                                    (distance * LYRICS_STAGGER_DELAY_PER_DISTANCE_MS).coerceAtMost(LYRICS_STAGGER_DELAY_MAX_MS),
+                                    scrollMotion.durationMs,
+                                    (distance * scrollMotion.staggerDelayPerDistanceMs).coerceAtMost(scrollMotion.staggerDelayMaxMs),
                                     FastOutSlowInEasing,
                                 )
                             },

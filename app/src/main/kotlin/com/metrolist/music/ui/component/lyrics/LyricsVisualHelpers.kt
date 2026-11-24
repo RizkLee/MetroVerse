@@ -57,9 +57,9 @@ internal fun computeAppleDistanceScale(
     isAutoScrollEnabled: Boolean,
     isSelectionMode: Boolean,
 ): Float {
-    if (isActive || !isAutoScrollEnabled || isSelectionMode || !isSynced) return 1.0f
+    if (isActive || distance <= 0 || !isAutoScrollEnabled || isSelectionMode || !isSynced) return 1.0f
     return when (distance) {
-        0, 1 -> 0.97f
+        1 -> 0.97f
         2, 3 -> 0.93f
         4 -> 0.90f
         else -> 0.85f

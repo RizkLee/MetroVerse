@@ -5,26 +5,64 @@
 
 package com.metrolist.music.ui.component
 
+import com.metrolist.music.constants.LyricsAnimationStyle
 import com.metrolist.music.lyrics.LyricsEntry
 import com.metrolist.music.lyrics.LyricsUtils.findActiveLineIndices
 
-internal const val LYRICS_SCROLL_LOOK_AHEAD_WORD_MS = 450L
-internal const val LYRICS_SCROLL_LOOK_AHEAD_LINE_MS = 400L
-internal const val LYRICS_SCROLL_ANIMATION_DURATION_MS = 500
+internal const val LYRICS_SCROLL_LOOK_AHEAD_APPLE_WORD_MS = 450L
+internal const val LYRICS_SCROLL_LOOK_AHEAD_APPLE_LINE_MS = 400L
+internal const val LYRICS_SCROLL_LOOK_AHEAD_LEGACY_WORD_MS = 0L
+internal const val LYRICS_SCROLL_LOOK_AHEAD_LEGACY_LINE_MS = 250L
+
+internal const val LYRICS_SCROLL_ANIMATION_DURATION_APPLE_MS = 500
+internal const val LYRICS_SCROLL_ANIMATION_DURATION_LEGACY_MS = 750
 internal const val LYRICS_STAGGER_DELAY_PER_DISTANCE_MS = 20
-internal const val LYRICS_STAGGER_DELAY_MAX_MS = 160
+internal const val LYRICS_STAGGER_DELAY_MAX_APPLE_MS = 160
+internal const val LYRICS_STAGGER_DELAY_MAX_LEGACY_MS = 200
+
+internal data class LyricsScrollMotionSpec(
+    val durationMs: Int,
+    val staggerDelayPerDistanceMs: Int,
+    val staggerDelayMaxMs: Int,
+)
+
+internal fun lyricsScrollMotionSpec(animationStyle: LyricsAnimationStyle): LyricsScrollMotionSpec =
+    if (animationStyle == LyricsAnimationStyle.APPLE) {
+        LyricsScrollMotionSpec(
+            durationMs = LYRICS_SCROLL_ANIMATION_DURATION_APPLE_MS,
+            staggerDelayPerDistanceMs = LYRICS_STAGGER_DELAY_PER_DISTANCE_MS,
+            staggerDelayMaxMs = LYRICS_STAGGER_DELAY_MAX_APPLE_MS,
+        )
+    } else {
+        LyricsScrollMotionSpec(
+            durationMs = LYRICS_SCROLL_ANIMATION_DURATION_LEGACY_MS,
+            staggerDelayPerDistanceMs = LYRICS_STAGGER_DELAY_PER_DISTANCE_MS,
+            staggerDelayMaxMs = LYRICS_STAGGER_DELAY_MAX_LEGACY_MS,
+        )
+    }
 
 /**
  * Computes how early the viewport should begin scrolling toward the next lyric line while
  * keeping word highlighting strictly locked to the real playback position.
+ *
+ * Non-Apple styles (MetroVerse / None) preserve v1.2.2's 0ms word / 250ms line timing so
+ * the 750ms scroll settles in lockstep with MetroVerse's 750ms line breathing curve.
  */
 internal fun computeLyricsScrollLookAheadMs(
     lines: List<LyricsEntry>,
     currentAnchorIndex: Int,
     hasWordTimings: Boolean,
+    animationStyle: LyricsAnimationStyle = LyricsAnimationStyle.APPLE,
 ): Long {
-    if (!hasWordTimings) return LYRICS_SCROLL_LOOK_AHEAD_LINE_MS
-    val current = lines.getOrNull(currentAnchorIndex) ?: return LYRICS_SCROLL_LOOK_AHEAD_WORD_MS
+    if (animationStyle != LyricsAnimationStyle.APPLE) {
+        return if (hasWordTimings) {
+            LYRICS_SCROLL_LOOK_AHEAD_LEGACY_WORD_MS
+        } else {
+            LYRICS_SCROLL_LOOK_AHEAD_LEGACY_LINE_MS
+        }
+    }
+    if (!hasWordTimings) return LYRICS_SCROLL_LOOK_AHEAD_APPLE_LINE_MS
+    val current = lines.getOrNull(currentAnchorIndex) ?: return LYRICS_SCROLL_LOOK_AHEAD_APPLE_WORD_MS
     val nextMain =
         (currentAnchorIndex + 1 until lines.size)
             .firstOrNull { !lines[it].isBackground && lines[it].text.isNotBlank() }
@@ -32,12 +70,12 @@ internal fun computeLyricsScrollLookAheadMs(
     val endMs =
         nextMain?.time
             ?: current.words?.lastOrNull()?.let { (it.endTime * 1000).toLong() }
-            ?: return LYRICS_SCROLL_LOOK_AHEAD_WORD_MS
+            ?: return LYRICS_SCROLL_LOOK_AHEAD_APPLE_WORD_MS
     val durationMs = (endMs - current.time).coerceAtLeast(0L)
     return if (durationMs in 1L..899L) {
         (durationMs / 2L).coerceAtLeast(150L)
     } else {
-        LYRICS_SCROLL_LOOK_AHEAD_WORD_MS
+        LYRICS_SCROLL_LOOK_AHEAD_APPLE_WORD_MS
     }
 }
 
