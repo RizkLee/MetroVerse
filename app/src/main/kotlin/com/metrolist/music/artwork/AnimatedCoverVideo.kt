@@ -6,7 +6,6 @@
 package com.metrolist.music.artwork
 
 import android.content.Context
-import android.graphics.Matrix
 import android.graphics.SurfaceTexture
 import android.os.Handler
 import android.os.HandlerThread
@@ -14,6 +13,7 @@ import android.os.Looper
 import android.os.SystemClock
 import android.view.Surface
 import android.view.TextureView
+import android.widget.FrameLayout
 import androidx.annotation.OptIn
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -23,7 +23,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -60,42 +59,101 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicLong
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 private const val TAG = "ArtworkVideo"
 
-internal fun computeTextureScaleMatrix(
+internal fun computeAspectCropChildSize(
     viewWidth: Int,
     viewHeight: Int,
-    videoWidth: Int,
-    videoHeight: Int,
-    pixelWidthHeightRatio: Float = 1f,
+    videoAspectRatio: Float,
     centerCrop: Boolean = true,
-): Matrix {
-    val matrix = Matrix()
-    if (viewWidth <= 0 || viewHeight <= 0 || videoWidth <= 0 || videoHeight <= 0) {
-        return matrix
+): Pair<Int, Int> {
+    if (viewWidth <= 0 || viewHeight <= 0 || videoAspectRatio <= 0f || !videoAspectRatio.isFinite()) {
+        return viewWidth.coerceAtLeast(0) to viewHeight.coerceAtLeast(0)
     }
     val viewAspect = viewWidth.toFloat() / viewHeight.toFloat()
-    val videoAspect = (videoWidth.toFloat() * pixelWidthHeightRatio) / videoHeight.toFloat()
-    if (videoAspect <= 0f || viewAspect <= 0f) {
-        return matrix
+    if (abs(videoAspectRatio / viewAspect - 1f) <= 0.01f) {
+        return viewWidth to viewHeight
     }
-    val (scaleX, scaleY) =
-        if (centerCrop) {
-            if (videoAspect > viewAspect) {
-                (videoAspect / viewAspect) to 1f
-            } else {
-                1f to (viewAspect / videoAspect)
-            }
+    return if (centerCrop) {
+        if (videoAspectRatio > viewAspect) {
+            (viewHeight * videoAspectRatio).roundToInt().coerceAtLeast(viewWidth) to viewHeight
         } else {
-            if (videoAspect > viewAspect) {
-                1f to (viewAspect / videoAspect)
-            } else {
-                (videoAspect / viewAspect) to 1f
-            }
+            viewWidth to (viewWidth / videoAspectRatio).roundToInt().coerceAtLeast(viewHeight)
         }
-    matrix.setScale(scaleX, scaleY, viewWidth / 2f, viewHeight / 2f)
-    return matrix
+    } else {
+        if (videoAspectRatio > viewAspect) {
+            viewWidth to (viewWidth / videoAspectRatio).roundToInt().coerceAtLeast(1)
+        } else {
+            (viewHeight * videoAspectRatio).roundToInt().coerceAtLeast(1) to viewHeight
+        }
+    }
+}
+
+private class AspectRatioVideoContainer(
+    context: Context,
+) : FrameLayout(context) {
+    private var videoAspectRatio: Float = 0f
+    private var centerCrop: Boolean = true
+
+    init {
+        clipChildren = true
+        clipToPadding = true
+    }
+
+    fun setVideoAspect(
+        aspectRatio: Float,
+        crop: Boolean,
+    ) {
+        if (videoAspectRatio != aspectRatio || centerCrop != crop) {
+            videoAspectRatio = aspectRatio
+            centerCrop = crop
+            requestLayout()
+        }
+    }
+
+    override fun onMeasure(
+        widthMeasureSpec: Int,
+        heightMeasureSpec: Int,
+    ) {
+        val parentWidth = MeasureSpec.getSize(widthMeasureSpec)
+        val parentHeight = MeasureSpec.getSize(heightMeasureSpec)
+        setMeasuredDimension(parentWidth, parentHeight)
+
+        val (childWidth, childHeight) =
+            computeAspectCropChildSize(
+                viewWidth = parentWidth,
+                viewHeight = parentHeight,
+                videoAspectRatio = videoAspectRatio,
+                centerCrop = centerCrop,
+            )
+        val childWidthSpec = MeasureSpec.makeMeasureSpec(childWidth, MeasureSpec.EXACTLY)
+        val childHeightSpec = MeasureSpec.makeMeasureSpec(childHeight, MeasureSpec.EXACTLY)
+        for (i in 0 until childCount) {
+            getChildAt(i).measure(childWidthSpec, childHeightSpec)
+        }
+    }
+
+    override fun onLayout(
+        changed: Boolean,
+        left: Int,
+        top: Int,
+        right: Int,
+        bottom: Int,
+    ) {
+        val parentWidth = right - left
+        val parentHeight = bottom - top
+        for (i in 0 until childCount) {
+            val child = getChildAt(i)
+            val cw = child.measuredWidth
+            val ch = child.measuredHeight
+            val cl = (parentWidth - cw) / 2
+            val ct = (parentHeight - ch) / 2
+            child.layout(cl, ct, cl + cw, ct + ch)
+        }
+    }
 }
 
 @OptIn(UnstableApi::class)
@@ -136,9 +194,7 @@ fun AnimatedCoverVideo(
 
     val session = remember(url, shouldRunSession) { ArtworkVideoSession() }
     var hasRenderedFrame by remember(session) { mutableStateOf(false) }
-    var videoWidth by remember(session) { mutableIntStateOf(0) }
-    var videoHeight by remember(session) { mutableIntStateOf(0) }
-    var videoPixelRatio by remember(session) { mutableFloatStateOf(1f) }
+    var videoAspectRatio by remember(session) { mutableFloatStateOf(0f) }
     val alpha by animateFloatAsState(
         targetValue = if (hasRenderedFrame) 1f else 0f,
         animationSpec = tween(durationMillis = 250),
@@ -155,10 +211,8 @@ fun AnimatedCoverVideo(
                 hasRenderedFrame = true
                 currentOnReadyChanged?.invoke(true)
             },
-            onVideoSize = { width, height, ratio ->
-                videoWidth = width
-                videoHeight = height
-                videoPixelRatio = ratio
+            onAspectRatio = { ratio ->
+                videoAspectRatio = ratio
             },
             onError = {
                 hasRenderedFrame = false
@@ -183,70 +237,43 @@ fun AnimatedCoverVideo(
     key(session) {
         AndroidView(
             factory = { viewContext ->
-                TextureView(viewContext).apply {
-                    isOpaque = false
-                    surfaceTextureListener =
-                        object : TextureView.SurfaceTextureListener {
-                            override fun onSurfaceTextureAvailable(
-                                texture: SurfaceTexture,
-                                width: Int,
-                                height: Int,
-                            ) {
-                                setTransform(
-                                    computeTextureScaleMatrix(
-                                        viewWidth = width,
-                                        viewHeight = height,
-                                        videoWidth = videoWidth,
-                                        videoHeight = videoHeight,
-                                        pixelWidthHeightRatio = videoPixelRatio,
-                                        centerCrop = contentScaleCrop,
-                                    ),
-                                )
-                                session.attachSurface(Surface(texture))
-                            }
+                AspectRatioVideoContainer(viewContext).apply {
+                    setVideoAspect(videoAspectRatio, contentScaleCrop)
+                    addView(
+                        TextureView(viewContext).apply {
+                            isOpaque = false
+                            surfaceTextureListener =
+                                object : TextureView.SurfaceTextureListener {
+                                    override fun onSurfaceTextureAvailable(
+                                        texture: SurfaceTexture,
+                                        width: Int,
+                                        height: Int,
+                                    ) {
+                                        session.attachSurface(Surface(texture))
+                                    }
 
-                            override fun onSurfaceTextureSizeChanged(
-                                texture: SurfaceTexture,
-                                width: Int,
-                                height: Int,
-                            ) {
-                                setTransform(
-                                    computeTextureScaleMatrix(
-                                        viewWidth = width,
-                                        viewHeight = height,
-                                        videoWidth = videoWidth,
-                                        videoHeight = videoHeight,
-                                        pixelWidthHeightRatio = videoPixelRatio,
-                                        centerCrop = contentScaleCrop,
-                                    ),
-                                )
-                            }
+                                    override fun onSurfaceTextureSizeChanged(
+                                        texture: SurfaceTexture,
+                                        width: Int,
+                                        height: Int,
+                                    ) = Unit
 
-                            override fun onSurfaceTextureUpdated(texture: SurfaceTexture) {
-                                session.onFrameRendered()
-                            }
+                                    override fun onSurfaceTextureUpdated(texture: SurfaceTexture) {
+                                        session.onFrameRendered()
+                                    }
 
-                            override fun onSurfaceTextureDestroyed(texture: SurfaceTexture): Boolean {
-                                // Keep SurfaceTexture alive until ExoPlayer detaches on its playback looper.
-                                session.detachSurface(texture)
-                                return false
-                            }
-                        }
-                }
-            },
-            update = { textureView ->
-                if (textureView.width > 0 && textureView.height > 0) {
-                    textureView.setTransform(
-                        computeTextureScaleMatrix(
-                            viewWidth = textureView.width,
-                            viewHeight = textureView.height,
-                            videoWidth = videoWidth,
-                            videoHeight = videoHeight,
-                            pixelWidthHeightRatio = videoPixelRatio,
-                            centerCrop = contentScaleCrop,
-                        ),
+                                    override fun onSurfaceTextureDestroyed(texture: SurfaceTexture): Boolean {
+                                        // Keep SurfaceTexture alive until ExoPlayer detaches on its playback looper.
+                                        session.detachSurface(texture)
+                                        return false
+                                    }
+                                }
+                        },
                     )
                 }
+            },
+            update = { container ->
+                container.setVideoAspect(videoAspectRatio, contentScaleCrop)
             },
             modifier =
                 modifier
@@ -283,7 +310,7 @@ private class ArtworkVideoSession {
         videoCache: AnimatedArtworkVideoCache?,
         initialPlaying: Boolean,
         onReady: () -> Unit,
-        onVideoSize: (Int, Int, Float) -> Unit,
+        onAspectRatio: (Float) -> Unit,
         onError: () -> Unit,
     ) {
         fun notify(action: () -> Unit) {
@@ -343,10 +370,19 @@ private class ArtworkVideoSession {
                             notify(onReady)
                         }
 
+                        @Suppress("DEPRECATION")
                         override fun onVideoSizeChanged(videoSize: VideoSize) {
                             if (videoSize.width > 0 && videoSize.height > 0) {
-                                notify {
-                                    onVideoSize(videoSize.width, videoSize.height, videoSize.pixelWidthHeightRatio)
+                                val swap =
+                                    videoSize.unappliedRotationDegrees == 90 ||
+                                        videoSize.unappliedRotationDegrees == 270
+                                val effectiveWidth = if (swap) videoSize.height else videoSize.width
+                                val effectiveHeight = if (swap) videoSize.width else videoSize.height
+                                val ratio = (effectiveWidth.toFloat() * videoSize.pixelWidthHeightRatio) / effectiveHeight.toFloat()
+                                if (ratio > 0f && ratio.isFinite()) {
+                                    notify {
+                                        onAspectRatio(ratio)
+                                    }
                                 }
                             }
                         }

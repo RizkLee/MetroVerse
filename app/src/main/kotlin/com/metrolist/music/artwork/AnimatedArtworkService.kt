@@ -90,7 +90,7 @@ class AnimatedArtworkService internal constructor(
     }
 
     private val coverCacheFile = File(cacheDir, "covers.json")
-    private val artistCacheFile = File(cacheDir, "artists_v2.json")
+    private val artistCacheFile = File(cacheDir, "artists_v3.json")
     private val cache = mutableMapOf<String, CacheEntry>()
     private val artistCache = mutableMapOf<String, ArtistCacheEntry>()
     private val cacheMutex = Mutex()
@@ -1023,7 +1023,7 @@ class AnimatedArtworkService internal constructor(
         val imageUrl = if (includeImage) artwork?.let(::resolveArtistImageUrl) else null
         val editorialVideo = if (includeVideo) attributes["editorialVideo"] as? JsonObject else null
         val videoAsset =
-            listOf("motionArtistWide16x9", "motionArtistFullscreen16x9", "motionArtistSquare1x1")
+            listOf("motionArtistSquare1x1", "motionArtistWide16x9", "motionArtistFullscreen16x9")
                 .firstNotNullOfOrNull { key ->
                     (editorialVideo?.get(key) as? JsonObject)?.takeIf {
                         (it["video"] as? JsonPrimitive)?.content?.isNotBlank() == true

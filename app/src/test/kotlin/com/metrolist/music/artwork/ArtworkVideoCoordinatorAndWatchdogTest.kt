@@ -5,19 +5,13 @@
 
 package com.metrolist.music.artwork
 
-import android.app.Application
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.annotation.Config
 
-@RunWith(RobolectricTestRunner::class)
-@Config(application = Application::class, sdk = [33], manifest = Config.NONE)
 class ArtworkVideoCoordinatorAndWatchdogTest {
     @Before
     fun setUp() {
@@ -63,49 +57,16 @@ class ArtworkVideoCoordinatorAndWatchdogTest {
     }
 
     @Test
-    fun `computeTextureScaleMatrix applies center crop and center fit around view center`() {
-        val cropWideValues = FloatArray(9)
-        computeTextureScaleMatrix(
-            viewWidth = 1000,
-            viewHeight = 1000,
-            videoWidth = 1600,
-            videoHeight = 900,
-            centerCrop = true,
-        ).getValues(cropWideValues)
-        assertEquals(16f / 9f, cropWideValues[android.graphics.Matrix.MSCALE_X], 0.001f)
-        assertEquals(1f, cropWideValues[android.graphics.Matrix.MSCALE_Y], 0.001f)
+    fun `computeAspectCropChildSize preserves aspect ratio for crop, fit, square, and invalid bounds`() {
+        assertEquals(1778 to 1000, computeAspectCropChildSize(viewWidth = 1000, viewHeight = 1000, videoAspectRatio = 16f / 9f, centerCrop = true))
+        assertEquals(1000 to 1333, computeAspectCropChildSize(viewWidth = 1000, viewHeight = 1000, videoAspectRatio = 0.75f, centerCrop = true))
+        assertEquals(1000 to 1000, computeAspectCropChildSize(viewWidth = 1000, viewHeight = 1000, videoAspectRatio = 1f, centerCrop = true))
 
-        val fitWideValues = FloatArray(9)
-        computeTextureScaleMatrix(
-            viewWidth = 1000,
-            viewHeight = 1000,
-            videoWidth = 1600,
-            videoHeight = 900,
-            centerCrop = false,
-        ).getValues(fitWideValues)
-        assertEquals(1f, fitWideValues[android.graphics.Matrix.MSCALE_X], 0.001f)
-        assertEquals(9f / 16f, fitWideValues[android.graphics.Matrix.MSCALE_Y], 0.001f)
+        assertEquals(1000 to 563, computeAspectCropChildSize(viewWidth = 1000, viewHeight = 1000, videoAspectRatio = 16f / 9f, centerCrop = false))
+        assertEquals(750 to 1000, computeAspectCropChildSize(viewWidth = 1000, viewHeight = 1000, videoAspectRatio = 0.75f, centerCrop = false))
 
-        val cropTallValues = FloatArray(9)
-        computeTextureScaleMatrix(
-            viewWidth = 1000,
-            viewHeight = 1000,
-            videoWidth = 750,
-            videoHeight = 1000,
-            centerCrop = true,
-        ).getValues(cropTallValues)
-        assertEquals(1f, cropTallValues[android.graphics.Matrix.MSCALE_X], 0.001f)
-        assertEquals(4f / 3f, cropTallValues[android.graphics.Matrix.MSCALE_Y], 0.001f)
-
-        val squareValues = FloatArray(9)
-        computeTextureScaleMatrix(
-            viewWidth = 1000,
-            viewHeight = 1000,
-            videoWidth = 1080,
-            videoHeight = 1080,
-            centerCrop = true,
-        ).getValues(squareValues)
-        assertEquals(1f, squareValues[android.graphics.Matrix.MSCALE_X], 0.001f)
-        assertEquals(1f, squareValues[android.graphics.Matrix.MSCALE_Y], 0.001f)
+        assertEquals(1000 to 1000, computeAspectCropChildSize(viewWidth = 1000, viewHeight = 1000, videoAspectRatio = 0f, centerCrop = true))
+        assertEquals(1000 to 1000, computeAspectCropChildSize(viewWidth = 1000, viewHeight = 1000, videoAspectRatio = Float.NaN, centerCrop = true))
+        assertEquals(0 to 0, computeAspectCropChildSize(viewWidth = 0, viewHeight = 0, videoAspectRatio = 1.5f, centerCrop = true))
     }
 }

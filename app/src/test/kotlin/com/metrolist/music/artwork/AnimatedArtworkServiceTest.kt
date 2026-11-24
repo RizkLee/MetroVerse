@@ -285,6 +285,9 @@ class AnimatedArtworkServiceTest {
                                                   },
                                                   "editorialVideo": {
                                                     "motionArtistWide16x9": {
+                                                      "video": "$base/hls/artist/master_wide.m3u8"
+                                                    },
+                                                    "motionArtistSquare1x1": {
                                                       "video": "$base/hls/artist/master.m3u8"
                                                     }
                                                   }
@@ -315,6 +318,11 @@ class AnimatedArtworkServiceTest {
                                                     "url": "$base/images/{w}x{h}{c}.{f}",
                                                     "width": 1200,
                                                     "height": 1200
+                                                  },
+                                                  "editorialVideo": {
+                                                    "motionArtistWide16x9": {
+                                                      "video": "$base/hls/artist/master_wide.m3u8"
+                                                    }
                                                   }
                                                 }
                                               }
@@ -333,6 +341,18 @@ class AnimatedArtworkServiceTest {
                                         #EXTM3U
                                         #EXT-X-STREAM-INF:BANDWIDTH=3000000,RESOLUTION=1920x1080
                                         artist1080.m3u8
+                                        """.trimIndent(),
+                                )
+                            }
+
+                            path == "/hls/artist/master_wide.m3u8" -> {
+                                MockResponse(
+                                    code = 200,
+                                    body =
+                                        """
+                                        #EXTM3U
+                                        #EXT-X-STREAM-INF:BANDWIDTH=3000000,RESOLUTION=1920x1080
+                                        artistWide1080.m3u8
                                         """.trimIndent(),
                                 )
                             }
@@ -364,6 +384,16 @@ class AnimatedArtworkServiceTest {
                 )
             assertTrue(duplicateResolved is ArtistArtworkFetchResult.Found)
             assertEquals("$base/images/1200x1200bb.webp", (duplicateResolved as ArtistArtworkFetchResult.Found).artwork.imageUrl)
+
+            val wideFallback =
+                service.fetchArtistArtwork(
+                    artist = "Common Name",
+                    includeImage = true,
+                    includeVideo = true,
+                    videoResolution = AnimatedCoverResolution.HIGH_1080,
+                )
+            assertTrue(wideFallback is ArtistArtworkFetchResult.Found)
+            assertEquals("$base/hls/artist/artistWide1080.m3u8", (wideFallback as ArtistArtworkFetchResult.Found).artwork.videoUrl)
 
             val disabled =
                 service.fetchArtistArtwork(

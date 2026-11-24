@@ -6,25 +6,27 @@
 package com.metrolist.music.ui.screens.settings
 
 import android.os.Build
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -44,22 +46,29 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -96,13 +105,18 @@ import com.metrolist.music.ui.component.LyricsAttributionFooter
 import com.metrolist.music.ui.component.LyricsLine
 import com.metrolist.music.ui.component.Material3SettingsGroup
 import com.metrolist.music.ui.component.Material3SettingsItem
+import com.metrolist.music.ui.component.computeAutoRestOffset
+import com.metrolist.music.ui.component.computeLyricsItemPositions
 import com.metrolist.music.ui.component.lyrics.computeProgressiveLyricsBlurDp
+import com.metrolist.music.ui.component.lyricsItemScreenOffset
 import com.metrolist.music.ui.utils.backToMain
 import com.metrolist.music.ui.utils.fadingEdge
 import com.metrolist.music.utils.isOpenRssEpisode
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -779,35 +793,8 @@ private fun LyricsAppearancePreviewCard(
         }
     }
 
-    val listState = rememberLazyListState(
-        initialFirstVisibleItemIndex = initialActiveIndex.coerceAtLeast(0),
-        initialFirstVisibleItemScrollOffset = 0,
-    )
-    val density = LocalDensity.current
     val previewHeightDp = 300.dp
-    val previewTopPaddingDp = 112.dp
-    val previewBottomPaddingDp = 112.dp
-    val previewTopPaddingPx = with(density) { previewTopPaddingDp.roundToPx() }
-    var hasAlignedInitialScroll by remember(previewSource) { mutableStateOf(false) }
-
-    LaunchedEffect(activeIndex, previewSource, lyricsTextSize, lyricsLineSpacing) {
-        val targetIdx = activeIndex.coerceIn(0, (previewSource.lines.size - 1).coerceAtLeast(0))
-        val viewportHeight =
-            listState.layoutInfo.viewportSize.height.takeIf { it > 0 }
-                ?: with(density) { previewHeightDp.roundToPx() }
-        val estimatedItemHeight =
-            listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == targetIdx }?.size
-                ?: with(density) { (lyricsTextSize * lyricsLineSpacing * 1.6f + 24f).dp.roundToPx() }
-        val desiredTopFromViewport = ((viewportHeight - estimatedItemHeight) / 2).coerceAtLeast(0)
-        val centerOffset = previewTopPaddingPx - desiredTopFromViewport
-        if (!hasAlignedInitialScroll) {
-            listState.scrollToItem(index = targetIdx, scrollOffset = centerOffset)
-            hasAlignedInitialScroll = true
-        } else {
-            listState.animateScrollToItem(index = targetIdx, scrollOffset = centerOffset)
-        }
-    }
-
+    val density = LocalDensity.current
     val containerBg = remember {
         Brush.verticalGradient(
             colors = listOf(
@@ -841,90 +828,194 @@ private fun LyricsAppearancePreviewCard(
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
             )
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(previewHeightDp)
-                    .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
-                    .fadingEdge(top = 28.dp, bottom = 36.dp),
-            ) {
-                key(animationStyle, previewSource) {
-                    LazyColumn(
-                        state = listState,
-                        userScrollEnabled = false,
-                        contentPadding = PaddingValues(top = previewTopPaddingDp, bottom = previewBottomPaddingDp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 12.dp),
-                    ) {
-                        itemsIndexed(
-                            items = previewSource.lines,
-                            key = { idx, entry -> "$idx-${entry.time}-${entry.text.hashCode()}" },
-                        ) { idx, entry ->
-                            val distance = abs(idx - activeIndex)
-                            val blurDp = computeProgressiveLyricsBlurDp(
-                                distance = distance,
-                                enabled = progressiveBlurEnabled,
-                                isSynced = previewSource.isSynced,
-                                isAutoScrollEnabled = true,
-                                isManualScrolling = false,
-                                isSelectionMode = false,
-                                isAttributionItem = false,
-                            )
-                            val endMs =
-                                entry.words?.lastOrNull()?.let { (it.endTime * 1000).toLong() }
-                                    ?: previewSource.lines.getOrNull(idx + 1)?.time
-                            LyricsLine(
-                                index = idx,
-                                item = entry,
-                                isSynced = previewSource.isSynced,
-                                isActiveLine = !previewSource.isSynced || idx == activeIndex,
-                                bgVisible = previewSource.isSynced && idx == activeIndex,
-                                isSelected = false,
-                                isSelectionModeActive = false,
-                                positionProvider = stablePositionProvider,
-                                adjustedEndTimeMs = endMs,
-                                isPlaying = lifecycleState == Lifecycle.State.RESUMED,
-                                playbackSpeed = if (previewSource.isLivePlayback && playerConnection != null) {
-                                    playerConnection.player.playbackParameters.speed.coerceAtLeast(0.1f)
+            key(previewSource, animationStyle) {
+                BoxWithConstraints(
+                    contentAlignment = Alignment.TopCenter,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(previewHeightDp)
+                        .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
+                        .clipToBounds()
+                        .fadingEdge(top = 28.dp, bottom = 36.dp)
+                        .padding(horizontal = 12.dp),
+                ) {
+                    val maxHeightPx = constraints.maxHeight.toFloat()
+                    val anchorY = maxHeightPx * 0.30f
+                    val gapPx = with(density) { 16.dp.toPx() }
+                    val fallbackLineHeightPx = with(density) { (lyricsTextSize * lyricsLineSpacing * 1.5f + 24f).dp.toPx() }
+                    val topPad = with(density) { 24.dp.toPx() }
+                    val bottomPad = with(density) { 28.dp.toPx() }
+                    val totalCount = previewSource.lines.size + 1
+                    val activeListIndex = activeIndex.coerceIn(0, (previewSource.lines.size - 1).coerceAtLeast(0))
+
+                    val itemHeights =
+                        remember(previewSource, animationStyle, lyricsTextSize, lyricsLineSpacing, lyricsPosition) {
+                            mutableStateMapOf<Int, Int>()
+                        }
+                    var isInitialLayout by
+                        remember(previewSource, animationStyle, lyricsTextSize, lyricsLineSpacing, lyricsPosition) {
+                            mutableStateOf(true)
+                        }
+
+                    val resolveItemHeight: (Int) -> Float =
+                        remember(itemHeights.toMap(), previewSource, fallbackLineHeightPx) {
+                            val measuredAverage =
+                                if (itemHeights.isEmpty()) {
+                                    null
                                 } else {
-                                    1f
+                                    itemHeights.values.average().toFloat().coerceAtLeast(1f)
+                                }
+                            { index: Int ->
+                                itemHeights[index]?.toFloat() ?: measuredAverage ?: fallbackLineHeightPx
+                            }
+                        }
+
+                    val positions =
+                        remember(itemHeights.toMap(), activeListIndex, previewSource, gapPx, fallbackLineHeightPx) {
+                            computeLyricsItemPositions(
+                                itemHeights = (0 until totalCount).map(resolveItemHeight),
+                                gapsBeforeItems = (0 until totalCount).map { idx ->
+                                    if (idx < previewSource.lines.size && previewSource.lines[idx].isBackground) 0f else gapPx
                                 },
-                                lyricsTextSize = lyricsTextSize,
-                                lyricsLineSpacing = lyricsLineSpacing,
-                                animationStyle = animationStyle,
-                                progressiveBlurDp = blurDp,
-                                distance = distance,
-                                expressiveAccent = accentColor,
-                                textMeasurer = previewMeasurer,
-                                lyricsTextPosition = lyricsPosition,
-                                respectAgentPositioning = false,
-                                isAutoScrollEnabled = true,
-                                displayedCurrentLineIndex = activeIndex,
-                                romanizeAsMain = false,
-                                enabledLanguages = emptyList(),
-                                romanizeLyrics = false,
-                                onSizeChanged = {},
-                                onClick = {
-                                    if (!previewSource.isLivePlayback) {
-                                        baseOffsetMs = entry.time
-                                        clockStartWallMs = System.currentTimeMillis()
-                                        positionState.longValue = entry.time
-                                        activeIndex = idx
-                                    }
-                                },
-                                onLongClick = {},
+                                anchorIndex = activeListIndex,
                             )
                         }
 
-                        item(key = "preview_attribution_footer") {
-                            LyricsAttributionFooter(
-                                provider = previewSource.provider ?: "MetroVerse",
-                                songwriters = if (previewSource.isLivePlayback) emptyList() else listOf("MetroVerse Studio"),
-                                textColor = accentColor,
-                                textAlign = footerAlign,
+                    val autoRestOffset =
+                        remember(itemHeights.toMap(), positions, activeListIndex, maxHeightPx, anchorY, topPad, bottomPad, totalCount) {
+                            computeAutoRestOffset(
+                                contentAbove = -(positions[0] ?: 0f),
+                                contentBelow = positions[totalCount - 1] ?: 0f,
+                                lastItemHeight = resolveItemHeight(totalCount - 1),
+                                viewportHeight = maxHeightPx,
+                                anchorY = anchorY,
+                                topPadding = topPad,
+                                bottomPadding = bottomPad,
                             )
+                        }
+
+                    LaunchedEffect(previewSource, animationStyle, lyricsTextSize, lyricsLineSpacing, lyricsPosition) {
+                        val windowStart = (activeListIndex - 2).coerceAtLeast(0)
+                        val windowEnd = (activeListIndex + 2).coerceAtMost(totalCount - 1)
+                        if ((windowStart..windowEnd).all { itemHeights.containsKey(it) }) {
+                            isInitialLayout = false
+                        } else {
+                            isInitialLayout = true
+                            withTimeoutOrNull(400L) {
+                                snapshotFlow {
+                                    val h = itemHeights.toMap()
+                                    (windowStart..windowEnd).all { h.containsKey(it) }
+                                }.first { it }
+                            }
+                            isInitialLayout = false
+                        }
+                    }
+
+                    val renderStart = (activeListIndex - 5).coerceAtLeast(0)
+                    val renderEnd = (activeListIndex + 6).coerceAtMost(totalCount - 1)
+
+                    for (listIndex in renderStart..renderEnd) {
+                        val stableKey =
+                            if (listIndex < previewSource.lines.size) {
+                                "line_$listIndex"
+                            } else {
+                                "provider_footer"
+                            }
+                        key(stableKey) {
+                            val distance = abs(listIndex - activeListIndex)
+                            val targetOffset = lyricsItemScreenOffset(
+                                anchorY = anchorY,
+                                relativeOffset = positions.getOrDefault(listIndex, (listIndex - activeListIndex) * fallbackLineHeightPx),
+                                restOffset = autoRestOffset,
+                            )
+                            val animatedOffset by animateFloatAsState(
+                                targetValue = targetOffset,
+                                animationSpec = if (isInitialLayout) {
+                                    snap()
+                                } else {
+                                    tween(
+                                        durationMillis = 750,
+                                        delayMillis = (distance * 20).coerceAtMost(200),
+                                        easing = FastOutSlowInEasing,
+                                    )
+                                },
+                                label = "previewLyricStaggeredOffset_$listIndex",
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .layout { m, c ->
+                                        val p = m.measure(c.copy(maxHeight = Constraints.Infinity))
+                                        layout(p.width, 0) { p.place(0, 0) }
+                                    }
+                                    .offset { IntOffset(0, animatedOffset.roundToInt()) },
+                            ) {
+                                if (listIndex < previewSource.lines.size) {
+                                    val entry = previewSource.lines[listIndex]
+                                    val blurDp = computeProgressiveLyricsBlurDp(
+                                        distance = distance,
+                                        enabled = progressiveBlurEnabled,
+                                        isSynced = previewSource.isSynced,
+                                        isAutoScrollEnabled = true,
+                                        isManualScrolling = false,
+                                        isSelectionMode = false,
+                                        isAttributionItem = false,
+                                    )
+                                    val endMs =
+                                        entry.words?.lastOrNull()?.let { (it.endTime * 1000).toLong() }
+                                            ?: previewSource.lines.getOrNull(listIndex + 1)?.time
+                                    LyricsLine(
+                                        index = listIndex,
+                                        item = entry,
+                                        isSynced = previewSource.isSynced,
+                                        isActiveLine = !previewSource.isSynced || listIndex == activeIndex,
+                                        bgVisible = previewSource.isSynced && listIndex == activeIndex,
+                                        isSelected = false,
+                                        isSelectionModeActive = false,
+                                        positionProvider = stablePositionProvider,
+                                        adjustedEndTimeMs = endMs,
+                                        isPlaying = lifecycleState == Lifecycle.State.RESUMED,
+                                        playbackSpeed = if (previewSource.isLivePlayback && playerConnection != null) {
+                                            playerConnection.player.playbackParameters.speed.coerceAtLeast(0.1f)
+                                        } else {
+                                            1f
+                                        },
+                                        lyricsTextSize = lyricsTextSize,
+                                        lyricsLineSpacing = lyricsLineSpacing,
+                                        animationStyle = animationStyle,
+                                        progressiveBlurDp = blurDp,
+                                        distance = distance,
+                                        expressiveAccent = accentColor,
+                                        textMeasurer = previewMeasurer,
+                                        lyricsTextPosition = lyricsPosition,
+                                        respectAgentPositioning = false,
+                                        isAutoScrollEnabled = true,
+                                        displayedCurrentLineIndex = activeIndex,
+                                        romanizeAsMain = false,
+                                        enabledLanguages = emptyList(),
+                                        romanizeLyrics = false,
+                                        onSizeChanged = { itemHeights[listIndex] = it },
+                                        onClick = {
+                                            if (!previewSource.isLivePlayback) {
+                                                baseOffsetMs = entry.time
+                                                clockStartWallMs = System.currentTimeMillis()
+                                                positionState.longValue = entry.time
+                                                activeIndex = listIndex
+                                            }
+                                        },
+                                        onLongClick = {},
+                                    )
+                                } else {
+                                    LyricsAttributionFooter(
+                                        provider = previewSource.provider ?: "MetroVerse",
+                                        songwriters = if (previewSource.isLivePlayback) emptyList() else listOf("MetroVerse Studio"),
+                                        textColor = accentColor,
+                                        textAlign = footerAlign,
+                                        modifier = Modifier.onSizeChanged { itemHeights[listIndex] = it.height },
+                                    )
+                                }
+                            }
                         }
                     }
                 }

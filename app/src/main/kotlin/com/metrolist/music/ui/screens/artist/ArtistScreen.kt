@@ -375,17 +375,18 @@ fun ArtistScreen(
                                         },
                                         modifier = Modifier.fillMaxSize(),
                                     )
-                                    // Gradient scrim matches fadingEdge(bottom = 200.dp) without GPU DstIn TextureView artifacts.
+                                    // Moderately shorter scrim keeps hero focus on artist video while blending into controls.
                                     Box(
                                         modifier =
                                             Modifier
                                                 .fillMaxWidth()
-                                                .height(200.dp)
+                                                .height(136.dp)
                                                 .align(Alignment.BottomCenter)
                                                 .graphicsLayer { alpha = videoScrimAlpha }
                                                 .background(
                                                     Brush.verticalGradient(
                                                         0f to Color.Transparent,
+                                                        0.55f to backgroundColor.copy(alpha = 0.45f),
                                                         1f to backgroundColor,
                                                     ),
                                                 ),
