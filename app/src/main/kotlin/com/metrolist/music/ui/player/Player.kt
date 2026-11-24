@@ -1851,8 +1851,9 @@ fun BottomSheetPlayer(
                                     InlineLyricsView(
                                         mediaMetadata = mediaMetadata,
                                         showLyrics = true,
-                                        positionProvider = { pendingSeekPosition ?: if (isCasting) castPosition else playerConnection.player.currentPosition },
+                                        positionProvider = { if (isCasting) castPosition else playerConnection.player.currentPosition },
                                         sliderPositionProvider = sliderPositionProvider,
+                                        isCasting = isCasting,
                                         onSeekRequested = { target ->
                                             pendingSeekPosition = target
                                             position = target
@@ -1958,8 +1959,9 @@ fun BottomSheetPlayer(
                                         InlineLyricsView(
                                             mediaMetadata = mediaMetadata,
                                             showLyrics = true,
-                                            positionProvider = { pendingSeekPosition ?: if (isCasting) castPosition else playerConnection.player.currentPosition },
+                                            positionProvider = { if (isCasting) castPosition else playerConnection.player.currentPosition },
                                             sliderPositionProvider = sliderPositionProvider,
+                                            isCasting = isCasting,
                                             onSeekRequested = { target ->
                                                 pendingSeekPosition = target
                                                 position = target
@@ -2087,6 +2089,7 @@ fun InlineLyricsView(
     showLyrics: Boolean,
     positionProvider: () -> Long,
     sliderPositionProvider: () -> Long?,
+    isCasting: Boolean = false,
     onSeekRequested: (Long) -> Unit = {},
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
@@ -2126,6 +2129,7 @@ fun InlineLyricsView(
                     Lyrics(
                         sliderPositionProvider = sliderPositionProvider,
                         playbackPositionProvider = positionProvider,
+                        isCasting = isCasting,
                         onSeekRequested = onSeekRequested,
                         modifier = Modifier.padding(horizontal = 24.dp),
                         showLyrics = showLyrics,

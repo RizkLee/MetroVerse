@@ -101,12 +101,16 @@ import com.metrolist.music.lyrics.WordTimestamp
 import com.metrolist.music.lyrics.lyricsTextLooksSynced
 import com.metrolist.music.ui.component.EnumDialog
 import com.metrolist.music.ui.component.IconButton
+import com.metrolist.music.ui.component.LYRICS_SCROLL_ANIMATION_DURATION_MS
+import com.metrolist.music.ui.component.LYRICS_STAGGER_DELAY_MAX_MS
+import com.metrolist.music.ui.component.LYRICS_STAGGER_DELAY_PER_DISTANCE_MS
 import com.metrolist.music.ui.component.LyricsAttributionFooter
 import com.metrolist.music.ui.component.LyricsLine
 import com.metrolist.music.ui.component.Material3SettingsGroup
 import com.metrolist.music.ui.component.Material3SettingsItem
 import com.metrolist.music.ui.component.computeAutoRestOffset
 import com.metrolist.music.ui.component.computeLyricsItemPositions
+import com.metrolist.music.ui.component.computeLyricsScrollLookAheadMs
 import com.metrolist.music.ui.component.lyrics.computeProgressiveLyricsBlurDp
 import com.metrolist.music.ui.component.lyricsItemScreenOffset
 import com.metrolist.music.ui.utils.backToMain
@@ -121,8 +125,8 @@ import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-private const val SAMPLE_PREVIEW_DURATION_MS = 22_000L
-private const val SAMPLE_PREVIEW_INITIAL_OFFSET_MS = 3_100L
+private const val SAMPLE_PREVIEW_DURATION_MS = 19_200L
+private const val SAMPLE_PREVIEW_INITIAL_OFFSET_MS = 2_550L
 private const val PLAIN_LYRICS_LINE_STEP_MS = 2_600L
 
 internal data class LyricsPreviewSource(
@@ -132,108 +136,112 @@ internal data class LyricsPreviewSource(
     val provider: String?,
 )
 
+/**
+ * Resolves the scroll target line for the lyrics preview using the current highlight line's
+ * look-ahead and maintaining forward-only progression during normal playback so ultra-short
+ * upcoming lines cannot oscillate the preview back and forth.
+ */
+internal fun resolvePreviewScrollAnchorIndex(
+    lines: List<LyricsEntry>,
+    currentHighlightIndex: Int,
+    previousScrollAnchorIndex: Int,
+    effectivePositionMs: Long,
+    previousPositionMs: Long,
+    hasWordTimings: Boolean,
+    maxLookAheadPositionMs: Long? = null,
+): Int {
+    if (lines.isEmpty()) return 0
+    val lookAheadMs = computeLyricsScrollLookAheadMs(lines, currentHighlightIndex, hasWordTimings)
+    val rawScrollPos = effectivePositionMs + lookAheadMs
+    val scrollPos = maxLookAheadPositionMs?.let { rawScrollPos.coerceAtMost(it) } ?: rawScrollPos
+    val activeSet = LyricsUtils.findActiveLineIndices(lines, scrollPos)
+    val candidate =
+        activeSet.lastOrNull { lines.getOrNull(it)?.isBackground == false }
+            ?: activeSet.lastOrNull()
+            ?: lines.indexOfLast { it.time <= scrollPos }.coerceAtLeast(0)
+    return if (effectivePositionMs >= previousPositionMs && previousScrollAnchorIndex in lines.indices) {
+        maxOf(previousScrollAnchorIndex, candidate)
+    } else {
+        candidate
+    }
+}
+
 internal fun buildPreviewLyricsSample(): List<LyricsEntry> =
     listOf(
         LyricsEntry(
             time = 0L,
-            text = "Turn on the lights tonight",
+            text = "Turn up the light",
             words = listOf(
                 WordTimestamp("Turn", 0.0, 0.45),
-                WordTimestamp("on", 0.45, 0.8),
-                WordTimestamp("the", 0.8, 1.1),
-                WordTimestamp("lights", 1.1, 1.75),
-                WordTimestamp("tonight", 1.75, 2.45, hasTrailingSpace = false),
+                WordTimestamp("up", 0.45, 0.8),
+                WordTimestamp("the", 0.8, 1.15),
+                WordTimestamp("light", 1.15, 2.05, hasTrailingSpace = false),
             ),
         ),
         LyricsEntry(
-            time = 2_600L,
-            text = "Let the music shine across the midnight sky",
+            time = 2_200L,
+            text = "Feel the night glow",
             words = listOf(
-                WordTimestamp("Let", 2.6, 2.95),
-                WordTimestamp("the", 2.95, 3.25),
-                WordTimestamp("music", 3.25, 3.7),
-                WordTimestamp("shine", 3.7, 4.15),
-                WordTimestamp("across", 4.15, 4.55),
-                WordTimestamp("the", 4.55, 4.85),
-                WordTimestamp("midnight", 4.85, 5.25),
-                WordTimestamp("sky", 5.25, 5.65, hasTrailingSpace = false),
+                WordTimestamp("Feel", 2.2, 2.65),
+                WordTimestamp("the", 2.65, 3.0),
+                WordTimestamp("night", 3.0, 3.55),
+                WordTimestamp("glow", 3.55, 4.35, hasTrailingSpace = false),
             ),
         ),
         LyricsEntry(
-            time = 5_800L,
-            text = "Every single beat glows inside the rhythm",
+            time = 4_500L,
+            text = "Every beat plays on",
             words = listOf(
-                WordTimestamp("Every", 5.8, 6.15),
-                WordTimestamp("single", 6.15, 6.5),
-                WordTimestamp("beat", 6.5, 6.9),
-                WordTimestamp("glows", 6.9, 7.25),
-                WordTimestamp("inside", 7.25, 7.6),
-                WordTimestamp("the", 7.6, 7.9),
-                WordTimestamp("rhythm", 7.9, 8.3, hasTrailingSpace = false),
+                WordTimestamp("Every", 4.5, 5.0),
+                WordTimestamp("beat", 5.0, 5.45),
+                WordTimestamp("plays", 5.45, 6.05),
+                WordTimestamp("on", 6.05, 6.65, hasTrailingSpace = false),
             ),
         ),
         LyricsEntry(
-            time = 8_500L,
-            text = "Singing by the joyful bayou till morning light",
+            time = 6_800L,
+            text = "Singing by the bay",
             words = listOf(
-                WordTimestamp("Singing", 8.5, 8.95),
-                WordTimestamp("by", 8.95, 9.25),
-                WordTimestamp("the", 9.25, 9.55),
-                WordTimestamp("joyful", 9.55, 10.0),
-                WordTimestamp("bayou", 10.0, 10.45),
-                WordTimestamp("till", 10.45, 10.75),
-                WordTimestamp("morning", 10.75, 11.15),
-                WordTimestamp("light", 11.15, 11.55, hasTrailingSpace = false),
+                WordTimestamp("Singing", 6.8, 7.35),
+                WordTimestamp("by", 7.35, 7.7),
+                WordTimestamp("the", 7.7, 8.05),
+                WordTimestamp("bay", 8.05, 8.95, hasTrailingSpace = false),
             ),
         ),
         LyricsEntry(
-            time = 11_700L,
-            text = "Dancing on the waves underneath the stars",
+            time = 9_100L,
+            text = "Dancing on waves",
             words = listOf(
-                WordTimestamp("Dancing", 11.7, 12.15),
-                WordTimestamp("on", 12.15, 12.4),
-                WordTimestamp("the", 12.4, 12.65),
-                WordTimestamp("waves", 12.65, 13.1),
-                WordTimestamp("underneath", 13.1, 13.6),
-                WordTimestamp("the", 13.6, 13.85),
-                WordTimestamp("stars", 13.85, 14.3, hasTrailingSpace = false),
+                WordTimestamp("Dancing", 9.1, 9.8),
+                WordTimestamp("on", 9.8, 10.25),
+                WordTimestamp("waves", 10.25, 11.25, hasTrailingSpace = false),
             ),
         ),
         LyricsEntry(
-            time = 14_500L,
-            text = "Voices drifting gently past the quiet harbor",
+            time = 11_400L,
+            text = "Softly drift away",
             words = listOf(
-                WordTimestamp("Voices", 14.5, 14.95),
-                WordTimestamp("drifting", 14.95, 15.4),
-                WordTimestamp("gently", 15.4, 15.85),
-                WordTimestamp("past", 15.85, 16.2),
-                WordTimestamp("the", 16.2, 16.45),
-                WordTimestamp("quiet", 16.45, 16.9),
-                WordTimestamp("harbor", 16.9, 17.35, hasTrailingSpace = false),
+                WordTimestamp("Softly", 11.4, 12.1),
+                WordTimestamp("drift", 12.1, 12.75),
+                WordTimestamp("away", 12.75, 13.55, hasTrailingSpace = false),
             ),
         ),
         LyricsEntry(
-            time = 17_500L,
-            text = "Hold onto the melody until sunrise",
+            time = 13_700L,
+            text = "Wait for sunrise",
             words = listOf(
-                WordTimestamp("Hold", 17.5, 17.9),
-                WordTimestamp("onto", 17.9, 18.25),
-                WordTimestamp("the", 18.25, 18.5),
-                WordTimestamp("melody", 18.5, 19.05),
-                WordTimestamp("until", 19.05, 19.4),
-                WordTimestamp("sunrise", 19.4, 19.95, hasTrailingSpace = false),
+                WordTimestamp("Wait", 13.7, 14.3),
+                WordTimestamp("for", 14.3, 14.95),
+                WordTimestamp("sunrise", 14.95, 15.85, hasTrailingSpace = false),
             ),
         ),
         LyricsEntry(
-            time = 20_100L,
-            text = "Echoing softly into the open sky",
+            time = 16_000L,
+            text = "Joyful open sky",
             words = listOf(
-                WordTimestamp("Echoing", 20.1, 20.55),
-                WordTimestamp("softly", 20.55, 20.95),
-                WordTimestamp("into", 20.95, 21.2),
-                WordTimestamp("the", 21.2, 21.45),
-                WordTimestamp("open", 21.45, 21.7),
-                WordTimestamp("sky", 21.7, 21.95, hasTrailingSpace = false),
+                WordTimestamp("Joyful", 16.0, 16.65),
+                WordTimestamp("open", 16.65, 17.25),
+                WordTimestamp("sky", 17.25, 18.0, hasTrailingSpace = false),
             ),
         ),
     )
@@ -724,19 +732,6 @@ private fun LyricsAppearancePreviewCard(
         mutableLongStateOf(if (previewSource.isLivePlayback) 0L else SAMPLE_PREVIEW_INITIAL_OFFSET_MS)
     }
     val stablePositionProvider = remember(positionState) { { positionState.longValue } }
-    val initialActiveIndex = remember(previewSource) {
-        if (previewSource.isLivePlayback) {
-            0
-        } else {
-            previewSource.lines.indexOfLast { it.time <= SAMPLE_PREVIEW_INITIAL_OFFSET_MS }.coerceAtLeast(0)
-        }
-    }
-    var activeIndex by remember(previewSource) { mutableIntStateOf(initialActiveIndex) }
-    var baseOffsetMs by remember(previewSource) {
-        mutableLongStateOf(if (previewSource.isLivePlayback) 0L else SAMPLE_PREVIEW_INITIAL_OFFSET_MS)
-    }
-    var clockStartWallMs by remember(previewSource) { mutableLongStateOf(System.currentTimeMillis()) }
-
     val loopDurationMs = remember(previewSource) {
         if (previewSource.isLivePlayback) {
             1L
@@ -749,12 +744,45 @@ private fun LyricsAppearancePreviewCard(
             maxOf(1L, previewSource.lines.size * PLAIN_LYRICS_LINE_STEP_MS)
         }
     }
+    val hasWordTimings = remember(previewSource) {
+        previewSource.lines.any { !it.words.isNullOrEmpty() }
+    }
+    val initialActiveIndex = remember(previewSource) {
+        if (previewSource.isLivePlayback) {
+            0
+        } else {
+            previewSource.lines.indexOfLast { it.time <= SAMPLE_PREVIEW_INITIAL_OFFSET_MS }.coerceAtLeast(0)
+        }
+    }
+    val initialScrollAnchorIndex = remember(previewSource, initialActiveIndex, hasWordTimings, loopDurationMs) {
+        if (previewSource.isLivePlayback) {
+            0
+        } else {
+            resolvePreviewScrollAnchorIndex(
+                lines = previewSource.lines,
+                currentHighlightIndex = initialActiveIndex,
+                previousScrollAnchorIndex = initialActiveIndex,
+                effectivePositionMs = SAMPLE_PREVIEW_INITIAL_OFFSET_MS,
+                previousPositionMs = SAMPLE_PREVIEW_INITIAL_OFFSET_MS,
+                hasWordTimings = hasWordTimings,
+                maxLookAheadPositionMs = loopDurationMs,
+            )
+        }
+    }
+    var activeHighlightIndex by remember(previewSource) { mutableIntStateOf(initialActiveIndex) }
+    var scrollAnchorIndex by remember(previewSource) { mutableIntStateOf(initialScrollAnchorIndex) }
+    var baseOffsetMs by remember(previewSource) {
+        mutableLongStateOf(if (previewSource.isLivePlayback) 0L else SAMPLE_PREVIEW_INITIAL_OFFSET_MS)
+    }
+    var clockStartWallMs by remember(previewSource) { mutableLongStateOf(System.currentTimeMillis()) }
 
     LaunchedEffect(lifecycleState, previewSource, animationStyle, currentSong?.song?.lyricsOffset) {
         if (lifecycleState != Lifecycle.State.RESUMED) return@LaunchedEffect
         clockStartWallMs = System.currentTimeMillis()
         var lastPlayerPos = playerConnection?.player?.currentPosition?.coerceAtLeast(0L) ?: 0L
         var lastPlayerSampleMs = System.currentTimeMillis()
+        var lastLiveEffectivePos = Long.MAX_VALUE
+        var lastSampleElapsed = baseOffsetMs
         while (isActive) {
             withFrameNanos { }
             if (previewSource.isLivePlayback && playerConnection != null) {
@@ -767,7 +795,7 @@ private fun LyricsAppearancePreviewCard(
                 val speed = playerConnection.player.playbackParameters.speed.coerceAtLeast(0.1f)
                 val interpolated =
                     if (playerConnection.player.isPlaying) {
-                        lastPlayerPos + ((now - lastPlayerSampleMs) * speed).toLong()
+                        lastPlayerPos + ((now - lastPlayerSampleMs).coerceAtMost(32L) * speed).toLong()
                     } else {
                         lastPlayerPos
                     }
@@ -775,25 +803,52 @@ private fun LyricsAppearancePreviewCard(
                 val effectivePos = (interpolated + lyricsOffset).coerceAtLeast(0L)
                 positionState.longValue = effectivePos
                 val activeSet = LyricsUtils.findActiveLineIndices(previewSource.lines, effectivePos)
-                val nextActive =
+                val nextHighlight =
                     activeSet.lastOrNull { previewSource.lines.getOrNull(it)?.isBackground == false }
                         ?: activeSet.lastOrNull()
                         ?: previewSource.lines.indexOfLast { it.time <= effectivePos }.coerceAtLeast(0)
-                if (nextActive != activeIndex) {
-                    activeIndex = nextActive
+                if (nextHighlight != activeHighlightIndex) {
+                    activeHighlightIndex = nextHighlight
+                }
+                val nextScrollAnchor =
+                    resolvePreviewScrollAnchorIndex(
+                        lines = previewSource.lines,
+                        currentHighlightIndex = nextHighlight,
+                        previousScrollAnchorIndex = scrollAnchorIndex,
+                        effectivePositionMs = effectivePos,
+                        previousPositionMs = lastLiveEffectivePos,
+                        hasWordTimings = hasWordTimings,
+                    )
+                lastLiveEffectivePos = effectivePos
+                if (nextScrollAnchor != scrollAnchorIndex) {
+                    scrollAnchorIndex = nextScrollAnchor
                 }
             } else {
                 val elapsed = (baseOffsetMs + (System.currentTimeMillis() - clockStartWallMs)) % loopDurationMs
                 positionState.longValue = elapsed
-                val nextActive = previewSource.lines.indexOfLast { it.time <= elapsed }.coerceAtLeast(0)
-                if (nextActive != activeIndex) {
-                    activeIndex = nextActive
+                val nextHighlight = previewSource.lines.indexOfLast { it.time <= elapsed }.coerceAtLeast(0)
+                if (nextHighlight != activeHighlightIndex) {
+                    activeHighlightIndex = nextHighlight
+                }
+                val nextScrollAnchor =
+                    resolvePreviewScrollAnchorIndex(
+                        lines = previewSource.lines,
+                        currentHighlightIndex = nextHighlight,
+                        previousScrollAnchorIndex = scrollAnchorIndex,
+                        effectivePositionMs = elapsed,
+                        previousPositionMs = lastSampleElapsed,
+                        hasWordTimings = hasWordTimings,
+                        maxLookAheadPositionMs = loopDurationMs,
+                    )
+                lastSampleElapsed = elapsed
+                if (nextScrollAnchor != scrollAnchorIndex) {
+                    scrollAnchorIndex = nextScrollAnchor
                 }
             }
         }
     }
 
-    val previewHeightDp = 300.dp
+    val previewHeightDp = 320.dp
     val density = LocalDensity.current
     val containerBg = remember {
         Brush.verticalGradient(
@@ -836,17 +891,17 @@ private fun LyricsAppearancePreviewCard(
                         .height(previewHeightDp)
                         .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
                         .clipToBounds()
-                        .fadingEdge(top = 28.dp, bottom = 36.dp)
+                        .fadingEdge(top = 24.dp, bottom = 32.dp)
                         .padding(horizontal = 12.dp),
                 ) {
                     val maxHeightPx = constraints.maxHeight.toFloat()
-                    val anchorY = maxHeightPx * 0.30f
-                    val gapPx = with(density) { 16.dp.toPx() }
+                    val anchorY = maxHeightPx * 0.25f
+                    val gapPx = with(density) { 12.dp.toPx() }
                     val fallbackLineHeightPx = with(density) { (lyricsTextSize * lyricsLineSpacing * 1.5f + 24f).dp.toPx() }
                     val topPad = with(density) { 24.dp.toPx() }
                     val bottomPad = with(density) { 28.dp.toPx() }
                     val totalCount = previewSource.lines.size + 1
-                    val activeListIndex = activeIndex.coerceIn(0, (previewSource.lines.size - 1).coerceAtLeast(0))
+                    val activeListIndex = scrollAnchorIndex.coerceIn(0, (previewSource.lines.size - 1).coerceAtLeast(0))
 
                     val itemHeights =
                         remember(previewSource, animationStyle, lyricsTextSize, lyricsLineSpacing, lyricsPosition) {
@@ -934,8 +989,8 @@ private fun LyricsAppearancePreviewCard(
                                     snap()
                                 } else {
                                     tween(
-                                        durationMillis = 750,
-                                        delayMillis = (distance * 20).coerceAtMost(200),
+                                        durationMillis = LYRICS_SCROLL_ANIMATION_DURATION_MS,
+                                        delayMillis = (distance * LYRICS_STAGGER_DELAY_PER_DISTANCE_MS).coerceAtMost(LYRICS_STAGGER_DELAY_MAX_MS),
                                         easing = FastOutSlowInEasing,
                                     )
                                 },
@@ -969,8 +1024,8 @@ private fun LyricsAppearancePreviewCard(
                                         index = listIndex,
                                         item = entry,
                                         isSynced = previewSource.isSynced,
-                                        isActiveLine = !previewSource.isSynced || listIndex == activeIndex,
-                                        bgVisible = previewSource.isSynced && listIndex == activeIndex,
+                                        isActiveLine = !previewSource.isSynced || listIndex == activeHighlightIndex,
+                                        bgVisible = previewSource.isSynced && listIndex == activeHighlightIndex,
                                         isSelected = false,
                                         isSelectionModeActive = false,
                                         positionProvider = stablePositionProvider,
@@ -991,7 +1046,7 @@ private fun LyricsAppearancePreviewCard(
                                         lyricsTextPosition = lyricsPosition,
                                         respectAgentPositioning = false,
                                         isAutoScrollEnabled = true,
-                                        displayedCurrentLineIndex = activeIndex,
+                                        displayedCurrentLineIndex = activeListIndex,
                                         romanizeAsMain = false,
                                         enabledLanguages = emptyList(),
                                         romanizeLyrics = false,
@@ -1001,7 +1056,8 @@ private fun LyricsAppearancePreviewCard(
                                                 baseOffsetMs = entry.time
                                                 clockStartWallMs = System.currentTimeMillis()
                                                 positionState.longValue = entry.time
-                                                activeIndex = listIndex
+                                                activeHighlightIndex = listIndex
+                                                scrollAnchorIndex = listIndex
                                             }
                                         },
                                         onLongClick = {},

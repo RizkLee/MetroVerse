@@ -171,8 +171,6 @@ private val LYRICS_FADE_TOP_DP = 130.dp
 private val LYRICS_FADE_BOTTOM_DP = 160.dp
 private val LYRICS_SCROLL_TOP_PADDING_DP = 100.dp
 private val LYRICS_SCROLL_BOTTOM_PADDING_DP = 130.dp
-private const val LYRICS_STAGGER_DELAY_PER_DISTANCE = 20
-private const val LYRICS_STAGGER_DELAY_MAX_MS = 200
 private const val LYRICS_PREVIEW_TIME = 8000L
 private const val LYRICS_TEXT_MEASURER_CACHE_SIZE = 384
 
@@ -188,6 +186,7 @@ fun Lyrics(
     showLyrics: Boolean,
     lyricsViewModel: LyricsViewModel = hiltViewModel(),
     playbackPositionProvider: (() -> Long)? = null,
+    isCasting: Boolean = false,
     onSeekRequested: (Long) -> Unit = {},
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
@@ -244,7 +243,7 @@ fun Lyrics(
     val sharedTextMeasurer = rememberTextMeasurer(cacheSize = LYRICS_TEXT_MEASURER_CACHE_SIZE)
 
     val mediaMetadata by playerConnection.mediaMetadata.collectAsStateWithLifecycle()
-    val isPlaying by playerConnection.isPlaying.collectAsStateWithLifecycle()
+    val isPlaying by playerConnection.isEffectivelyPlaying.collectAsStateWithLifecycle()
     val translationStatus by LyricsTranslationHelper.status.collectAsStateWithLifecycle()
     val currentLyricsEntity by playerConnection.currentLyrics.collectAsStateWithLifecycle(initialValue = null)
     var lastValidLyricsEntity by remember { mutableStateOf<LyricsEntity?>(null) }
@@ -506,6 +505,7 @@ fun Lyrics(
     }
     var isDraggingOrFlinging by remember { mutableStateOf(false) }
     var pendingSeek by remember(lyrics) { mutableStateOf<LyricsSeekTarget?>(null) }
+    var seekTriggerToken by remember(lyrics) { mutableIntStateOf(0) }
 
     BackHandler(enabled = isSelectionModeActive) {
         isSelectionModeActive = false
@@ -524,6 +524,7 @@ fun Lyrics(
     val latestPlaybackPositionProvider by rememberUpdatedState(playbackPositionProvider)
     val latestSliderPositionProvider by rememberUpdatedState(sliderPositionProvider)
     val latestIsPlaying by rememberUpdatedState(isPlaying)
+    val latestIsCasting by rememberUpdatedState(isCasting)
 
     LaunchedEffect(lyrics, lines, showLyrics) {
         if (!showLyrics || lyrics.isNullOrEmpty() || lines.isEmpty()) {
@@ -533,34 +534,73 @@ fun Lyrics(
             return@LaunchedEffect
         }
 
-        var lastPlayerPos = latestPlaybackPositionProvider?.invoke() ?: playerConnection.player.currentPosition
-        var lastUpdateTime = System.currentTimeMillis()
+        val initialRawPos = (latestPlaybackPositionProvider?.invoke() ?: playerConnection.player.currentPosition).coerceAtLeast(0L)
+        var clockState = LyricsPlaybackClockState(lastRawPlayerPosMs = initialRawPos, lastSampleWallMs = System.currentTimeMillis())
+        var lastSeenSeekToken = seekTriggerToken
         val mainLineIndices = lines.indices.filter { !lines[it].isBackground }.toSet()
 
         while (isActive) {
             withFrameNanos { _ -> }
             val now = System.currentTimeMillis()
             val sliderPosition = latestSliderPositionProvider()
-            val previousPlayerPos = lastPlayerPos
-            val playerPos = latestPlaybackPositionProvider?.invoke() ?: playerConnection.player.currentPosition
-            if (playerPos != lastPlayerPos) {
-                lastPlayerPos = playerPos
-                lastUpdateTime = now
-            }
-            val speed = playerConnection.player.playbackParameters.speed.coerceAtLeast(0.1f)
-            val isActivelyPlaying = playerConnection.player.isPlaying
-            val observedPosition = sliderPosition
-                ?: (lastPlayerPos + if (isActivelyPlaying) ((now - lastUpdateTime) * speed).toLong() else 0L)
+            val previousPlayerPos = clockState.lastRawPlayerPosMs
+            val playerPos = (latestPlaybackPositionProvider?.invoke() ?: playerConnection.player.currentPosition).coerceAtLeast(0L)
+            val currentSeekToken = seekTriggerToken
+            val seekTriggered = currentSeekToken != lastSeenSeekToken
+            lastSeenSeekToken = currentSeekToken
+            val castHandler = if (latestIsCasting) playerConnection.service.castConnectionHandler else null
+            val speed = if (latestIsCasting) 1f else playerConnection.player.playbackParameters.speed.coerceAtLeast(0.1f)
+            val isActivelyPlaying =
+                if (latestIsCasting) {
+                    castHandler?.castIsPlaying?.value == true
+                } else {
+                    playerConnection.player.isPlaying
+                }
+            val isBuffering =
+                if (latestIsCasting) {
+                    castHandler?.castIsBuffering?.value == true
+                } else {
+                    playerConnection.player.playbackState == Player.STATE_BUFFERING
+                }
+            val currentPendingSeek = pendingSeek
+            val sampled = sampleLyricsObservedPosition(
+                state = clockState,
+                rawPlayerPosMs = playerPos,
+                sliderPositionMs = sliderPosition,
+                nowMs = now,
+                playbackSpeed = speed,
+                isActivelyPlaying = isActivelyPlaying,
+                isBuffering = isBuffering,
+                isCasting = latestIsCasting,
+                hasPendingSeek = currentPendingSeek != null,
+                seekTriggered = seekTriggered,
+            )
+            clockState = sampled.clockState
+            val observedPosition = sampled.observedPositionMs
 
             val lyricsOffset = currentSong?.song?.lyricsOffset ?: 0
-            val isBuffering = playerConnection.player.playbackState == Player.STATE_BUFFERING
+            val observedIndex = if (currentPendingSeek != null) {
+                val activeAtObserved = findActiveLineIndices(lines, observedPosition + lyricsOffset)
+                if (
+                    isLyricsSeekConfirmed(
+                        observedPositionMs = observedPosition,
+                        target = currentPendingSeek,
+                        isBuffering = isBuffering,
+                        activeIndicesAtObserved = activeAtObserved,
+                    )
+                ) {
+                    currentPendingSeek.index
+                } else {
+                    -1
+                }
+            } else {
+                -1
+            }
             val playback = resolveLyricsPlaybackPosition(
                 observedPositionMs = observedPosition,
                 previewPositionMs = sliderPosition,
-                observedIndex = pendingSeek?.index?.takeIf {
-                    !isBuffering && it in findActiveLineIndices(lines, observedPosition + lyricsOffset)
-                } ?: -1,
-                requestedSeek = pendingSeek,
+                observedIndex = observedIndex,
+                requestedSeek = currentPendingSeek,
                 nowMs = SystemClock.uptimeMillis(),
             )
             val waitingForSeek = playback.pendingSeek
@@ -573,7 +613,13 @@ fun Lyrics(
             smoothEffectivePositionState.longValue = effectivePosition
 
             val initialActiveIndices = findActiveLineIndices(lines, effectivePosition)
-            val scrollActiveIndicesRaw = findActiveLineIndices(lines, effectivePosition + (if (hasWordTimings) 0L else 250L))
+            val scrollLookAheadMs =
+                computeLyricsScrollLookAheadMs(
+                    lines = lines,
+                    currentAnchorIndex = scrollTargetIndex,
+                    hasWordTimings = hasWordTimings,
+                )
+            val scrollActiveIndicesRaw = findActiveLineIndices(lines, effectivePosition + scrollLookAheadMs)
 
             val scrollActiveIndices = scrollActiveIndicesRaw.toMutableSet()
             for (i in scrollActiveIndicesRaw) {
@@ -1011,8 +1057,8 @@ fun Lyrics(
                                 snap()
                             } else {
                                 tween(
-                                    750,
-                                    (distance * LYRICS_STAGGER_DELAY_PER_DISTANCE).coerceAtMost(LYRICS_STAGGER_DELAY_MAX_MS),
+                                    LYRICS_SCROLL_ANIMATION_DURATION_MS,
+                                    (distance * LYRICS_STAGGER_DELAY_PER_DISTANCE_MS).coerceAtMost(LYRICS_STAGGER_DELAY_MAX_MS),
                                     FastOutSlowInEasing,
                                 )
                             },
@@ -1160,6 +1206,19 @@ fun Lyrics(
                                                     showMaxSelectionToast = true
                                                 }
                                             } else if (changeLyrics && !isGuest) {
+                                                val playerDuration = playerConnection.player.duration
+                                                val canSeek = playerDuration <= 0L || item.time < playerDuration + 30_000L
+                                                if (canSeek) {
+                                                    val targetPosition = (item.time - lyricsOffsetVal.toInt()).coerceAtLeast(0L)
+                                                    playerConnection.seekTo(targetPosition)
+                                                    seekTriggerToken++
+                                                    pendingSeek = LyricsSeekTarget(index, targetPosition, SystemClock.uptimeMillis())
+                                                    onSeekRequested(targetPosition)
+                                                    smoothEffectivePositionState.longValue = targetPosition + lyricsOffsetVal
+                                                    activeLineIndices = setOf(index)
+                                                } else {
+                                                    pendingSeek = null
+                                                }
                                                 flingJob?.cancel()
                                                 isDraggingOrFlinging = false
                                                 userManualOffset += animatedOffset - anchorY - restOffsetForAnchor(listIndex)
@@ -1167,17 +1226,8 @@ fun Lyrics(
                                                 deferredCurrentLineIndex = index
                                                 lastMainMaxSeen = index
                                                 previousScrollActiveIndices = emptySet()
-                                                pendingSeek = null
                                                 isDirectScroll = true
                                                 directScrollRequest++
-                                                if (item.time < playerConnection.player.duration + 30000L) {
-                                                    val targetPosition = (item.time - lyricsOffsetVal.toInt()).coerceAtLeast(0L)
-                                                    smoothEffectivePositionState.longValue = targetPosition + lyricsOffsetVal
-                                                    activeLineIndices = setOf(index)
-                                                    pendingSeek = LyricsSeekTarget(index, targetPosition, SystemClock.uptimeMillis())
-                                                    onSeekRequested(targetPosition)
-                                                    playerConnection.seekTo(targetPosition)
-                                                }
                                                 isAutoScrollEnabled = true
                                                 lastPreviewTime = 0L
                                             }

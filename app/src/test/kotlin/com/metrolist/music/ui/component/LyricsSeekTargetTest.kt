@@ -67,4 +67,192 @@ class LyricsSeekTargetTest {
         assertTrue(latest.isPending(playbackIndex = first.index, nowMs = 3_100L))
         assertFalse(latest.isPending(playbackIndex = latest.index, nowMs = 3_150L))
     }
+
+    @Test
+    fun `lyric tap seek does not extrapolate forward while player clock waits to advance`() {
+        val initialState = LyricsPlaybackClockState(lastRawPlayerPosMs = 12_000L, lastSampleWallMs = 1_000L)
+
+        // Frame immediately after lyric tap: player reports target 60_000ms before AudioTrack outputs sound.
+        val firstSample =
+            sampleLyricsObservedPosition(
+                state = initialState,
+                rawPlayerPosMs = 60_000L,
+                sliderPositionMs = null,
+                nowMs = 1_050L,
+                playbackSpeed = 1f,
+                isActivelyPlaying = true,
+                isBuffering = false,
+                isCasting = false,
+                hasPendingSeek = true,
+                seekTriggered = true,
+            )
+        assertEquals(60_000L, firstSample.observedPositionMs)
+        assertTrue(firstSample.clockState.awaitingAdvanceAfterSeek)
+
+        // Even 500ms later while raw player position remains pinned at 60_000ms, word animation stays still.
+        val stalledSample =
+            sampleLyricsObservedPosition(
+                state = firstSample.clockState,
+                rawPlayerPosMs = 60_000L,
+                sliderPositionMs = null,
+                nowMs = 1_550L,
+                playbackSpeed = 1f,
+                isActivelyPlaying = true,
+                isBuffering = false,
+                isCasting = false,
+                hasPendingSeek = false,
+                seekTriggered = false,
+            )
+        assertEquals(60_000L, stalledSample.observedPositionMs)
+        assertTrue(stalledSample.clockState.awaitingAdvanceAfterSeek)
+
+        // Once audio output starts and currentPosition genuinely advances, lockstep interpolation resumes (<= 32ms cap).
+        val flowingSample =
+            sampleLyricsObservedPosition(
+                state = stalledSample.clockState,
+                rawPlayerPosMs = 60_016L,
+                sliderPositionMs = null,
+                nowMs = 1_566L,
+                playbackSpeed = 1f,
+                isActivelyPlaying = true,
+                isBuffering = false,
+                isCasting = false,
+                hasPendingSeek = false,
+                seekTriggered = false,
+            )
+        assertEquals(60_016L, flowingSample.observedPositionMs)
+        assertFalse(flowingSample.clockState.awaitingAdvanceAfterSeek)
+
+        val cappedNextFrame =
+            sampleLyricsObservedPosition(
+                state = flowingSample.clockState,
+                rawPlayerPosMs = 60_016L,
+                sliderPositionMs = null,
+                nowMs = 1_966L,
+                playbackSpeed = 1f,
+                isActivelyPlaying = true,
+                isBuffering = false,
+                isCasting = false,
+                hasPendingSeek = false,
+                seekTriggered = false,
+            )
+        assertEquals(60_016L + LOCAL_LYRICS_EXTRAPOLATION_MAX_MS, cappedNextFrame.observedPositionMs)
+    }
+
+    @Test
+    fun `re-tapping active line confirms only after player reaches line start window`() {
+        val target = LyricsSeekTarget(index = 12, positionMs = 60_000L, requestedAtMs = 1_000L)
+
+        // Player is still at 61_200ms within the same line 12: must NOT prematurely confirm.
+        assertFalse(
+            isLyricsSeekConfirmed(
+                observedPositionMs = 61_200L,
+                target = target,
+                isBuffering = false,
+                activeIndicesAtObserved = setOf(12),
+            ),
+        )
+        // Buffering at target must also wait.
+        assertFalse(
+            isLyricsSeekConfirmed(
+                observedPositionMs = 60_000L,
+                target = target,
+                isBuffering = true,
+                activeIndicesAtObserved = setOf(12),
+            ),
+        )
+        // Player landed slightly before line start at audio frame boundary (59_985ms): confirms cleanly.
+        assertTrue(
+            isLyricsSeekConfirmed(
+                observedPositionMs = 59_985L,
+                target = target,
+                isBuffering = false,
+                activeIndicesAtObserved = emptySet(),
+            ),
+        )
+    }
+
+    @Test
+    fun `cast playback retains bounded interpolation up to cast ceiling and handles 500ms poll steps`() {
+        val state = LyricsPlaybackClockState(lastRawPlayerPosMs = 40_000L, lastSampleWallMs = 2_000L)
+        val result =
+            sampleLyricsObservedPosition(
+                state = state,
+                rawPlayerPosMs = 40_000L,
+                sliderPositionMs = null,
+                nowMs = 2_600L,
+                playbackSpeed = 1f,
+                isActivelyPlaying = true,
+                isBuffering = false,
+                isCasting = true,
+                hasPendingSeek = false,
+                seekTriggered = false,
+            )
+        assertEquals(40_600L, result.observedPositionMs)
+        assertFalse(result.clockState.awaitingAdvanceAfterSeek)
+
+        // Real Cast 500ms polling often wakes up slightly above 500ms (e.g., 520ms) and must NOT reset interpolation.
+        val pollStep =
+            sampleLyricsObservedPosition(
+                state = result.clockState,
+                rawPlayerPosMs = 40_520L,
+                sliderPositionMs = null,
+                nowMs = 2_620L,
+                playbackSpeed = 1f,
+                isActivelyPlaying = true,
+                isBuffering = false,
+                isCasting = true,
+                hasPendingSeek = false,
+                seekTriggered = false,
+            )
+        assertFalse(pollStep.clockState.awaitingAdvanceAfterSeek)
+        assertEquals(40_520L, pollStep.observedPositionMs)
+
+        // Between that 520ms poll and the next poll, bounded Cast interpolation continues smoothly.
+        val betweenPolls =
+            sampleLyricsObservedPosition(
+                state = pollStep.clockState,
+                rawPlayerPosMs = 40_520L,
+                sliderPositionMs = null,
+                nowMs = 2_900L,
+                playbackSpeed = 1f,
+                isActivelyPlaying = true,
+                isBuffering = false,
+                isCasting = true,
+                hasPendingSeek = false,
+                seekTriggered = false,
+            )
+        assertEquals(40_800L, betweenPolls.observedPositionMs)
+
+        // After a Cast lyric-tap seek, awaitingAdvanceAfterSeek clears cleanly on the first ~520ms Cast poll advance.
+        val castSeek =
+            sampleLyricsObservedPosition(
+                state = betweenPolls.clockState,
+                rawPlayerPosMs = 80_000L,
+                sliderPositionMs = null,
+                nowMs = 3_000L,
+                playbackSpeed = 1f,
+                isActivelyPlaying = true,
+                isBuffering = false,
+                isCasting = true,
+                hasPendingSeek = false,
+                seekTriggered = true,
+            )
+        assertTrue(castSeek.clockState.awaitingAdvanceAfterSeek)
+
+        val castSeekResumed =
+            sampleLyricsObservedPosition(
+                state = castSeek.clockState,
+                rawPlayerPosMs = 80_520L,
+                sliderPositionMs = null,
+                nowMs = 3_520L,
+                playbackSpeed = 1f,
+                isActivelyPlaying = true,
+                isBuffering = false,
+                isCasting = true,
+                hasPendingSeek = false,
+                seekTriggered = false,
+            )
+        assertFalse(castSeekResumed.clockState.awaitingAdvanceAfterSeek)
+    }
 }

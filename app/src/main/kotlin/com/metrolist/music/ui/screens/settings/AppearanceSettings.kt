@@ -997,6 +997,40 @@ fun AppearanceSettings(
         Spacer(modifier = Modifier.height(27.dp))
 
         Material3SettingsGroup(
+            title = stringResource(R.string.artwork),
+            items =
+                listOf(
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.slow_motion_video),
+                        title = { Text(stringResource(R.string.artwork)) },
+                        description = { Text(stringResource(R.string.settings_artwork_overview)) },
+                        onClick = { navController.navigate("settings/appearance/artwork") },
+                    ),
+                ),
+        )
+
+        Spacer(modifier = Modifier.height(27.dp))
+
+        Material3SettingsGroup(
+            title = stringResource(R.string.lyrics),
+            items =
+                listOf(
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.lyrics),
+                        title = { Text(stringResource(R.string.lyrics)) },
+                        description = {
+                            Text(
+                                "${lyricsAnimationStyleLabel(lyricsAnimationStyle)} · ${lyricsTextSize.coerceIn(LYRICS_TEXT_SIZE_RANGE).roundToInt()} sp",
+                            )
+                        },
+                        onClick = { navController.navigate("settings/appearance/lyrics") },
+                    ),
+                ),
+        )
+
+        Spacer(modifier = Modifier.height(27.dp))
+
+        Material3SettingsGroup(
             title = stringResource(id = R.string.mini_player),
             items =
                 listOf(
@@ -1236,40 +1270,6 @@ fun AppearanceSettings(
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(27.dp))
-
-        Material3SettingsGroup(
-            title = stringResource(R.string.artwork),
-            items =
-                listOf(
-                    Material3SettingsItem(
-                        icon = painterResource(R.drawable.slow_motion_video),
-                        title = { Text(stringResource(R.string.artwork)) },
-                        description = { Text(stringResource(R.string.settings_artwork_overview)) },
-                        onClick = { navController.navigate("settings/appearance/artwork") },
-                    ),
-                ),
-        )
-
-        Spacer(modifier = Modifier.height(27.dp))
-
-        Material3SettingsGroup(
-            title = stringResource(R.string.lyrics),
-            items =
-                listOf(
-                    Material3SettingsItem(
-                        icon = painterResource(R.drawable.lyrics),
-                        title = { Text(stringResource(R.string.lyrics)) },
-                        description = {
-                            Text(
-                                "${lyricsAnimationStyleLabel(lyricsAnimationStyle)} · ${lyricsTextSize.coerceIn(LYRICS_TEXT_SIZE_RANGE).roundToInt()} sp",
-                            )
-                        },
-                        onClick = { navController.navigate("settings/appearance/lyrics") },
-                    ),
-                ),
-        )
 
         Spacer(modifier = Modifier.height(27.dp))
 

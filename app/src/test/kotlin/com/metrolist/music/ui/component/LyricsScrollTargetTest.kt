@@ -157,6 +157,41 @@ class LyricsScrollTargetTest {
         assertEquals(1, state.lastMainIndex)
     }
 
+    @Test
+    fun `word-timed lyrics use predictive scroll look-ahead while capping ultra-short lines`() {
+        val sampleLines = listOf(
+            LyricsEntry(0L, "Normal opening line", listOf(WordTimestamp("Normal", 0.0, 2.0))),
+            LyricsEntry(2_400L, "Fast!", listOf(WordTimestamp("Fast!", 2.4, 2.85))),
+            LyricsEntry(2_900L, "Next steady line", listOf(WordTimestamp("Next", 2.9, 4.9))),
+            LyricsEntry(5_200L, "Very fast", listOf(WordTimestamp("Very", 5.2, 5.4))),
+            LyricsEntry(5_400L, "Trailing line", listOf(WordTimestamp("Trailing", 5.4, 7.0))),
+        )
+        assertEquals(
+            LYRICS_SCROLL_LOOK_AHEAD_WORD_MS,
+            computeLyricsScrollLookAheadMs(sampleLines, currentAnchorIndex = 0, hasWordTimings = true),
+        )
+        // Line 1 duration is 500ms (< 900ms) -> capped at half duration (250ms).
+        assertEquals(
+            250L,
+            computeLyricsScrollLookAheadMs(sampleLines, currentAnchorIndex = 1, hasWordTimings = true),
+        )
+        // Line 3 duration is 200ms -> floored at 150ms.
+        assertEquals(
+            150L,
+            computeLyricsScrollLookAheadMs(sampleLines, currentAnchorIndex = 3, hasWordTimings = true),
+        )
+        // Out-of-bounds / unset anchor falls back to standard word look-ahead.
+        assertEquals(
+            LYRICS_SCROLL_LOOK_AHEAD_WORD_MS,
+            computeLyricsScrollLookAheadMs(sampleLines, currentAnchorIndex = -1, hasWordTimings = true),
+        )
+        // Non-word-synced lyrics use the line-timed look-ahead.
+        assertEquals(
+            LYRICS_SCROLL_LOOK_AHEAD_LINE_MS,
+            computeLyricsScrollLookAheadMs(sampleLines, currentAnchorIndex = 0, hasWordTimings = false),
+        )
+    }
+
     private fun line(start: Long, endSeconds: Int, background: Boolean = false) =
         LyricsEntry(start, "line", listOf(WordTimestamp("line", start / 1000.0, endSeconds.toDouble())),
             isBackground = background)

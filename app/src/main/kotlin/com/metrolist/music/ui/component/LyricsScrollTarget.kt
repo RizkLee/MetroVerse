@@ -8,6 +8,39 @@ package com.metrolist.music.ui.component
 import com.metrolist.music.lyrics.LyricsEntry
 import com.metrolist.music.lyrics.LyricsUtils.findActiveLineIndices
 
+internal const val LYRICS_SCROLL_LOOK_AHEAD_WORD_MS = 450L
+internal const val LYRICS_SCROLL_LOOK_AHEAD_LINE_MS = 400L
+internal const val LYRICS_SCROLL_ANIMATION_DURATION_MS = 500
+internal const val LYRICS_STAGGER_DELAY_PER_DISTANCE_MS = 20
+internal const val LYRICS_STAGGER_DELAY_MAX_MS = 160
+
+/**
+ * Computes how early the viewport should begin scrolling toward the next lyric line while
+ * keeping word highlighting strictly locked to the real playback position.
+ */
+internal fun computeLyricsScrollLookAheadMs(
+    lines: List<LyricsEntry>,
+    currentAnchorIndex: Int,
+    hasWordTimings: Boolean,
+): Long {
+    if (!hasWordTimings) return LYRICS_SCROLL_LOOK_AHEAD_LINE_MS
+    val current = lines.getOrNull(currentAnchorIndex) ?: return LYRICS_SCROLL_LOOK_AHEAD_WORD_MS
+    val nextMain =
+        (currentAnchorIndex + 1 until lines.size)
+            .firstOrNull { !lines[it].isBackground && lines[it].text.isNotBlank() }
+            ?.let { lines[it] }
+    val endMs =
+        nextMain?.time
+            ?: current.words?.lastOrNull()?.let { (it.endTime * 1000).toLong() }
+            ?: return LYRICS_SCROLL_LOOK_AHEAD_WORD_MS
+    val durationMs = (endMs - current.time).coerceAtLeast(0L)
+    return if (durationMs in 1L..899L) {
+        (durationMs / 2L).coerceAtLeast(150L)
+    } else {
+        LYRICS_SCROLL_LOOK_AHEAD_WORD_MS
+    }
+}
+
 internal data class LyricsScrollTargetState(
     val index: Int = -1,
     val lastMainIndex: Int = -1,

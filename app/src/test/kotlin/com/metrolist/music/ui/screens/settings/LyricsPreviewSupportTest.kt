@@ -6,6 +6,8 @@
 package com.metrolist.music.ui.screens.settings
 
 import com.metrolist.music.db.entities.LyricsEntity.Companion.LYRICS_NOT_FOUND
+import com.metrolist.music.lyrics.LyricsEntry
+import com.metrolist.music.lyrics.WordTimestamp
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -87,5 +89,97 @@ class LyricsPreviewSupportTest {
             assertTrue(fallback.lines.size >= 6)
             assertTrue(fallback.lines.all { !it.words.isNullOrEmpty() })
         }
+    }
+
+    @Test
+    fun `default sample lyrics lines stay concise with descenders and monotonic word timings`() {
+        val sample = buildPreviewLyricsSample()
+        assertTrue(sample.size >= 6)
+        assertTrue(sample.all { entry -> entry.text.length <= 19 })
+        assertTrue(sample.all { entry -> entry.text.split(Regex("\\s+")).size <= 4 })
+        assertTrue(sample.any { entry -> entry.text.any { it in setOf('g', 'y', 'p', 'j') } })
+
+        var previousLineTime = -1L
+        var previousWordEndSec = -0.001
+        for (entry in sample) {
+            assertTrue("Line timestamps must increase", entry.time > previousLineTime)
+            previousLineTime = entry.time
+            val words = entry.words.orEmpty()
+            assertTrue("Each sample line must have word timings", words.isNotEmpty())
+            assertEquals((entry.time / 1000.0), words.first().startTime, 0.01)
+            for (word in words) {
+                assertTrue("Word start must not regress", word.startTime >= previousWordEndSec)
+                assertTrue("Word end must follow start", word.endTime > word.startTime)
+                previousWordEndSec = word.endTime
+            }
+        }
+    }
+
+    @Test
+    fun `live preview scroll anchor progresses monotonically past ultra-short lines without oscillating`() {
+        val lines = listOf(
+            LyricsEntry(0L, "Long opening line", listOf(WordTimestamp("Long", 0.0, 2.0))),
+            LyricsEntry(2_000L, "Quick!", listOf(WordTimestamp("Quick!", 2.0, 2.5))),
+            LyricsEntry(2_550L, "Following chorus line", listOf(WordTimestamp("Following", 2.55, 4.5))),
+        )
+        // Frame at 1_600ms (with 450ms look-ahead from active line 0 -> 2_050ms enters ultra-short line 1).
+        val enteredShortLine =
+            resolvePreviewScrollAnchorIndex(
+                lines = lines,
+                currentHighlightIndex = 0,
+                previousScrollAnchorIndex = 0,
+                effectivePositionMs = 1_600L,
+                previousPositionMs = 1_550L,
+                hasWordTimings = true,
+            )
+        assertEquals(1, enteredShortLine)
+
+        // Frame at 1_900ms while still on line 0: 1_900 + 450 = 2_350ms (< 2_550ms), stays monotonic on line 1.
+        val stayedOnShortLine =
+            resolvePreviewScrollAnchorIndex(
+                lines = lines,
+                currentHighlightIndex = 0,
+                previousScrollAnchorIndex = enteredShortLine,
+                effectivePositionMs = 1_900L,
+                previousPositionMs = 1_600L,
+                hasWordTimings = true,
+            )
+        assertEquals(1, stayedOnShortLine)
+
+        // Once activeHighlight advances onto ultra-short line 1 (2_050ms + 275ms look-ahead = 2_325ms),
+        // it never regresses back to 0 and stays on 1 until reaching line 2's look-ahead window.
+        val whileSingingShortLine =
+            resolvePreviewScrollAnchorIndex(
+                lines = lines,
+                currentHighlightIndex = 1,
+                previousScrollAnchorIndex = stayedOnShortLine,
+                effectivePositionMs = 2_050L,
+                previousPositionMs = 1_900L,
+                hasWordTimings = true,
+            )
+        assertEquals(1, whileSingingShortLine)
+
+        val advancedToFollowingLine =
+            resolvePreviewScrollAnchorIndex(
+                lines = lines,
+                currentHighlightIndex = 1,
+                previousScrollAnchorIndex = whileSingingShortLine,
+                effectivePositionMs = 2_300L,
+                previousPositionMs = 2_050L,
+                hasWordTimings = true,
+            )
+        assertEquals(2, advancedToFollowingLine)
+
+        // Seeking backward to 400ms rebases cleanly back to line 0.
+        val afterBackwardSeek =
+            resolvePreviewScrollAnchorIndex(
+                lines = lines,
+                currentHighlightIndex = 0,
+                previousScrollAnchorIndex = advancedToFollowingLine,
+                effectivePositionMs = 400L,
+                previousPositionMs = 2_300L,
+                hasWordTimings = true,
+            )
+        assertEquals(0, afterBackwardSeek)
     }
 }
