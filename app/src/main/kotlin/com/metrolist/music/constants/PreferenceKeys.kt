@@ -535,6 +535,7 @@ CRITICAL RULES:
 val LyricsRomanizeList = stringPreferencesKey("lyricsRomanizeList")
 val LyricsAnimationStyleKey = stringPreferencesKey("lyricsAnimationStyle")
 val LyricsAnimationStyleDefaultMigratedKey = booleanPreferencesKey("lyricsAnimationStyleDefaultMigrated")
+val LyricsAnimationStyleAppleDefaultMigratedKey = booleanPreferencesKey("lyricsAnimationStyleAppleDefaultMigrated")
 
 enum class LyricsAnimationStyle {
     METROVERSE,
@@ -545,7 +546,7 @@ enum class LyricsAnimationStyle {
     companion object {
         fun fromStoredValue(value: String?): LyricsAnimationStyle =
             when (value?.uppercase()) {
-                "METROVERSE", "FADE", "GLOW", "SLIDE", "KARAOKE" -> METROVERSE
+                "METROVERSE" -> METROVERSE
                 "NONE" -> NONE
                 else -> APPLE
             }
@@ -553,26 +554,20 @@ enum class LyricsAnimationStyle {
 }
 
 internal fun migrateLyricsAnimationStyleDefaultIfNeeded(settings: MutablePreferences) {
-    if (settings[LyricsAnimationStyleDefaultMigratedKey] == true) return
-    if (settings[LyricsAnimationStyleKey].isNullOrBlank()) {
-        val isExistingInstall =
-            !settings[LastSeenVersionKey].isNullOrBlank() ||
-                settings[SimpMusicMigrationDoneKey] == true ||
-                settings[UsageModeOnboardingCompletedKey] == true ||
-                settings[AppUsageModeKey] != null ||
-                settings[LyricsTextSizeKey] != null ||
-                settings[LyricsLineSpacingKey] != null ||
-                settings[LyricsProgressiveBlurKey] != null ||
-                settings[InnerTubeCookieKey] != null ||
-                settings[VisitorDataKey] != null
-        settings[LyricsAnimationStyleKey] =
-            if (isExistingInstall) {
-                LyricsAnimationStyle.METROVERSE.name
-            } else {
-                LyricsAnimationStyle.APPLE.name
-            }
+    if (settings[LyricsAnimationStyleAppleDefaultMigratedKey] == true) return
+    val currentRaw = settings[LyricsAnimationStyleKey]?.uppercase()
+    val wasPinnedByPriorDefaultMigration =
+        settings[LyricsAnimationStyleDefaultMigratedKey] == true &&
+            currentRaw == LyricsAnimationStyle.METROVERSE.name
+    val shouldResetToAppleDefault =
+        currentRaw.isNullOrBlank() ||
+            currentRaw in setOf("FADE", "GLOW", "SLIDE", "KARAOKE") ||
+            wasPinnedByPriorDefaultMigration
+    if (shouldResetToAppleDefault) {
+        settings[LyricsAnimationStyleKey] = LyricsAnimationStyle.APPLE.name
     }
-    settings[LyricsAnimationStyleDefaultMigratedKey] = true
+    settings.remove(LyricsAnimationStyleDefaultMigratedKey)
+    settings[LyricsAnimationStyleAppleDefaultMigratedKey] = true
 }
 
 const val DEFAULT_LYRICS_TEXT_SIZE = 36f

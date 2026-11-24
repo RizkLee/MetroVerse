@@ -24,8 +24,8 @@ class InstalledChangelogTest {
     fun englishAndChineseInstalledNotesDescribeTheCurrentBuildAndLanguages() {
         val context = ApplicationProvider.getApplicationContext<Application>()
         val terms = mapOf(
-            Locale.ENGLISH to listOf("content filtering", "Apple Music", "progressive blur", "animated album covers"),
-            Locale.SIMPLIFIED_CHINESE to listOf("内容过滤", "Apple Music", "渐进模糊", "动态专辑封面"),
+            Locale.ENGLISH to listOf("content filtering", "Apple Music", "progressive blur", "animated album covers", "Podcasts-only", "app icon"),
+            Locale.SIMPLIFIED_CHINESE to listOf("内容过滤", "Apple Music", "渐进模糊", "动态专辑封面", "仅播客", "应用图标"),
         )
         terms.forEach { (locale, languages) ->
             val configuration = Configuration(context.resources.configuration).apply { setLocale(locale) }

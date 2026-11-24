@@ -149,7 +149,7 @@ import com.metrolist.music.constants.EnableHighRefreshRateKey
 import com.metrolist.music.constants.EnableLandscapeScalingKey
 import com.metrolist.music.constants.LastSeenVersionKey
 import com.metrolist.music.constants.ListenTogetherUsernameKey
-import com.metrolist.music.constants.LyricsAnimationStyleDefaultMigratedKey
+import com.metrolist.music.constants.LyricsAnimationStyleAppleDefaultMigratedKey
 import com.metrolist.music.constants.LyricsProviderOrderKey
 import com.metrolist.music.constants.MiniPlayerBottomSpacing
 import com.metrolist.music.constants.MiniPlayerHeight
@@ -441,12 +441,12 @@ class MainActivity : ComponentActivity() {
                 }
         }
 
-        // Run the default lyrics animation migration synchronously before background migrations
-        // write any install-sentinel flags (so fresh installs receive Apple Music while upgrades keep MetroVerse).
+        // Ensure Apple Music is enabled as the default lyrics animation style for all installs
+        // (fresh installs, legacy 1.2.x upgrades, and prior 1.3.0 builds auto-pinned to MetroVerse).
         val initialPrefs =
             runBlocking(Dispatchers.IO) {
                 val current = dataStore.data.first()
-                if (current[LyricsAnimationStyleDefaultMigratedKey] != true) {
+                if (current[LyricsAnimationStyleAppleDefaultMigratedKey] != true) {
                     safeDataStoreEdit { settings ->
                         migrateLyricsAnimationStyleDefaultIfNeeded(settings)
                     }

@@ -93,10 +93,9 @@ class LyricsVisualHelpersTest {
 
     @Test
     fun `LyricsAnimationStyle migrates legacy styles cleanly`() {
-        for (legacy in listOf("FADE", "GLOW", "SLIDE", "KARAOKE", "METROVERSE")) {
-            assertEquals(LyricsAnimationStyle.METROVERSE, LyricsAnimationStyle.fromStoredValue(legacy))
-        }
-        for (appleOrDefault in listOf("apple", "APPLE", null, "unknown")) {
+        assertEquals(LyricsAnimationStyle.METROVERSE, LyricsAnimationStyle.fromStoredValue("METROVERSE"))
+        assertEquals(LyricsAnimationStyle.METROVERSE, LyricsAnimationStyle.fromStoredValue("metroverse"))
+        for (appleOrDefault in listOf("FADE", "GLOW", "SLIDE", "KARAOKE", "apple", "APPLE", null, "unknown")) {
             assertEquals(LyricsAnimationStyle.APPLE, LyricsAnimationStyle.fromStoredValue(appleOrDefault))
         }
         assertEquals(LyricsAnimationStyle.NONE, LyricsAnimationStyle.fromStoredValue("none"))
