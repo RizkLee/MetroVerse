@@ -1,0 +1,5 @@
+- Stable release superseding v1.3.0 pre-release (upgrades v1.2.2 and v1.3.0).
+- Upgraded InnerTube playback, attestation, and encrypted credentials.
+- Added Podcasts-only startup mode, content filters, and Apple Music animated covers/videos.
+- Enabled Apple Music lyrics by default with live preview, synced scroll/scale motion, blur, and tap-to-seek sync.
+- Restored dark icon, added Piano Black icon, and fixed sign-in and queue bugs.

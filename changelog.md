@@ -2,27 +2,29 @@
 
 All notable MetroVerse-specific changes are recorded here. Upstream Metrolist history remains available in Git history.
 
-## 1.3.0 - 2026-11-24
+## 1.3.1 - 2026-11-25
+
+Stable release superseding the `v1.3.0` pre-release so both `v1.2.2` and `v1.3.0` pre-release installs upgrade directly.
 
 ### Added
 
 - Add a first-launch usage mode prompt to choose between Music + Podcasts and Podcasts-only mode (which hides the Home tab and defaults Library and Search to Podcasts; changeable anytime in Settings → Appearance → Misc).
 - Add content filtering options for explicit-only tracks, AI artist blocklists, video songs, non-musical videos, short songs, and hiding YouTube podcasts without affecting Open RSS podcasts.
 - Add Apple Music animated album covers, artist images, and artist profile videos, with resolution limits and a mobile-data toggle.
-- Add unified lyrics controls supporting Apple Music and MetroVerse word-by-word animation styles, text size and line spacing sliders with a live preview, progressive blur, and bottom provider and songwriter credits.
-- Add an App icon switcher in Settings → Appearance, including the restored dark-mode default icon and custom icon options.
+- Add unified lyrics controls supporting Apple Music and MetroVerse word-by-word animation styles, text size and line spacing sliders with a concise live preview, progressive blur, and bottom provider and songwriter credits.
+- Add an App icon switcher in Settings → Appearance, including the restored dark-mode default icon and Piano Black icon option.
 
 ### Changed
 
 - Enable Apple Music word-by-word lyrics animation by default for all users.
-- Standardize on the updated player and mini-player designs, remove the legacy player layouts, and add the album-cover zoom transition when opening or closing lyrics.
+- Standardize on the updated player and mini-player designs, remove the legacy player layouts, move Artwork and Lyrics above Mini-player in Settings → Appearance, and add the album-cover zoom transition when opening or closing lyrics.
 - Upgrade the InnerTube playback engine, anti-bot attestation, encrypted credential storage, database backup safety, and cache management.
 
 ### Fixed
 
 - Fix Google/YouTube WebView sign-in, playback queue resolution from Home and Search results, and returning to the Podcasts tab from search via the bottom navigation bar.
-- Improve lyrics tap-to-seek responsiveness, instant updates when switching lyrics animation styles, and artist profile video aspect ratio and bottom fade.
-- Fix Discord Rich Presence and Last.fm scrobbling reliability and token persistence.
+- Align Apple Music predictive scroll and focus-line scale timing, preserve MetroVerse's synchronized 750ms scroll and breathing motion, improve lyrics tap-to-seek audio synchronization, and ensure instant updates when switching lyrics animation styles.
+- Fix artist profile video aspect ratio and bottom fade, and improve Discord Rich Presence and Last.fm scrobbling reliability and token persistence.
 
 ## 1.2.2 - 2026-11-18
 

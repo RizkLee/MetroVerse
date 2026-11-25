@@ -632,7 +632,7 @@
     <string name="metroverse_metrolist_relationship">MetroVerse 基于 Metrolist，保留其音乐架构、界面基础、贡献者历史和 GPL 授权关系。</string>
     <string name="metroverse_podium_relationship">RSS 与 Apple Podcasts 整合功能是在 GPL-3.0 下研究并适配 Podium 实现思路后开发的。</string>
     <string name="metroverse_apple_podcasts_attribution">Apple Podcasts 提供公开的发现、榜单、搜索元数据和封面。MetroVerse 独立播放公开 RSS 订阅源，与 Apple 无隶属或合作关系。</string>
-    <string name="metroverse_changelog_body">MetroVerse 1.3.0\n\n• 升级 InnerTube 播放引擎、反爬认证与本地凭据加密存储\n• 优化数据库备份安全、缓存管理，修复网页登录与首页/搜索结果页播放异常\n• 新增首次启动使用模式引导，支持“音乐 + 播客”与“仅播客”模式切换\n• 新增内容过滤设置（仅露骨歌曲、AI 艺人屏蔽、视频与短音频过滤，以及不影响 Open RSS 的隐藏 YouTube 播客选项）\n• 所有用户默认启用 Apple Music 逐字歌词样式，新增实时预览、字号与行距调节、渐进模糊、专辑封面缩放过渡及底部词曲作者署名\n• 新增 Apple Music 动态专辑封面、艺人图片与艺人个人资料视频\n• 统一采用新版播放器与迷你播放器设计，并修复播客搜索底部导航返回、Discord RPC 与 Last.fm 同步问题\n• 恢复深色模式默认图标，并在外观设置中新增自定义应用图标切换功能</string>
+    <string name="metroverse_changelog_body">MetroVerse 1.3.1\n\n• 升级 InnerTube 播放引擎、反爬认证与本地凭据加密存储\n• 优化数据库备份安全、缓存管理，修复网页登录与首页/搜索结果页播放异常\n• 新增首次启动使用模式引导，支持“音乐 + 播客”与“仅播客”模式切换\n• 新增内容过滤设置（仅露骨歌曲、AI 艺人屏蔽、视频与短音频过滤，以及不影响 Open RSS 的隐藏 YouTube 播客选项）\n• 所有用户默认启用 Apple Music 逐字歌词样式，新增实时预览、字号与行距调节、渐进模糊、专辑封面缩放过渡及底部词曲作者署名，并优化滚动节奏、点击跳转同步与外观设置排序\n• 新增 Apple Music 动态专辑封面、艺人图片与艺人个人资料视频\n• 统一采用新版播放器与迷你播放器设计，并修复播客搜索底部导航返回、Discord RPC 与 Last.fm 同步问题\n• 恢复深色模式默认图标，并在外观设置中新增自定义应用图标切换功能</string>
     <string name="wanna_play_favorite_song">想播放他们最喜欢的歌曲吗？</string>
     <string name="yeah">是的！</string>
     <string name="stands_with_palestine">本项目声援巴勒斯坦 🇵🇸</string>

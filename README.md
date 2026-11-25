@@ -82,7 +82,7 @@ MetroVerse is not an official release of Metrolist or Podium and is not affiliat
 App name:        MetroVerse
 Application ID:  com.rizklee.metroverse
 Debug ID:        com.rizklee.metroverse.debug
-Version:         1.2.2
+Version:         1.3.1
 Minimum Android: Android 8.0 / API 26
 Target Android:  API 36
 Device ABI:      ARM64 (arm64-v8a)
@@ -116,10 +116,10 @@ Downloads are published on the [Releases page](https://github.com/RizkLee/MetroV
 
 | Variant  | Description                                | Download link                                                                                        |
 | -------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| FOSS APK | MetroVerse app without Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/v1.2.2/MetroVerse-v1.2.2-foss.apk) |
-| GMS APK  | The same app, but with Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/v1.2.2/MetroVerse-v1.2.2-gms.apk)  |
+| FOSS APK | MetroVerse app without Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/v1.3.1/MetroVerse-v1.3.1-foss.apk) |
+| GMS APK  | The same app, but with Google Cast support | [Download](https://github.com/RizkLee/MetroVerse/releases/download/v1.3.1/MetroVerse-v1.3.1-gms.apk)  |
 
-[Download the SHA-256 checksum file](https://github.com/RizkLee/MetroVerse/releases/download/v1.2.2/MetroVerse-v1.2.2-SHA256SUMS.txt).
+[Download the SHA-256 checksum file](https://github.com/RizkLee/MetroVerse/releases/download/v1.3.1/MetroVerse-v1.3.1-SHA256SUMS.txt).
 
 ### Contributing
 
@@ -176,7 +176,7 @@ MetroVerse 不是 Metrolist 或 Podium 的官方版本，与 Apple、Google 或 
 应用名称：      MetroVerse
 正式包名：      com.rizklee.metroverse
 调试包名：      com.rizklee.metroverse.debug
-当前版本：      1.2.2
+当前版本：      1.3.1
 最低系统：      Android 8.0 / API 26
 目标 API：      36
 设备架构：      ARM64（arm64-v8a）
@@ -207,10 +207,10 @@ APK 发布在 [Releases 页面](https://github.com/RizkLee/MetroVerse/releases)�
 
 | App 版本 | 适用场景                            | 下载链接                                                                                                    |
 | -------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| FOSS APK | 不包含 Google Cast 功能的 App | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v1.2.2/MetroVerse-v1.2.2-foss.apk) |
-| GMS APK  | 包含 Google Cast 功能的 App   | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v1.2.2/MetroVerse-v1.2.2-gms.apk)  |
+| FOSS APK | 不包含 Google Cast 功能的 App | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v1.3.1/MetroVerse-v1.3.1-foss.apk) |
+| GMS APK  | 包含 Google Cast 功能的 App   | [下载 MetroVerse](https://github.com/RizkLee/MetroVerse/releases/download/v1.3.1/MetroVerse-v1.3.1-gms.apk)  |
 
-[下载 SHA-256 校验文件](https://github.com/RizkLee/MetroVerse/releases/download/v1.2.2/MetroVerse-v1.2.2-SHA256SUMS.txt)。
+[下载 SHA-256 校验文件](https://github.com/RizkLee/MetroVerse/releases/download/v1.3.1/MetroVerse-v1.3.1-SHA256SUMS.txt)。
 
 ### 参与开发
 
